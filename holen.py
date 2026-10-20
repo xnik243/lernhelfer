@@ -2,12 +2,15 @@
 
 Einrichten: in der App unter Einrichten bzw. Konto. Windows: einrichten.ps1 (Python, dieses Skript und die Aufgabenplanung nach
 %LOCALAPPDATA%\\Lernhelfer); Mac: einrichten-mac.sh (nach ~/Library/Lernhelfer, launchd statt Aufgabenplanung).
-Start von Hand: python holen.py [Fach ...]; --auto = Lauf aus der Aufgabenplanung (alle 30 Minuten), --kurse = nur Kurse suchen.
+Start von Hand: python holen.py [Fach ...]; --auto = Lauf aus der Aufgabenplanung, --kurse = nur Kurse suchen.
+Die Aufgabenplanung ruft alle 30 Minuten auf, OLAT sieht davon aber nur einen Abgleich etwa alle 12 Stunden, tagsüber und mit
+Pausen zwischen den Seiten wie beim Klicken von Hand (faellig(), pause()); dazwischen geht keine einzige Anfrage an OLAT.
 Ist die OLAT-Sitzung abgelaufen, öffnet sich Chrome (am Mac ohne Chrome: Chromium): dort selbst einloggen (SSO + Authenticator).
 
-Tests: Laufende Onlinetests werden einmal angesehen und danach mit „Test unterbrechen“ + „Ok“ verlassen,
-Selbsttests genauso. Nach Ablauf stehen Fragen und Lösung auf der Startseite. Ein Wächter im Browser lässt
-nur Lesen und genau den jeweils nächsten erlaubten Schritt durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
+Tests: Gelesen werden die Startseiten (Zeitraum, Punkte, Versuche), nach Ablauf stehen Fragen und Lösung dort. Selbsttests
+werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Laufende bewertete Tests nur mit „laufende-tests“ in
+quellen.json (privat, nie verteilt). Ein Wächter im Browser lässt nur Lesen und genau den jeweils nächsten erlaubten Schritt
+durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
 """
 import base64
 import hashlib
@@ -15,6 +18,7 @@ import html
 import json
 import logging
 import os
+import random
 import re
 import sys
 import time
@@ -91,7 +95,58 @@ def fach_json(fach, hochgeladen=()):
             dateien.append({"datei": f"{q['name']}/{f.name}", "art": q["art"], "text": t})
     for f in sorted((MATERIAL / fach / TESTS).glob("*.txt"), key=lambda f: natur(f.name)):
         dateien.append({"datei": f"{TESTS}/{f.name}", "art": "test", "text": f.read_text("utf-8")})
+    if fach == "Mathematik" and "mathe4wiwi" in zusatzquellen():
+        dateien += mathe4wiwi(datetime.now())
     return {"dateien": dateien + list(hochgeladen)}  # ohne Zeitstempel: unveränderte Fächer werden nicht neu hochgeladen
+
+
+QUELLEN = BASIS / "quellen.json"  # nur von Hand angelegt, etwa ["mathe4wiwi", "laufende-tests"]: privat, das Einrichten verteilt sie nie
+
+
+def zusatzquellen():
+    try:
+        return json.loads(QUELLEN.read_text("utf-8")) if QUELLEN.exists() else []
+    except ValueError:
+        return []
+
+
+def mathe4wiwi(jetzt):
+    """Wochenseiten von mathe4wiwi.org (Mathematik für Wiwi an der LFU: Überblick, Quiz mit Lösungen, PS-Übungsaufgabe, Video-Links).
+    Lizenz CC BY-NC-SA 4.0: nur nicht-kommerziell, darum nur über quellen.json auf dem eigenen PC, nie für zahlende Konten.
+    Nimmt die Wochen rund um die aktuelle Semesterwoche (Woche 1 = erster Montag im Oktober bzw. März)."""
+    erster = datetime(jetzt.year if jetzt.month >= 3 else jetzt.year - 1, 10 if jetzt.month >= 10 or jetzt.month <= 2 else 3, 1)
+    erster += timedelta(days=-erster.weekday() % 7)
+    woche = (jetzt - erster).days // 7 + 1
+    dateien = []
+    for n in range(max(1, woche - 2), min(14, woche + 1) + 1):
+        url = f"https://www.mathe4wiwi.org/video/uibk{n:02d}.html"
+        try:
+            roh = urlopen(Request(url, headers={"User-Agent": "Lernhelfer (private Nutzung)"}), timeout=30).read().decode("utf-8", "ignore")
+        except Exception as e:  # ponytail: fehlt die Seite oder ist die Seite down, fehlt diese Woche eben
+            logging.info("mathe4wiwi Woche %s: %s", n, e)
+            continue
+        videos = re.findall(r'src="https://www\.youtube\.com/embed/([\w-]{11})"[^>]*title="([^"]*)"', roh)
+        roh = re.sub(r"(?s)<(script|style|nav|header|footer)\b.*?</\1>", "", roh)
+        text = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", roh))).strip()
+        dateien.append({"datei": f"mathe4wiwi/Woche {n:02d}.html", "art": "folien",
+                        "text": f"Zusatzquelle mathe4wiwi.org, Woche {n} ({url}); Lizenz CC BY-NC-SA 4.0, A. Zeileis, B. Rudloff, R. Stauffer.\n{text}\n"
+                                + "Videos dieser Woche: " + "; ".join(f"{t}: https://www.youtube.com/watch?v={v}" for v, t in videos)})
+    return dateien
+
+
+def faellig(stand, jetzt):
+    """Automatischer Abgleich wie von Hand: nur zwischen 7 und 23 Uhr und erst ab dem nächsten Termin (siehe weiter())."""
+    return 7 <= jetzt.hour < 23 and jetzt >= datetime.fromisoformat(stand.get("naechster", "2000-01-01"))
+
+
+def weiter(stand, stunden):
+    """Nächster automatischer Abgleich in `stunden` plus bis zu 45 Minuten Zufall, damit es nicht wie ein Uhrwerk aussieht."""
+    stand["naechster"] = (datetime.now() + timedelta(hours=stunden, minutes=random.randint(0, 45))).isoformat(timespec="minutes")
+
+
+def pause(page):
+    """2 bis 5 Sekunden zwischen zwei Seiten, wie beim Klicken von Hand; schont OLAT."""
+    page.wait_for_timeout(random.uniform(2000, 5000))
 
 
 class Abgelaufen(Exception):
@@ -175,10 +230,7 @@ def kurse_finden(page, jetzt=None):
                 continue
             url = f"{kurs}/CourseNode/{k['id']}"
             if k["icon"] == "o_bc_icon":
-                page.goto(f"{OLAT}/auth/RepositoryEntry/{url}")
-                page.wait_for_load_state("networkidle")
-                unter = [t.strip() for t in page.locator("#o_main_center_content_inner .o_folder_card:has(.o_filetype_folder) .o_folder_card_title").all_inner_texts()]
-                eintraege = [(k["titel"], url)] + [(f"{k['titel']} {u}", f"{url}/path%3D~~{quote(u)}/0") for u in unter]
+                eintraege = ordner_baum(page, url, k["titel"])
             elif (k["icon"] is None and not NICHT_LADEN.search(k["titel"])) or (k["icon"] == "o_sp_icon" and k["eltern"] == wurzel):
                 eintraege = [(k["titel"], url)]
             else:
@@ -195,7 +247,21 @@ def kurse_finden(page, jetzt=None):
     return neu
 
 
+def ordner_baum(page, url, name, pfad=(), tiefe=3):
+    """Ein Ordner und seine Unterordner bis `tiefe` Ebenen tief, jeder als eigener Eintrag [(Name, Adresse)].
+    Jede LV ordnet anders (VO/Woche 3/Übung …); OLAT schreibt / im Ordnerpfad der Adresse als ~~."""
+    adresse = url + (f"/path%3D~~{'~~'.join(quote(p) for p in pfad)}/0" if pfad else "")
+    if not tiefe:
+        return [(name, adresse)]
+    pause(page)
+    page.goto(f"{OLAT}/auth/RepositoryEntry/{adresse}")
+    page.wait_for_load_state("networkidle")
+    unter = [t.strip() for t in page.locator("#o_main_center_content_inner .o_folder_card:has(.o_filetype_folder) .o_folder_card_title").all_inner_texts()]
+    return [(name, adresse)] + [x for u in unter if not NICHT_LADEN.search(u) for x in ordner_baum(page, url, f"{name} {u}", pfad + (u,), tiefe - 1)]
+
+
 def oeffne(page, url):
+    pause(page)
     page.goto(url)
     page.wait_for_load_state("networkidle")
     groesse = page.locator("#o_main_center_content_inner .o_table_pagination .dropdown-toggle")
@@ -217,7 +283,7 @@ def sync(ctx, page, fach):
         seite = main.locator("iframe[src*='/m/']:not([src*='viewer.html'])")  # HTML-Seite, kein PDF-Betrachter
         karten = main.locator(".o_folder_card:not(:has(.o_filetype_folder))")
         if main.locator(".o_folder_card").count():  # Ordner
-            # ponytail: Unterordner werden übersprungen (bei Bedarf eigener Eintrag in kurse.json),
+            # Unterordner haben eigene Einträge (ordner_baum, bis 3 Ebenen tief);
             # vorhandene Dateien nicht neu geladen – geänderte Datei mit gleichem Namen: lokal löschen.
             namen = [n.strip() for n in karten.locator(".o_folder_card_title").all_inner_texts()]
             for name in [n for n in namen if not (ziel / n).exists()]:
@@ -283,6 +349,7 @@ def knoten(page, kurs):
     """Alle Kursbausteine; Strukturknoten werden per Adresse geöffnet, damit der Baum aufklappt."""
     alle, offen = {}, [""]
     while offen:
+        pause(page)
         page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}{offen.pop()}")
         page.wait_for_load_state("networkidle")
         for k in page.evaluate(KNOTEN_JS):
@@ -414,6 +481,7 @@ def tests(browser, fach):
             datei, fragen = ziel / f"{name}.txt", ziel / f"{name} – Fragen.txt"
             if k["icon"] == "o_iqself_icon" and datei.exists():  # Selbsttests ändern sich nicht
                 continue
+            pause(page)
             page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
             page.wait_for_load_state("networkidle")
             try:
@@ -424,7 +492,7 @@ def tests(browser, fach):
                     t = f"OLAT-Test „{k['titel']}“ – Startseite (ob er bewertet wird, steht im Text)\n\n" + seite
                     if "Dies sind Ihre Testresultate" in seite:  # abgelaufen: Fragen samt Lösung stehen auf der Startseite
                         fragen.unlink(missing_ok=True)
-                    elif not fragen.exists() and laeuft(page, seite):  # einmal ansehen, dann unterbrechen
+                    elif not fragen.exists() and "laufende-tests" in zusatzquellen() and laeuft(page, seite):  # einmal ansehen, dann unterbrechen
                         fragen.write_text(f"OLAT-Test „{k['titel']}“ – Fragen, gelesen am {datetime.now():%d.%m.%Y} während der "
                                           f"Bearbeitungszeit, ohne Lösung. Zeitraum und Bewertung: siehe Startseite „{datei.name}“.\n\n"
                                           + test_lesen(page, frei, "Test starten"), "utf-8")
@@ -525,6 +593,8 @@ if __name__ == "__main__":
     from playwright.sync_api import TimeoutError as Zeitueberschreitung, sync_playwright
 
     auto = "--auto" in sys.argv  # aus der Aufgabenplanung bzw. launchd: ohne Konsole, Ausgaben ins Log
+    if auto and not faellig(json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}, datetime.now()):
+        sys.exit()  # noch nicht dran: OLAT bleibt in Ruhe, auch kein Wachhalten der Sitzung
     if auto:
         sys.stdout = sys.stderr = open(BASIS / "holen.log", "a", encoding="utf-8", buffering=1)
         print(f"--- {datetime.now():%d.%m.%Y %H:%M}")
@@ -561,14 +631,14 @@ if __name__ == "__main__":
                                             fenster_auf=fenster_auf)
         except (Abgelaufen, Zeitueberschreitung) as e:
             print("OLAT-Anmeldung abgelaufen.", type(e).__name__)
+            weiter(stand, 4)  # abgelaufen: in rund 4 Stunden wieder versuchen, von Hand jederzeit
+            STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
             if alt.get("ok") is not False and ZUGANG.exists():
                 melde(False, f"OLAT-Anmeldung am {GERAET} abgelaufen – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken und einloggen.")
             sys.exit(0 if auto else 1)
-        ctx.storage_state(path=SITZUNG)  # jeder Aufruf hält die OLAT-Sitzung wach
-        if auto and alt.get("ok") and jetzt - datetime.fromisoformat(alt["zeit"]) < timedelta(hours=12):
-            print("OLAT-Sitzung aktiv, nur wach gehalten.")
-            browser.close()
-            sys.exit()  # ponytail: voller Abgleich höchstens alle 12 Stunden, dazwischen nur wach halten
+        ctx.storage_state(path=SITZUNG)
+        weiter(stand, 12)  # gleich speichern: bricht der Lauf ab, kommt OLAT trotzdem erst in 12 Stunden wieder dran
+        STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
         # Selbst gefundene Kurse jedes Semester neu suchen; eine von Hand gepflegte kurse.json bleibt, wie sie ist
         if KURSE is None or "--kurse" in sys.argv or stand.get("kurse_semester", semester(jetzt)) != semester(jetzt):
             KURSE = kurse_finden(page, jetzt)

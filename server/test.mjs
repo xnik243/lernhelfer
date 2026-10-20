@@ -58,7 +58,7 @@ let log = '';
 const server = spawn(process.execPath, ['--no-warnings', join(import.meta.dirname, 'server.mjs')], { env: { ...process.env,
   LH_DATEN: ordner, LH_PORT: String(PORT), LH_URL: BASIS, LH_OR_URL: `http://127.0.0.1:${attrappe.address().port}`, LH_OR_KEY: 'sk-or-server',
   LH_OR_VERWALTUNG: 'verwaltung', LH_ADMIN: 'chef@example.com', LH_IBAN: 'AT00 TEST', LH_BREVO: '',
-  LH_ECKE: 'Ecke-Passwort!', LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1' } });
+  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1' } });
 server.stdout.on('data', t => log += t); server.stderr.on('data', t => log += t);
 const warte = async (bis, was) => { for (let i = 0; i < 100; i++) { const x = await bis(); if (x) return x; await new Promise(ok => setTimeout(ok, 50)); } throw new Error('Zeit um: ' + was + '\n' + log); };
 await warte(() => fetch(BASIS + '/api/tarife').then(r => r.ok, () => false), 'Server startet');
@@ -164,14 +164,7 @@ try {
   assert.deepEqual(basis.reasoning, { effort: 'max' }); assert.equal(basis.max_tokens, 120000);
   assert.deepEqual(basis.provider, { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 } });
   assert.equal((await anna('GET', '/api/ich')).j.genutzt, 15, '0,30 $ von 2 $');
-  r = await anna('POST', '/api/ki', { feature: 'test-foto', model: 'google/gemini-3.8-flash', reasoning: { effort: 'max' }, provider: { x: 1 }, stil: false,
-    messages: [{ role: 'user', content: [{ type: 'text', text: 'Abschreiben' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } }] }] });
-  assert.equal(r.status, 200, 'Test-Fotos auch in Base');
-  const foto = or.anfragen.at(-1);
-  assert.equal(foto.model, 'google/gemini-3.8-flash', 'Fotos: Modell mit Bildern, nicht DeepSeek'); assert.equal(foto.max_tokens, 16000);
-  assert.equal(foto.reasoning, undefined); assert.equal(foto.provider, undefined); assert.equal(foto.messages[0].content[1].type, 'image_url');
-  assert.equal((await anna('POST', '/api/ki', { feature: 'test-foto', model: 'openai/gpt-6.1-sol', messages: [{ role: 'user', content: 'x' }] })).status, 200);
-  assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'auch wenn die App etwas anderes schickt');
+  assert.equal((await anna('POST', '/api/ki', { feature: 'test-foto', model: 'google/gemini-3.8-flash', messages: [] })).status, 403, 'Test-Fotos auf Eis');
   // Seiten und gesperrte Funktionen zählen, Unbekanntes nicht; ohne Konto gar nichts
   assert.equal((await anna('POST', '/api/nutzung', { was: 'seite:kalender' })).status, 200);
   assert.equal((await anna('POST', '/api/nutzung', { was: 'gesperrt:kalender' })).status, 200);
@@ -196,12 +189,9 @@ try {
   assert.equal((await anna('GET', '/api/ich')).j.genutzt, 60, 'Test zählt extra: 0,30 von 0,50 $');
   assert.equal((await anna('POST', '/api/ki', { feature: 'wp-text', model: 'openai/gpt-6-luna', messages: [] })).status, 403, 'Entwurf gibt es öffentlich nicht');
   assert.deepEqual((await anna('GET', '/api/geschuetzt/wordpower')).j, { transcribe: 'TRANSKRIPT' });
-  const ot = (await anna('GET', '/api/geschuetzt/onlinetest')).j.system;
-  assert.match(ot, /Übungsaufgabe mit anderen Zahlen/); assert.doesNotMatch(ot, /VOLLER/); assert.ok(ot.includes('zwischen \\( und \\)'), 'LaTeX-Begrenzer');
-  await anna('POST', '/api/ki', { feature: 'loeser', model: 'xiaomi/mimo-v2.6-pro', messages: [{ role: 'system', content: 'App-Prompt' }, { role: 'user', content: 'Frage 1: 2+2=[ ]' }] });
-  const msg = or.anfragen.at(-1).messages;
-  assert.equal(msg[0].role, 'system'); assert.match(msg[0].content, /nie mit ihren Originalzahlen/, 'Server setzt die Regel selbst');
-  assert.equal(msg[1].content, 'App-Prompt'); assert.equal(msg.length, 3);
+  assert.equal((await anna('GET', '/api/geschuetzt/onlinetest')).status, 403, 'Löser auf Eis, auch in Ultra');
+  assert.equal((await anna('POST', '/api/ki', { feature: 'loeser', model: 'xiaomi/mimo-v2.6-pro', messages: [] })).status, 403);
+  await anna('POST', '/api/ki', { feature: 'chat', model: 'openai/gpt-6-luna', messages: [] });
   assert.equal((await anna('POST', '/api/ki', { feature: 'chat', model: 'openai/gpt-6-luna', messages: [] })).status, 429, 'Testbudget aufgebraucht');
   assert.equal((await anna('POST', '/api/test')).status, 409, 'nur einmal');
 
@@ -243,7 +233,7 @@ try {
   const fx = was => A.funktionen.find(x => x.was === was);
   assert.equal(fx('unterlagen').k30, 1, 'Unterlagen in der App hochgeladen'); assert.equal(fx('unterlagen').name, 'Unterlagen hochladen');
   assert.ok(fx('ausgabe').k30 === 1 && fx('ausgabe').usd30 >= 0.3, 'KI-Anfrage mit Kosten');
-  assert.equal(fx('test-foto').n30, 2); assert.equal(fx('seite:kalender').k30, 1); assert.equal(fx('seite:kalender').art, 'Seite');
+  assert.equal(fx('seite:kalender').k30, 1); assert.equal(fx('seite:kalender').art, 'Seite');
   assert.equal(fx('gesperrt:kalender').art, 'Gesperrt angetippt'); assert.equal(fx('gesperrt:noten'), undefined, 'nie angetippt: nicht in der Liste');
   assert.equal(fx('seite:wordpower').k30, 0, 'nie genutzt steht trotzdem da'); assert.equal(fx('boese; drop table'), undefined); assert.equal(fx('wp-text'), undefined);
   assert.ok(A.funktionen.every((x, i, l) => !i || l[i - 1].k30 >= x.k30), 'meistgenutzt zuerst');
@@ -421,6 +411,49 @@ try {
   assert.equal((await anna2('POST', '/api/anmelden', { email: 'anna@example.com', passwort: 'neues-passwort-1' })).status, 401);
   for (let i = 0; i < 2; i++) await fremd('POST', '/api/fehler', { text: 'noch einer' });
   assert.equal((await fremd('POST', '/api/fehler', { text: 'Flut' })).status, 429, 'Fehlerberichte gebremst');
+  // KI-Modelle aus der Admin-Ecke: neuer Standard gilt sofort, auch für Base; falsche IDs gehen nicht durch
+  assert.equal((await chef('POST', '/api/admin/schluessel', { LH_MODELL: 'kein modell' })).status, 400);
+  await chef('POST', '/api/admin/schluessel', { LH_MODELL: 'deepseek/deepseek-v4.1-flash-1017', LH_MODELL_DENKEN: 'high' });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.model, 'deepseek/deepseek-v4.1-flash-1017');
+  assert.equal((await max('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 200);
+  assert.equal(or.anfragen.at(-1).model, 'deepseek/deepseek-v4.1-flash-1017'); assert.equal(or.anfragen.at(-1).reasoning.effort, 'high');
+  // Arena: Bestenliste nur mit Spitzname, Zahlen gedeckelt, eigener Eintrag markiert, laufende Runden gezählt
+  assert.equal((await max('POST', '/api/arena', { name: 'x' })).status, 400);
+  await max('POST', '/api/arena', { name: 'Maxi', xp: 1e9, min: 50, serie: 3, laeuft: Date.now() + 60e3 });
+  assert.equal((await chef('POST', '/api/arena', { name: 'maxi' })).status, 409, 'Spitzname vergeben');
+  const ar = (await max('GET', '/api/arena')).j;
+  assert.deepEqual([ar.liste[0].name, ar.liste[0].xp, ar.liste[0].ich, ar.live], ['Maxi', 20000, true, 1]);
+  // Auf Eis: Löser und Test-Fotos nur mit dem Zusatz Manual Access (vom Admin), und auch dann nur mit REGEL
+  const foto = { feature: 'test-foto', model: 'google/gemini-3.8-flash', reasoning: { effort: 'max' }, provider: { x: 1 }, stil: false,
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'Abschreiben' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } }] }] };
+  assert.equal((await max('POST', '/api/ki', foto)).status, 403, 'ohne Manual Access');
+  assert.equal((await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'manual', tage: 30 })).status, 200);
+  const mi = (await max('GET', '/api/ich')).j;
+  assert.deepEqual(mi.zusatz, ['loeser', 'test-foto']); assert.equal(mi.tarif, 'base', 'Zusatz, kein eigener Tarif'); assert.ok(mi.manual_bis > Date.now());
+  assert.equal((await max('POST', '/api/ki', foto)).status, 200);
+  const fb = or.anfragen.at(-1);
+  assert.equal(fb.model, 'google/gemini-3.8-flash', 'Fotos: Modell mit Bildern, nicht DeepSeek'); assert.equal(fb.max_tokens, 16000);
+  assert.equal(fb.reasoning, undefined); assert.equal(fb.provider, undefined); assert.equal(fb.messages[0].content[1].type, 'image_url');
+  assert.equal((await max('POST', '/api/ki', { ...foto, model: 'openai/gpt-6.1-sol' })).status, 200);
+  assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'auch wenn die App etwas anderes schickt');
+  const ot = (await max('GET', '/api/geschuetzt/onlinetest')).j.system;
+  assert.match(ot, /Übungsaufgabe mit anderen Zahlen/); assert.doesNotMatch(ot, /VOLLER/); assert.ok(ot.includes('zwischen \\( und \\)'), 'LaTeX-Begrenzer');
+  await max('POST', '/api/ki', { feature: 'loeser', model: 'xiaomi/mimo-v2.6-pro', messages: [{ role: 'system', content: 'App-Prompt' }, { role: 'user', content: 'Frage 1: 2+2=[ ]' }] });
+  const msg = or.anfragen.at(-1).messages;
+  assert.equal(msg[0].role, 'system'); assert.match(msg[0].content, /nie mit ihren Originalzahlen/, 'Server setzt die Regel selbst');
+  assert.equal(msg[1].content, 'App-Prompt'); assert.equal(msg.length, 3);
+  assert.ok((await chef('GET', '/api/admin')).j.konten.find(x => x.id === maxId).manual_bis > Date.now(), 'Admin sieht den Zusatz');
+  await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
+  assert.deepEqual((await max('GET', '/api/ich')).j.zusatz, [], 'Base setzt auch den Zusatz zurück');
+  // Verkauf aus (Admin-Ecke): keine Tarife, kein Bestellen, kein Ultra-Test
+  assert.equal((await max('GET', '/api/ich')).j.testFrei, true);
+  assert.equal((await chef('POST', '/api/admin/preise', { verkauf: false })).j.verkauf, false);
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).verkauf, false);
+  assert.equal((await max('GET', '/api/ich')).j.testFrei, false);
+  r = await max('POST', '/api/bestellen', { tarif: 'pro', monate: 1, sofort: true });
+  assert.equal(r.status, 403); assert.match(r.j.error.message, /keine Tarife zu kaufen/);
+  r = await max('POST', '/api/test');
+  assert.equal(r.status, 403); assert.match(r.j.error.message, /gerade nicht/);
   console.log('Server: alles in Ordnung.');
 } catch (e) {
   console.error(log);

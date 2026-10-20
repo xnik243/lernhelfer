@@ -81,6 +81,15 @@ def test():
     assert holen.laeuft(Seite(), vwl2, d(2026, 10, 16, 9, 0))
     assert not holen.laeuft(Seite(), vwl2, d(2026, 10, 19, 18, 0))  # vorbei
 
+    # Automatisch nur etwa alle 12 Stunden und nur tagsüber
+    assert holen.faellig({}, d(2026, 10, 20, 9, 0)) and not holen.faellig({}, d(2026, 10, 20, 3, 0)), "nachts nie"
+    stand = {}
+    holen.weiter(stand, 12)
+    assert holen.timedelta(hours=11, minutes=59) < d.fromisoformat(stand["naechster"]) - d.now() <= holen.timedelta(hours=12, minutes=45)
+    stand = {"naechster": "2026-10-20T21:10"}
+    assert not holen.faellig(stand, d(2026, 10, 20, 21, 0)) and holen.faellig(stand, d(2026, 10, 20, 21, 15))
+    assert not holen.faellig(stand, d(2026, 10, 20, 23, 30)) and holen.faellig(stand, d(2026, 10, 21, 7, 5))
+
     # Kurse finden: Fach aus dem Titel, nur aktuelles Semester
     jetzt = d(2026, 10, 14)
     assert holen.semester(jetzt) == "2026W" and holen.semester(d(2027, 2, 1)) == "2026W" and holen.semester(d(2027, 3, 1)) == "2027S"
@@ -142,6 +151,20 @@ def test():
     with tempfile.TemporaryDirectory() as t:
         holen.MATERIAL, holen.KURSE = Path(t), {"F": []}
         assert holen.fach_json("F", [{"datei": "Hochgeladen/b.pdf"}])["dateien"] == [{"datei": "Hochgeladen/b.pdf"}]
+
+    # Ordnerbaum: jeder Unterordner (bis 3 Ebenen) ein eigener Eintrag, Pfad mit ~~ statt /; Video-Ordner bleiben draußen
+    baum = {"": ["VO", "PS"], "~~VO": ["Woche 1", "Aufzeichnungen"], "~~VO~~Woche%201": ["Übung"]}
+    class Seite:
+        def goto(self, url): self.pfad = url.split("path%3D")[1][:-2] if "path%3D" in url else ""
+        def wait_for_load_state(self, *_): pass
+        def wait_for_timeout(self, ms): assert 2000 <= ms <= 5000, "Pause wie von Hand"
+        def locator(self, _): return self
+        def all_inner_texts(self): return baum.get(self.pfad, [])
+    assert holen.ordner_baum(Seite(), "1/CourseNode/2", "Material") == [
+        ("Material", "1/CourseNode/2"), ("Material VO", "1/CourseNode/2/path%3D~~VO/0"),
+        ("Material VO Woche 1", "1/CourseNode/2/path%3D~~VO~~Woche%201/0"),
+        ("Material VO Woche 1 Übung", "1/CourseNode/2/path%3D~~VO~~Woche%201~~%C3%9Cbung/0"),
+        ("Material PS", "1/CourseNode/2/path%3D~~PS/0")]
 
     # Nur ein Abgleich gleichzeitig
     with tempfile.TemporaryDirectory() as t:

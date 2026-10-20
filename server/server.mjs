@@ -29,7 +29,11 @@ const TARIFE = {
   pro: { name: 'Pro', preis: 490, launchPreis: 490, regulaer: 990, rang: 1, budget: 3, rabatt: 20 },
   ultra: { name: 'Ultra', preis: 990, launchPreis: 990, regulaer: 1490, rang: 2, budget: 6, rabatt: 30 },
   ultraplus: { name: 'Ultra+ API', preis: 1490, launchPreis: 1490, regulaer: 1990, rang: 2, budget: 6, rabatt: 30, rabattAuf: 990, apiUsd: 11 },
+  // Zusatz neben jedem Tarif, nur vom Admin vergeben (eigene Spalte manual_bis): schaltet Funktionen auf Eis frei, der Löser bleibt dabei bei REGEL
+  manual: { name: 'Manual Access', preis: 0, rang: 0, aktion: true, zusatz: ['loeser', 'test-foto'] },
 };
+// Vorerst nichts zu kaufen (2026-10-20, rechtlich auf Nummer sicher): ohne Haken in der Admin-Ecke keine Tarifseite, kein Bestellen, kein Ultra-Test
+const verkauf = () => !!wert('verkauf', E.LH_VERKAUF === '1' ? 1 : 0);
 const ZU_KAUFEN = Object.keys(TARIFE).filter(t => TARIFE[t].preis);
 // Base schreibt nur mit DeepSeek V4.1 Flash, maximal nachdenkend; der Server setzt das selbst, egal was die App schickt.
 // Nie mehr als 5 $ im Monat pro Gratis-Konto: Budget 2 $ + LAUFEND gleichzeitige Anfragen zu je höchstens 0,33 $
@@ -39,26 +43,31 @@ const BASIS_KI = { model: 'deepseek/deepseek-v4.1-flash', reasoning: { effort: '
   provider: { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 } } };
 // Test-Fotos (iPad ohne PC-Programm): Fragen von Bildschirmfotos abschreiben. In jedem Tarif, darum fest ein günstiges Modell, das Bilder liest.
 const FOTO_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000 };
+const FORMEL_KI = { model: 'google/gemini-3.8-flash', max_tokens: 3000 };  // Tipp auf eine Formel: was jedes Zeichen bedeutet, für alle, schnell und günstig
 const LAUFEND = 8, LAEUFT = new Map();  // gleichzeitige KI-Anfragen pro Konto; ein Vortrag schickt seine Teile parallel
 const TEST = { stunden: 24, budget: 0.5 };  // einmal 24 Stunden Ultra, höchstens 0,50 $ KI
 const MONATE = [1, 3, 6];
 // Funktion → Mindestrang; die App schickt bei jeder KI-Anfrage mit, wofür sie ist
 // 9 = nur in der Admin-Ecke: Den Hausaufgaben-Entwurf gibt es nicht zu kaufen, er bleibt privat
+// 8 = auf Eis (rechtlich heikel: Lösen von Testfragen): nur Admin-Ecke und Zusatz Manual Access
 // ausgabe-ultra: die ausführliche Fassung der Wochenausgabe; noten, karten, export: ohne KI; hoeren: Ausgabe als Podcast
-const FUNKTIONEN = { ausgabe: 0, 'test-foto': 0, kalender: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1,
-  'ausgabe-ultra': 2, hoeren: 2, probeklausur: 2, training: 2, lernskript: 2, stil: 2, chat: 2, loeser: 2, 'wp-text': 9 };
-const NAMEN = { ausgabe: 'Die Wochenausgabe', 'test-foto': 'Das Auslesen von Test-Fotos', kalender: 'Der Kalender', noten: 'Der Notentracker', karten: 'Der Karteikasten', export: 'Der Export',
+const FUNKTIONEN = { ausgabe: 0, 'test-foto': 8, formel: 0, kalender: 1, video: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1,
+  'ausgabe-ultra': 2, hoeren: 2, probeklausur: 2, training: 2, lernskript: 2, stil: 2, chat: 2, loeser: 8, 'wp-text': 9 };
+const NAMEN = { ausgabe: 'Die Wochenausgabe', 'test-foto': 'Das Auslesen von Test-Fotos', formel: 'Das Erklären von Formeln', video: 'Die Video-Erklärung', kalender: 'Der Kalender', noten: 'Der Notentracker', karten: 'Der Karteikasten', export: 'Der Export',
   'wp-transkript': 'Das Word-Power-Transkript', vortrag: 'Die Vortragsanalyse', 'ausgabe-ultra': 'Die Ultra-Fassung der Wochenausgabe', hoeren: 'Die Ausgabe zum Anhören',
   probeklausur: 'Die Probeklausur', training: 'Das Schwächen-Training', lernskript: 'Das Lernskript', stil: 'Der eigene Stil für die KI',
   chat: 'Der KI-Chat', loeser: 'Der Lösungsweg zu jeder Frage', 'wp-text': 'Der Hausaufgaben-Entwurf' };
-const PFADE = { 'kalender/': 'kalender', 'vortraege/': 'vortrag', 'noten.json': 'noten', 'karten.json': 'karten',
+const PFADE = { 'kalender/': 'kalender', 'vortraege/': 'vortrag', 'videos/': 'video', 'noten.json': 'noten', 'karten.json': 'karten',
   'training/': 'training', 'lernskripte/': 'lernskript', 'hoeren/': 'hoeren', 'stil.json': 'stil' };  // Schreiben hierhin nur mit Tarif
 // Vorlesen: Gemini TTS über /audio/speech. OpenRouter schickt dort keinen Preis mit; gebucht wird nach Länge des Tons
 // (16 Bit, 24 kHz, mono = 48 000 Byte/s; 25 Token/s zu 9 $/Mio. = 0,000225 $/s, aufgerundet)
 const SPRACHE = { model: 'google/gemini-3.8-flash-tts', usdProSekunde: 0.00025, zeichen: 8000 };
 // ponytail: Funktion und Modell prüft der Server, den Prompt nicht; Missbrauch deckelt das Monatsbudget. Strenger: Prompts serverseitig bauen.
 const MODELLE = new Set(['openai/gpt-6-luna', 'xiaomi/mimo-v2.6-pro', 'openai/gpt-6.1-sol', 'google/gemini-3.8-flash', 'google/gemini-4-argon', BASIS_KI.model]);
-const FELDER = ['model', 'messages', 'reasoning', 'provider', 'response_format', 'stream', 'temperature', 'max_tokens'];
+const modellOk = m => MODELLE.has(m) || !!m && [E.LH_MODELL, E.LH_MODELL_TRANSKRIPT].includes(m);
+const basisKi = () => ({ ...BASIS_KI, model: E.LH_MODELL || BASIS_KI.model, reasoning: E.LH_MODELL_DENKEN === 'none' ? undefined : { effort: E.LH_MODELL_DENKEN || 'max' } });
+const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/, DENKSTUFEN = ['max', 'xhigh', 'high', 'medium', 'low', 'none'];
+const FELDER = ['model', 'messages', 'reasoning', 'provider', 'response_format', 'stream', 'temperature', 'max_tokens', 'plugins'];  // plugins (Websuche) nur in der Admin-Ecke
 const SPEICHER = 200e6;  // Bytes pro Konto
 // Öffentlich zeigt der Löser nur Lösungswege an gleichartigen Aufgaben mit anderen Zahlen: Lernhilfe statt fertiger Prüfungsleistung
 // für andere (§ 116a UG). REGEL setzt der Server selbst vor jede Löser-Anfrage, die App kann sie nicht weglassen. Voll nur in der Admin-Ecke.
@@ -96,7 +105,7 @@ function stilVon(k, s) {  // gespeicherter Stil, nur solange Ultra läuft und nu
   try { t = stilSauber(JSON.parse(Buffer.from(d.inhalt).toString('utf8')).text); } catch { return ''; }
   return t && !stilFehler(t) ? t : '';
 }
-const LOESUNGSWEG = String.raw`Du bist Tutor:in für Studierende im 1. Semester Wirtschaftswissenschaften an der Universität Innsbruck. Unten stehen die Startseite eines OLAT-Tests mit den Hinweisen zu Rundung und Eingabeformat und Fragen daraus, so wie OLAT sie zeigt: Eingabefelder als [ ], eine eingetragene Antwort als [Wert], ein angekreuztes Feld als [x], Formeln als LaTeX ohne Begrenzer.
+const LOESUNGSWEG = String.raw`Du bist Tutor:in für Studierende an der Universität Innsbruck. Unten stehen die Startseite eines OLAT-Tests mit den Hinweisen zu Rundung und Eingabeformat und Fragen daraus, so wie OLAT sie zeigt: Eingabefelder als [ ], eine eingetragene Antwort als [Wert], ein angekreuztes Feld als [x], Formeln als LaTeX ohne Begrenzer.
 
 Du rechnest die Originalaufgaben nicht vor. Zu jeder Frage stellst du eine gleichartige Übungsaufgabe mit anderen Zahlen (bei Auswahl- und Verständnisfragen ein anderes Beispiel), löst sie vollständig und erklärst jeden Schritt so, dass die Person die Originalaufgabe danach selbst lösen kann.
 
@@ -131,14 +140,17 @@ create table if not exists schluessel (name text primary key, wert text not null
 create table if not exists nutzung (konto integer not null, was text not null, tag text not null, n integer not null default 0, usd real not null default 0,
   primary key (konto, was, tag));
 create table if not exists fehler (id integer primary key, zeit integer not null, konto integer references konten(id) on delete set null, kontakt text,
-  seite text, meldung text, text text, geraet text, erledigt integer not null default 0);`);  // werte: Einstellungen der Admin-Ecke, KI-Kosten gelöschter Konten
+  seite text, meldung text, text text, geraet text, erledigt integer not null default 0);
+create table if not exists arena (konto integer primary key references konten(id) on delete cascade, name text not null, woche text not null,
+  xp integer not null, min integer not null, serie integer not null, laeuft integer not null default 0);`);  // werte: Einstellungen der Admin-Ecke, KI-Kosten gelöschter Konten
 // nutzung: was = Funktion (KI-Anfrage oder Speichern), „seite:…“ (Seite geöffnet) oder „gesperrt:…“ (gesperrte Funktion angetippt); für die Admin-Ecke
-for (const spalte of ['zuletzt', 'englisch_bis']) try { db.exec(`alter table konten add column ${spalte} integer not null default 0`); } catch {}  // ältere Datenbank: Spalten nachrüsten
+for (const spalte of ['zuletzt', 'englisch_bis', 'manual_bis']) try { db.exec(`alter table konten add column ${spalte} integer not null default 0`); } catch {}  // ältere Datenbank: Spalten nachrüsten
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
 const nein = (code, text) => { throw new Fehler(code, text); };
 const jetzt = () => Date.now();
+const arenaWoche = () => { const d = new Date(), m = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7)); return m.toISOString().slice(0, 10); };  // Montag der Woche
 const monat = () => new Date().toISOString().slice(0, 7);
 const sha256 = s => createHash('sha256').update(s).digest('hex');
 const zufall = () => randomBytes(32).toString('base64url');
@@ -162,7 +174,8 @@ const entschluesseln = s => {
 // Schlüssel, Passwörter und Zahlungsdaten aus der Admin-Ecke: verschlüsselt in der Datenbank, gehen vor /etc/lernhelfer.env.
 // GEHEIM (LH_GEHEIM) und LH_ECKE bleiben in der Datei, sonst könnte man sich aussperren.
 const SCHLUESSEL = { LH_OR_KEY: 1, LH_OR_VERWALTUNG: 1, LH_BREVO: 1, LH_PASS_WORDPOWER: 1, LH_PASS_ONLINETEST: 1,  // 1 = geheim, wird nie zurückgegeben
-  LH_ABSENDER: 0, LH_EMPFAENGER: 0, LH_IBAN: 0, LH_BIC: 0, LH_PAYPAL: 0 };
+  LH_ABSENDER: 0, LH_EMPFAENGER: 0, LH_IBAN: 0, LH_BIC: 0, LH_PAYPAL: 0,
+  LH_MODELL: 0, LH_MODELL_DENKEN: 0, LH_MODELL_TRANSKRIPT: 0 };  // Standard- und Transkript-Modell (OpenRouter-ID), Admin-Ecke „KI-Modelle“
 const AUS_DATEI = Object.fromEntries(Object.keys(SCHLUESSEL).map(n => [n, E[n]]));  // Löschen in der Ecke führt hierher zurück
 for (const { name, wert } of db.prepare('select name, wert from schluessel').all())
   try { if (name in SCHLUESSEL) E[name] = entschluesseln(wert); } catch { console.error(`Gespeicherter Wert ${name} lässt sich nicht entschlüsseln (LH_GEHEIM geändert?).`); }
@@ -244,10 +257,12 @@ function stufe(k) {
   if (k.englisch_bis > t) return { tarif: 'englisch', bis: k.englisch_bis, test: false };
   return { tarif: 'base', bis: null, test: false };
 }
+const zusatz = k => k.manual_bis > jetzt() ? TARIFE.manual.zusatz : [];
 const hat = (T, f) => T.rang >= FUNKTIONEN[f] || !!T.dazu?.includes(f);
 function darf(k, f) {
   const s = stufe(k), rang = FUNKTIONEN[f];
   if (k.ecke) return s;  // Admin-Ecke: alles, ohne Kontingent
+  if (zusatz(k).includes(f)) return s;
   if (rang > 2) nein(403, 'Diese Funktion gibt es hier nicht.');
   if (!hat(TARIFE[s.tarif], f)) nein(402, `${NAMEN[f]} gehört zu ${rang === 1 ? 'Pro' : 'Ultra'}.`);
   return s;
@@ -259,7 +274,7 @@ const zaehlenSql = db.prepare('insert into nutzung (konto, was, tag, n, usd) val
 const zaehlen = (id, was, usd = 0, n = 1) => zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0);
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
 const SEITEN = { titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
-  karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto' };
+  karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos' };
 const MELDBAR = new Set([...Object.keys(SEITEN).map(x => 'seite:' + x), ...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2).map(f => 'gesperrt:' + f), 'export']);
 const bezahlt = id => !!db.prepare("select 1 from bestellungen where konto = ? and status = 'bezahlt'").get(id);
 // Freundes-Rabatt der geworbenen Person: offen, bis eine Zahlung ihn wirklich abgezogen hat (zum Launch-Preis gibt es keinen, er bleibt für danach)
@@ -271,7 +286,8 @@ function ich(k) {
   const s = stufe(k), budget = s.test ? TEST.budget : TARIFE[s.tarif].budget;
   return {
     email: k.email, bestaetigt: !!k.bestaetigt, admin: istAdmin(k), ecke,
-    tarif: s.tarif, bis: s.bis, test: s.test, testFrei: !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis,
+    tarif: s.tarif, bis: s.bis, test: s.test, testFrei: verkauf() && !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis,
+    zusatz: zusatz(k), manual_bis: k.manual_bis > jetzt() ? k.manual_bis : null,
     genutzt: Math.min(100, Math.round(100 * verbraucht(k.id, s.test) / budget)),
     code: k.code, freunde: db.prepare('select count(*) n from konten where geworben_von = ?').get(k.id).n,
     gutscheine: db.prepare('select count(*) n from gutscheine where konto = ? and eingeloest is null').get(k.id).n,
@@ -380,9 +396,10 @@ async function ki(req, res, k) {
   const b = await liesJson(req, 40e6);  // Vortrag: bis 9 MB Ton pro Teil, als base64
   if (!(b.feature in FUNKTIONEN)) nein(400, 'Unbekannte Funktion.');
   const s = darf(k, b.feature);
-  if (!MODELLE.has(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
-  if (b.feature === 'test-foto') { Object.assign(b, FOTO_KI); delete b.reasoning; delete b.provider; }
-  else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, BASIS_KI);  // Englisch: Vortrag und Transkript mit den Modellen, die hören
+  if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
+  if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
+  if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
+  else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
   const stil = b.stil !== false && stilVon(k, s);  // Reihenfolge: REGEL, Stil, dann was die App schickt
   b.messages = [...stil ? [{ role: 'system', content: stilRahmen(stil) }] : [], ...Array.isArray(b.messages) ? b.messages : []];
   if (['loeser', 'training', 'probeklausur'].includes(b.feature) && !k.ecke) b.messages = [{ role: 'system', content: REGEL }, ...b.messages];
@@ -548,7 +565,7 @@ function exportieren(req, res, k) {
   const iso = x => x ? new Date(x).toISOString() : null, s = stufe(k);
   const konto = {
     email: k.email, registriert: iso(k.erstellt), bestaetigt: !!k.bestaetigt, zuletzt_aktiv: iso(k.zuletzt),
-    tarif: TARIFE[s.tarif].name, tarif_bis: iso(s.bis), gratis_test_bis: iso(k.test_bis), englisch_bis: iso(k.englisch_bis), freundescode: k.code, ueber_einladung: !!k.geworben_von,
+    tarif: TARIFE[s.tarif].name, tarif_bis: iso(s.bis), gratis_test_bis: iso(k.test_bis), englisch_bis: iso(k.englisch_bis), manual_access_bis: iso(k.manual_bis), freundescode: k.code, ueber_einladung: !!k.geworben_von,
     eingeladene_personen: db.prepare('select count(*) n from konten where geworben_von = ?').get(k.id).n,
     offene_gutscheine: db.prepare('select count(*) n from gutscheine where konto = ? and eingeloest is null').get(k.id).n,
     ultraplus_schluessel: !!k.or_hash,
@@ -583,7 +600,8 @@ function bestellMail(k, T, monate, betrag, zweck) {
 
 /* ---------- Routen ---------- */
 const ROUTEN = {
-  'GET /api/tarife': () => ({ tarife: TARIFE, launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
+  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
+    modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '' },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
   'GET /api/ich': ({ k }) => ich(muss(k)),
@@ -634,6 +652,7 @@ const ROUTEN = {
   },
   'POST /api/test': ({ k }) => {
     muss(k);
+    if (!verkauf()) nein(403, 'Den Ultra-Test gibt es gerade nicht.');
     if (!k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse. Der Link steht in der Mail, die wir dir geschickt haben.');
     if (k.test_bis || bezahlt(k.id)) nein(409, 'Den Ultra-Test gibt es einmal pro Konto, und du hast ihn schon genutzt.');
     if (TARIFE[stufe(k).tarif].preis) nein(409, 'Du hast schon einen Tarif.');
@@ -642,6 +661,7 @@ const ROUTEN = {
   },
   'POST /api/bestellen': async ({ k, b }) => {
     muss(k);
+    if (!verkauf()) nein(403, 'Gerade gibt es keine Tarife zu kaufen.');
     const T = TARIFE[b.tarif], monate = Number(b.monate);
     if (!T?.preis || !MONATE.includes(monate)) nein(400, 'Tarif oder Laufzeit fehlt.');
     if (!b.sofort) nein(400, 'Bitte bestätige, dass der Tarif gleich nach der Zahlung starten soll.');
@@ -662,6 +682,23 @@ const ROUTEN = {
     db.prepare("update bestellungen set status = 'gemeldet', gemeldet = ? where id = ?").run(jetzt(), b.id);
     if (ADMIN) await mail(ADMIN, `Zahlung gemeldet: ${b.zweck} · ${eur(b.betrag)}`, `${k.email} meldet ${eur(b.betrag)} für ${TARIFE[b.tarif].name}, ${b.monate} Monat(e).\nVerwendungszweck: ${b.zweck}\n\nNach Zahlungseingang freischalten: ${BASIS}/app#/admin`);
     return ich(k);
+  },
+  // Arena: Bestenliste der Woche (nur wer mitmacht, mit Spitzname) und wie viele gerade eine Fokus-Runde laufen haben
+  'GET /api/arena': ({ k }) => {
+    muss(k);
+    return { liste: db.prepare('select konto, name, xp, min, serie from arena where woche = ? order by xp desc, min desc limit 20').all(arenaWoche())
+      .map(({ konto, ...x }) => ({ ...x, ich: konto === k.id })), live: db.prepare('select count(*) n from arena where laeuft > ?').get(jetzt()).n };
+  },
+  'POST /api/arena': ({ k, b }) => {  // ponytail: die Zahlen kommen vom Gerät und werden nur gedeckelt; Schummeln trifft nur die Bestenliste
+    muss(k);
+    if (b.aus) { db.prepare('delete from arena where konto = ?').run(k.id); return; }
+    const name = String(b.name || '').normalize('NFKC').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+    if (name.length < 2) nein(400, 'Bitte einen Spitznamen mit mindestens 2 Zeichen.');
+    if (db.prepare('select 1 from arena where name = ? collate nocase and konto != ?').get(name, k.id)) nein(409, 'Diesen Spitznamen hat schon jemand.');
+    const zahl = (x, max) => Math.max(0, Math.min(max, Math.round(Number(x) || 0)));
+    db.prepare(`insert into arena (konto, name, woche, xp, min, serie, laeuft) values (?, ?, ?, ?, ?, ?, ?) on conflict (konto) do update set
+      name = excluded.name, woche = excluded.woche, xp = excluded.xp, min = excluded.min, serie = excluded.serie, laeuft = excluded.laeuft`)
+      .run(k.id, name, arenaWoche(), zahl(b.xp, 20000), zahl(b.min, 7 * 24 * 60), zahl(b.serie, 3650), Math.min(zahl(b.laeuft, 9e15), jetzt() + 90 * 60e3));
   },
   'POST /api/nutzung': ({ k, b }) => { muss(k); if (MELDBAR.has(b.was)) zaehlen(k.id, b.was); },  // Seite geöffnet, gesperrte Funktion angetippt, PDF
   'POST /api/fehler': async ({ req, k, b }) => {  // „Fehler melden“, auch ohne Konto (etwa beim Registrieren); 5 je 15 Minuten
@@ -718,7 +755,7 @@ const ROUTEN = {
 
   'GET /api/admin': async ({ k }) => {
     admin(k);
-    const konten = db.prepare(`select k.id, k.email, k.erstellt, k.bestaetigt, k.tarif, k.bis, k.test_bis, k.englisch_bis, k.zuletzt, k.or_hash, w.email werber,
+    const konten = db.prepare(`select k.id, k.email, k.erstellt, k.bestaetigt, k.tarif, k.bis, k.test_bis, k.englisch_bis, k.manual_bis, k.zuletzt, k.or_hash, w.email werber,
         coalesce((select usd from verbrauch where konto = k.id and monat = ?), 0) ki_monat,
         coalesce((select sum(usd) from verbrauch where konto = k.id and monat != 'test'), 0) ki_gesamt,
         (select count(*) from konten g where g.geworben_von = k.id) geworben,
@@ -754,15 +791,18 @@ const ROUTEN = {
       neu.push(['launch-bis', bis]);
     }
     if ('launch' in b) neu.push(['launch', b.launch ? 1 : 0]);
+    if ('verkauf' in b) neu.push(['verkauf', b.verkauf ? 1 : 0]);
     for (const [name, x] of neu) wertSetzen(name, x);  // erst alles prüfen, dann speichern
     preiseSetzen();
-    return { tarife: TARIFE, launch: LAUNCH };
+    return { tarife: TARIFE, launch: LAUNCH, verkauf: verkauf() };
   },
   'POST /api/admin/schluessel': ({ k, b }) => {  // leer = unverändert; b.weg: diese Namen löschen, dann gilt wieder /etc/lernhelfer.env
     admin(k);
     for (const [n, v] of Object.entries(b)) {
       if (!(n in SCHLUESSEL) || typeof v !== 'string' || !v.trim()) continue;
       if (v.length > 500 || /[\r\n]/.test(v)) nein(400, `${n}: zu lang oder mit Zeilenumbruch.`);
+      if (/^LH_MODELL(_TRANSKRIPT)?$/.test(n) && !MODELL_ID.test(v.trim())) nein(400, 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.');
+      if (n === 'LH_MODELL_DENKEN' && !DENKSTUFEN.includes(v.trim())) nein(400, 'Unbekannte Stufe fürs Nachdenken.');
       db.prepare('insert into schluessel (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(n, verschluesseln(v.trim()));
       E[n] = v.trim();
     }
@@ -778,8 +818,8 @@ const ROUTEN = {
     const z = kontoMit(Number(b.konto)), tage = Number(b.tage);
     if (!z || !TARIFE[b.tarif] || !(tage >= 0)) nein(400, 'Konto, Tarif oder Tage fehlen.');
     const bis = tage > 0 ? jetzt() + tage * TAG : 0;
-    if (b.tarif === 'englisch') db.prepare('update konten set englisch_bis = ? where id = ?').run(bis, z.id);  // eigene Spalte: bleibt neben einem gekauften Tarif
-    else if (b.tarif === 'base') db.prepare('update konten set tarif = null, bis = 0, englisch_bis = 0 where id = ?').run(z.id);
+    if (b.tarif === 'englisch' || b.tarif === 'manual') db.prepare(`update konten set ${b.tarif}_bis = ? where id = ?`).run(bis, z.id);  // eigene Spalte: bleibt neben einem gekauften Tarif
+    else if (b.tarif === 'base') db.prepare('update konten set tarif = null, bis = 0, englisch_bis = 0, manual_bis = 0 where id = ?').run(z.id);
     else db.prepare('update konten set tarif = ?, bis = ? where id = ?').run(b.tarif, bis, z.id);
     await apiAbgleich(z).catch(e => console.error(e.message));
   },
