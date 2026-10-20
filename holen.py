@@ -8,9 +8,9 @@ Pausen zwischen den Seiten wie beim Klicken von Hand (faellig(), pause()); dazwi
 Ist die OLAT-Sitzung abgelaufen, öffnet sich Chrome (am Mac ohne Chrome: Chromium): dort selbst einloggen (SSO + Authenticator).
 
 Tests: Gelesen werden die Startseiten (Zeitraum, Punkte, Versuche), nach Ablauf stehen Fragen und Lösung dort. Selbsttests
-werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Laufende bewertete Tests nur mit „laufende-tests“ in
-quellen.json (privat, nie verteilt). Ein Wächter im Browser lässt nur Lesen und genau den jeweils nächsten erlaubten Schritt
-durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
+werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Bewertete Tests startet er nie, auch nicht auf dem
+eigenen PC: Fragen eines laufenden Tests kommen nur von Hand per Bildschirmfoto in die App. Ein Wächter im Browser lässt nur
+Lesen und genau den jeweils nächsten erlaubten Schritt durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
 """
 import base64
 import hashlib
@@ -100,7 +100,7 @@ def fach_json(fach, hochgeladen=()):
     return {"dateien": dateien + list(hochgeladen)}  # ohne Zeitstempel: unveränderte Fächer werden nicht neu hochgeladen
 
 
-QUELLEN = BASIS / "quellen.json"  # nur von Hand angelegt, etwa ["mathe4wiwi", "laufende-tests"]: privat, das Einrichten verteilt sie nie
+QUELLEN = BASIS / "quellen.json"  # nur von Hand angelegt, etwa ["mathe4wiwi"]: privat, das Einrichten verteilt sie nie
 
 
 def zusatzquellen():
@@ -423,16 +423,6 @@ def zeitraum(seite):
     return (d[0], d[1]) if len(d) == 2 else (None, None)
 
 
-def laeuft(page, seite, jetzt=None):
-    """Bewerteter Test ist gerade bearbeitbar: Zeitraum hat begonnen, Startknopf da, Versuch übrig, kein Zeitlimit pro Versuch."""
-    info = seite.split("Informationen")[-1]
-    von, bis = zeitraum(seite)
-    jetzt = jetzt or datetime.now()
-    return (von is None or von <= jetzt) and (bis is None or jetzt < bis) \
-        and page.locator("a.o_sel_start_qti21assessment").count() == 1 and "Dies sind Ihre Testresultate" not in seite \
-        and re.search(r"Verbleibend: [1-9]", info) and not re.search(r"zeit|dauer|minute", info, re.I)
-
-
 def testliste(fach):
     """Alle Tests eines Fachs für den Onlinetest-Überblick der App: Zeitraum, Punkte, Versuche, Fragen.
     Den Stand (läuft, vorbei, erledigt) rechnet die App selbst aus der Uhrzeit."""
@@ -490,13 +480,9 @@ def tests(browser, fach):
                 else:
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
                     t = f"OLAT-Test „{k['titel']}“ – Startseite (ob er bewertet wird, steht im Text)\n\n" + seite
-                    if "Dies sind Ihre Testresultate" in seite:  # abgelaufen: Fragen samt Lösung stehen auf der Startseite
-                        fragen.unlink(missing_ok=True)
-                    elif not fragen.exists() and "laufende-tests" in zusatzquellen() and laeuft(page, seite):  # einmal ansehen, dann unterbrechen
-                        fragen.write_text(f"OLAT-Test „{k['titel']}“ – Fragen, gelesen am {datetime.now():%d.%m.%Y} während der "
-                                          f"Bearbeitungszeit, ohne Lösung. Zeitraum und Bewertung: siehe Startseite „{datei.name}“.\n\n"
-                                          + test_lesen(page, frei, "Test starten"), "utf-8")
-                        neu.append(f"{fach}: {TESTS}/{fragen.name}")
+                    # nach Abschluss stehen Fragen samt Lösung auf der Startseite; alte Fragen-Dateien stammen aus der Zeit,
+                    # als laufende Tests noch geöffnet wurden, und gehen weg
+                    fragen.unlink(missing_ok=True)
             except Exception as e:  # ein Test soll den Rest nicht aufhalten
                 print(f"{fach}: {k['titel']} nicht lesbar ({e})", flush=True)
                 continue

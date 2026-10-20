@@ -61,12 +61,12 @@ try {
   $einstellung = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
     -ExecutionTimeLimit (New-TimeSpan -Hours 1) -MultipleInstances IgnoreNew
   Register-ScheduledTask -TaskName $Aufgabe -Action $aktion -Trigger $ausloeser -Settings $einstellung -Force `
-    -Description "Hält die OLAT-Sitzung wach (alle 30 min) und gleicht höchstens alle 12 h Folien und Tests ab. Log: $LH\holen.log" | Out-Null
+    -Description "Prüft alle 30 min, ob ein Abgleich fällig ist; OLAT sieht höchstens alle 12 h einen Abgleich, nur tagsüber. Log: $LH\holen.log" | Out-Null
   Write-Host '      läuft ab jetzt alle 30 Minuten, solange der PC an ist'
 
   Schritt 5 'Erster Abgleich: Gleich öffnet sich Chrome. Dort bei OLAT einloggen.'
-  Write-Host '      Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Laufende Onlinetests'
-  Write-Host '      werden nur angesehen und sofort unterbrochen, nie gespeichert oder beendet.'
+  Write-Host '      Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Bewertete Onlinetests'
+  Write-Host '      startet er nie, er liest nur ihre Startseite. Gespeichert oder abgeschickt wird nie etwas.'
   Push-Location $LH
   & $Py holen.py
   $fehler = $LASTEXITCODE

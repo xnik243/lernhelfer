@@ -78,8 +78,8 @@ if [ -z "${LH_ORT:-}" ]; then  # fragt macOS, ob das Terminal auf den Schreibtis
 fi
 
 schritt 4 "Erster Abgleich: Gleich öffnet sich $( [ -d '/Applications/Google Chrome.app' ] && echo Chrome || echo Chromium ). Dort bei OLAT einloggen."
-info 'Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Laufende Onlinetests'
-info 'werden nur angesehen und sofort unterbrochen, nie gespeichert oder beendet.'
+info 'Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Bewertete Onlinetests'
+info 'startet er nie, er liest nur ihre Startseite. Gespeichert oder abgeschickt wird nie etwas.'
 ERSTER=0
 ( cd "$LH" && "$PY" holen.py ) || ERSTER=$?
 

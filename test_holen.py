@@ -1,3 +1,4 @@
+import inspect
 import tempfile
 import zipfile
 from pathlib import Path
@@ -65,21 +66,18 @@ def test():
     assert not erlaubt("POST", "https://lms.uibk.ac.at/auth/22:1:1110563450:2:1/", "cid=link_1&_csrf=x", ok)  # Abbrechen
     assert not erlaubt("POST", "https://lms.uibk.ac.at/auth/22:1:1110563451:2:1/", "cid=link_0&_csrf=x", ok)  # anderer Dialog
 
-    # Zeitraum von der Startseite; vor Beginn wird ein Test nie gestartet, auch wenn OLAT einen Startknopf zeigt
+    # Bewertete Tests startet das PC-Programm nie, nur Selbsttests
+    assert not hasattr(holen, "laeuft") and '"Test starten"' not in inspect.getsource(holen.tests)
+
+    # Zeitraum von der Startseite
     d = holen.datetime
+    vwl2 = "Informationen\n\nMax. Punktzahl: 3 Punkte\n\nVerfügbarkeit: 15.10.2026, 16:30 bis 19.10.2026, 18:00\n\nMax. Lösungsversuche: 1 | Verbleibend: 1\n\nTest starten"
     assert holen.zeitraum("Informationen\n\nVerfügbarkeit: 15.10.2026, 16:30 bis 19.10.2026, 18:00 (wird automatisch eingezogen)") \
         == (d(2026, 10, 15, 16, 30), d(2026, 10, 19, 18, 0))
     assert holen.zeitraum("Informationen\nVerfügbarkeit: Bis 19.10.2026, 08:00 (wird automatisch eingezogen)") == (None, d(2026, 10, 19, 8, 0))
     assert holen.zeitraum("Informationen\nMax. Lösungsversuche: 100 | Verbleibend: 100") == (None, None)
     assert holen.zeitraum("Informationen\nVerfügbarkeit: Abgelaufen am 12.10.2026, 18:00") == (None, d(2026, 10, 12, 18, 0))
     assert holen.zeitraum("Informationen\nVerfügbarkeit: Ab 21.10.2026, 15:00") == (d(2026, 10, 21, 15, 0), None)
-
-    class Seite:  # genau ein Startknopf
-        locator = lambda self, sel: type("L", (), {"count": lambda s: 1})()
-    vwl2 = "Informationen\n\nMax. Punktzahl: 3 Punkte\n\nVerfügbarkeit: 15.10.2026, 16:30 bis 19.10.2026, 18:00\n\nMax. Lösungsversuche: 1 | Verbleibend: 1\n\nTest starten"
-    assert not holen.laeuft(Seite(), vwl2, d(2026, 10, 14, 19, 0))  # beginnt erst morgen
-    assert holen.laeuft(Seite(), vwl2, d(2026, 10, 16, 9, 0))
-    assert not holen.laeuft(Seite(), vwl2, d(2026, 10, 19, 18, 0))  # vorbei
 
     # Automatisch nur etwa alle 12 Stunden und nur tagsüber
     assert holen.faellig({}, d(2026, 10, 20, 9, 0)) and not holen.faellig({}, d(2026, 10, 20, 3, 0)), "nachts nie"

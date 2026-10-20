@@ -1303,9 +1303,9 @@ aussehen();
         </ol>
         <p>Am Semesteranfang lohnt sich einmal der <b>Syllabus</b> jedes Kurses: Daraus kennt der Lernhelfer Termine, Prüfungen und Notenschlüssel. Lesen kann er PDF, PowerPoint (.pptx), Word (.docx), Text und ZIP. Eingescannte PDFs ohne Text gehen nicht; alte Formate (.ppt, .doc) vorher als PDF speichern.</p>
         <div class="nur-loeser">
-        <h3>Onlinetests per Foto</h3>
+        <h3 id="a-foto">Onlinetests per Foto</h3>
         <ol>
-          <li>In OLAT den Test öffnen und die Startseite als Bildschirmfoto aufnehmen: am iPad die obere Taste und die Lauter-Taste gleichzeitig drücken. Bearbeitest du den Test gerade, auch jede Frage.</li>
+          <li>In OLAT den Test öffnen und die Startseite von Hand als Bildschirmfoto aufnehmen: am PC Windows + Umschalt + S, am iPad die obere Taste und die Lauter-Taste gleichzeitig. Bearbeitest du den Test gerade, auch jede Frage.</li>
           <li>Im Lernhelfer unter <a href="#/onlinetests">Onlinetests</a> auf <b>Test per Foto hinzufügen</b> tippen, das Fach angeben, die Bildschirmfotos wählen und <b>Fragen auslesen</b>.</li>
           <li>Die KI schreibt Fragen, Zeitraum und Punkte ab, löst aber nichts. Der Test steht danach im Überblick<span class="nur-server">, mit Lösungswegen an Übungsaufgaben (Ultra)</span>, und die nächste Wochenausgabe nimmt die Fragen für ihre Übungsaufgaben.</li>
         </ol>
@@ -1340,10 +1340,10 @@ aussehen();
         <h2 id="a-tests">Onlinetests</h2>
         <p>Unter <a href="#/onlinetests">Onlinetests</a> stehen alle Tests deiner Kurse: welche gerade offen sind und bis wann, welche als Nächstes kommen und wie viele Punkte sie bringen. Ein Test lässt sich antippen, dann siehst du die Aufgabenstellung.</p>
         <div class="kasten">
-          <p><b>So liest der PC Tests:</b> Er liest nur die Startseite jedes Tests (Zeitraum, Punkte, Versuche) und nach Ablauf, was OLAT dann zeigt. Einen laufenden bewerteten Test startet er nicht. Antworten werden nie eingetragen, gespeichert oder abgeschickt, und „Test beenden“ wird nie gedrückt. Ein Schutz im Browser blockiert diese Knöpfe zusätzlich.</p>
+          <p><b>So liest der PC Tests:</b> Er liest nur die Startseite jedes Tests (Zeitraum, Punkte, Versuche) und nach Ablauf, was OLAT dann zeigt. Einen bewerteten Test startet er nie, auch während er läuft nicht. Antworten werden nie eingetragen, gespeichert oder abgeschickt, und „Test beenden“ wird nie gedrückt. Ein Schutz im Browser blockiert diese Knöpfe zusätzlich.</p>
         </div>
         <p>Abgelaufene Tests zeigen deine Antworten und die Lösung von OLAT, Selbsttests sind zum Üben da. Beides nimmt die Wochenausgabe für die Übungsaufgaben.</p>
-        <p class="nur-loeser">Ohne PC-Programm fügst du einen Test <b>per Foto</b> hinzu, siehe <a href="#a-ohne-pc">Mit iPad oder Mac</a>. Selbst hinzugefügte Tests lassen sich bearbeiten und löschen.</p>
+        <p class="nur-loeser">Fragen eines laufenden Tests nimmst du von Hand als Bildschirmfoto auf und fügst sie <b>per Foto</b> hinzu, siehe <a href="#a-foto">Onlinetests per Foto</a>. Selbst hinzugefügte Tests lassen sich bearbeiten und löschen.</p>
         <p class="nur-server nur-loeser"><b>Lösungswege</b> (Manual Access) zeigt die Fragen eines Tests einzeln, mit Formeln wie in OLAT. Zu jeder Frage stellt der Lernhelfer eine gleichartige Übungsaufgabe mit anderen Zahlen, rechnet sie mit Rechenweg zum Aufklappen vor und erklärt jeden Schritt. Die Originalaufgabe löst du damit selbst: Ergebnisse dafür nennt er nicht, und er schreibt nichts nach OLAT. Welche Hilfsmittel bei einem Test erlaubt sind, legt jede Lehrveranstaltung fest, meist im Syllabus.</p>
         <p class="nur-eigen"><b>Der Löser</b> zeigt die Fragen eines Tests einzeln, mit Formeln wie in OLAT. Bei jeder Frage „Lösen lassen“ tippen: Du bekommst das Ergebnis so, wie es in OLAT eingetragen wird, und den Rechenweg zum Aufklappen. Bei „Rückfrage“ fragst du nach, was unklar ist. Mit „Weiter“ und „Zurück“ gehst du durch die Fragen; Lösungen und Rückfragen bleiben gespeichert. Gedacht ist er zum Vergleichen: erst selbst lösen, dann mit dem Löser prüfen, dann selbst in OLAT eintragen. Der Löser schreibt nichts nach OLAT. Ob KI bei einem Test erlaubt ist, legt jede Lehrveranstaltung selbst fest, meist im Syllabus.</p>
         <p class="nur-eigen">Löser und <a href="#/wordpower">Word Power</a> (Englisch-Hausaufgaben) sind privat und haben je ein eigenes Passwort. Ihre Prompts liegen verschlüsselt im privaten Daten-Repo. Groß- und Kleinschreibung ist egal.</p>
@@ -1675,7 +1675,6 @@ async function api(pfad, body) {
   return j;
 }
 const darf = f => { const T = ICH && TARIFE?.tarife[ICH.tarif]; return !SERVER || !!ICH?.ecke || !!ICH?.zusatz?.includes(f) || !!T && (T.rang >= TARIFE.funktionen[f] || !!T.dazu?.includes(f)); };  // Admin-Ecke: alles; Englisch: dazu; Manual Access: Löser
-const pcLiest = () => !SERVER || !!ICH?.admin;  // Fragen laufender bewerteter Tests liest nur das PC-Programm des Admins (quellen.json)
 const gratis = () => !ICH || !TARIFE?.tarife[ICH.tarif]?.preis;  // Base oder die Aktion Englisch
 const danach = () => ICH?.tarif === 'englisch' ? 'Englisch' : 'Base';  // was nach einem Test oder Tarif gilt (Englisch läuft daneben weiter)
 
@@ -4148,7 +4147,7 @@ function testUebersicht() {
   gruppen.fertig.sort((a, b) => (b.bis || '').localeCompare(a.bis || ''));
   const zeile = (t, erste) => {
     const st = teststand(t);
-    const unten = [st.gruppe === 'uebung' ? st.text : [st.bis && `bis ${zeitpunkt(st.bis)}`, punkte(t), st.gruppe === 'offen' && !t.eigen && (t.fragen ? 'Fragen gelesen' : pcLiest() && 'Fragen kommen mit dem nächsten Abgleich')].filter(Boolean).join(', '),
+    const unten = [st.gruppe === 'uebung' ? st.text : [st.bis && `bis ${zeitpunkt(st.bis)}`, punkte(t)].filter(Boolean).join(', '),
       t.eigen && 'per Foto'].filter(Boolean).join(', ');
     const rest = st.bis && tageBis(iso(new Date(st.bis)));
     return el('li', { class: 'testzeile' },
@@ -4170,7 +4169,7 @@ function testUebersicht() {
     gruppe('Demnächst', 'Bearbeitungszeitraum laut OLAT', gruppen.bald),
     gruppe('Zum Üben', 'Selbsttests und Tests ohne Punkte', gruppen.uebung),
     gruppe('Erledigt und vorbei', 'Mit deinen Antworten und der Lösung, soweit OLAT sie zeigt', gruppen.fertig),
-    !TESTS.length && el('p', { class: 'leer' }, 'Noch keine Tests. Der PC oder Mac liest sie beim nächsten Abgleich aus OLAT; ohne Computer fügst du sie per Foto hinzu.'),
+    !TESTS.length && el('p', { class: 'leer' }, 'Noch keine Tests. Der PC oder Mac liest sie beim nächsten Abgleich aus OLAT.' + (darf('test-foto') ? ' Ohne Computer fügst du sie per Foto hinzu.' : '')),
   ].filter(Boolean));
 }
 // OLAT-Text: Formeln stehen ohne Begrenzer darin (f(x)= 6x^{3} \cdot e^{5x}). Wörter mit LaTeX-Zeichen werden mit ihren
@@ -4269,8 +4268,8 @@ function testZeigen(t) {
     t.fragen && t.startseite && el('details', { class: 'quellen hinweise' }, el('summary', {}, 'Hinweise der Startseite: Rundung und Eingabe'),
       olatText(el('div', { class: 'aufgabentext' }), t.startseite)),
     t.eigen && eigenerTestBearbeiten(t),
-    !q ? el('p', { class: 'leer' }, st.gruppe === 'bald' ? 'Der Test hat noch nicht begonnen.' + (pcLiest() ? ' Die Fragen liest der PC, sobald er offen ist.' : '')
-      : st.gruppe === 'offen' ? (pcLiest() ? 'Die Fragen liest der PC beim nächsten Abgleich (höchstens alle 12 Stunden).' : 'Die Fragen eines laufenden bewerteten Tests liest der Lernhelfer nicht aus.') : 'Zu diesem Test zeigt OLAT keine Fragen.')
+    !q ? el('p', { class: 'leer' }, st.gruppe === 'bald' ? 'Der Test hat noch nicht begonnen.'
+      : st.gruppe === 'offen' ? 'Die Fragen eines laufenden bewerteten Tests liest der Lernhelfer nicht aus.' + (darf('test-foto') ? ' Bearbeitest du ihn, nimmst du sie von Hand per Bildschirmfoto auf und fügst sie in der Übersicht unter „Test per Foto hinzufügen“ ein.' : '') : 'Zu diesem Test zeigt OLAT keine Fragen.')
     : el('section', { class: 'frage-karte', id: 'frage-karte', 'aria-labelledby': 'frage-titel' },
       fragen.length > 1 && el('nav', { class: 'fragen-nav', 'aria-label': 'Fragen' }, fragen.map((x, i) => {
         const fertig = !!geloest(t, x);
@@ -4332,7 +4331,7 @@ async function loesen(t, q) {
   if (hier()) testZeigen(t);
 }
 
-// Tests per Foto (iPad ohne PC-Programm): eigene-tests.json, neben onlinetests.json vom PC; die App nimmt beide zusammen
+// Tests per Foto (von Hand: laufende Tests oder ohne PC-Programm): eigene-tests.json, neben onlinetests.json vom PC; die App nimmt beide zusammen
 const EIGENE_D = datei('eigene-tests.json', () => ({ tests: [] }));
 async function testsLaden() {
   const [pc, eigen] = await Promise.all([gh('onlinetests.json').then(t => JSON.parse(t || '[]')), EIGENE_D.laden().then(d => d.tests)]);
@@ -4365,7 +4364,7 @@ function testFotoForm() {
   const name = el('span', { class: 'meta' }, 'Keine Bilder gewählt');
   return el('form', { class: 'schritt', id: 'tf-form', novalidate: true, onsubmit: e => { e.preventDefault(); testFotoLesen(e.target); } },
     el('h2', {}, 'Test per Foto hinzufügen'),
-    el('p', { class: 'klein' }, 'Für alle ohne PC-Programm: In OLAT die Startseite des Tests und, wenn du ihn gerade bearbeitest, jede Frage als Bildschirmfoto aufnehmen (am iPad obere Taste und Lauter-Taste gleichzeitig) und hier auswählen. Die KI schreibt Fragen, Zeitraum und Punkte ab; sie löst nichts und schickt nichts an OLAT.'),
+    el('p', { class: 'klein' }, 'In OLAT die Startseite des Tests und, wenn du ihn gerade bearbeitest, jede Frage von Hand als Bildschirmfoto aufnehmen (am PC Windows + Umschalt + S, am iPad obere Taste und Lauter-Taste gleichzeitig) und hier auswählen. Die KI schreibt Fragen, Zeitraum und Punkte ab; sie löst nichts und schickt nichts an OLAT.'),
     el('label', { class: 'feld' }, 'Fach', el('input', { id: 'tf-fach', name: 'fach', list: 'tf-faecher', autocomplete: 'off', value: Object.keys(R)[0] || '', placeholder: 'z. B. VWL' })),
     el('datalist', { id: 'tf-faecher' }, Object.keys(R).map(f => el('option', { value: f }))),
     el('div', { class: 'vt-wahl' }, el('input', { type: 'file', id: 'tf-bilder', name: 'bilder', class: 'sr', accept: 'image/*', multiple: true,
