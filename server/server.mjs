@@ -400,6 +400,7 @@ async function ki(req, res, k) {
   if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
   if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
+  b.provider = { ...b.provider, data_collection: 'deny' };  // jedes Modell nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren
   const stil = b.stil !== false && stilVon(k, s);  // Reihenfolge: REGEL, Stil, dann was die App schickt
   b.messages = [...stil ? [{ role: 'system', content: stilRahmen(stil) }] : [], ...Array.isArray(b.messages) ? b.messages : []];
   if (['loeser', 'training', 'probeklausur'].includes(b.feature) && !k.ecke) b.messages = [{ role: 'system', content: REGEL }, ...b.messages];
@@ -574,9 +575,10 @@ function exportieren(req, res, k) {
       .map(b => ({ ...b, betrag_euro: b.betrag / 100, rabatt_euro: b.rabatt / 100, betrag: undefined, rabatt: undefined, erstellt: iso(b.erstellt), gemeldet: iso(b.gemeldet), bezahlt: iso(b.bezahlt) })),
     nutzung: db.prepare('select tag, was, n from nutzung where konto = ? order by tag, was').all(k.id),
     fehlerberichte: db.prepare('select zeit, seite, meldung, text, geraet from fehler where konto = ? order by id').all(k.id).map(f => ({ ...f, zeit: iso(f.zeit) })),
+    arena: db.prepare('select name, woche, xp, min, serie from arena where konto = ?').get(k.id) ?? null,
   };
   const dateien = db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id);
-  const liesmich = `Deine Daten aus dem Lernhelfer, Stand ${new Date().toLocaleString('de-AT')}.\n\nkonto.json: Konto, Tarif, Bestellungen, KI-Kosten pro Monat, welche Bereiche du an welchem Tag genutzt hast, deine Fehlerberichte.\n`
+  const liesmich = `Deine Daten aus dem Lernhelfer, Stand ${new Date().toLocaleString('de-AT')}.\n\nkonto.json: Konto, Tarif, Bestellungen, KI-Kosten pro Monat, welche Bereiche du an welchem Tag genutzt hast, deine Fehlerberichte, dein Arena-Eintrag.\n`
     + 'dateien/: alles in deinem Speicher, so wie es dort liegt: Unterlagen (faecher/), Wochenausgaben (lernseiten/, Markdown), Vorträge, Kalender, Noten, Karteikarten.\n\n'
     + 'Nicht dabei, weil es nie auf dem Server lag: Videos deiner Vorträge, Podcasts zum Anhören, Chats und gelöste Testfragen; die liegen nur auf deinem Gerät.\n';
   const datei = zip([['LIESMICH.txt', Buffer.from(liesmich)], ['konto.json', Buffer.from(JSON.stringify(konto, null, 2))], ...dateien.map(d => ['dateien/' + d.pfad, Buffer.from(d.inhalt)])]);
@@ -834,6 +836,9 @@ const DATEIEN = {
   '/holen.py': ['holen.py', 'text/plain; charset=utf-8'], '/einrichten.ps1': ['einrichten.ps1', 'text/plain; charset=utf-8'],
   '/einrichten-mac.sh': ['einrichten-mac.sh', 'text/plain; charset=utf-8'],
   '/fonts/Archivo.woff2': ['fonts/Archivo.woff2', 'font/woff2'], '/fonts/SourceSerif4.woff2': ['fonts/SourceSerif4.woff2', 'font/woff2'],
+  // Programmbibliotheken der App, selbst ausgeliefert statt von jsDelivr; die Version steht im Namen, darum darf der Browser sie lange behalten
+  ...Object.fromEntries(['marked-12.0.2', 'purify-3.1.6', 'katex-0.16.11', 'pdf-3.11.174', 'pdf.worker-3.11.174', 'qrcode-1.4.4', 'jsQR-1.4.0']
+    .map(n => [`/lib/${n}.min.js`, [`lib/${n}.min.js`, 'text/javascript; charset=utf-8']])),
 };
 function statisch(req, res, url) {
   const pfad = url.pathname;
@@ -843,7 +848,7 @@ function statisch(req, res, url) {
   if (!d || !['GET', 'HEAD'].includes(req.method)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Nicht gefunden'); }
   let inhalt = readFileSync(join(APP, d[0]));
   if (d[0] === 'index.html') inhalt = inhalt.toString('utf8').replace('<html lang="de">', '<html lang="de" data-server>');  // App weiß: Konten statt eigener Schlüssel
-  res.writeHead(200, { 'Content-Type': d[1], 'Cache-Control': d[0].startsWith('fonts/') ? 'public, max-age=604800' : 'no-cache' });
+  res.writeHead(200, { 'Content-Type': d[1], 'Cache-Control': /^(fonts|lib)\//.test(d[0]) ? 'public, max-age=604800' : 'no-cache' });
   res.end(req.method === 'HEAD' ? undefined : inhalt);
 }
 

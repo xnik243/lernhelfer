@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com; img-src data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com; img-src data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernhelfer">
@@ -11,10 +11,9 @@
 <title>Lernhelfer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232446c8'/%3E%3Cpath d='M11 8h3.6v13H22v3H11z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preload" href="fonts/Archivo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+<script src="lib/marked-12.0.2.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
+<script src="lib/purify-3.1.6.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
+<script src="lib/katex-0.16.11.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
 <style>
   @font-face { font-family: "Archivo"; src: url("fonts/Archivo.woff2") format("woff2"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
   @font-face { font-family: "Source Serif 4"; src: url("fonts/SourceSerif4.woff2") format("woff2"); font-weight: 200 900; font-display: swap; }
@@ -4467,9 +4466,9 @@ async function zipLesen(puffer) {  // [{name, daten}] aus einer ZIP-Datei, ohne 
   return aus;
 }
 async function pdfText(daten, melde) {
-  if (!window.pdfjsLib) {  // erst beim ersten PDF. Der „Worker“ läuft im Fenster mit: Worker dürfen nicht von fremden Adressen kommen
-    await skript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js', 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2');
-    await skript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e');
+  if (!window.pdfjsLib) {  // erst beim ersten PDF. Der „Worker“ läuft im Fenster mit
+    await skript('lib/pdf.worker-3.11.174.min.js', 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2');
+    await skript('lib/pdf-3.11.174.min.js', 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e');
   }
   // isEvalSupported: false schließt CVE-2024-4367 (die CSP verbietet eval ohnehin); gelesen wird nur Text, gezeichnet nichts
   const pdf = await pdfjsLib.getDocument({ data: daten, isEvalSupported: false, disableFontFace: true, useSystemFonts: false }).promise;
@@ -4722,14 +4721,14 @@ function verbinden(neu) {
 const skript = (src, integrity) => new Promise((ok, nein) => document.head.append(
   el('script', { src, integrity, crossorigin: 'anonymous', onload: ok, onerror: () => nein(new Error('Eine Programmbibliothek ließ sich nicht laden. Bist du online?')) })));
 async function qrSvg() {
-  if (!window.qrcode) await skript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js', 'sha384-lQXOAyZwHXE55JFyrOMB7nY2Wv+m5ZWNtJcHrd1rceRQXAYNLak8ukN5TjBTcIwz');
+  if (!window.qrcode) await skript('lib/qrcode-1.4.4.min.js', 'sha384-lQXOAyZwHXE55JFyrOMB7nY2Wv+m5ZWNtJcHrd1rceRQXAYNLak8ukN5TjBTcIwz');
   const q = qrcode(0, 'L');
   q.addData(verbindungsLink()); q.make();
   return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
 }
 async function kameraAuf() {
   try {
-    if (!window.jsQR) await skript('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js', 'sha384-hStSInNIZ8ljtOVrmrgf7zdHMapaLBWoSnPTtF0nzsybp4+LuhDz6sHuEVpWIX8o');
+    if (!window.jsQR) await skript('lib/jsQR-1.4.0.min.js', 'sha384-hStSInNIZ8ljtOVrmrgf7zdHMapaLBWoSnPTtF0nzsybp4+LuhDz6sHuEVpWIX8o');
     KAMERA = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
   } catch (e) {
     return status(e.name === 'NotAllowedError' ? 'Die Kamera ist für diese Seite gesperrt. Im Browser erlauben oder den Verbindungslink einfügen.' : e.message, true);

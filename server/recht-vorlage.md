@@ -47,7 +47,6 @@ Ohne E-Mail-Adresse und Passwort gibt es kein Konto. Alles andere gibst du freiw
   - **OpenAI** und **Xiaomi** für Modelle, die man in Tarifen wählen kann, die gerade nicht verkauft werden
 
   Je nach Modell sitzen der Anbieter oder sein Rechenzentrum in der EU, in den USA oder in China. Wie lange OpenRouter und die Anbieter Anfragen aufbewahren, regeln ihre eigenen Datenschutzbestimmungen.
-- **jsDelivr** (cdn.jsdelivr.net), ein öffentliches Netz zur Auslieferung von Programmdateien mit Servern weltweit, auch in den USA. Beim Öffnen der App lädt dein Browser von dort Programmteile, die Text, Formeln, PDFs und QR-Codes anzeigen. Dabei sieht jsDelivr deine IP-Adresse (berechtigtes Interesse an einer schnell ladenden App, Art. 6 Abs. 1 lit. f DSGVO).
 - **YouTube** (Google Ireland Limited, Irland, und Google LLC, USA), nur wenn du Videos oder das Word-Power-Transkript nutzt: Die App fragt dort den Titel ab, zeigt Vorschaubilder und spielt das Video im eingebetteten Player im erweiterten Datenschutzmodus (youtube-nocookie.com). Google erfährt dabei deine IP-Adresse und welches Video du ansiehst.
 - Falls es wieder Bestellungen gibt: PayPal (Europe) S.à r.l. et Cie, S.C.A. (Luxemburg) bzw. deine Bank, je nachdem, wie du zahlst.
 
@@ -62,7 +61,7 @@ Ohne E-Mail-Adresse und Passwort gibt es kein Konto. Alles andere gibst du freiw
 - Anmeldungen laufen nach 60 Tagen ab, Links in Mails nach höchstens drei Tagen.
 - Falls es wieder Bestellungen gibt: Bestellungen und Zahlungen sieben Jahre, auch nach dem Löschen des Kontos, weil das Gesetz es verlangt (§ 132 BAO).
 
-**Deine Rechte:** Auskunft (Art. 15 DSGVO), Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit (Art. 20 DSGVO) und Widerspruch (Art. 21 DSGVO). Eine Kopie deiner Daten lädst du jederzeit selbst unter „Konto“ mit „Alle meine Daten herunterladen“ herunter: Konto, Tarif, Freischaltungen, KI-Kosten, Nutzungsstatistik und Fehlerberichte als `konto.json`, dazu alles in deinem Speicher (Unterlagen, Wochenausgaben, Vorträge, Kalender, Noten, Karteikarten). Deinen Arena-Eintrag siehst du in der Arena. Löschen kannst du das Konto unter „Konto“ ebenfalls. Für alles andere schreib an [E-Mail]. Du kannst dich auch bei der Datenschutzbehörde beschweren (Barichgasse 40–42, 1030 Wien, dsb.gv.at).
+**Deine Rechte:** Auskunft (Art. 15 DSGVO), Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit (Art. 20 DSGVO) und Widerspruch (Art. 21 DSGVO). Eine Kopie deiner Daten lädst du jederzeit selbst unter „Konto“ mit „Alle meine Daten herunterladen“ herunter: Konto, Tarif, Freischaltungen, KI-Kosten, Nutzungsstatistik, Fehlerberichte und deinen Arena-Eintrag als `konto.json`, dazu alles in deinem Speicher (Unterlagen, Wochenausgaben, Vorträge, Kalender, Noten, Karteikarten). Löschen kannst du das Konto unter „Konto“ ebenfalls. Für alles andere schreib an [E-Mail]. Du kannst dich auch bei der Datenschutzbehörde beschweren (Barichgasse 40–42, 1030 Wien, dsb.gv.at).
 
 **Cookies und Speicher im Browser:** nur ein technisch nötiges Cookie für die Anmeldung. Es gibt kein Tracking, keine Analysewerkzeuge und keine Werbung. Einstellungen und Inhalte, die nur auf deinem Gerät liegen, speichert die App im Speicher deines Browsers.
 

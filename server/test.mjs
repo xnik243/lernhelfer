@@ -270,7 +270,8 @@ try {
   await anna('POST', '/api/ki', { feature: 'training', model: 'openai/gpt-6-luna', messages: [{ role: 'system', content: 'APP' }] });
   let m = or.anfragen.at(-1).messages;
   assert.match(m[0].content, /Originalzahlen/); assert.match(m[1].content, /niedrigsten Rang[\s\S]*Fußball/); assert.equal(m[2].content, 'APP', 'Reihenfolge: Regel, Stil, App');
-  await anna('POST', '/api/ki', { feature: 'vortrag', model: 'google/gemini-4-argon', stil: false, messages: [{ role: 'user', content: 'TON' }] });
+  await anna('POST', '/api/ki', { feature: 'vortrag', model: 'google/gemini-4-argon', stil: false, provider: { only: ['google-ai-studio'], data_collection: 'allow' }, messages: [{ role: 'user', content: 'TON' }] });
+  assert.deepEqual(or.anfragen.at(-1).provider, { only: ['google-ai-studio'], data_collection: 'deny' }, 'jedes Modell nur ohne Training, Rest der App bleibt');
   assert.equal(or.anfragen.at(-1).messages[0].content, 'TON', 'Transkript ohne Stil'); assert.ok(!('stil' in or.anfragen.at(-1)), 'stil geht nicht an OpenRouter');
   st = await stilPut('', st.j.content.sha);
   assert.equal(st.status, 200);
@@ -337,6 +338,7 @@ try {
   assert.equal((await anna2('GET', '/api/ich')).j.email, 'anna@example.com');
 
   // Alle meine Daten herunterladen: ZIP mit Konto und jeder Datei im Speicher; der PC-Schlüssel darf das nicht
+  await anna2('POST', '/api/arena', { name: 'Anni', xp: 120, min: 25, serie: 2 });
   const zipAntwort = await fetch(BASIS + '/api/export', { headers: { Cookie: (await (async () => { const r = await fetch(BASIS + '/api/anmelden', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BASIS }, body: JSON.stringify({ email: 'anna@example.com', passwort: 'neues-passwort-1' }) }); return r.headers.getSetCookie()[0].split(';')[0]; })()) } });
   assert.equal(zipAntwort.status, 200); assert.equal(zipAntwort.headers.get('content-type'), 'application/zip');
   assert.match(zipAntwort.headers.get('content-disposition'), /lernhelfer-daten-\d{4}-\d\d-\d\d\.zip/);
@@ -344,6 +346,7 @@ try {
   assert.equal(z['dateien/faecher/BWL.json'], 'neu'); assert.equal(z['dateien/abgleich.json'], '{"ok":true}'); assert.match(z['LIESMICH.txt'], /nur auf deinem Gerät/);
   assert.equal(kj.email, 'anna@example.com'); assert.equal(kj.bestellungen.length, 3); assert.equal(kj.bestellungen[0].status, 'storniert'); assert.equal(kj.bestellungen[1].betrag_euro, 6.93);
   assert.ok(kj.nutzung.some(x => x.was === 'unterlagen')); assert.equal(kj.fehlerberichte[0].text, 'Ausgabe bricht ab'); assert.ok(kj.ueber_einladung);
+  assert.deepEqual([kj.arena.name, kj.arena.xp, kj.arena.min, kj.arena.serie], ['Anni', 120, 25, 2], 'Arena-Eintrag im Export'); assert.match(kj.arena.woche, /^\d{4}-\d\d-\d\d$/);
   assert.equal((await mitPc('GET', '/api/export')).status, 401, 'PC-Schlüssel: kein Export');
   // Konto löschen: Daten weg, Bestellungen bleiben für die Buchhaltung, Schlüssel bei OpenRouter gelöscht
   assert.equal((await anna2('POST', '/api/konto-loeschen', { passwort: 'falsch' })).status, 403);
@@ -433,7 +436,7 @@ try {
   assert.equal((await max('POST', '/api/ki', foto)).status, 200);
   const fb = or.anfragen.at(-1);
   assert.equal(fb.model, 'google/gemini-3.8-flash', 'Fotos: Modell mit Bildern, nicht DeepSeek'); assert.equal(fb.max_tokens, 16000);
-  assert.equal(fb.reasoning, undefined); assert.equal(fb.provider, undefined); assert.equal(fb.messages[0].content[1].type, 'image_url');
+  assert.equal(fb.reasoning, undefined); assert.deepEqual(fb.provider, { data_collection: 'deny' }); assert.equal(fb.messages[0].content[1].type, 'image_url');
   assert.equal((await max('POST', '/api/ki', { ...foto, model: 'openai/gpt-6.1-sol' })).status, 200);
   assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'auch wenn die App etwas anderes schickt');
   const ot = (await max('GET', '/api/geschuetzt/onlinetest')).j.system;
@@ -454,6 +457,14 @@ try {
   assert.equal(r.status, 403); assert.match(r.j.error.message, /keine Tarife zu kaufen/);
   r = await max('POST', '/api/test');
   assert.equal(r.status, 403); assert.match(r.j.error.message, /gerade nicht/);
+  // Programmbibliotheken kommen vom eigenen Server, Byte für Byte so, wie index.html sie mit integrity erwartet
+  const app = readFileSync(new URL('../index.html', import.meta.url), 'utf8'), libs = [...app.matchAll(/(lib\/[\w.-]+\.js)["'][^"']*["'](sha384-[\w+/=]+)/g)];
+  assert.equal(libs.length, 7); assert.doesNotMatch(app, /jsdelivr/);
+  for (const [, pfad, sri] of libs) {
+    const r = await fetch(`${BASIS}/${pfad}`);
+    assert.equal(r.status, 200, pfad); assert.match(r.headers.get('cache-control'), /max-age/);
+    assert.equal('sha384-' + createHash('sha384').update(Buffer.from(await r.arrayBuffer())).digest('base64'), sri, pfad);
+  }
   console.log('Server: alles in Ordnung.');
 } catch (e) {
   console.error(log);
