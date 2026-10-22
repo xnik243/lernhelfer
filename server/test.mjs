@@ -504,6 +504,44 @@ try {
   assert.equal((await chef('GET', '/api/admin')).j.wpExtras, true);
   assert.equal((await chef('POST', '/api/admin/werte', { 'wp-extras': 2 })).status, 400);
   await chef('POST', '/api/admin/werte', { 'wp-extras': 0 });
+  // Konto von Hand: bestätigen, Adresse ändern, sperren; Ankündigung und OLAT-Schalter für alle; Mails ohne Brevo
+  const eva = person();
+  await eva('POST', '/api/registrieren', { email: 'eva@example.com', passwort: 'evas-passwort-1', agb: true });
+  const evaId = (await chef('GET', '/api/admin')).j.konten.find(x => x.email === 'eva@example.com').id;
+  assert.equal((await chef('POST', '/api/admin/konto', { konto: evaId })).j.bestaetigt, false);
+  await chef('POST', '/api/admin/konto-setzen', { konto: evaId, bestaetigt: true });
+  assert.equal((await eva('GET', '/api/ich')).j.bestaetigt, true, 'von Hand bestätigt');
+  assert.equal((await eva('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 200);
+  assert.equal((await chef('POST', '/api/admin/konto-setzen', { konto: evaId, email: 'Max+x@example.com' })).status, 409, 'Adresse vergeben');
+  assert.equal((await chef('POST', '/api/admin/konto-setzen', { konto: evaId, email: 'chef@example.com' })).status, 400, 'Adresse des Admin-Kontos');
+  assert.equal((await chef('POST', '/api/admin/konto-setzen', { konto: evaId, email: 'eva@yopmail.com' })).status, 400);
+  await chef('POST', '/api/admin/konto-setzen', { konto: evaId, email: 'Eva.Neu@example.com' });
+  const ichEva = (await eva('GET', '/api/ich')).j;
+  assert.deepEqual([ichEva.email, ichEva.bestaetigt], ['eva.neu@example.com', false], 'neue Adresse, neu bestätigen');
+  await link('eva.neu@example.com', 'bestaetigen');
+  const pcEva = (await eva('POST', '/api/pc')).j.token;
+  await chef('POST', '/api/admin/konto-setzen', { konto: evaId, gesperrt: true });
+  assert.equal((await eva('GET', '/api/ich')).status, 401, 'gesperrt: abgemeldet');
+  assert.equal((await fetch(BASIS + '/api/gh/repos/lernhelfer/konto/contents/x.json', { headers: { Authorization: 'Bearer ' + pcEva } })).status, 401, 'PC-Schlüssel ungültig');
+  r = await eva('POST', '/api/anmelden', { email: 'eva.neu@example.com', passwort: 'evas-passwort-1' });
+  assert.equal(r.status, 403); assert.match(r.j.error.message, /gesperrt/);
+  assert.equal((await chef('GET', '/api/admin')).j.konten.find(x => x.id === evaId).gesperrt, 1);
+  await chef('POST', '/api/admin/konto-setzen', { konto: evaId, gesperrt: false });
+  assert.equal((await eva('POST', '/api/anmelden', { email: 'eva.neu@example.com', passwort: 'evas-passwort-1' })).status, 200, 'entsperrt');
+  const ichId = (await chef('GET', '/api/admin')).j.konten.find(x => x.email === 'chef@example.com').id;
+  assert.equal((await chef('POST', '/api/admin/konto-setzen', { konto: ichId, gesperrt: true })).status, 400, 'nicht sich selbst');
+  assert.equal((await eva('POST', '/api/admin/konto-setzen', { konto: evaId, bestaetigt: true })).status, 403);
+  assert.deepEqual((await chef('POST', '/api/admin/mails', { konto: evaId })).j, { ohne: true, mails: [] });
+  await chef('POST', '/api/admin/ankuendigung', { text: '  Abgleich pausiert bis Montag.  ' });
+  let tf = await fetch(BASIS + '/api/tarife').then(r => r.json());
+  assert.equal(tf.ankuendigung.text, 'Abgleich pausiert bis Montag.'); assert.equal(tf.olat, true);
+  assert.equal((await eva('POST', '/api/admin/ankuendigung', { text: 'x' })).status, 403);
+  await chef('POST', '/api/admin/ankuendigung', { text: '' });
+  await chef('POST', '/api/admin/werte', { 'olat-aus': 1 });
+  tf = await fetch(BASIS + '/api/tarife').then(r => r.json());
+  assert.deepEqual([tf.ankuendigung, tf.olat, (await chef('GET', '/api/admin')).j.olatAus], [null, false, true]);
+  assert.equal((await chef('POST', '/api/admin/werte', { 'olat-aus': 2 })).status, 400);
+  await chef('POST', '/api/admin/werte', { 'olat-aus': 0 });
   await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
   // Auf Eis: Löser und Test-Fotos nur mit dem Zusatz Manual Access (vom Admin), und auch dann nur mit REGEL
   const foto = { feature: 'test-foto', model: 'google/gemini-3.8-flash', reasoning: { effort: 'max' }, provider: { x: 1 }, stil: false,

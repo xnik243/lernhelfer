@@ -123,6 +123,18 @@ def test():
     antworten.append({"content": {"sha": "s"}})
     holen.hochladen(stand, "x.json", b"{}")
     assert anfragen[3] == ("PUT", None) and stand == {"ziel": "https://server/api/gh/n/d", "sha": {"x.json": "s"}}
+    # Schalter in der Admin-Ecke: aus = kein OLAT; ohne Antwort wie bisher
+    echt, gefragt = holen.urlopen, []
+    class Antwort:
+        def read(self):
+            return b'{"olat": false}'
+    holen.urlopen = lambda url, timeout: gefragt.append(url) or Antwort()
+    assert holen.olat_erlaubt() is False and gefragt == ["https://server/api/tarife"]
+    def kein_netz(url, timeout):
+        raise OSError("kein Netz")
+    holen.urlopen = kein_netz
+    assert holen.olat_erlaubt() is True
+    holen.urlopen = echt
     Path(zugang.name).unlink()
 
     # Testliste für den Onlinetest-Überblick der App

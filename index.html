@@ -677,6 +677,13 @@
   @media (min-width: 700px) { .meldung:has(.innen.breit) { width: min(860px, calc(100% - 32px)); } }
   .nutzung-tage { display: grid; gap: 6px; padding-left: 1.1em; font-size: 0.875rem; }
   .nutzung-zeiten { display: inline; }
+  .konto-aktionen { align-items: center; margin: 4px 0 18px; }
+  .konten-suche { width: min(420px, 100%); margin: 0 0 10px; }
+  .ank-form textarea { width: 100%; }
+  .ankuendigung { display: flex; align-items: flex-start; gap: 12px; margin: 0 0 20px; padding: 12px 14px 12px 16px; border: 1px solid var(--linie-2); border-radius: var(--r); background: var(--bg-2); }
+  .ankuendigung p { flex: 1; margin: 0; white-space: pre-line; font-size: 0.9375rem; line-height: 1.45; }
+  .ankuendigung button { flex: none; padding: 2px 8px; border: 0; background: none; color: var(--text-3); font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer; }
+  .ankuendigung button:hover { color: var(--text); }
   .nutzung-zeiten > span:not(:last-child)::after { content: ', '; }
   .nutzung-zeiten time { color: var(--text-3); font-variant-numeric: tabular-nums; }
   .arena-preise { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 12px; font: 600 0.8125rem/1.3 var(--sans); }
@@ -1182,6 +1189,7 @@ aussehen();
 
   <main id="inhalt" tabindex="-1">
     <p id="status" role="status" aria-live="polite"></p>
+    <div id="ankuendigung"></div>
     <div id="h-mail"></div>
     <section id="titelblatt" hidden>
       <header class="seitenkopf">
@@ -2110,6 +2118,11 @@ function fachZeile(f) {
     a && el('p', { class: 'meta' }, `Ausgabe vom ${kurz(a.datum)}, ${a.begriffe.length} Begriffe`),
     r.druckt && presse(f),
     r.fehler && el('p', { class: 'fehlertext' }, r.fehler));
+}
+function ankuendigungZeigen() {
+  const a = SERVER && TARIFE?.ankuendigung;
+  $('ankuendigung').replaceChildren(...a && merk('ank-zu') !== String(a.zeit) ? [el('div', { class: 'ankuendigung', role: 'note' }, el('p', {}, a.text),
+    el('button', { type: 'button', 'aria-label': 'Ausblenden', title: 'Ausblenden', onclick: () => { merk('ank-zu', String(a.zeit)); ankuendigungZeigen(); } }, '×'))] : []);
 }
 const mailNochmal = () => el('button', { class: 'knopf', type: 'button', onclick: async e => {
   const k = e.currentTarget; k.disabled = true;
@@ -6068,6 +6081,29 @@ async function adminZeigen() {
       el('div', { class: 'knopfreihe' },
         el('button', { class: 'knopf', type: 'button', onclick: e => { e.currentTarget.disabled = true; adminZeigen(); } }, 'Aktualisieren'),
         el('button', { class: 'knopf', type: 'button', onclick: async e => { e.currentTarget.disabled = true; ICH = await api('ecke-zu', {}).catch(() => ICH); eckeWechsel(); } }, 'Ecke sperren'))),
+    el('h2', {}, 'Für alle'),
+    el('form', { class: 'werte-form ank-form', onsubmit: async e => {
+      e.preventDefault();
+      const f = e.target.elements, leer = e.submitter?.name === 'weg';
+      e.target.querySelectorAll('button').forEach(k => { k.disabled = true; });
+      try { await api('admin/ankuendigung', { text: leer ? '' : f.text.value }); TARIFE = await api('tarife'); ankuendigungZeigen(); } catch (err) { alert(err.message); }
+      adminZeigen();
+    } },
+      el('label', {}, 'Ankündigung oben in der App, für alle (auch ohne Konto)', el('textarea', { name: 'text', rows: 3, maxlength: 600, placeholder: 'Etwa: Der OLAT-Abgleich ist bis Montag pausiert. Alles andere geht wie immer.' }, d.ankuendigung?.text || '')),
+      el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', name: 'knopf' }, d.ankuendigung ? 'Ändern' : 'Anzeigen'), d.ankuendigung && el('button', { class: 'knopf', name: 'weg' }, 'Entfernen'))),
+    el('p', { class: 'meta' }, d.ankuendigung ? `Sichtbar seit ${zeitpunkt(d.ankuendigung.zeit)}. Wer sie wegklickt, sieht sie erst wieder, wenn du sie änderst.` : 'Gerade keine Ankündigung.'),
+    el('form', { class: 'werte-form', onsubmit: async e => {
+      e.preventDefault();
+      const aus = e.target.elements.aus.checked;
+      if (aus && !confirm('Den Abgleich mit OLAT auf allen Geräten pausieren? Jedes Gerät hört damit bei seinem nächsten Lauf auf, OLAT zu öffnen, bis du ihn wieder freigibst.')) return;
+      e.target.elements.knopf.disabled = true;
+      try { await api('admin/werte', { 'olat-aus': aus ? 1 : 0 }); } catch (err) { alert(err.message); }
+      adminZeigen();
+    } },
+      el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'aus', checked: d.olatAus }), 'OLAT-Abgleich auf allen Geräten pausieren'),
+      el('button', { class: 'knopf', name: 'knopf' }, 'Speichern')),
+    el('p', { class: 'meta' }, d.olatAus ? 'Pausiert: Die Programme am PC und Mac öffnen OLAT nicht, auch nicht von Hand. Schreib eine Ankündigung dazu, damit niemand denkt, es sei kaputt.'
+      : 'Läuft. Für den Notfall, etwa wenn der ZID darum bittet: wirkt auf jedem Gerät ab seinem nächsten Lauf (ältere Programme erst nach ihrem nächsten Abgleich, dann haben sie die neue Fassung).'),
     schluesselForm(d.schluessel),
     el('h2', {}, 'KI-Modelle'),
     el('p', { class: 'klein' }, 'Gilt sofort für alle Konten. Wer selbst ein anderes Modell ausgewählt hat, behält es; neue und Base-Konten nehmen den Standard.'),
@@ -6153,21 +6189,18 @@ async function adminZeigen() {
     bezahlt.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Am'], bezahlt.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b), tag(b.bezahlt)]))
       : el('p', { class: 'leer' }, 'Noch nichts.'),
     el('h2', {}, `Konten (${d.konten.length})`),
-    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Nutzung', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
-      k.email + (k.bestaetigt ? '' : ' (unbestätigt)'), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k),
+    el('input', { type: 'search', class: 'konten-suche', placeholder: 'Suchen: Adresse, Tarif, „unbestätigt“, „gesperrt“ …', 'aria-label': 'Konten durchsuchen',
+      oninput: e => { const q = e.target.value.trim().toLowerCase(); e.target.nextElementSibling.querySelectorAll('tbody tr').forEach(r => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); } }),
+    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Konto', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
+      k.email + (k.bestaetigt ? '' : ' (unbestätigt)') + (k.gesperrt ? ' (gesperrt)' : ''), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k),
       geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
       `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`, setzen(k),
-      k.email === ICH.email ? '' : el('div', { class: 'knopfreihe' },
-        !k.bestaetigt && el('button', { class: 'knopf', type: 'button', onclick: async e => {
-          e.currentTarget.disabled = true;
-          try { await api('admin/bestaetigung', { konto: k.id }); e.target.textContent = 'Gesendet'; } catch (err) { alert(err.message); e.target.disabled = false; }
-        } }, 'Bestätigung senden'),
-        el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen'))])));
+      k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])));
 }
 // Tage mit Uhrzeiten (Wiener Tag, neueste zuerst); davor, aus der Zeit ohne Uhrzeiten, nur die Zähler je Tag
 const wienTag = z => new Date(z).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
 function nutzungTage(n) {
-  const ab = n.zeiten.length ? wienTag(n.zeiten.at(-1).zeit) : '9999';
+  const ab = n.zeiten.length ? new Date(n.zeiten.at(-1).zeit).toISOString().slice(0, 10) : '9999';  // Zähler laufen in UTC-Tagen
   return [...new Set(n.zeiten.map(z => wienTag(z.zeit)))].map(tag => ({ tag, zeiten: n.zeiten.filter(z => wienTag(z.zeit) === tag) })).concat(n.tage.filter(x => x.tag < ab));
 }
 // „14:02 Heute, 14:03 Mathematik ×2“: aufeinanderfolgende gleiche Schritte zusammen
@@ -6181,19 +6214,47 @@ function zeitenListe(zeiten) {
 async function kontoNutzung(id) {
   let n;
   try { n = await api('admin/konto', { konto: id }); } catch (e) { return alert(e.message); }
-  const d = $('meldung'), tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–';
+  const d = $('meldung'), tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–', mails = el('p', { class: 'meta' }, 'Lädt …');
+  const aktion = (text, body, frage) => {  // ändern, dann Konto und Admin-Ecke neu zeichnen
+    const los = async e => {
+      if (frage && !confirm(frage)) return;
+      e.currentTarget.disabled = true;
+      try { await api('admin/konto-setzen', { konto: id, ...body }); } catch (err) { return alert(err.message); }
+      await kontoNutzung(id); adminZeigen();
+    };
+    return text ? el('button', { class: 'knopf', type: 'button', onclick: los }, text) : los;
+  };
   d.replaceChildren(el('div', { class: 'innen breit' },
     el('h2', { id: 'm-titel' }, n.email),
     el('p', { class: 'meta' }, `Registriert ${tag(n.erstellt)} · zuletzt aktiv ${tag(n.zuletzt)}${n.arena.name ? ` · Arena: ${n.arena.name}${n.arena.aus ? ' (gesperrt)' : ''}` : ''} · ${n.arena.xp} XP · Serie ${n.arena.serie}, Rekord ${n.arena.bester}`),
+    !n.ich && el('div', { class: 'knopfreihe konto-aktionen' },
+      el('span', { class: `pille${n.gesperrt ? ' fehler' : n.bestaetigt ? ' ok' : ' warn'}` }, n.gesperrt ? 'gesperrt' : n.bestaetigt ? 'bestätigt' : 'nicht bestätigt'),
+      !n.bestaetigt && aktion('Bestätigen', { bestaetigt: true }),
+      !n.bestaetigt && el('button', { class: 'knopf', type: 'button', onclick: async e => {
+        e.currentTarget.disabled = true;
+        try { await api('admin/bestaetigung', { konto: id }); e.target.textContent = 'Mail gesendet'; } catch (err) { alert(err.message); e.target.disabled = false; }
+      } }, 'Bestätigung nochmal senden'),
+      el('button', { class: 'knopf', type: 'button', onclick: e => { const neu = prompt('Neue E-Mail-Adresse (danach muss sie neu bestätigt werden; die Mail geht gleich raus):', n.email); if (neu && neu.trim() !== n.email) aktion('', { email: neu })(e); } }, 'Adresse ändern'),
+      n.gesperrt ? aktion('Entsperren', { gesperrt: false })
+        : aktion('Sperren', { gesperrt: true }, `${n.email} sperren? Das Konto wird überall abgemeldet, der PC-Schlüssel gilt nicht mehr, und Anmelden geht erst wieder, wenn du entsperrst. Daten bleiben erhalten.`)),
     n.nutzung.length ? tabelle(['Bereich', 'Art', '30 Tage', 'Gesamt', 'KI-Kosten', 'Zuletzt'], n.nutzung.map(x => [x.name, x.art, String(x.n30), String(x.n), x.usd ? geld(x.usd) : '–',
       new Date(x.zuletzt + 'T12:00').toLocaleDateString('de-AT')])) : el('p', { class: 'leer' }, 'Noch nichts genutzt.'),
     n.tage.length > 0 && [el('h3', {}, 'Die letzten 30 Tage'), el('p', { class: 'meta' }, 'Uhrzeiten in Wiener Zeit; gleiche Schritte direkt hintereinander zusammengefasst.'),
       el('ul', { class: 'nutzung-tage' }, nutzungTage(n).map(x => el('li', {},
         el('b', {}, new Date(x.tag + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric', month: 'short' })), ' ',
         x.zeiten ? zeitenListe(x.zeiten) : x.liste.map(y => `${y.name}${y.n > 1 ? ` ×${y.n}` : ''}`).join(', '))))],
+    el('h3', {}, 'Mails der letzten 30 Tage'), mails,
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen'))));
-  d.showModal();
+  if (!d.open) d.showModal();
+  try {
+    const m = await api('admin/mails', { konto: id });
+    mails.replaceChildren(m.ohne ? el('p', { class: 'meta' }, 'Ohne Brevo-Schlüssel gibt es keine Zustellinfos.') : m.mails.length ? el('ul', { class: 'nutzung-tage' }, m.mails.map(x => el('li', {},
+      el('b', {}, new Date(x.zeit).toLocaleString('de-AT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })), ` ${MAIL_ARTEN[x.art] || x.art} · ${x.betreff}`, x.grund && el('span', { class: 'meta' }, ` · ${x.grund}`))))
+      : el('p', { class: 'meta' }, 'Keine Mails an diese Adresse.'));
+  } catch (e) { mails.replaceChildren(el('p', { class: 'fehlertext' }, e.message)); }
 }
+const MAIL_ARTEN = { requests: 'abgeschickt', delivered: 'zugestellt', opened: 'geöffnet', clicks: 'Link geklickt', softBounces: 'abgelehnt (vorübergehend)', hardBounces: 'abgelehnt (Adresse gibt es nicht)',
+  blocked: 'blockiert', spam: 'als Spam gemeldet', invalid: 'ungültige Adresse', deferred: 'verzögert', error: 'Fehler', unsubscribed: 'abgemeldet' };
 // Standard- und Transkript-Modell als OpenRouter-ID: in der Server-Version stellt sie der Admin für alle ein, in der eigenen Version du unter Einrichten.
 // Der Standard steht in der Auswahl ganz vorn und ist das einzige Modell für Base; transkript leer = wie bisher (Word Power Gemini Flash, Vortrag Argon).
 const STANDARD = SERVER ? { model: 'deepseek/deepseek-v4.1-flash', denken: 'max', transkript: '' } : { model: 'openai/gpt-6-luna', denken: 'xhigh', transkript: '' };
@@ -6898,6 +6959,7 @@ async function zeichne() {
   if ($('meldung').open) $('meldung').close();
   for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
+  ankuendigungZeigen();
   $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
     el('h3', {}, 'Bestätige noch deine E-Mail-Adresse'),
     el('p', { class: 'klein' }, `Erst dann schreibt die KI für dich und du kannst in der Arena mitmachen. Der Link ging an ${ICH.email}. Nichts da? Schau im Spam-Ordner nach oder lass ihn nochmal schicken.`),

@@ -557,6 +557,18 @@ def aktualisieren():
         print("Aktualisierung übersprungen:", e)
 
 
+def olat_erlaubt():
+    """Schalter in der Admin-Ecke des Lernhelfer-Servers: aus = kein Abgleich mit OLAT, bis er wieder an ist.
+    Ohne Server (eigene GitHub-Version) oder ohne Antwort gleicht er ab wie bisher."""
+    try:
+        api = json.loads(ZUGANG.read_text("utf-8")).get("api") if ZUGANG.exists() else None
+        if not api:
+            return True
+        return json.loads(urlopen(api.rsplit("/api/", 1)[0] + "/api/tarife", timeout=15).read()).get("olat", True) is not False
+    except Exception:
+        return True
+
+
 def sperre():
     """Nur ein Abgleich gleichzeitig: Aufgabe bzw. launchd und der Doppelklick teilen Sitzung, Chrome-Profil und Stand.
     Gibt die offene Sperrdatei zurück (bis zum Ende behalten) oder None, wenn schon einer läuft."""
@@ -594,6 +606,11 @@ if __name__ == "__main__":
         SPERRE = sperre()
     if not SPERRE:
         print("Es läuft schon ein Abgleich.")
+        sys.exit(0 if auto else 1)
+    if not olat_erlaubt():
+        print("Der Abgleich mit OLAT ist gerade pausiert (Lernhelfer-Server). Er läuft von selbst wieder, sobald er freigegeben ist.", flush=True)
+        if auto:
+            aktualisieren()  # neue Fassungen kommen trotzdem an, ohne OLAT zu berühren
         sys.exit(0 if auto else 1)
     stand = json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}
     alt = stand.get("abgleich", {})

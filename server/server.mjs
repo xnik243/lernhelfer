@@ -4,7 +4,7 @@
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateRawSync } from 'node:zlib';
@@ -160,7 +160,8 @@ create table if not exists arena_serie (konto integer primary key references kon
 create table if not exists arena_best (konto integer not null references konten(id) on delete cascade, fach text not null, ms integer not null, primary key (konto, fach));
 create table if not exists arena_preise (woche text not null, platz integer not null, konto integer references konten(id) on delete set null, name text not null, xp integer not null,
   art integer not null, wert integer not null, primary key (woche, platz));`);
-for (const [tabelle, spalte] of [['arena', 'aus integer not null default 0'], ['konten', 'preis_bis integer not null default 0'], ['gutscheine', 'prozent integer']])
+for (const [tabelle, spalte] of [['arena', 'aus integer not null default 0'], ['konten', 'preis_bis integer not null default 0'], ['gutscheine', 'prozent integer'],
+  ['konten', 'gesperrt integer not null default 0']])
   try { db.exec(`alter table ${tabelle} add column ${spalte}`); } catch {}
 
 /* ---------- Kleinigkeiten ---------- */
@@ -253,7 +254,7 @@ function konto(req) {
   if (!c && !b) return null;
   const m = db.prepare('select konto from marken where hash = ? and art = ? and bis > ?').get(sha256(c || b), c ? 'sitzung' : 'sync', jetzt());
   const k = m && kontoMit(m.konto);
-  if (!k) return null;
+  if (!k || k.gesperrt) return null;
   if (c && jetzt() - k.zuletzt > 3600e3) db.prepare('update konten set zuletzt = ? where id = ?').run(jetzt(), k.id);  // für die Admin-Ecke, höchstens stündlich
   const e = c && istAdmin(k) && keks(req, 'lhe');  // Admin-Ecke: eigene Marke, 12 Stunden, nur mit der Admin-Sitzung
   return Object.assign(k, { nurPc: !c,  // der PC-Schlüssel darf nur den Speicher
@@ -293,6 +294,12 @@ const emailKern = e => {  // a.b+x@googlemail.com und ab@gmail.com sind dasselbe
   if (d === 'googlemail.com') d = 'gmail.com';
   return (d === 'gmail.com' ? l.replaceAll('.', '') : l) + '@' + d;
 };
+function emailPruefen(email, ausser = 0) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) nein(400, 'Bitte eine gültige E-Mail-Adresse eingeben.');
+  if (WEGWERF.has(email.split('@')[1])) nein(400, 'Bitte nimm eine Adresse, die du dauerhaft nutzt, keine Wegwerf-Adresse.');
+  const kern = emailKern(email);  // ponytail: liest alle Adressen, ab einigen Tausend Konten eine eigene Spalte
+  if (db.prepare('select id, email from konten').all().some(x => x.id !== ausser && emailKern(x.email) === kern)) nein(409, 'Mit dieser E-Mail gibt es schon ein Konto. Anmelden oder „Passwort vergessen“?');
+}
 const passwortPruefen = pw => { if (pw.length < 10 || pw.length > 200) nein(400, 'Das Passwort braucht mindestens 10 Zeichen.'); return pw; };
 
 // Was gilt gerade: bezahlter Tarif, sonst der 24-Stunden-Test (zählt als Ultra), sonst die Aktion Englisch, sonst Base
@@ -528,6 +535,8 @@ async function prompts(bereich) {
 /* ---------- Admin-Ecke ---------- */
 const wert = (name, vorgabe) => db.prepare('select wert from werte where name = ?').get(name)?.wert ?? vorgabe;
 const wertDazu = db.prepare('insert into werte (name, wert) values (?, ?) on conflict (name) do update set wert = wert + excluded.wert');
+const ANK = join(DATEN, 'ankuendigung.json');  // {text, zeit}: Hinweis oben in der App, für alle
+const ankuendigung = () => existsSync(ANK) ? JSON.parse(readFileSync(ANK, 'utf8')) : null;
 const wertSetzen = (name, x) => db.prepare('insert into werte (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(name, x);
 // Preise aus der Admin-Ecke (werte preis:pro, regulaer:pro …, launch, launch-bis); ohne Eintrag gelten die aus TARIFE.
 // Läuft das Launch-Angebot (an, und das Enddatum ist nicht vorbei), gilt der Launch-Preis, sonst der reguläre. Vor jeder Anfrage neu.
@@ -767,7 +776,7 @@ function bestellMail(k, T, monate, betrag, zweck) {
 
 /* ---------- Routen ---------- */
 const ROUTEN = {
-  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
+  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olat: !wert('olat-aus', 0), ankuendigung: ankuendigung(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
     modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '' },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
@@ -776,11 +785,8 @@ const ROUTEN = {
   'POST /api/registrieren': async ({ req, res, b }) => {
     bremse(req, 60);
     const email = String(b.email || '').trim().toLowerCase(), pw = passwortPruefen(String(b.passwort || ''));
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) nein(400, 'Bitte eine gültige E-Mail-Adresse eingeben.');
+    emailPruefen(email);
     if (!b.agb) nein(400, 'Bitte bestätige, dass du AGB und Datenschutzerklärung gelesen hast.');
-    if (WEGWERF.has(email.split('@')[1])) nein(400, 'Bitte nimm eine Adresse, die du dauerhaft nutzt, keine Wegwerf-Adresse.');
-    const kern = emailKern(email);  // ponytail: liest alle Adressen, ab einigen Tausend Konten eine eigene Spalte
-    if (db.prepare('select email from konten').all().some(x => emailKern(x.email) === kern)) nein(409, 'Mit dieser E-Mail gibt es schon ein Konto. Anmelden oder „Passwort vergessen“?');
     const werber = b.code ? db.prepare('select id from konten where code = ?').get(String(b.code).trim().toUpperCase()) : null;
     if (b.code && !werber) nein(400, 'Diesen Freundescode gibt es nicht. Leer lassen geht auch.');
     let neu; do neu = code(6); while (db.prepare('select 1 from konten where code = ?').get(neu));
@@ -796,6 +802,7 @@ const ROUTEN = {
     bremse(req, 10, email);
     const k = db.prepare('select * from konten where email = ?').get(email);
     if (!pwOk(String(b.passwort || ''), k?.pw || ATTRAPPE) || !k) nein(401, 'E-Mail oder Passwort stimmt nicht.');
+    if (k.gesperrt) nein(403, 'Dieses Konto ist gesperrt. Fragen dazu an die Adresse im Impressum.');
     anmelden(res, k.id);
     return ich(k);
   },
@@ -988,7 +995,7 @@ const ROUTEN = {
 
   'GET /api/admin': async ({ k }) => {
     admin(k);
-    const konten = db.prepare(`select k.id, k.email, k.erstellt, k.bestaetigt, k.tarif, k.bis, k.test_bis, k.englisch_bis, k.manual_bis, k.beta, k.zuletzt, k.or_hash, w.email werber,
+    const konten = db.prepare(`select k.id, k.email, k.erstellt, k.bestaetigt, k.gesperrt, k.tarif, k.bis, k.test_bis, k.englisch_bis, k.manual_bis, k.beta, k.zuletzt, k.or_hash, w.email werber,
         coalesce((select usd from verbrauch where konto = k.id and monat = ?), 0) ki_monat,
         coalesce((select sum(usd) from verbrauch where konto = k.id and monat != 'test'), 0) ki_gesamt,
         (select count(*) from konten g where g.geworben_von = k.id) geworben,
@@ -999,7 +1006,7 @@ const ROUTEN = {
     await Promise.all(konten.map(async x => { x.api = x.or_hash && E.LH_OR_VERWALTUNG ? await orNutzung(x.or_hash) : null; delete x.or_hash; }));
     return {
       ...dashboard(konten), konten, funktionen: nutzungListe(), schluessel: schluesselStand(), neuEnglisch: wert('neu-englisch', 0), launchEin: !!wert('launch', 1),
-      reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0),
+      reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olatAus: !!wert('olat-aus', 0), ankuendigung: ankuendigung(),
       arena: { preise: arenaPreise(), woche: arenaWoche(),
         teilnehmer: db.prepare(`select a.konto, a.name, a.aus, k.email, coalesce((select sum(xp) from arena_xp x where x.konto = a.konto and x.tag >= ?), 0) woche,
           coalesce((select sum(xp) from arena_xp x where x.konto = a.konto), 0) gesamt, coalesce((select serie from arena_serie s where s.konto = a.konto), 0) serie
@@ -1011,11 +1018,11 @@ const ROUTEN = {
   },
   'POST /api/admin/werte': ({ k, b }) => {  // Fixkosten pro Monat in €, was 1 $ KI in € kostet, wie viele Tage neue Konten Englisch bekommen (0 = aus)
     admin(k);
-    const ganz = ['neu-englisch', 'reflexion', 'wp-extras', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion und wp-extras 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
+    const ganz = ['neu-englisch', 'reflexion', 'wp-extras', 'olat-aus', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion, wp-extras und olat-aus 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
     for (const name of ['fixkosten', 'kurs', ...ganz]) {
       if (b[name] == null || b[name] === '') continue;
       const x = Number(String(b[name]).replace(',', '.'));
-      if (!(x >= 0 && x < 1e5) || ganz.includes(name) && !Number.isInteger(x) || ['reflexion', 'wp-extras'].includes(name) && x > 1 || name === 'arena-art' && x > 2
+      if (!(x >= 0 && x < 1e5) || ganz.includes(name) && !Number.isInteger(x) || ['reflexion', 'wp-extras', 'olat-aus'].includes(name) && x > 1 || name === 'arena-art' && x > 2
         || /^arena-p/.test(name) && b['arena-art'] == 2 && x > 100) nein(400, ganz.includes(name) ? 'Bitte ganze Zahlen eingeben (Rabatt höchstens 100 %).' : 'Bitte eine Zahl eingeben, etwa 4,90.');
       wertSetzen(name, x);
     }
@@ -1074,10 +1081,43 @@ const ROUTEN = {
     const tage = new Map();
     for (const x of zeilen.filter(x => x.tag >= grenze)) (tage.get(x.tag) ?? tage.set(x.tag, []).get(x.tag)).push({ name: nutzungName(x.was)[1] || x.was, n: x.n });
     const a = db.prepare('select name, aus from arena where konto = ?').get(z.id), s = db.prepare('select * from arena_serie where konto = ?').get(z.id);
-    return { email: z.email, erstellt: z.erstellt, zuletzt: z.zuletzt, nutzung: [...je.values()].sort((x, y) => y.n30 - x.n30 || y.n - x.n),
+    return { email: z.email, erstellt: z.erstellt, zuletzt: z.zuletzt, bestaetigt: !!z.bestaetigt, gesperrt: !!z.gesperrt, ich: z.id === k.id, nutzung: [...je.values()].sort((x, y) => y.n30 - x.n30 || y.n - x.n),
       tage: [...tage].map(([tag, liste]) => ({ tag, liste })),
       zeiten: db.prepare('select zeit, was from nutzung_log where konto = ? order by zeit desc limit 2000').all(z.id).map(x => ({ zeit: x.zeit, name: nutzungName(x.was)[1] || x.was })),
       arena: { name: a?.name || null, aus: !!a?.aus, xp: db.prepare('select coalesce(sum(xp), 0) n from arena_xp where konto = ?').get(z.id).n, serie: serieJetzt(s, wienTag()), bester: s?.bester || 0 } };
+  },
+  'POST /api/admin/konto-setzen': async ({ k, b }) => {  // von Hand: Adresse bestätigen, Konto sperren oder entsperren, Adresse ändern (dann neu bestätigen)
+    admin(k);
+    const z = kontoMit(Number(b.konto));
+    if (!z) nein(404, 'Das Konto gibt es nicht mehr.');
+    if (z.id === k.id && (b.gesperrt != null || b.email != null)) nein(400, 'Dein eigenes Konto änderst du hier nicht.');
+    if (b.bestaetigt) db.prepare('update konten set bestaetigt = 1 where id = ?').run(z.id);
+    if (b.gesperrt != null) {
+      db.prepare('update konten set gesperrt = ? where id = ?').run(b.gesperrt ? 1 : 0, z.id);
+      if (b.gesperrt) db.prepare('delete from marken where konto = ?').run(z.id);  // überall abgemeldet, PC-Schlüssel ungültig
+    }
+    if (b.email != null) {
+      const email = String(b.email).trim().toLowerCase();
+      if (email === ADMIN) nein(400, 'Das ist die Adresse des Admin-Kontos.');
+      emailPruefen(email, z.id);
+      db.prepare('update konten set email = ?, bestaetigt = 0 where id = ?').run(email, z.id);
+      await bestaetigungSenden(z.id, email);
+    }
+  },
+  'POST /api/admin/mails': async ({ k, b }) => {  // was Brevo in den letzten 30 Tagen an dieses Konto zugestellt hat (oder nicht)
+    admin(k);
+    const z = kontoMit(Number(b.konto));
+    if (!z) nein(404, 'Das Konto gibt es nicht mehr.');
+    if (!E.LH_BREVO) return { ohne: true, mails: [] };
+    const r = await fetch(`https://api.brevo.com/v3/smtp/statistics/events?email=${encodeURIComponent(z.email)}&days=30&limit=50&sort=desc`,
+      { headers: { 'api-key': E.LH_BREVO, accept: 'application/json' } });
+    if (!r.ok) nein(502, `Brevo antwortet gerade nicht (${r.status}).`);
+    return { mails: ((await r.json()).events || []).map(e => ({ zeit: e.date, art: e.event, betreff: e.subject || '', grund: e.reason || '' })) };
+  },
+  'POST /api/admin/ankuendigung': ({ k, b }) => {  // leer = weg
+    admin(k);
+    const text = String(b.text || '').trim().slice(0, 600);
+    if (text) writeFileSync(ANK, JSON.stringify({ text, zeit: jetzt() })); else rmSync(ANK, { force: true });
   },
   'POST /api/admin/bestaetigung': async ({ k, b }) => {
     admin(k);
