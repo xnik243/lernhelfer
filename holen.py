@@ -8,9 +8,8 @@ Pausen zwischen den Seiten wie beim Klicken von Hand (faellig(), pause()); dazwi
 Ist die OLAT-Sitzung abgelaufen, öffnet sich Chrome (am Mac ohne Chrome: Chromium): dort selbst einloggen (SSO + Authenticator).
 
 Tests: Gelesen werden die Startseiten (Zeitraum, Punkte, Versuche), nach Ablauf stehen Fragen und Lösung dort. Selbsttests
-werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Bewertete Tests startet er nie, auch nicht auf dem
-eigenen PC: Fragen eines laufenden Tests kommen nur von Hand per Bildschirmfoto in die App. Ein Wächter im Browser lässt nur
-Lesen und genau den jeweils nächsten erlaubten Schritt durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
+werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Bewertete Tests startet er nie. Ein Wächter im
+Browser lässt nur Lesen und genau den jeweils nächsten erlaubten Schritt durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
 """
 import base64
 import hashlib
@@ -183,6 +182,7 @@ FACHNAMEN = {"BWL": r"betriebswirt", "VWL": r"volkswirt", "Mathematik": r"mathem
              "Englisch": r"englisch|english", "Recht": r"recht", "Rechnungswesen": r"rechnungswesen|buchhalt",
              "Wirtschaftsinformatik": r"wirtschaftsinformatik"}
 NICHT_LADEN = re.compile(r"video|aufzeichnung|livestream|einstieg", re.I)  # Dokument-Knoten ohne Text
+FUELLE = re.compile(r"^(?:(?:einführung|grundlagen|grundzüge|grundbegriffe|überblick)\s+(?:in|zu|zur|zum|über)?\s*(?:die|das|den|der|des|dem)?\s+)+", re.I)
 
 
 def semester(jetzt):
@@ -199,6 +199,7 @@ def kursfach(titel, jetzt):
         if re.search(muster, titel, re.I):
             return fach
     rest = re.sub(r"^\d{4}[WS]\d+\s+(?:[A-Z]{2}\s+)?", "", titel) if code else ""
+    rest = FUELLE.sub("", rest) or rest  # sonst landen „Einführung in die Soziologie“ und „… die Politikwissenschaft“ im selben Fach
     return " ".join(rest.split()[:3]).rstrip(":-–") or None  # ponytail: unbekanntes Fach heißt nach den ersten Wörtern
 
 
@@ -480,8 +481,7 @@ def tests(browser, fach):
                 else:
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
                     t = f"OLAT-Test „{k['titel']}“ – Startseite (ob er bewertet wird, steht im Text)\n\n" + seite
-                    # nach Abschluss stehen Fragen samt Lösung auf der Startseite; alte Fragen-Dateien stammen aus der Zeit,
-                    # als laufende Tests noch geöffnet wurden, und gehen weg
+                    # nach Abschluss stehen Fragen samt Lösung auf der Startseite; Fragen-Dateien älterer Fassungen gehen weg
                     fragen.unlink(missing_ok=True)
             except Exception as e:  # ein Test soll den Rest nicht aufhalten
                 print(f"{fach}: {k['titel']} nicht lesbar ({e})", flush=True)

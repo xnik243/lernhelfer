@@ -94,7 +94,9 @@ def test():
     for titel, fach in [("2026W432001 VO Grundlagen der Volkswirtschaft", "VWL"), ("2026W436307 PS Einführung in die Betriebswirtschaft", "BWL"),
                         ("2026W433302 UE Wirtschaftssprachliche Lehrveranstaltung: Wirtschaftsenglisch 1: Communication In Bu", "Englisch"),
                         ("Mathematik", "Mathematik"), ("Tech Labs - Informatik in der Praxis", None),
-                        ("2025W432001 VO Grundlagen der Volkswirtschaft", None), ("2026W400100 VU Einführung in die Soziologie", "Einführung in die")]:
+                        ("2025W432001 VO Grundlagen der Volkswirtschaft", None), ("2026W400100 VU Einführung in die Soziologie", "Soziologie"),
+                        ("2026W400200 VO Einführung in die Politikwissenschaft", "Politikwissenschaft"), ("2026W401000 VO Grundlagen der Psychologie", "Psychologie"),
+                        ("2026W401100 VU Einführung in Python", "Python"), ("2026W403000 VO Allgemeine Pädagogik", "Allgemeine Pädagogik")]:
         assert holen.kursfach(titel, jetzt) == fach, titel
     assert holen.kursart("2026W436307 PS Einführung", "Folien") == "ps" and holen.kursart("Mathematik", "Ressourcen VO") == "folien"
     assert holen.kursart("Mathematik", "Syllabus") == "syllabus" and holen.kursart("Mathematik", "Ressourcen PS") == "ps"

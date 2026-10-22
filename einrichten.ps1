@@ -7,6 +7,7 @@ $ProgressPreference = 'SilentlyContinue'  # sonst lädt Invoke-WebRequest in Win
 [Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 $App = if ($env:LH_APP) { $env:LH_APP.TrimEnd('/') + '/' } else { 'https://xnik243.github.io/lernhelfer/' }  # Server-Version: holen.py von dort
 $PythonZip = 'https://www.python.org/ftp/python/3.14.8/python-3.14.8-embed-amd64.zip'
+$PythonSha = 'a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310'  # wie auf python.org angegeben
 $LH = if ($env:LH_ORT) { $env:LH_ORT } else { Join-Path $env:LOCALAPPDATA 'Lernhelfer' }  # LH_ORT: nur zum Testen
 $Aufgabe = if ($env:LH_ORT) { 'Lernhelfer OLAT-Abgleich (Test)' } else { 'Lernhelfer OLAT-Abgleich' }
 $OhneBom = New-Object Text.UTF8Encoding $false
@@ -25,6 +26,7 @@ try {
   if (Test-Path $Py) { Write-Host '      schon da' } else {
     $zip = Join-Path $LH 'python.zip'
     Invoke-WebRequest -UseBasicParsing $PythonZip -OutFile $zip
+    if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $PythonSha) { Remove-Item $zip; throw 'Die Python-Datei kam nicht vollständig an. Bitte nochmal starten.' }
     Expand-Archive $zip (Join-Path $LH 'python') -Force
     Remove-Item $zip
     $pth = Get-ChildItem (Join-Path $LH 'python') -Filter 'python*._pth' | Select-Object -First 1

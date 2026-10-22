@@ -1249,6 +1249,7 @@ aussehen();
         <li><a href="#a-tests">Onlinetests</a></li>
         <li><a href="#a-vortrag">Vortrag analysieren</a></li>
         <li><a href="#a-pc">Der Abgleich am PC oder Mac</a></li>
+        <li><a href="#a-virus">Ist das Programm sicher?</a></li>
         <li class="nur-eigen"><a href="#a-kosten">Kosten</a></li>
         <li><a href="#a-sicher">Datenschutz und Sicherheit</a></li>
         <li><a href="#a-hilfe">Wenn etwas nicht geht</a></li>
@@ -1454,6 +1455,21 @@ aussehen();
           <li>Entfernen am Windows-PC: In der Aufgabenplanung die Aufgabe „Lernhelfer OLAT-Abgleich“ löschen, dann den Ordner <code>%LOCALAPPDATA%\Lernhelfer</code> und die Desktop-Verknüpfung.</li>
           <li>Entfernen am Mac: im Terminal <code>launchctl bootout gui/$(id -u)/at.lernhelfer.olat; rm -rf ~/Library/Lernhelfer ~/Library/LaunchAgents/at.lernhelfer.olat.plist</code> eingeben und die Verknüpfung vom Schreibtisch löschen. Hat der Lernhelfer Chromium geladen, liegt es in <code>~/Library/Caches/ms-playwright</code>.</li>
         </ul>
+
+        <h2 id="a-virus">Ist das Programm sicher?</h2>
+        <p>Gut, dass du fragst: Bei „Befehl ins Terminal einfügen“ oder „Trotzdem ausführen“ sollte man misstrauisch sein. Darum steht hier genau, was das Programm tut und wie du es selbst prüfst.</p>
+        <div class="kasten">
+          <ul>
+            <li><b>Es geht auch ohne.</b> Das Programm braucht es nur, damit die Unterlagen von selbst kommen. Ohne lädst du sie selbst hoch, siehe <a href="#a-ohne-pc">Mit iPad oder Mac</a>.</li>
+            <li><b>Kein Administratorpasswort.</b> Das Programm liegt in einem einzigen Ordner, am Mac <code>~/Library/Lernhelfer</code>, am PC <code>%LOCALAPPDATA%\Lernhelfer</code>. Dazu kommen nur der Hintergrundjob für den Abgleich und die Verknüpfung „Lernhelfer OLAT“.</li>
+            <li><b>Dein OLAT-Passwort sieht es nie.</b> Du tippst es selbst in die echte OLAT-Seite im Chrome-Fenster. Das Programm merkt sich nur die Anmeldung, und die bleibt auf deinem Computer.</li>
+            <li><b>Es spricht nur mit OLAT und dem Lernhelfer.</b> Es lädt die Unterlagen deiner Kurse und die Startseiten der Onlinetests und schickt ihren Text in <span class="nur-server">dein Konto</span><span class="nur-eigen">deinen privaten Speicher</span>. Andere Dateien auf deinem Computer liest es nicht. Neue Fassungen von sich selbst holt es von dieser Seite.</li>
+            <li><b>Der Schlüssel im Befehl bzw. in der Datei</b> öffnet nur deinen Speicher, nicht <span class="nur-server">dein Konto und nicht </span>deine Passwörter. Gib ihn trotzdem nie weiter.<span class="nur-server"> Holst du Befehl oder Datei neu, gilt der alte Schlüssel nicht mehr.</span></li>
+            <li><b>Die Windows-Warnung</b> „Der Computer wurde durch Windows geschützt“ kommt, weil die Datei keine gekaufte Signatur hat, nicht weil etwas Gefährliches gefunden wurde.</li>
+            <li><b>Selbst nachlesen:</b> Der ganze Code ist öffentlich: <a href="einrichten-mac.sh" target="_blank" rel="noopener">Einrichten am Mac</a>, <a href="einrichten.ps1" target="_blank" rel="noopener">Einrichten am PC</a> und das <a href="holen.py" target="_blank" rel="noopener">Abgleich-Programm</a>. Du kannst ihn auch in ChatGPT oder Claude einfügen und fragen, was er tut.</li>
+            <li><b>Wieder entfernen</b> geht mit ein paar Klicks bzw. einer Zeile, siehe <a href="#a-pc">Der Abgleich am PC oder Mac</a>.</li>
+          </ul>
+        </div>
 
         <div class="nur-eigen">
         <h2 id="a-kosten">Kosten</h2>
@@ -5164,13 +5180,14 @@ function pcEinrichten() {
       el('li', {}, 'Datei öffnen. Zeigt Windows „Der Computer wurde durch Windows geschützt“: „Weitere Informationen“, dann „Trotzdem ausführen“.'),
       el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
   const mac = () => macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc);
-  if (WINDOWS) return win();
-  if (MAC) return mac();
+  const sicher = el('p', { class: 'meta' }, el('a', { href: '#a-virus' }, 'Ist das sicher? Hier steht, was das Programm tut.'));
+  if (WINDOWS) return [win(), sicher];
+  if (MAC) return [mac(), sicher];
   return [el('p', { class: 'klein' }, 'Das Programm läuft auf einem Windows-PC oder Mac, nicht auf iPad oder Handy. Am einfachsten öffnest du ', el('b', {}, location.host + location.pathname),
       ' direkt am Computer, dort steht unter Start derselbe Knopf. Oder du holst es von hier:'),
     el('div', { class: 'geraete' },
       el('section', {}, el('h3', {}, 'Mac'), mac(), el('p', { class: 'meta' }, 'Hier kopiert, am Mac mit ⌘ V eingefügt: Das geht, wenn beide Geräte mit derselben Apple-ID angemeldet sind. Sonst per AirDrop oder Notizen schicken.')),
-      el('section', {}, el('h3', {}, 'Windows-PC'), win(), el('p', { class: 'meta' }, 'Die Datei muss auf den PC, etwa per USB-Stick oder als Mail an dich selbst.')))];
+      el('section', {}, el('h3', {}, 'Windows-PC'), win(), el('p', { class: 'meta' }, 'Die Datei muss auf den PC, etwa per USB-Stick oder als Mail an dich selbst.'))), sicher];
 }
 function kontoZeigen() {
   $('ei-titel').textContent = 'Konto';
