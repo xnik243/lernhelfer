@@ -6785,7 +6785,8 @@ const wertung = () => {  // Sonntag um Mitternacht (Innsbruck) wird gewertet
 function bestenlisteServer(box) {
   if (ARENA.aus) return box.append(el('p', { class: 'klein' }, 'Du kannst in der Arena gerade nicht in der Bestenliste mitmachen. Fragen dazu: Support.'));
   const P = ARENA.preise;
-  const preise = P && el('p', { class: 'arena-preise' }, P.texte.map((x, i) => x && el('span', { 'data-platz': i + 1 }, `Platz ${i + 1}: ${x}`)), el('span', { class: 'meta' }, `ab ${P.min} XP in der Woche`));
+  const preise = P && el('p', { class: 'arena-preise' }, P.texte.map((x, i) => x && el('span', { 'data-platz': i + 1 }, `Platz ${i + 1}: ${x}`)), el('span', { class: 'meta' }, `ab ${P.min} XP in der Woche`),
+    !/@(student\.)?uibk\.ac\.at$/.test(ICH?.email || '') && el('span', { class: 'meta' }, 'nur für Konten mit Uni-Adresse'));
   if (!ARENA.mit) {
     const name = el('input', { type: 'text', maxlength: 24, value: ARENA.name, placeholder: 'Spitzname, nicht dein echter Name', autocomplete: 'off' });
     return box.append(...[el('p', { class: 'klein' }, 'Miss dich mit anderen Studierenden. Sichtbar sind nur dein Spitzname, deine XP, Minuten und Serie dieser Woche.'), preise,

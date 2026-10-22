@@ -286,6 +286,7 @@ const WEGWERF = new Set(['mailinator.com', 'yopmail.com', 'yopmail.fr', '10minut
   'temp-mail.io', 'tempmail.com', 'tempmailo.com', 'tmpmail.org', 'tempail.com', 'trashmail.com', 'trash-mail.com', 'getnada.com', 'maildrop.cc', 'dispostable.com', 'throwawaymail.com',
   'mohmal.com', 'emailondeck.com', 'minuteinbox.com', 'fakeinbox.com', 'mailnesia.com', 'mintemail.com', 'burnermail.io', 'mail.tm', 'emailfake.com', 'wegwerfmail.de', 'wegwerfemail.de',
   'einrot.com', 'spambog.com', 'byom.de', 'mytemp.email', 'tempr.email', 'discard.email', 'spamgourmet.com']);
+const uniAdresse = e => /@(student\.)?uibk\.ac\.at$/.test(e);  // eine pro Person: Arena-Preise und Gratis-Test nur damit
 const emailKern = e => {  // a.b+x@googlemail.com und ab@gmail.com sind dasselbe Postfach
   let [l, d] = e.split('@');
   l = l.split('+')[0];
@@ -335,7 +336,7 @@ function ich(k) {
   const s = stufe(k), budget = s.test ? TEST.budget : TARIFE[s.tarif].budget;
   return {
     email: k.email, bestaetigt: !!k.bestaetigt, admin: istAdmin(k), ecke,
-    tarif: s.tarif, bis: s.bis, test: s.test, testFrei: verkauf() && !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis,
+    tarif: s.tarif, bis: s.bis, test: s.test, testFrei: verkauf() && uniAdresse(k.email) && !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis,
     zusatz: zusatz(k), manual_bis: k.manual_bis > jetzt() ? k.manual_bis : null, beta: s.tarif === 'beta' ? JSON.parse(k.beta) : null,
     genutzt: Math.min(100, Math.round(100 * verbraucht(k.id, s.test) / budget)),
     code: k.code, freunde: db.prepare('select count(*) n from konten where geworben_von = ?').get(k.id).n,
@@ -641,7 +642,7 @@ async function arenaAbrechnen() {  // ab Montag: die besten drei der Vorwoche be
   wertSetzen('arena-abgerechnet', nr);
   const P = arenaPreise();
   if (!P.art) return;
-  const berechtigt = id => { const k = kontoMit(id); return !!k?.bestaetigt && k.erstellt <= jetzt() - 7 * TAG; };
+  const berechtigt = id => { const k = kontoMit(id); return !!k?.bestaetigt && uniAdresse(k.email) && k.erstellt <= jetzt() - 7 * TAG; };
   const top = rangliste(vorige).filter(x => x.xp >= P.min && berechtigt(x.konto)).slice(0, 3);
   for (const [i, x] of top.entries()) {
     const w = P.werte[i];
@@ -821,6 +822,7 @@ const ROUTEN = {
   'POST /api/test': ({ k }) => {
     muss(k);
     if (!verkauf()) nein(403, 'Den Ultra-Test gibt es gerade nicht.');
+    if (!uniAdresse(k.email)) nein(403, 'Den Ultra-Test gibt es nur für Konten mit einer Adresse der Uni Innsbruck (@uibk.ac.at oder @student.uibk.ac.at).');
     if (!k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse. Der Link steht in der Mail, die wir dir geschickt haben.');
     if (k.test_bis || bezahlt(k.id)) nein(409, 'Den Ultra-Test gibt es einmal pro Konto, und du hast ihn schon genutzt.');
     if (TARIFE[stufe(k).tarif].preis) nein(409, 'Du hast schon einen Tarif.');

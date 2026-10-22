@@ -111,13 +111,13 @@ try {
   assert.equal((await chef('POST', '/api/registrieren', { email: 'chef@example.com', passwort: 'langes-passwort' })).status, 400, 'ohne AGB');
   const c = await chef('POST', '/api/registrieren', { email: 'Chef@Example.com', passwort: 'langes-passwort', agb: true });
   assert.equal(c.status, 200); assert.equal(c.j.tarif, 'base'); assert.equal(c.j.admin, false, 'erst nach Bestätigung');
-  assert.equal((await anna('POST', '/api/registrieren', { email: 'anna@example.com', passwort: 'annas-passwort', agb: true, code: 'FALSCH' })).status, 400);
-  const a = await anna('POST', '/api/registrieren', { email: 'anna@example.com', passwort: 'annas-passwort', agb: true, code: c.j.code.toLowerCase() });
+  assert.equal((await anna('POST', '/api/registrieren', { email: 'anna@student.uibk.ac.at', passwort: 'annas-passwort', agb: true, code: 'FALSCH' })).status, 400);
+  const a = await anna('POST', '/api/registrieren', { email: 'anna@student.uibk.ac.at', passwort: 'annas-passwort', agb: true, code: c.j.code.toLowerCase() });
   assert.equal(a.j.erstrabatt, true); assert.equal(a.j.testFrei, true);
-  assert.equal((await fremd('POST', '/api/registrieren', { email: 'anna@example.com', passwort: 'irgendwas-langes', agb: true })).status, 409);
-  assert.equal((await fremd('POST', '/api/registrieren', { email: 'Anna+zwei@example.com', passwort: 'irgendwas-langes', agb: true })).status, 409, '+Zusatz: dasselbe Postfach');
+  assert.equal((await fremd('POST', '/api/registrieren', { email: 'anna@student.uibk.ac.at', passwort: 'irgendwas-langes', agb: true })).status, 409);
+  assert.equal((await fremd('POST', '/api/registrieren', { email: 'Anna+zwei@student.uibk.ac.at', passwort: 'irgendwas-langes', agb: true })).status, 409, '+Zusatz: dasselbe Postfach');
   assert.equal((await fremd('POST', '/api/registrieren', { email: 'weg@yopmail.com', passwort: 'irgendwas-langes', agb: true })).status, 400, 'Wegwerf-Adresse');
-  assert.equal((await fremd('POST', '/api/anmelden', { email: 'anna@example.com', passwort: 'falsch-falsch' })).status, 401);
+  assert.equal((await fremd('POST', '/api/anmelden', { email: 'anna@student.uibk.ac.at', passwort: 'falsch-falsch' })).status, 401);
   assert.equal((await fremd('GET', '/api/ich')).status, 401);
   for (let i = 0; i < 10; i++) await fremd('POST', '/api/anmelden', { email: 'rate@example.com', passwort: 'falsch-falsch' });
   assert.equal((await fremd('POST', '/api/anmelden', { email: 'rate@example.com', passwort: 'falsch-falsch' })).status, 429, 'Passwort-Raten gebremst');
@@ -161,7 +161,7 @@ try {
   // KI und Ultra-Test erst mit bestätigter Adresse
   assert.equal((await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 403, 'unbestätigt: keine KI');
   assert.equal((await anna('POST', '/api/test')).status, 403);
-  assert.equal((await anna('POST', '/api/bestaetigen', { token: await link('anna@example.com', 'bestaetigen') })).status, 200);
+  assert.equal((await anna('POST', '/api/bestaetigen', { token: await link('anna@student.uibk.ac.at', 'bestaetigen') })).status, 200);
   assert.match(log, /\/app#bestaetigen=/, 'Mail-Links führen in die App');
   r = await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }], plugins: [{ id: 'web' }] });
   assert.equal(r.j.choices[0].message.content, 'Antwort');
@@ -226,7 +226,7 @@ try {
   assert.equal(r.j.bestellung.betrag, 990 - 297); assert.match(r.j.bestellung.zweck, /^LH-[A-Z2-9]{6}$/);
   assert.equal((await anna('POST', '/api/gemeldet')).j.bestellung.status, 'gemeldet');
   assert.match(log, /Zahlung gemeldet: LH-/);
-  assert.match(log, /\[Mail an anna@example.com\] Lernhelfer: Deine Bestellung LH-[\s\S]*WIDERRUFSBELEHRUNG[\s\S]*MUSTER-WIDERRUFSFORMULAR/, 'Vertragsbestätigung mit Widerruf');
+  assert.match(log, /\[Mail an anna@student.uibk.ac.at\] Lernhelfer: Deine Bestellung LH-[\s\S]*WIDERRUFSBELEHRUNG[\s\S]*MUSTER-WIDERRUFSFORMULAR/, 'Vertragsbestätigung mit Widerruf');
   assert.equal((await anna('POST', '/api/bestellen', { tarif: 'pro', monate: 1, sofort: true })).status, 409, 'während der Prüfung');
   assert.deepEqual((await chef('GET', '/api/geschuetzt/wordpower')).j, { transcribe: 'TRANSKRIPT', homework: 'HAUSAUFGABE' }, 'Ecke: voll');
   assert.equal((await chef('GET', '/api/geschuetzt/onlinetest')).j.system, 'VOLLER LÖSER');
@@ -241,10 +241,10 @@ try {
   assert.equal(fx('gesperrt:kalender').art, 'Gesperrt angetippt'); assert.equal(fx('gesperrt:noten'), undefined, 'nie angetippt: nicht in der Liste');
   assert.equal(fx('seite:wordpower').k30, 0, 'nie genutzt steht trotzdem da'); assert.equal(fx('boese; drop table'), undefined); assert.equal(fx('wp-text'), undefined);
   assert.ok(A.funktionen.every((x, i, l) => !i || l[i - 1].k30 >= x.k30), 'meistgenutzt zuerst');
-  assert.equal(A.fehler.length, 2); assert.equal(A.fehler.at(-1).kontakt, 'gast@example.com'); assert.equal(A.fehler[0].kontakt, 'anna@example.com');
+  assert.equal(A.fehler.length, 2); assert.equal(A.fehler.at(-1).kontakt, 'gast@example.com'); assert.equal(A.fehler[0].kontakt, 'anna@student.uibk.ac.at');
   await chef('POST', '/api/admin/fehler', { id: A.fehler.at(-1).id });
   assert.equal((await chef('GET', '/api/admin')).j.fehler.length, 1, 'erledigt');
-  const offen = (await chef('GET', '/api/admin')).j.bestellungen.find(x => x.email === 'anna@example.com');
+  const offen = (await chef('GET', '/api/admin')).j.bestellungen.find(x => x.email === 'anna@student.uibk.ac.at');
   assert.equal(offen.status, 'gemeldet');
   assert.equal((await chef('POST', '/api/admin/bezahlt', { id: offen.id })).status, 200);
   r = (await anna('GET', '/api/ich')).j;
@@ -297,13 +297,13 @@ try {
 
   // Anna wechselt auf Ultra+: Resttage nach Wert umgerechnet, API-Schlüssel wird angelegt, beim Zurückstufen gesperrt
   await anna('POST', '/api/bestellen', { tarif: 'ultraplus', monate: 1, sofort: true });
-  const id2 = (await chef('GET', '/api/admin')).j.bestellungen.find(x => x.email === 'anna@example.com' && x.status === 'offen').id;
+  const id2 = (await chef('GET', '/api/admin')).j.bestellungen.find(x => x.email === 'anna@student.uibk.ac.at' && x.status === 'offen').id;
   await chef('POST', '/api/admin/bezahlt', { id: id2 });
   r = (await anna('GET', '/api/ich')).j;
   assert.equal(r.tarif, 'ultraplus'); assert.equal(r.api, 'sk-or-v1-test');
   assert.ok(Math.abs(r.bis - Date.now() - (30 * 990 / 1490 + 30) * 864e5) < 120e3, 'Resttage umgerechnet');
   assert.equal(or.schluessel[0].limit, 11); assert.equal(or.schluessel[0].limit_reset, 'monthly');
-  const annaId = (await chef('GET', '/api/admin')).j.konten.find(x => x.email === 'anna@example.com').id;
+  const annaId = (await chef('GET', '/api/admin')).j.konten.find(x => x.email === 'anna@student.uibk.ac.at').id;
   let dash = (await chef('GET', '/api/admin')).j;
   assert.equal(dash.kennzahlen.konten, 2); assert.equal(dash.kennzahlen.zahlend.ultraplus, 1); assert.equal(dash.kennzahlen.kunden, 1);
   assert.equal(dash.kennzahlen.mrr, 1490); assert.equal(dash.freunde.geworben, 1); assert.equal(dash.freunde.zahlend, 1);
@@ -335,21 +335,21 @@ try {
   assert.equal(r.tarif, 'base'); assert.equal(r.api, null);
 
   // Passwort vergessen → neues Passwort; alte Sitzung ist danach abgemeldet
-  await fremd('POST', '/api/passwort-vergessen', { email: 'anna@example.com' });
+  await fremd('POST', '/api/passwort-vergessen', { email: 'anna@student.uibk.ac.at' });
   const anna2 = person();
-  assert.equal((await anna2('POST', '/api/passwort-neu', { token: await link('anna@example.com', 'passwort'), passwort: 'neues-passwort-1' })).status, 200);
+  assert.equal((await anna2('POST', '/api/passwort-neu', { token: await link('anna@student.uibk.ac.at', 'passwort'), passwort: 'neues-passwort-1' })).status, 200);
   assert.equal((await anna('GET', '/api/ich')).status, 401);
-  assert.equal((await anna2('GET', '/api/ich')).j.email, 'anna@example.com');
+  assert.equal((await anna2('GET', '/api/ich')).j.email, 'anna@student.uibk.ac.at');
 
   // Alle meine Daten herunterladen: ZIP mit Konto und jeder Datei im Speicher; der PC-Schlüssel darf das nicht
   await anna2('POST', '/api/arena', { name: 'Anni' });
   await anna2('POST', '/api/arena/tag', {});
-  const zipAntwort = await fetch(BASIS + '/api/export', { headers: { Cookie: (await (async () => { const r = await fetch(BASIS + '/api/anmelden', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BASIS }, body: JSON.stringify({ email: 'anna@example.com', passwort: 'neues-passwort-1' }) }); return r.headers.getSetCookie()[0].split(';')[0]; })()) } });
+  const zipAntwort = await fetch(BASIS + '/api/export', { headers: { Cookie: (await (async () => { const r = await fetch(BASIS + '/api/anmelden', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BASIS }, body: JSON.stringify({ email: 'anna@student.uibk.ac.at', passwort: 'neues-passwort-1' }) }); return r.headers.getSetCookie()[0].split(';')[0]; })()) } });
   assert.equal(zipAntwort.status, 200); assert.equal(zipAntwort.headers.get('content-type'), 'application/zip');
   assert.match(zipAntwort.headers.get('content-disposition'), /lernhelfer-daten-\d{4}-\d\d-\d\d\.zip/);
   const z = entpacken(Buffer.from(await zipAntwort.arrayBuffer())), kj = JSON.parse(z['konto.json']);
   assert.equal(z['dateien/faecher/BWL.json'], 'neu'); assert.equal(z['dateien/abgleich.json'], '{"ok":true}'); assert.match(z['LIESMICH.txt'], /nur auf deinem Gerät/);
-  assert.equal(kj.email, 'anna@example.com'); assert.equal(kj.bestellungen.length, 3); assert.equal(kj.bestellungen[0].status, 'storniert'); assert.equal(kj.bestellungen[1].betrag_euro, 6.93);
+  assert.equal(kj.email, 'anna@student.uibk.ac.at'); assert.equal(kj.bestellungen.length, 3); assert.equal(kj.bestellungen[0].status, 'storniert'); assert.equal(kj.bestellungen[1].betrag_euro, 6.93);
   assert.ok(kj.nutzung.some(x => x.was === 'unterlagen')); assert.equal(kj.fehlerberichte[0].text, 'Ausgabe bricht ab'); assert.ok(kj.ueber_einladung);
   assert.ok(kj.nutzung_mit_uhrzeit.some(x => x.was === 'seite:kalender' && x.zeit.endsWith('Z')), 'Uhrzeiten im Export');
   assert.equal(kj.arena.teilnahme.name, 'Anni', 'Arena im Export'); assert.equal(kj.arena.serie.serie, 1); assert.equal(kj.arena.xp[0].art, 'login');
@@ -361,7 +361,7 @@ try {
   assert.equal((await mitPc('GET', gh('abgleich.json'))).status, 401);
   assert.deepEqual(or.schluessel.at(-1), { method: 'DELETE', url: '/keys/h1' });
   dash = (await chef('GET', '/api/admin')).j;
-  assert.equal(dash.bestellungen.filter(x => x.email === 'anna@example.com' && x.status === 'bezahlt').length, 2);
+  assert.equal(dash.bestellungen.filter(x => x.email === 'anna@student.uibk.ac.at' && x.status === 'bezahlt').length, 2);
   assert.ok(Math.abs(dash.geld.ki.gesamt - kiVorher) < 1e-9, 'KI-Kosten gelöschter Konten bleiben in der Bilanz');
   assert.equal(dash.geld.api.gesamt, 2.5, 'auch die des Ultra+-Schlüssels');
   assert.equal(dash.kennzahlen.konten, 1);
@@ -380,9 +380,9 @@ try {
   await chef('POST', '/api/admin/werte', { 'neu-englisch': '180' });
   assert.equal((await chef('GET', '/api/admin')).j.neuEnglisch, 180);
   const lea = person();
-  r = (await lea('POST', '/api/registrieren', { email: 'lea@example.com', passwort: 'leas-passwort-1', agb: true })).j;
-  assert.equal(r.tarif, 'englisch'); assert.ok(Math.abs(r.bis - Date.now() - 180 * 864e5) < 60e3); assert.equal(r.testFrei, true);
-  await lea('POST', '/api/bestaetigen', { token: await link('lea@example.com', 'bestaetigen') });
+  r = (await lea('POST', '/api/registrieren', { email: 'lea@uibk.ac.at', passwort: 'leas-passwort-1', agb: true })).j;
+  assert.equal(r.tarif, 'englisch'); assert.ok(Math.abs(r.bis - Date.now() - 180 * 864e5) < 60e3); assert.equal(r.testFrei, true, 'Uni-Adresse (auch @uibk.ac.at)');
+  await lea('POST', '/api/bestaetigen', { token: await link('lea@uibk.ac.at', 'bestaetigen') });
   await lea('POST', '/api/ki', { feature: 'vortrag', model: 'openai/gpt-6-luna', reasoning: { effort: 'high' }, messages: [{ role: 'user', content: 'Analyse' }] });
   assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna', 'Englisch: Vortrag nicht mit DeepSeek'); assert.deepEqual(or.anfragen.at(-1).reasoning, { effort: 'high' });
   assert.equal((await lea('POST', '/api/ki', { feature: 'wp-transkript', model: 'google/gemini-4-argon', messages: [{ role: 'user', content: 'x' }] })).status, 200);
@@ -397,7 +397,9 @@ try {
   assert.equal((await lea('POST', '/api/test')).j.tarif, 'ultra', 'Gratis-Test auch mit Englisch');
   await chef('POST', '/api/admin/werte', { 'neu-englisch': '0' });
   const max = person();
-  assert.equal((await max('POST', '/api/registrieren', { email: 'max@example.com', passwort: 'max-passwort-1', agb: true })).j.tarif, 'base', 'ausgeschaltet: wieder Base');
+  r = (await max('POST', '/api/registrieren', { email: 'max@example.com', passwort: 'max-passwort-1', agb: true })).j;
+  assert.equal(r.tarif, 'base', 'ausgeschaltet: wieder Base'); assert.equal(r.testFrei, false, 'Gratis-Test nur mit Uni-Adresse');
+  assert.match((await max('POST', '/api/test')).j.error.message, /nur für Konten mit einer Adresse der Uni Innsbruck/);
   dash = (await chef('GET', '/api/admin')).j;
   const maxId = dash.konten.find(x => x.email === 'max@example.com').id;
   await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'englisch', tage: 30 });
@@ -424,7 +426,7 @@ try {
   assert.equal((await chef('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 200);
   for (let i = 0; i < 3; i++) await chef('POST', '/api/ecke', { passwort: 'raten' });
   assert.equal((await chef('POST', '/api/ecke', { passwort: 'Ecke-Passwort!' })).status, 429, 'Ecke-Passwort raten gebremst');
-  assert.equal((await anna2('POST', '/api/anmelden', { email: 'anna@example.com', passwort: 'neues-passwort-1' })).status, 401);
+  assert.equal((await anna2('POST', '/api/anmelden', { email: 'anna@student.uibk.ac.at', passwort: 'neues-passwort-1' })).status, 401);
   for (let i = 0; i < 2; i++) await fremd('POST', '/api/fehler', { text: 'noch einer' });
   assert.equal((await fremd('POST', '/api/fehler', { text: 'Flut' })).status, 429, 'Fehlerberichte gebremst');
   // KI-Modelle aus der Admin-Ecke: neuer Standard gilt sofort, auch für Base; falsche IDs gehen nicht durch
@@ -538,13 +540,14 @@ try {
   ichMax = (await max('GET', '/api/ich')).j;
   assert.equal(ichMax.tarif, 'base'); assert.equal(ichMax.beta, null);
   // Verkauf aus (Admin-Ecke): keine Tarife, kein Bestellen, kein Ultra-Test
-  assert.equal((await max('GET', '/api/ich')).j.testFrei, true);
+  const tom = person();
+  assert.equal((await tom('POST', '/api/registrieren', { email: 'tom@student.uibk.ac.at', passwort: 'toms-passwort-1', agb: true })).j.testFrei, true);
   assert.equal((await chef('POST', '/api/admin/preise', { verkauf: false })).j.verkauf, false);
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).verkauf, false);
-  assert.equal((await max('GET', '/api/ich')).j.testFrei, false);
+  assert.equal((await tom('GET', '/api/ich')).j.testFrei, false);
   r = await max('POST', '/api/bestellen', { tarif: 'pro', monate: 1, sofort: true });
   assert.equal(r.status, 403); assert.match(r.j.error.message, /keine Tarife zu kaufen/);
-  r = await max('POST', '/api/test');
+  r = await tom('POST', '/api/test');
   assert.equal(r.status, 403); assert.match(r.j.error.message, /gerade nicht/);
   // Programmbibliotheken kommen vom eigenen Server, Byte für Byte so, wie index.html sie mit integrity erwartet
   const app = readFileSync(new URL('../index.html', import.meta.url), 'utf8'), libs = [...app.matchAll(/(lib\/[\w.-]+\.js)["'][^"']*["'](sha384-[\w+/=]+)/g)];
