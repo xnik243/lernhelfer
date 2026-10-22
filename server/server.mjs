@@ -242,6 +242,7 @@ async function kontoWeg(k) {  // selbst gelöscht oder von der Admin-Ecke
   }
   db.prepare('update nutzung set konto = -konto where konto = ?').run(k.id);  // Nutzung bleibt nur als Zahl, ohne Bezug zur Person
   db.prepare('update fehler set kontakt = null where konto = ?').run(k.id);
+  db.prepare("update arena_preise set name = 'Gelöschtes Konto' where konto = ?").run(k.id);  // Gewinnerliste ohne Spitznamen
   db.prepare('delete from konten where id = ?').run(k.id);  // Speicher, Sitzungen, Verbrauch gehen mit; Bestellungen bleiben für die Buchhaltung
 }
 const keks = (req, name) => new RegExp(`(?:^|;\\s*)${name}=([\\w-]+)`).exec(req.headers.cookie || '')?.[1];
