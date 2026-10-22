@@ -903,6 +903,54 @@
 
   /* Ultra-Fassung: Kennzeichen in der Kopfzeile; unter Ultra am Ende der Zusammenfassung, was Ultra hier noch geschrieben hätte */
   .fassung { color: var(--akzent-text); font-weight: 650; }
+  /* Fassung wählen: Knopf mit der Wahl; das Popover wächst aus dem Knopf, schnell rein, schneller raus */
+  .fw-knopf { gap: 6px; }
+  .fw-was { color: var(--text-3); font-weight: 500; }
+  .fw-wert { font-weight: 650; }
+  .fw-knopf .fw-ikon .ic { width: 16px; height: 16px; transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .fw-knopf:has(+ .fw-pop:popover-open) .fw-ikon .ic { transform: rotate(180deg); }
+  .fw-pop { position: absolute; inset: auto; margin: 0; padding: 18px 18px 16px; overflow: visible; border: 1px solid var(--linie-2); border-radius: var(--r-l); background: var(--bg); color: var(--text);
+    box-shadow: var(--schatten-gross); transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1), overlay 180ms allow-discrete, display 180ms allow-discrete; }
+  .fw-pop:not(:popover-open) { opacity: 0; transform: scale(0.98); transition-duration: 120ms; }
+  @starting-style { .fw-pop:popover-open { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+  .fw-pop h3 { margin: 0 0 14px; font: 700 1.0625rem/1.3 var(--sans); }
+  .fw-gruppe { display: grid; gap: 2px; margin: 0 0 14px; padding: 0; border: 0; }
+  .fw-gruppe legend { margin: 0 0 6px; padding: 0; color: var(--text-3); font: 650 0.75rem/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; }
+  .fw-option { position: relative; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 7px 10px; border: 1px solid transparent; border-radius: var(--r); cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; }
+  @media (hover: hover) { .fw-option:hover { background: var(--bg-2); } }
+  .fw-option:active { transform: scale(0.99); }
+  .fw-option:has(input:checked) { background: var(--akzent-flaeche); }
+  .fw-option:has(input:focus-visible) { outline: 2px solid var(--akzent); outline-offset: -2px; }
+  .fw-option:has(input:disabled) { cursor: not-allowed; transform: none; }
+  .fw-option:has(input:disabled) :is(.fw-text, .fw-ikon) { opacity: 0.5; }
+  .fw-text { display: grid; flex: 1; min-width: 0; }
+  .fw-name { justify-self: start; font-weight: 650; }
+  .fw-kurz { color: var(--text-2); font-size: 0.8125rem; line-height: 1.35; }
+  .fw-haken { flex: none; width: 18px; height: 18px; }
+  .fw-option:has(input:checked) .fw-haken { background: var(--haken-blau, none) center / 18px no-repeat; }
+  .fw-ikon { display: inline-flex; color: var(--text-2); }
+  .fw-ikon .ic { width: 22px; height: 22px; }
+  /* Form: Kacheln mit kleinem Bild, zwei nebeneinander */
+  .fw-form { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .fw-form .fw-option { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px; border-color: var(--linie); }
+  .fw-form .fw-haken { position: absolute; top: 9px; right: 9px; }
+  .fw-form .fw-option:has(input:checked) { border-color: var(--akzent); }
+  .fw-form .fw-option:has(input:checked) .fw-ikon { color: var(--akzent-text); }
+  .fw-fuss { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--linie); }
+  .fw-fuss .meta { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { .fw-pop, .fw-pop:not(:popover-open), .fw-option:active { transform: none; } .fw-knopf .fw-ikon .ic { transition: none; } }
+  /* Zusammenfassung: „Das Wichtigste“ als Kasten, Fragen zum Aufdecken, Formelsammlung mit Trennlinien je Thema */
+  .text .wichtig { margin: 0 0 1.5em; padding: 14px 18px; border-radius: var(--r-l); background: var(--gelb-hauch); }
+  .text .wichtig > p { margin: 0 0 6px; }
+  .text .wichtig > :is(ul, ol) { margin: 0; }
+  .text .fw-frage { margin: 0 0 8px; border: 1px solid var(--linie); border-radius: var(--r); }
+  .text .fw-frage summary { padding: 11px 14px; font-weight: 650; cursor: pointer; }
+  .text .fw-frage summary::after { content: " · Antwort zeigen"; color: var(--text-3); font-weight: 500; font-size: 0.875em; }
+  .text .fw-frage[open] summary::after { content: none; }
+  .text .fw-frage > :not(summary) { margin-inline: 14px; }
+  .text .fw-frage > :last-child { margin-bottom: 12px; }
+  .text[data-form="formeln"] h3 { padding-top: 0.9em; border-top: 1px solid var(--linie-2); }
+  .text[data-form="formeln"] math[display="block"] { font-size: 1.12em; }
   .ultra-werbung { display: grid; justify-items: start; gap: 10px; margin-top: 32px; padding: 22px; border: 1px solid var(--akzent); border-radius: var(--r-l); background: var(--akzent-flaeche); }
   .ultra-werbung h3 { margin: 0; font: 700 1.25rem/1.3 var(--sans); letter-spacing: -0.01em; }
   .ultra-werbung .klein, .ultra-werbung .knopfreihe { margin: 0; }
@@ -1396,6 +1444,7 @@ aussehen();
         <p>Ältere Ausgaben bleiben unter „Frühere Ausgaben“ erhalten. Welches Modell schreibt, stellst du unter <span class="nur-eigen">Einrichten</span><span class="nur-server">Konto</span> ein.<span class="nur-server"> In Base schreibt immer DeepSeek V4.1, ab Pro wählst du selbst.</span></p>
         <p class="nur-server">Für Word Power gibt es in jedem Tarif die Vorlage: Du gibst deine Word Partnerships ein und bekommst das Journal mit allen Feldern zum Ausfüllen und der Progress-Tabelle, als Datei für Word. Ab Pro schreibt Gemini dazu jeden YouTube-Talk mit Zeitstempeln mit.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
+        <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
 
         <h2 id="a-termine">Termine und Kalender</h2>
         <ul>
@@ -1590,7 +1639,43 @@ Hat die Einheit keine Formeln (etwa in Englisch oder in rein begrifflichen Einhe
 4. In "begriffe" 20–35 Einträge, jede Definition 2–3 Sätze mit einem kurzen Beispiel.
 
 Erklär wie eine geduldige Tutorin oder ein geduldiger Tutor, weiterhin ohne Ich-Form. Die Regeln zu laufenden Onlinetests und zu den Stammdaten gelten unverändert.`;
-const auftrag = (fach, tag, d = HEUTE, tief = false) => `Du bist Tutor:in für Studierende im ${studium()}.
+// Fassung je Fach (PROFIL.fassung): Niveau und Form betreffen nur, wie die Zusammenfassung geschrieben ist; Abschnitte und JSON bleiben gleich
+const DOSIS = 'Formeln dosiert: nur die, mit denen man rechnet oder die man kennen muss, höchstens zwei abgesetzte Formeln pro ###-Teil; einfache Zusammenhänge stehen in Worten („Gewinn ist Erlös minus Kosten“), Zwischenschritte und Varianten gar nicht.';
+const NIVEAUS = {
+  einsteiger: { name: 'Einsteiger', kurz: 'Einfach erklärt, ohne Vorwissen, trotzdem vollständig',
+    auftrag: 'Für Studierende ohne Vorwissen, die den Stoff zum ersten Mal sehen. Alltagssprache und kurze Sätze, kein Fachbegriff ohne Erklärung, zu jedem Gedanken erst ein Alltagsbeispiel, dann die Fachsprache; jede Formel erst in Worten, dann als Formel. Fachlich bleibt alles vollständig und richtig: Einfacher erklären heißt nicht, Prüfungsrelevantes wegzulassen oder falsch zu vereinfachen.' },
+  normal: { name: 'Normal', kurz: 'Verständlich und vollständig', auftrag: 'Wie oben beschrieben.' },
+  kompakt: { name: 'Prüfungsfokus', kurz: 'Halb so lang, nur was in der Prüfung zählt',
+    auftrag: 'Für Wiederholung und Prüfungsvorbereitung mit wenig Zeit. Die Zusammenfassung ist etwa halb so lang wie sonst und enthält nur, was in Prüfung, PS-Test oder Onlinetest verlangt werden kann: Definitionen, Zusammenhänge, Rechenwege, typische Fallen. Herleitungen, Hintergrund und Geschichte entfallen, Voraussetzungen und Ausnahmen bleiben. Jeder ###-Teil endet mit **So wird gefragt:** und einer typischen Prüfungsfrage in einem Satz.' },
+  ultra: { name: 'Ultra', kurz: 'Doppelt so ausführlich, jede Formel Schritt für Schritt', recht: 'ausgabe-ultra', auftrag: 'Siehe ULTRA-FASSUNG oben.' },
+};
+const FORMEN = {
+  text: { name: 'Fließtext', kurz: 'Zusammenhängend erklärt, wenige Formeln', icon: 'M4 7h16M4 11h16M4 15h11M4 19h7',
+    auftrag: 'Zusammenhängender Text in kurzen Absätzen unter den ###-Überschriften.' },
+  stichpunkte: { name: 'Stichpunkte', kurz: 'Gegliedert, schnell zu überfliegen', icon: 'M5 7h.01M5 12h.01M5 17h.01M9 7h10M9 12h8M9 17h9',
+    auftrag: 'Unter jeder ###-Überschrift Stichpunkte statt Absätzen, höchstens zwei Ebenen tief. Jeder Stichpunkt ist ein verständlicher ganzer Satz, kein Telegrammstil; Fachbegriffe **fett**. Zusammenhänge stehen ausdrücklich da („daraus folgt“, „weil“, „im Gegensatz zu“).' },
+  beispiele: { name: 'An Beispielen', kurz: 'Erst die Aufgabe, dann die Regel', icon: 'M4 5h9v6H4zM8.5 11v4.5H17M14.5 13l2.5 2.5-2.5 2.5M4 19.5h7',
+    auftrag: 'Jeder ###-Teil beginnt mit einer konkreten Aufgabe oder Situation (aus Folien oder PS, sonst aus dem Alltag) und löst sie Schritt für Schritt in Worten und Zahlen. Erst danach steht unter **Allgemein:** in 2–3 Sätzen die Regel dahinter, mit ihren Voraussetzungen.' },
+  fragen: { name: 'Fragen', kurz: 'Zum Selbstabfragen, Antwort aufdecken', titel: 'Die letzte Einheit in Fragen', icon: 'M5 5h14v10h-7l-4 4v-4H5zM10 8.5a2 2 0 1 1 2.5 2c-.5.2-.5.6-.5 1M12 13.5h.01',
+    auftrag: 'Unter jeder ###-Überschrift 3–6 Fragen, wie sie Lehrende in Prüfung oder PS stellen würden, von Verständnis- bis Anwendungsfragen. Jede Frage ist eine eigene Überschrift „#### Frage?“, darunter die Antwort in 2–5 Sätzen, bei Rechenfragen mit Rechenweg. Zusammen decken die Fragen den ganzen Stoff der Einheit ab, nichts Prüfungsrelevantes fehlt.' },
+  formeln: { name: 'Formelsammlung', kurz: 'Alle Formeln der Woche auf einen Blick', titel: 'Formelsammlung der letzten Einheit', icon: 'M17 5H7l6 7-6 7h10',
+    auftrag: 'Eine geordnete Formelsammlung der Einheit, dazu frühere Formeln, die man hier braucht. Je Thema eine ###-Überschrift und darunter zu jeder Formel: der Name **fett** in eigener Zeile, die Formel abgesetzt, dann in einer Zeile, was die Zeichen bedeuten, in einem Satz, wann man sie braucht, und ein Zahlenbeispiel in einer Zeile. Pro Thema höchstens zwei Sätze Fließtext zum Zusammenhang; abweichend von der Formelregel oben reicht diese knappe Form. Hat die Einheit kaum Formeln, sammelst du ebenso die zentralen Definitionen, Regeln, Modelle oder Schemata, je mit kurzem Beispiel.' },
+};
+const fassungAuftrag = w => `FASSUNG DIESER AUSGABE. Sie betrifft nur, wie der Abschnitt „Zusammenfassung der letzten Einheit“ geschrieben ist; Abschnitte, Reihenfolge und der JSON-Block bleiben wie oben.
+Niveau ${NIVEAUS[w.niveau].name}: ${NIVEAUS[w.niveau].auftrag}
+Form ${FORMEN[w.form].name}: ${FORMEN[w.form].auftrag}${w.form === 'formeln' ? (w.niveau === 'ultra' ? ' Der Abschnitt „Formeln Schritt für Schritt“ entfällt; andere Schreibweisen und das Umstellen stehen knapp direkt bei jeder Formel.' : '')
+  : ' ' + DOSIS + (w.niveau === 'ultra' ? ' Alle weiteren Formeln gehören in „Formeln Schritt für Schritt“.' : '')}`;
+const fassung = f => {  // gespeicherte Wahl; Ultra nur mit dem Recht dazu, sonst wie bisher: Ultra, wer darf, sonst Normal
+  const w = PROFIL.fassung?.[f] || {}, n = NIVEAUS[w.niveau] && (!NIVEAUS[w.niveau].recht || darf(NIVEAUS[w.niveau].recht)) ? w.niveau : null;
+  return { niveau: n || (darf('ausgabe-ultra') ? 'ultra' : 'normal'), form: FORMEN[w.form] ? w.form : 'text' };
+};
+const fassungVon = a => {  // aus der Kopfzeile einer Ausgabe; ältere Ausgaben: Ultra oder Normal, Fließtext
+  const m = a.meta.match(/Fassung (\w+)\/(\w+)/);
+  return { niveau: NIVEAUS[m?.[1]] ? m[1] : /Ultra-Fassung/.test(a.meta) ? 'ultra' : 'normal', form: FORMEN[m?.[2]] ? m[2] : 'text' };
+};
+const fassungName = w => [w.niveau === 'ultra' ? 'Ultra-Fassung' : w.niveau !== 'normal' && NIVEAUS[w.niveau].name, w.form !== 'text' && FORMEN[w.form].name].filter(Boolean).join(' · ');
+const dauer = f => fassung(f).niveau === 'ultra' ? 'vier bis sechs' : 'zwei bis vier';
+const auftrag = (fach, tag, d = HEUTE, wahl = { niveau: 'normal', form: 'text' }) => `Du bist Tutor:in für Studierende im ${studium()}.
 ${d === HEUTE ? `Heute ist ${tag}, ${UHR} Uhr (${HEUTE})` : `Dies ist eine nachträgliche Ausgabe zum Stichtag ${datum(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} abends (${d}). Schreib sie so, als wäre heute dieser Tag: die letzte Einheit ist die bis zu diesem Tag, „als Nächstes“ heißt nach diesem Tag. Unterlagen, Tests und Folien, die erst danach dazukamen, ignorierst du`}. Fach: ${fach}.
 Unten stehen ALLE Unterlagen, die in OLAT für dieses Fach liegen: Vorlesungsfolien, Proseminar-Unterlagen, Syllabus und Tests (TEST). Bei den Tests sind das die Startseiten der Onlinetests mit Thema, Bearbeitungszeitraum und Bewertung, nach Ablauf auch mit den Fragen, der eigenen Antwort in [eckigen Klammern] und der Lösung; die Fragen laufender Onlinetests, gelesen während der Bearbeitungszeit, mit „Max. … Punkt“ im Kopf jeder Frage; und die Fragen der unbewerteten Selbsttests.
 
@@ -1604,7 +1689,10 @@ Schritt 2: Schreibe die Wochenausgabe in Markdown mit genau diesen Abschnitten. 
 3–5 Stichpunkte: was zuletzt dran war, was als Nächstes kommt, was bis wann fällig ist.
 
 ## Zusammenfassung der letzten Einheit
-Nur der Stoff aus den Folien und PS-Unterlagen der letzten Einheit, ausführlich und verständlich, gegliedert mit ### Zwischenüberschriften. Beispiele aus den Folien übernehmen. Keine Organisation. Hat noch keine Einheit stattgefunden, fasse die inhaltliche Einführung zusammen.
+Nur der Stoff aus den Folien und PS-Unterlagen der letzten Einheit, gegliedert mit ### Zwischenüberschriften. Ganz oben, vor der ersten ###-Überschrift, steht **Das Wichtigste:** mit 2–4 Stichpunkten: die Kernaussagen, die man nach dieser Einheit können muss. Beispiele aus den Folien übernehmen. Keine Organisation. Hat noch keine Einheit stattgefunden, fasse die inhaltliche Einführung zusammen.
+So schreibst du sie:
+- Relevanz: Gewichte nach dem, was in Prüfung, PS-Test und Onlinetests verlangt wird (Leistungsbeurteilung, bisherige Tests, PS-Aufgaben, was die Folien betonen). Wichtiges ausführlich, Nebensächliches in einem Satz, Folien-Füllstoff (Gliederung, Lernziele, Wiederholungen, Anekdoten, Literatur) gar nicht.
+- Einfach in der Sprache, genau in der Sache: kurze Sätze, ein Gedanke pro Absatz, jeder Fachbegriff beim ersten Auftreten in einem Halbsatz erklärt. Vereinfache nie den Inhalt: Voraussetzungen, Ausnahmen, Vorzeichen, Einheiten und Fallunterscheidungen bleiben drin. Brauchst du ein vereinfachtes Bild, sag dazu, was es weglässt („genau genommen gilt das nur, wenn …“).
 
 ## Nächstes Proseminar
 Datum, Thema, was man dafür wissen und vorbereiten muss, Aufgaben und Abgaben dieser Einheit mit Frist.
@@ -1655,7 +1743,9 @@ Wichtig für dieses Fach: Am Ende jeder PS-Einheit wird ein kurzer PS-Test gesch
 Formeln setzt du in LaTeX: im Fließtext zwischen \\( und \\), abgesetzt zwischen \\[ und \\]. In den JSON-Feldern stehen keine LaTeX-Formeln, sondern einfache Schreibweise wie x², a/b oder √x.
 ${FORMEL_REGEL}
 
-Schreib sachlich wie eine Zeitung, ohne Ich-Form und ohne Bemerkungen über dich selbst. Stütze dich nur auf die Unterlagen. Steht etwas nicht darin oder ist der Terminplan unklar, schreib das ehrlich, statt zu raten.${tief ? '\n\n' + ULTRA : ''}`;
+Schreib sachlich wie eine Zeitung, ohne Ich-Form und ohne Bemerkungen über dich selbst. Stütze dich nur auf die Unterlagen. Steht etwas nicht darin oder ist der Terminplan unklar, schreib das ehrlich, statt zu raten.${wahl.niveau === 'ultra' ? '\n\n' + ULTRA : ''}
+
+${fassungAuftrag(wahl)}`;
 
 const $ = id => document.getElementById(id);
 const merk = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { return null; } };
@@ -1893,16 +1983,16 @@ async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausga
   const uhr = setInterval(() => presseZeigen(f), 1000);
   await wach(true);
   try {
-    const q = await quelle(f), tief = darf('ausgabe-ultra');  // Ultra und die eigene Version: die ausführliche Fassung
+    const q = await quelle(f), wahl = fassung(f), tief = wahl.niveau === 'ultra';
     const fotos = (await EIGENE_D.laden().catch(() => ({ tests: [] }))).tests.filter(t => t.fach === f);
-    const prompt = [auftrag(f, TAG, d, tief), ...q.dateien.map(d => `=== ${d.art.toUpperCase()}: ${d.datei} ===\n${d.text.slice(0, 60000)}`), ...fotos.map(fotoTestText)].join('\n\n');
+    const prompt = [auftrag(f, TAG, d, wahl), ...q.dateien.map(d => `=== ${d.art.toUpperCase()}: ${d.datei} ===\n${d.text.slice(0, 60000)}`), ...fotos.map(fotoTestText)].join('\n\n');
     const modell = $('modell').value;
     const antwortKI = await strom({ ...MODELLE[modell], feature: tief ? 'ausgabe-ultra' : 'ausgabe', messages: [{ role: 'user', content: prompt }] }, x => {
       const teile = x.match(/^## .+/gm) || [];
-      r.hinweis = /```json/.test(x) ? 'Schreibt Termine und Begriffe …' : teile.length ? `Schreibt „${teile.at(-1).slice(3).trim()}“ (${teile.length} von ${tief ? 7 : 6}) …` : 'Schreibt …';
+      r.hinweis = /```json/.test(x) ? 'Schreibt Termine und Begriffe …' : teile.length ? `Schreibt „${teile.at(-1).slice(3).trim()}“ (${teile.length} von ${tief && wahl.form !== 'formeln' ? 7 : 6}) …` : 'Schreibt …';
     }, () => { r.hinweis = 'Denkt nach …'; });
     r.hinweis = 'Speichert …';
-    const text = `*${modell}${tief ? ' · Ultra-Fassung' : ''} · ${datum(d, { day: '2-digit', month: '2-digit', year: 'numeric' })} · Kosten ${antwortKI.preis} $*\n\n` + antwortKI.text;
+    const text = `*${modell}${tief ? ' · Ultra-Fassung' : ''} · Fassung ${wahl.niveau}/${wahl.form} · ${datum(d, { day: '2-digit', month: '2-digit', year: 'numeric' })} · Kosten ${antwortKI.preis} $*\n\n` + antwortKI.text;
     const alt = r.ausgaben.find(a => a.datum === d);
     const antwort = await nacheinander(() => gh(`lernseiten/${f}/${d}.md`, { method: 'PUT', roh: false, body: { message: `Ausgabe ${f} ${d}`, content: base64(text), sha: alt?.sha } }));
     r.ausgaben = [{ datum: d, sha: antwort.content.sha }, ...r.ausgaben.filter(a => a.datum !== d)].sort((a, b) => b.datum.localeCompare(a.datum));
@@ -2175,10 +2265,60 @@ function nachtrag(f) {
   const feld = el('input', { type: 'date', name: 'stichtag', max: HEUTE, 'aria-label': 'Anderer Tag' });
   return el('div', { class: 'nachtrag' },
     el('h3', {}, 'Frühere Vorlesung nacharbeiten'),
-    el('p', { class: 'klein' }, `Erstellt eine Ausgabe mit Stand dieses Tages: Zusammenfassung dieser Einheit, Übungen, Begriffe. Dauert ${darf('ausgabe-ultra') ? 'vier bis sechs' : 'zwei bis vier'} Minuten.`),
+    el('p', { class: 'klein' }, `Erstellt eine Ausgabe mit Stand dieses Tages: Zusammenfassung dieser Einheit, Übungen, Begriffe. Dauert ${dauer(f)} Minuten.`),
     r.druckt ? presse(f) : [
       vos.length > 0 && el('div', { class: 'knopfreihe' }, vos.map(d => el('button', { class: 'knopf', type: 'button', onclick: () => drucke(f, d) }, `VO ${kurz(d)}`))),
       el('form', { class: 'zeile nachtrag-tag', onsubmit: e => { e.preventDefault(); if (feld.value && feld.value <= HEUTE) drucke(f, feld.value); } }, feld, el('button', { class: 'knopf' }, 'Für diesen Tag erstellen'))]);
+}
+// Wie die nächste Ausgabe aussieht: Knopf mit der Wahl, darunter ein Popover mit Niveau und Form, gespeichert je Fach im Profil
+function fassungWahl(f) {
+  const r = R[f], name = () => fassungName(fassung(f)) || 'Normal';
+  const wert = el('span', { class: 'fw-wert' }, name()), ikon = d => { const s = el('span', { class: 'fw-ikon', 'aria-hidden': 'true' }); s.innerHTML = `<svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg>`; return s; };
+  const knopf = el('button', { class: 'knopf fw-knopf', type: 'button', popovertarget: 'fassung-pop', 'aria-haspopup': 'dialog' },
+    el('span', { class: 'fw-was' }, 'Fassung'), wert, ikon('M7 10l5 5 5-5'));
+  const waehlen = async e => {
+    PROFIL = { ...PROFIL, fassung: { ...PROFIL.fassung, [f]: { ...fassung(f), [e.target.name]: e.target.value } } };
+    wert.textContent = name(); $('fassung-hinweis')?.replaceWith(fassungHinweis(f));
+    PROFIL_D.daten = PROFIL;
+    try { await PROFIL_D.speichern(); } catch (err) { status(err.message, true); }
+  };
+  const gruppe = (feld, legende, liste) => el('fieldset', { class: `fw-gruppe fw-${feld}` }, el('legend', {}, legende),
+    Object.entries(liste).map(([k, o]) => {
+      const zu = o.recht && !darf(o.recht);
+      return el('label', { class: 'fw-option' },
+        el('input', { type: 'radio', name: feld, value: k, class: 'sr', checked: fassung(f)[feld] === k, disabled: zu, onchange: waehlen }),
+        o.icon && ikon(o.icon),
+        el('span', { class: 'fw-text' }, el('span', { class: 'fw-name' }, o.name), el('span', { class: 'fw-kurz' }, o.kurz)),
+        zu ? el('span', { class: 'pille akzent' }, 'Ultra') : el('span', { class: 'fw-haken', 'aria-hidden': 'true' }));
+    }));
+  const pop = el('div', { id: 'fassung-pop', class: 'fw-pop', popover: 'auto', role: 'dialog', 'aria-labelledby': 'fw-kopf' },
+    el('form', { onsubmit: e => e.preventDefault() },
+      el('h3', { id: 'fw-kopf' }, 'Wie soll die Zusammenfassung aussehen?'),
+      gruppe('niveau', 'Niveau', NIVEAUS), gruppe('form', 'Form', FORMEN),
+      el('div', { class: 'fw-fuss' }, el('p', { class: 'meta' }, `Gilt für ${f} ab der nächsten Ausgabe.`),
+        el('button', { class: 'knopf voll', type: 'button', disabled: r.druckt, onclick: () => { pop.hidePopover(); drucke(f); } }, r.ausgaben.length ? 'Jetzt neu erstellen' : 'Erste Ausgabe erstellen'))));
+  pop.addEventListener('beforetoggle', e => {  // unter dem Knopf, nie über den Rand; wächst aus dem Knopf heraus
+    if (e.newState !== 'open') return;
+    const k = knopf.getBoundingClientRect(), b = Math.min(420, innerWidth - 32), links = Math.max(16, Math.min(k.right - b, innerWidth - b - 16));
+    Object.assign(pop.style, { width: b + 'px', left: links + scrollX + 'px', top: k.bottom + 8 + scrollY + 'px', transformOrigin: `${Math.round(k.left + k.width / 2 - links)}px 0` });
+  });
+  return [knopf, pop];
+}
+const fassungHinweis = f => {  // nach einer neuen Wahl: welche Fassung die angezeigte Ausgabe hat und was „Neu erstellen“ schreibt
+  const a = aktuell(f), alt = a && fassungVon(a), neu = fassung(f);
+  return el('p', { class: 'meta', id: 'fassung-hinweis' }, a && !R[f].druckt && (alt.niveau !== neu.niveau || alt.form !== neu.form)
+    ? `Diese Ausgabe ist ${fassungName(alt) || 'Normal'}. „Neu erstellen“ schreibt sie als ${fassungName(neu) || 'Normal'}.` : '');
+};
+// „Das Wichtigste“ als Kasten; in der Form Fragen jede Antwort zum Aufdecken
+function aufbereiten(text, form) {
+  const p = [...text.children].find(x => x.matches('p') && /^Das Wichtigste/.test(x.textContent)), liste = p?.nextElementSibling;
+  if (liste?.matches('ul, ol')) { const k = el('div', { class: 'wichtig' }); p.before(k); k.append(p, liste); }
+  if (form === 'fragen') for (const h of [...text.querySelectorAll('h4')]) {
+    const d = el('details', { class: 'fw-frage' }, el('summary', {}, ...h.childNodes));
+    h.replaceWith(d);
+    while (d.nextElementSibling && !d.nextElementSibling.matches('h2, h3, h4, details')) d.append(d.nextElementSibling);
+  }
+  return text;
 }
 let SPION = null;  // markiert beim Scrollen den sichtbaren Teil in der Sprungleiste
 async function ausgabeZeigen(f, tag) {
@@ -2189,15 +2329,15 @@ async function ausgabeZeigen(f, tag) {
     sektion.replaceChildren(...[
       el('a', { class: 'zurueck nur-schmal', href: '#/' }, 'Heute'),
       el('header', { class: 'ausgabe-kopf' }, el('div', {}, el('h1', {}, f),
-        el('p', { class: 'unterzeile' }, `Noch keine Ausgabe. Die erste ist nach ${darf('ausgabe-ultra') ? 'vier bis sechs' : 'zwei bis vier'} Minuten fertig.`))),
+        el('p', { class: 'unterzeile' }, `Noch keine Ausgabe. Die erste ist nach ${dauer(f)} Minuten fertig.`))),
       r.druckt ? presse(f) : el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: () => drucke(f) }, 'Erste Ausgabe erstellen'),
-        el('a', { class: 'knopf', href: `#/unterlagen/${encodeURIComponent(f)}` }, 'Unterlagen hinzufügen')),
+        fassungWahl(f), el('a', { class: 'knopf', href: `#/unterlagen/${encodeURIComponent(f)}` }, 'Unterlagen hinzufügen')),
       r.fehler && el('p', { class: 'fehlertext' }, r.fehler)].filter(Boolean));
     return;
   }
   tag = tag && r.ausgaben.some(x => x.datum === tag) ? tag : r.ausgaben[0].datum;
   const a = await ausgabe(f, tag);
-  const stamm = abschnitt(a, 'stammdaten'), ueb = abschnitt(a, 'übungsaufgaben'), formeln = abschnitt(a, 'formeln'), ultra = /Ultra-Fassung/.test(a.meta);
+  const stamm = abschnitt(a, 'stammdaten'), ueb = abschnitt(a, 'übungsaufgaben'), formeln = abschnitt(a, 'formeln'), fa = fassungVon(a);
   const kasten = (klasse, titel, anfang) => el('section', { class: `abschnitt ${klasse}` }, el('h2', {}, titel), markdown(el('div', { class: 'text' }), abschnitt(a, anfang) || 'Nicht in dieser Ausgabe.'));
   const teil = (id, titel, zusatz, inhalt) => el('section', { class: 'teil', id, 'aria-labelledby': id + '-k' },
     el('div', { class: 'rubrik' }, el('h2', { id: id + '-k' }, titel), zusatz && el('p', { class: 'meta' }, zusatz)), inhalt);
@@ -2214,23 +2354,25 @@ async function ausgabeZeigen(f, tag) {
         el('div', { class: 'titel-zeile' }, glyph(f), el('h1', {}, f)),
         a.schlagzeile && el('p', { class: 'schlagzeile' }, a.schlagzeile),
         el('p', { class: 'unterzeile' }, el('span', {}, `Ausgabe vom ${datum(tag, { weekday: 'long', day: 'numeric', month: 'long' })}`),
-          a.meta && el('span', {}, a.meta.split(' · ')[0]), ultra && el('span', { class: 'fassung' }, 'Ultra-Fassung'), !SERVER && a.preis && el('span', {}, `Kosten ${geld(a.preis)}`))),
+          a.meta && el('span', {}, a.meta.split(' · ')[0]), fassungName(fa) && el('span', { class: 'fassung' }, fassungName(fa)), !SERVER && a.preis && el('span', {}, `Kosten ${geld(a.preis)}`))),
       el('div', { class: 'kopf-aktionen' },
         f === 'Englisch' && el('a', { class: 'knopf', href: '#/wordpower' }, el('span', { translate: 'no' }, 'Word Power')),
         el('button', { class: 'knopf', type: 'button', 'aria-expanded': String(!!HOER[`${f}/${tag}`]?.offen), onclick: () => hoerenKlick(f, tag) }, 'Anhören'),
         darf('export') && el('button', { class: 'knopf', type: 'button', onclick: () => ausgabeDrucken(f, a) }, 'PDF'),
         el('a', { class: 'knopf', href: `#/pruefung/${encodeURIComponent(f)}` }, 'Prüfungstraining'),
+        fassungWahl(f),
         !r.druckt && el('button', { class: 'knopf voll', type: 'button', onclick: () => drucke(f) }, 'Neu erstellen'))),
     r.druckt && presse(f),
     r.fehler && el('p', { class: 'fehlertext' }, r.fehler),
     hoerenTeil(f, tag, a),
     klarTeil(f, tag, a),
-    !ultra && !r.druckt && darf('ausgabe-ultra') && el('p', { class: 'meta' }, 'Diese Ausgabe ist noch die normale Fassung. „Neu erstellen“ schreibt sie als Ultra-Fassung.'),
+    tag === r.ausgaben[0].datum && fassungHinweis(f),
     quellen.length > 0 && el('details', { class: 'quellen' }, el('summary', {}, `Beruht auf ${quellen.length} ${quellen.length === 1 ? 'Unterlage' : 'Unterlagen'}`), el('p', {}, quellen.join(', ')),
       el('p', {}, el('a', { href: `#/unterlagen/${encodeURIComponent(f)}` }, 'Unterlagen ansehen oder hinzufügen'))),
     leiste,
     el('div', { class: 'raster', id: 'teil-ueberblick' },
-      el('article', { class: 'artikel' }, el('h2', {}, 'Zusammenfassung der letzten Einheit'), markdown(el('div', { class: 'text' }), abschnitt(a, 'zusammenfassung') || 'Keine Zusammenfassung in dieser Ausgabe.'),
+      el('article', { class: 'artikel' }, el('h2', {}, FORMEN[fa.form].titel || 'Zusammenfassung der letzten Einheit'),
+        aufbereiten(markdown(el('div', { class: 'text', 'data-form': fa.form }), abschnitt(a, 'zusammenfassung') || 'Keine Zusammenfassung in dieser Ausgabe.'), fa.form),
         SERVER && ICH && TARIFE?.verkauf && !darf('ausgabe-ultra') && ultraWerbung(a)),
       kasten('blick', 'Auf einen Blick', 'auf einen blick'),
       kasten('', 'Nächstes Proseminar', 'nächstes proseminar'),

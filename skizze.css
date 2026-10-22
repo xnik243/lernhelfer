@@ -134,6 +134,13 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
   border-color: var(--tinte); background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb);
 }
 .abschnitte button, .archiv a { border-radius: var(--r); }
+/* Fassung wählen: gezeichneter Rahmen, gewählter Name angestrichen, gewählte Kachel blau umrandet */
+.fw-pop { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; }
+.fw-option:has(input:checked) { background: none; }
+.fw-option:has(input:checked) .fw-name { margin: 0 -4px; padding: 0 4px; background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb); }
+.fw-form .fw-option { border-radius: var(--r); }
+.fw-form .fw-option:has(input:checked) { border-color: transparent; border-image: var(--rahmen-blau) 10 / 8px / 3px stretch; }
+.text .wichtig { border-radius: 2px; background: var(--zettel); color: var(--text); }
 .abschnitte { border-bottom: 0; background: var(--strich-waagrecht) left bottom / 360px 6px repeat-x, color-mix(in srgb, var(--bg) 90%, transparent); }
 
 /* ---------- Heute ---------- */
