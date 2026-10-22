@@ -747,6 +747,54 @@
   .sperrkarte.klein { padding: 16px 18px; }
   .sperrkarte.klein h3 { font-size: 1rem; }
   .assistent > .sperrkarte { max-width: none; margin: 0; padding: 4px 2px; border: 0; background: none; }  /* steht schon in einem Kasten */
+  /* Gesperrter Bereich: oben eine Vorschau mit Beispieldaten, leicht unscharf und nach unten ausgeblendet; die Karte liegt halb darüber */
+  .sperr-buehne { display: grid; max-width: 720px; margin-top: 16px; }
+  .vorschau { position: relative; height: 330px; overflow: hidden; padding: 40px 4px 6px; pointer-events: none; -webkit-user-select: none; user-select: none;
+    -webkit-mask-image: linear-gradient(#000 30%, transparent 94%); mask-image: linear-gradient(#000 30%, transparent 94%); }
+  .vorschau-inhalt { filter: blur(1.4px); opacity: 0.9; }
+  .vorschau-marke { position: absolute; top: 4px; left: 4px; z-index: 1; padding: 3px 10px; border-radius: 999px; background: var(--bg); box-shadow: 0 0 0 1px var(--linie); color: var(--text-3); font: 600 0.75rem/1.4 var(--sans); }
+  .sperr-buehne > .sperrkarte { position: relative; margin: -140px 0 0 clamp(0px, 3vw, 28px); box-shadow: var(--schatten-gross);
+    transition: opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1), transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+  @starting-style { .sperr-buehne > .sperrkarte { opacity: 0; transform: translateY(10px); } }
+  @media (prefers-reduced-motion: reduce) { .sperr-buehne > .sperrkarte { transition: opacity 0.2s; } }
+  .vs-woche { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .vs-tag { display: grid; align-content: start; gap: 6px; }
+  .vs-tag > b { color: var(--text-3); font-size: 0.8125rem; }
+  .vs-termin { display: grid; padding: 7px 8px; border-left: 3px solid var(--fach, var(--akzent)); border-radius: var(--r-s); background: color-mix(in srgb, var(--fach, var(--akzent)) 12%, var(--bg)); font: 600 0.8125rem/1.3 var(--sans); }
+  .vs-termin.vs-frist { border-left-color: var(--warn); background: var(--warn-flaeche); }
+  :is(.vs-termin, .vs-karte, .vs-aufgabe, .vs-zahlen) small { color: var(--text-3); font-size: 0.75rem; font-weight: 500; }
+  .vs-noten, .vs-klausur, .vs-vortrag { display: grid; gap: 10px; }
+  .vs-diagramm svg { display: block; width: 100%; height: 120px; }
+  .vs-diagramm polyline { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .vs-diagramm line { stroke: var(--linie); }
+  .vs-zeile { display: grid; grid-template-columns: 7em minmax(0, 1fr) auto; align-items: center; gap: 12px; font-size: 0.875rem; }
+  .vs-balken { height: 8px; border-radius: 4px; background: var(--bg-3); overflow: hidden; }
+  .vs-balken i { display: block; height: 100%; background: var(--fach); }
+  .vs-karten { display: grid; justify-items: center; gap: 12px; }
+  .vs-karten .knopfreihe { margin: 0; }
+  .vs-karte { display: grid; gap: 8px; width: min(100%, 420px); min-height: 160px; padding: 18px 20px; border-top: 4px solid var(--fach); border-radius: var(--r); background: var(--bg); box-shadow: 0 0 0 1px var(--linie), 0 18px 34px -22px rgb(0 0 0 / 0.45); }
+  .vs-karte b { font-size: 1.375rem; }
+  .vs-karte p, .vs-aufgabe p { margin: 0; color: var(--text-2); }
+  .vs-kopfzeile { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .vs-uhr { padding: 2px 10px; border-radius: 999px; background: var(--akzent-flaeche); color: var(--akzent-text); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .vs-aufgabe, .vs-befund, .vs-zahlen > div { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--r); background: var(--bg-2); }
+  .vs-ergebnis { margin: 0; color: var(--ok); font-weight: 650; }
+  .vs-zahlen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .vs-zahlen b { font-size: 1.25rem; }
+  .vs-befund { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 10px; }
+  .vs-zeit { color: var(--akzent-text); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .vs-film { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+  .vs-bild { display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: var(--r); background: linear-gradient(135deg, #1d2433, #3b4762); }
+  .vs-bild::before { content: ""; border-style: solid; border-width: 14px 0 14px 24px; border-color: transparent transparent transparent #fff; }
+  .vs-kapitel { display: grid; align-content: start; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: 0.875rem; }
+  .vs-kapitel li { display: flex; gap: 10px; }
+  @media (max-width: 560px) {
+    .vorschau { height: 300px; }
+    .sperr-buehne > .sperrkarte { margin-top: -100px; }
+    .vs-woche { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .vs-zahlen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .vs-film { grid-template-columns: 1fr; }
+  }
   .tarife { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 24px; }
   .tarif { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 22px 18px 18px; border: 1px solid var(--linie); border-radius: var(--r-l); background: var(--bg); }
   .tarif.empfohlen { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); }
@@ -832,7 +880,12 @@
   .ul-liste .name { overflow-wrap: anywhere; font-size: 0.9375rem; font-weight: 600; }
   .ul-liste .meta { grid-column: 1; }
   .ul-liste .knopf { grid-row: 1 / span 2; grid-column: 2; }
-  .mac-befehl { margin-top: 12px; font: 0.75rem/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  .mac-befehl { font: 0.75rem/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  .befehl-zeile { display: flex; align-items: flex-start; gap: 8px; width: 100%; margin-top: 12px; }
+  .befehl-zeile .mac-befehl { flex: 1; min-width: 0; }
+  .geraete { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px 24px; width: 100%; }
+  .geraete h3 { margin: 0 0 4px; font: 650 1rem/1.3 var(--sans); }
+  .geraete .meta { margin: 8px 0 0; }
   .anteil { display: inline-block; width: 72px; height: 6px; margin-right: 8px; border-radius: 3px; background: var(--bg-3); vertical-align: middle; overflow: hidden; }
   .anteil i { display: block; height: 100%; border-radius: 3px; background: var(--akzent); }
   .kacheln.breit { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
@@ -4688,7 +4741,8 @@ function macBefehl(z) {
   return `LH_REPO='${werte[0]}' LH_TOKEN='${werte[1]}' LH_API='${werte[2]}' LH_APP='${app}' /bin/bash -c "$(curl -fsSL ${app}einrichten-mac.sh)"`;
 }
 function macTeil(zugang, neu) {  // zugang: () => {repo, github, api} oder ein Versprechen darauf (Server: neuer PC-Schlüssel)
-  const feld = el('textarea', { class: 'mac-befehl', readonly: true, rows: 3, hidden: true, 'aria-label': 'Befehl für das Terminal', onfocus: e => e.target.select() });
+  const feld = el('textarea', { class: 'mac-befehl', readonly: true, rows: 3, 'aria-label': 'Befehl für das Terminal', onfocus: e => e.target.select() });
+  const zeile = el('div', { class: 'befehl-zeile', hidden: true }, feld, el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, feld.value) }, 'Kopieren'));
   const knopf = el('button', { class: `knopf${neu ? ' voll' : ''}`, type: 'button', onclick: async e => {
     const k = e.currentTarget, befehl = Promise.resolve().then(zugang).then(macBefehl);
     k.disabled = true;
@@ -4697,10 +4751,10 @@ function macTeil(zugang, neu) {  // zugang: () => {repo, github, api} oder ein V
       else await navigator.clipboard.writeText(await befehl);
       k.textContent = 'Befehl kopiert';
     } catch { k.textContent = 'Befehl unten markieren und kopieren'; }
-    try { feld.value = await befehl; feld.hidden = false; } catch (err) { status(err.message, true); k.textContent = 'Befehl für den Mac kopieren'; }
+    try { feld.value = await befehl; zeile.hidden = false; } catch (err) { status(err.message, true); k.textContent = 'Befehl für den Mac kopieren'; }
     k.disabled = false;
   } }, 'Befehl für den Mac kopieren');
-  return [el('div', { class: 'knopfreihe' }, knopf), feld,
+  return [el('div', { class: 'knopfreihe' }, knopf), zeile,
     el('ol', { class: 'schritte klein' },
       el('li', {}, 'Auf „Befehl für den Mac kopieren“ tippen.'),
       el('li', {}, 'Das Terminal öffnen: ⌘ und Leertaste drücken, „Terminal“ tippen, Enter.'),
@@ -4994,6 +5048,42 @@ function sperrkarte(f, klein) {
     ICH?.testFrei && el('p', { class: 'meta' }, `Einmal pro Konto, ohne Zahlungsdaten. Danach geht es von selbst mit ${danach()} weiter.`),
     SERVER && !TARIFE?.verkauf && el('p', { class: 'meta' }, 'Tarife gibt es gerade nicht zu kaufen.'));
 }
+// Gesperrte Bereiche zeigen, wie es dort aussieht: kleine Nachbildung mit Beispieldaten, unscharf, damit niemand sie für echt hält
+const linie = (farbe, punkte) => `<polyline style="stroke: var(${farbe})" points="${punkte}"/>`;
+const VORSCHAU = {
+  kalender: () => el('div', { class: 'vs-woche' }, [
+    ['Mo', [['08:15', 'Mathematik', 'VO Mathematik'], ['12:00', 'VWL', 'PS VWL']]],
+    ['Di', [['10:00', 'BWL', 'VO BWL'], ['23:59', '', 'Abgabe Übungsblatt 3']]],
+    ['Mi', [['08:15', 'Mathematik', 'PS Mathematik'], ['14:00', 'Englisch', 'Englisch']]],
+    ['Do', [['10:00', 'VWL', 'VO VWL'], ['18:00', '', 'Onlinetest VWL']]],
+    ['Fr', [['09:00', 'BWL', 'PS BWL']]]].map(([tag, l]) => el('div', { class: 'vs-tag' }, el('b', {}, tag),
+      l.map(([zeit, fach, was]) => el('span', { class: `vs-termin${fach ? '' : ' vs-frist'}`, 'data-fach': fach || null }, el('small', {}, zeit), was))))),
+  noten: () => el('div', { class: 'vs-noten' },
+    Object.assign(el('div', { class: 'vs-diagramm' }), { innerHTML: `<svg viewBox="0 0 300 110" preserveAspectRatio="none"><line x1="0" y1="55" x2="300" y2="55"/>${
+      linie('--f-mathe', '0,78 50,64 100,70 150,46 200,40 250,30 300,24')}${linie('--f-vwl', '0,60 50,66 100,52 150,58 200,48 250,44 300,40')}${linie('--f-bwl', '0,40 50,34 100,30 150,26 200,22 250,18 300,14')}</svg>` }),
+    [['Mathematik', 78, 'Note 2'], ['VWL', 64, 'Note 3, 4 P bis zur 2'], ['BWL', 88, 'Note 1']].map(([f, p, n]) =>
+      el('div', { class: 'vs-zeile', 'data-fach': f }, el('b', {}, f), el('span', { class: 'vs-balken' }, el('i', { style: `width: ${p}%` })), el('small', {}, `${p} % · ${n}`)))),
+  karten: () => el('div', { class: 'vs-karten' },
+    el('p', { class: 'meta' }, '12 Karten fällig heute · 3 neu'),
+    el('div', { class: 'vs-karte', 'data-fach': 'VWL' }, el('small', {}, 'VWL · Woche 3'), el('b', {}, 'Opportunitätskosten'),
+      el('p', {}, 'Der Nutzen der besten Alternative, auf die du verzichtest, wenn du dich entscheidest.')),
+    el('div', { class: 'knopfreihe' }, el('span', { class: 'knopf' }, 'Nochmal'), el('span', { class: 'knopf voll' }, 'Gewusst'))),
+  probeklausur: () => el('div', { class: 'vs-klausur' },
+    el('div', { class: 'vs-kopfzeile' }, el('b', {}, 'Probeklausur Mathematik'), el('span', { class: 'vs-uhr' }, '58:12')),
+    el('div', { class: 'vs-aufgabe' }, el('small', {}, 'Aufgabe 2 · 6 Punkte'), el('p', {}, 'Bestimme das Maximum von f(x) = −2x² + 12x − 5 und begründe, warum es ein Maximum ist.')),
+    el('div', { class: 'vs-aufgabe' }, el('small', {}, 'Aufgabe 3 · 8 Punkte'), el('p', {}, 'Ein Monopolist hat die Nachfrage p = 100 − 2q und Grenzkosten von 20. Welche Menge bietet er an?')),
+    el('p', { class: 'vs-ergebnis' }, '41 von 50 Punkten · Note 2')),
+  vortrag: () => el('div', { class: 'vs-vortrag' },
+    el('div', { class: 'vs-zahlen' }, [['Note', '2'], ['Sprachniveau', 'B2'], ['Tempo', '142 W/min'], ['äh und ähm', '9×']].map(([n, w]) => el('div', {}, el('small', {}, n), el('b', {}, w)))),
+    [['01:42', '„do a decision“', 'Besser: „make a decision“.'], ['03:15', 'Lange Pause vor der Folie', 'Den Übergang vorher ankündigen.']].map(([t, a, b]) =>
+      el('div', { class: 'vs-befund' }, el('span', { class: 'vs-zeit' }, t), el('span', {}, el('b', {}, a), ' ', b)))),
+  video: () => el('div', { class: 'vs-film' }, el('div', { class: 'vs-bild' }),
+    el('ol', { class: 'vs-kapitel' }, [['03:10', 'Grenzkosten'], ['07:45', 'Gewinnmaximum: Grenzerlös gleich Grenzkosten'], ['12:30', 'Beispiel mit Zahlen'], ['16:05', 'Typische Fehler']].map(([t, w]) =>
+      el('li', {}, el('span', { class: 'vs-zeit' }, t), w)))),
+};
+const sperrBuehne = f => VORSCHAU[f] ? el('div', { class: 'sperr-buehne' },
+  el('div', { class: 'vorschau', 'aria-hidden': 'true', inert: true }, el('span', { class: 'vorschau-marke' }, 'Vorschau mit Beispieldaten'), el('div', { class: 'vorschau-inhalt' }, VORSCHAU[f]())),
+  sperrkarte(f)) : sperrkarte(f);
 async function testStarten(e) {
   const knopf = e.currentTarget, ort = knopf.closest('.knopfreihe');
   knopf.disabled = true;
@@ -5055,7 +5145,8 @@ function kontoForm(titel, felder, knopf, aktion, zusatz) {
 const kontoFeld = (name, label, typ, extra = {}) => el('label', { class: 'feld' }, label,
   el('input', { name, type: typ, required: true, autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', ...extra }));
 async function kopieren(e, text) {
-  try { await navigator.clipboard.writeText(text); e.currentTarget.textContent = 'Kopiert'; } catch { status('Kopieren ging nicht. Bitte markieren und kopieren.', true); }
+  const knopf = e.currentTarget;  // nach dem await ist currentTarget schon null
+  try { await navigator.clipboard.writeText(text); knopf.textContent = 'Kopiert'; } catch { status('Kopieren ging nicht. Bitte markieren und kopieren.', true); }
 }
 async function pcLaden(e) {
   const knopf = e.currentTarget;
@@ -5064,19 +5155,23 @@ async function pcLaden(e) {
   catch (err) { status(err.message, true); }
   knopf.disabled = false;
 }
-// Das PC-Programm holen: Knopf und die drei Klicks danach (Konto und Start)
-const pcEinrichten = () => WINDOWS ? [
+// Das PC-Programm holen: Knopf und die drei Klicks danach (Konto, Start, Anleitung). Am iPad oder Handy beide, zum Weitergeben an den Computer.
+function pcEinrichten() {
+  const win = () => [
     el('div', { class: 'knopfreihe' }, el('button', { class: `knopf${ABGLEICH ? '' : ' voll'}`, type: 'button', onclick: pcLaden }, ICH.pc ? 'PC-Programm neu laden' : 'PC-Programm herunterladen')),
     el('ol', { class: 'schritte klein' },
       el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
       el('li', {}, 'Datei öffnen. Zeigt Windows „Der Computer wurde durch Windows geschützt“: „Weitere Informationen“, dann „Trotzdem ausführen“.'),
-      el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
-  : MAC ? macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc)
-  : [el('p', { class: 'klein' }, 'Das Programm läuft nur auf einem Windows-PC oder Mac, nicht auf iPad oder Handy. So kommst du dran:'),
-    el('ol', { class: 'schritte klein' },
-      el('li', {}, 'Am Windows-PC oder Mac ', el('b', {}, location.host + location.pathname), ' öffnen und anmelden.'),
-      el('li', {}, 'Links ganz oben auf „Start“ tippen.'),
-      el('li', {}, 'Dort auf „PC-Programm herunterladen“ (Windows) bzw. „Befehl für den Mac kopieren“ tippen.'))];
+      el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
+  const mac = () => macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc);
+  if (WINDOWS) return win();
+  if (MAC) return mac();
+  return [el('p', { class: 'klein' }, 'Das Programm läuft auf einem Windows-PC oder Mac, nicht auf iPad oder Handy. Am einfachsten öffnest du ', el('b', {}, location.host + location.pathname),
+      ' direkt am Computer, dort steht unter Start derselbe Knopf. Oder du holst es von hier:'),
+    el('div', { class: 'geraete' },
+      el('section', {}, el('h3', {}, 'Mac'), mac(), el('p', { class: 'meta' }, 'Hier kopiert, am Mac mit ⌘ V eingefügt: Das geht, wenn beide Geräte mit derselben Apple-ID angemeldet sind. Sonst per AirDrop oder Notizen schicken.')),
+      el('section', {}, el('h3', {}, 'Windows-PC'), win(), el('p', { class: 'meta' }, 'Die Datei muss auf den PC, etwa per USB-Stick oder als Mail an dich selbst.')))];
+}
 function kontoZeigen() {
   $('ei-titel').textContent = 'Konto';
   const einst = $('ei-einst').closest('section');
@@ -6005,7 +6100,6 @@ function leisteOrdnen() {
   document.querySelectorAll('.tabs a[data-ansicht]').forEach(a => { a.hidden ||= zu(a.dataset.ansicht) || betaWeg(a.dataset.ansicht); });
   $('tab-wordpower').hidden ||= !document.querySelector('.tabs a[data-ansicht="kalender"]').hidden;
 }
-const NOCH_NICHT = `Noch nicht eingerichtet? ${WINDOWS || MAC ? 'Hier drücken:' : 'So geht’s:'}`;  // am iPad gibt es nichts zu drücken
 // Start: eine Seite für alle, die neu sind. Oben der eine nächste Schritt zum Drücken, darunter in drei Sätzen, wie es läuft.
 const eingerichtet = () => !SERVER ? fertig() : !!ICH && (ICH.tarif === 'englisch' || !!ICH.pc || !!ABGLEICH || Object.keys(R).length > 0);
 function startZeigen() {
@@ -6016,7 +6110,7 @@ function startZeigen() {
     !ICH ? kasten('Noch kein Konto? Hier drücken:', el('a', { class: 'knopf voll', href: '#/einstellungen' }, 'Konto erstellen'), el('p', { class: 'klein' }, 'Kostenlos, nur mit E-Mail und Passwort.'))
     : englisch ? kasten('Du musst nichts einrichten', el('p', { class: 'klein' }, 'Links stehen deine drei Werkzeuge. Alles andere findest du darunter unter „Weitere Funktionen“.'),
       el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower' }, 'Word Power'), el('a', { class: 'knopf', href: '#/vortrag' }, 'Vortrag'), el('a', { class: 'knopf', href: '#/unterlagen' }, 'Unterlagen')))
-    : !eingerichtet() ? kasten(NOCH_NICHT, pcEinrichten(), el('p', { class: 'klein' }, 'Kein Windows-PC oder Mac? ', el('a', { href: '#/unterlagen' }, 'Folien selbst hochladen'), '.'))
+    : !eingerichtet() ? kasten('Noch nicht eingerichtet? Hier drücken:', pcEinrichten(), el('p', { class: 'klein' }, 'Kein Windows-PC oder Mac? ', el('a', { href: '#/unterlagen' }, 'Folien selbst hochladen'), '.'))
     : el('section', { class: 'start-jetzt fertig' }, el('h2', {}, 'Fertig eingerichtet'),
       el('p', { class: 'klein' }, ABGLEICH?.ok ? `Letzter Abgleich: ${ABGLEICH.text}` : 'Deine Unterlagen sind da.'),
       el('a', { class: 'knopf voll', href: '#/' }, 'Zu deiner Woche')),
@@ -6030,7 +6124,7 @@ function startZeigen() {
 }
 // Anleitung: der Knopf zum Programm gleich oben, nicht erst unter Start oder Konto
 const programmKasten = () => ICH?.tarif === 'englisch' ? '' : el('section', { class: `start-jetzt${ICH && eingerichtet() ? ' fertig' : ''}`, 'aria-labelledby': 'a-programm-kopf' },
-  el('h2', { id: 'a-programm-kopf' }, ICH && !eingerichtet() ? NOCH_NICHT : 'Das Programm für deinen PC oder Mac'),
+  el('h2', { id: 'a-programm-kopf' }, ICH && !eingerichtet() ? 'Noch nicht eingerichtet? Hier drücken:' : 'Das Programm für deinen PC oder Mac'),
   ICH ? pcEinrichten() : el('a', { class: 'knopf voll', href: '#/einstellungen' }, 'Erst ein Konto erstellen'));
 async function zeichne() {
   const v = !SERVER && verbindungLesen(location.hash);  // QR-Code bzw. Verbindungslink von einem anderen Gerät
@@ -6081,7 +6175,7 @@ async function zeichne() {
   else if (neu === 'unterlagen') await unterlagenZeigen(tag);
   else if (neu === 'arena') await arenaZeigen();
   else if (neu === 'video') await videoZeigen(tag);
-  else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, ANSICHTEN[teil])), sperrkarte(SPERREN[teil]));
+  else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, ANSICHTEN[teil])), sperrBuehne(SPERREN[teil]));
   else if (neu === 'upgrade') upgradeZeigen();
   else if (neu === 'admin') await adminZeigen();
   else if (neu === 'recht') await rechtZeigen();
