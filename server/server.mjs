@@ -25,7 +25,7 @@ if (SICHER && !E.LH_GEHEIM) throw new Error('LH_GEHEIM fehlt (lange Zufallszeich
 // Englisch: kostenlose Aktion (nicht zu kaufen), Base plus dazu: YouTube-Transkript und Vortragsanalyse; der Hausaufgaben-Entwurf nie.
 const TARIFE = {
   base: { name: 'Base', preis: 0, rang: 0, budget: 2 },  // DeepSeek: eine Ausgabe 2–4 Cent, also rund 60 im Monat
-  englisch: { name: 'Englisch', preis: 0, rang: 0, budget: 3, dazu: ['wp-transkript', 'vortrag'], aktion: true },
+  englisch: { name: 'Englisch', preis: 0, rang: 0, budget: 3, dazu: ['wp-transkript', 'vortrag', 'reflexion'], aktion: true },
   pro: { name: 'Pro', preis: 490, launchPreis: 490, regulaer: 990, rang: 1, budget: 3, rabatt: 20 },
   ultra: { name: 'Ultra', preis: 990, launchPreis: 990, regulaer: 1490, rang: 2, budget: 6, rabatt: 30 },
   ultraplus: { name: 'Ultra+ API', preis: 1490, launchPreis: 1490, regulaer: 1990, rang: 2, budget: 6, rabatt: 30, rabattAuf: 990, apiUsd: 11 },
@@ -53,10 +53,10 @@ const MONATE = [1, 3, 6];
 // 9 = nur in der Admin-Ecke: Den Hausaufgaben-Entwurf gibt es nicht zu kaufen, er bleibt privat
 // 8 = auf Eis (rechtlich heikel: Lösen von Testfragen): nur Admin-Ecke und Zusatz Manual Access
 // ausgabe-ultra: die ausführliche Fassung der Wochenausgabe; noten, karten, export: ohne KI; hoeren: Ausgabe als Podcast
-const FUNKTIONEN = { ausgabe: 0, 'test-foto': 8, formel: 0, kalender: 1, video: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1,
+const FUNKTIONEN = { ausgabe: 0, 'test-foto': 8, formel: 0, kalender: 1, video: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1, reflexion: 1,
   'ausgabe-ultra': 2, hoeren: 2, probeklausur: 2, training: 2, lernskript: 2, stil: 2, chat: 2, loeser: 8, 'wp-text': 9 };
 const NAMEN = { ausgabe: 'Die Wochenausgabe', 'test-foto': 'Das Auslesen von Test-Fotos', formel: 'Das Erklären von Formeln', video: 'Die Video-Erklärung', kalender: 'Der Kalender', noten: 'Der Notentracker', karten: 'Der Karteikasten', export: 'Der Export',
-  'wp-transkript': 'Das Word-Power-Transkript', vortrag: 'Die Vortragsanalyse', 'ausgabe-ultra': 'Die Ultra-Fassung der Wochenausgabe', hoeren: 'Die Ausgabe zum Anhören',
+  'wp-transkript': 'Das Word-Power-Transkript', vortrag: 'Die Vortragsanalyse', reflexion: 'Das Reflection-Feedback', 'ausgabe-ultra': 'Die Ultra-Fassung der Wochenausgabe', hoeren: 'Die Ausgabe zum Anhören',
   probeklausur: 'Die Probeklausur', training: 'Das Schwächen-Training', lernskript: 'Das Lernskript', stil: 'Der eigene Stil für die KI',
   chat: 'Der KI-Chat', loeser: 'Der Lösungsweg zu jeder Frage', 'wp-text': 'Der Hausaufgaben-Entwurf' };
 const PFADE = { 'kalender/': 'kalender', 'vortraege/': 'vortrag', 'videos/': 'video', 'noten.json': 'noten', 'karten.json': 'karten',
@@ -148,12 +148,30 @@ create table if not exists arena (konto integer primary key references konten(id
 // nutzung: was = Funktion (KI-Anfrage oder Speichern), „seite:…“ (Seite geöffnet) oder „gesperrt:…“ (gesperrte Funktion angetippt); für die Admin-Ecke
 for (const spalte of ['zuletzt', 'englisch_bis', 'manual_bis']) try { db.exec(`alter table konten add column ${spalte} integer not null default 0`); } catch {}  // ältere Datenbank: Spalten nachrüsten
 try { db.exec("alter table konten add column beta text not null default '[]'"); } catch {}  // Beta: sichtbare Bereiche als JSON-Liste
+// Arena: XP nur aus dem, was der Server selbst sieht (Ereignisse in arena_xp), laufende Fokus-Runde bzw. Speedrun in arena_lauf,
+// tägliche Anmeldeserie mit Joker, Bestzeiten, Wochenpreise; preis_bis: gewonnene Ultra-Tage, gutscheine.prozent: gewonnener Rabatt
+db.exec(`create table if not exists arena_xp (id integer primary key, konto integer not null references konten(id) on delete cascade, tag text not null, zeit integer not null,
+  art text not null, xp integer not null, wert integer not null default 0);
+create index if not exists arena_xp_tag on arena_xp (tag, konto);
+create table if not exists arena_lauf (konto integer not null references konten(id) on delete cascade, art text not null, start integer not null, min integer not null default 0,
+  aktiv integer not null default 0, letzter integer not null, daten text not null default '{}', primary key (konto, art));
+create table if not exists arena_serie (konto integer primary key references konten(id) on delete cascade, serie integer not null, bester integer not null, letzter text not null,
+  joker integer not null default 0);
+create table if not exists arena_best (konto integer not null references konten(id) on delete cascade, fach text not null, ms integer not null, primary key (konto, fach));
+create table if not exists arena_preise (woche text not null, platz integer not null, konto integer references konten(id) on delete set null, name text not null, xp integer not null,
+  art integer not null, wert integer not null, primary key (woche, platz));`);
+for (const [tabelle, spalte] of [['arena', 'aus integer not null default 0'], ['konten', 'preis_bis integer not null default 0'], ['gutscheine', 'prozent integer']])
+  try { db.exec(`alter table ${tabelle} add column ${spalte}`); } catch {}
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
 const nein = (code, text) => { throw new Fehler(code, text); };
 const jetzt = () => Date.now();
-const arenaWoche = () => { const d = new Date(), m = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() + 6) % 7)); return m.toISOString().slice(0, 10); };  // Montag der Woche
+const wienTag = (t = jetzt()) => new Date(t).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });  // JJJJ-MM-TT in Innsbruck, egal wo der Server steht
+const wienStunde = t => Number(new Date(t).toLocaleString('en-GB', { timeZone: 'Europe/Vienna', hour: '2-digit', hourCycle: 'h23' }));
+const tagPlus = (tag, n) => new Date(Date.parse(tag + 'T12:00Z') + n * TAG).toISOString().slice(0, 10);
+const montagVon = tag => tagPlus(tag, -((new Date(tag + 'T12:00Z').getUTCDay() + 6) % 7));
+const arenaWoche = () => montagVon(wienTag());  // Montag der Woche
 const monat = () => new Date().toISOString().slice(0, 7);
 const sha256 = s => createHash('sha256').update(s).digest('hex');
 const zufall = () => randomBytes(32).toString('base64url');
@@ -267,6 +285,7 @@ const passwortPruefen = pw => { if (pw.length < 10 || pw.length > 200) nein(400,
 // Was gilt gerade: bezahlter Tarif, sonst der 24-Stunden-Test (zählt als Ultra), sonst die Aktion Englisch, sonst Base
 function stufe(k) {
   const t = jetzt();
+  if (k.preis_bis > t && !(k.tarif && k.bis > t && TARIFE[k.tarif].rang >= TARIFE.ultra.rang)) return { tarif: 'ultra', bis: k.preis_bis, test: false };  // Arena-Preis
   if (k.tarif && k.bis > t) return { tarif: k.tarif, bis: k.bis, test: false };
   if (k.test_bis > t) return { tarif: 'ultra', bis: k.test_bis, test: true };
   if (k.englisch_bis > t) return { tarif: 'englisch', bis: k.englisch_bis, test: false };
@@ -289,7 +308,8 @@ const zaehlenSql = db.prepare('insert into nutzung (konto, was, tag, n, usd) val
 const zaehlen = (id, was, usd = 0, n = 1) => zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0);
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
 const SEITEN = { start: 'Start', titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
-  karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos' };
+  karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos',
+  'wp-glossar': 'Word Power: Glossar', 'wp-trainer': 'Word Power: Trainer', 'wp-zeit': 'Word Power: Time Log', 'wp-reflexion': 'Word Power: Reflection-Feedback' };
 const MELDBAR = new Set([...Object.keys(SEITEN).map(x => 'seite:' + x), ...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2).map(f => 'gesperrt:' + f), 'export']);
 const bezahlt = id => !!db.prepare("select 1 from bestellungen where konto = ? and status = 'bezahlt'").get(id);
 // Freundes-Rabatt der geworbenen Person: offen, bis eine Zahlung ihn wirklich abgezogen hat (zum Launch-Preis gibt es keinen, er bleibt für danach)
@@ -321,8 +341,8 @@ function rabattFuer(k, T) {
   if (LAUNCH.aktiv) return { rabatt: 0, gutschein: null };
   const betrag = Math.round((T.rabattAuf ?? T.preis) * T.rabatt / 100);
   if (erstrabatt(k)) return { rabatt: betrag, gutschein: null };
-  const g = db.prepare('select id from gutscheine where konto = ? and eingeloest is null order by id').get(k.id);
-  return g ? { rabatt: betrag, gutschein: g.id } : { rabatt: 0, gutschein: null };
+  const g = db.prepare('select id, prozent from gutscheine where konto = ? and eingeloest is null order by id').get(k.id);  // prozent: Arena-Preis
+  return g ? { rabatt: g.prozent ? Math.round((T.rabattAuf ?? T.preis) * g.prozent / 100) : betrag, gutschein: g.id } : { rabatt: 0, gutschein: null };
 }
 async function orSchluessel(pfad, method, body) {
   const r = await fetch(`${OR}/keys${pfad}`, { method, headers: { Authorization: 'Bearer ' + E.LH_OR_VERWALTUNG, 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
@@ -412,6 +432,7 @@ async function ki(req, res, k) {
   if (!(b.feature in FUNKTIONEN)) nein(400, 'Unbekannte Funktion.');
   const s = darf(k, b.feature);
   if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
+  if (b.feature === 'reflexion' && !wert('reflexion', 0) && !k.ecke) nein(403, 'Das Reflection-Feedback ist gerade nicht freigeschaltet.');  // Admin-Ecke: Schalter
   if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
   if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
@@ -545,18 +566,127 @@ function dashboard(konten) {  // Kennzahlen, Geld und Verlauf; KI-Kosten in $, m
       offen: summe('select count(*) n from gutscheine where eingeloest is null'), eingeloest: summe('select count(*) n from gutscheine where eingeloest is not null') },
   };
 }
+const NUTZUNG_EXTRA = { unterlagen: 'Unterlagen hochladen', 'arena-runde': 'Arena: Fokus-Runde gestartet', 'arena-speed': 'Arena: Speedrun' };
+const nutzungName = was => was.startsWith('seite:') ? ['Seite', SEITEN[was.slice(6)]] : was.startsWith('gesperrt:') ? ['Gesperrt angetippt', NAMEN[was.slice(9)]]
+  : NUTZUNG_EXTRA[was] ? ['Funktion', NUTZUNG_EXTRA[was]] : ['Funktion', NAMEN[was]];
 // Welche Funktionen genutzt werden: Konten in 7 und 30 Tagen, Anfragen bzw. Aufrufe und KI-Kosten in 30 Tagen; auch was nie genutzt wurde
 function nutzungListe() {
   const tag = n => new Date(jetzt() - n * TAG).toISOString().slice(0, 10);
   const z = new Map(db.prepare(`select was, count(distinct case when tag >= ? then konto end) k7, count(distinct konto) k30, sum(n) n30, sum(usd) usd30
     from nutzung where tag >= ? group by was`).all(tag(6), tag(29)).map(x => [x.was, x]));
-  const name = was => was.startsWith('seite:') ? ['Seite', SEITEN[was.slice(6)]] : was.startsWith('gesperrt:') ? ['Gesperrt angetippt', NAMEN[was.slice(9)]]
-    : was === 'unterlagen' ? ['Funktion', 'Unterlagen hochladen'] : ['Funktion', NAMEN[was]];
-  const alle = new Set([...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2), 'unterlagen', ...MELDBAR]);
+  const name = nutzungName;
+  const alle = new Set([...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2), ...Object.keys(NUTZUNG_EXTRA), ...MELDBAR]);
   return [...alle].map(was => { const [art, n] = name(was), x = z.get(was) || {}; return { was, art, name: n || was, k7: x.k7 || 0, k30: x.k30 || 0, n30: x.n30 || 0, usd30: x.usd30 || 0 }; })
     .filter(x => x.art !== 'Gesperrt angetippt' || x.k30)  // gesperrte Funktionen nur, wenn jemand sie angetippt hat
     .sort((a, b) => b.k30 - a.k30 || b.n30 - a.n30 || a.name.localeCompare(b.name));
 }
+/* ---------- Arena: XP nur für das, was der Server selbst sieht ---------- */
+// Anmeldung am Tag (mit Serie und Joker), Fokus-Minuten, die das Gerät mit Lebenszeichen belegt (wie bei Forest: weg aus der App zählt höchstens
+// 5 Minuten am Stück), Speedruns mit Fragen, Antworten und Zeit vom Server, und Challenges, die sich daraus ergeben. Tagesgrenzen verhindern Dauerfarmen.
+const ARENA = { login: 10, serieBonus: 10, meilensteine: { 7: 50, 30: 150, 100: 500 }, fokusTag: 240, speedTag: 3, puls: 75e3, weg: 5 * 60e3, verfall: 10 * 60e3,
+  laengen: [2, 10, 20, 25, 45] };
+const xpBuchen = (konto, art, xp, wert = 0, t = jetzt()) =>
+  db.prepare('insert into arena_xp (konto, tag, zeit, art, xp, wert) values (?, ?, ?, ?, ?, ?)').run(konto, wienTag(t), t, art, xp, wert);
+function arenaHeute(konto, tag = wienTag()) {
+  const z = Object.fromEntries(db.prepare('select art, sum(xp) xp, sum(wert) wert, count(*) n from arena_xp where konto = ? and tag = ? group by art').all(konto, tag).map(x => [x.art, x]));
+  return { min: z.fokus?.wert || 0, fokusXp: z.fokus?.xp || 0, runden: z.runde?.n || 0, speedruns: z.speed?.n || 0, vor10: !!z.vor10, perfekt: !!z.perfekt, rekord: !!z.rekord };
+}
+const CHALLENGES = {
+  runden2: ['Schaff heute 2 Fokus-Runden', h => h.runden >= 2], runden3: ['Schaff heute 3 Fokus-Runden', h => h.runden >= 3],
+  min45: ['Sammle heute 45 Fokus-Minuten', h => h.min >= 45], frueh: ['Beginn eine Runde vor 10 Uhr', h => h.vor10],
+  speed: ['Mach einen Begriffe-Speedrun', h => h.speedruns >= 1], perfekt: ['Schaff einen Speedrun ganz ohne Fehler', h => h.perfekt],
+  rekord: ['Schlag deine Speedrun-Bestzeit', h => h.rekord],
+};
+function challengesVon(tag) {  // drei am Tag, für alle dieselben, nie zwei Runden-Challenges zugleich
+  let h = [...tag].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const ids = Object.keys(CHALLENGES), wahl = [];
+  while (wahl.length < 3) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const id = ids[h % ids.length];
+    if (!wahl.includes(id) && !(id.startsWith('runden') && wahl.some(w => w.startsWith('runden')))) wahl.push(id);
+  }
+  return wahl;
+}
+function challengesPruefen(konto) {  // nach jedem Ereignis: erfüllte Challenges von heute einmal gutschreiben
+  const tag = wienTag(), h = arenaHeute(konto, tag), neu = [];
+  for (const id of challengesVon(tag)) {
+    if (!CHALLENGES[id][1](h) || db.prepare('select 1 from arena_xp where konto = ? and tag = ? and art = ?').get(konto, tag, 'challenge:' + id)) continue;
+    xpBuchen(konto, 'challenge:' + id, 25); neu.push(CHALLENGES[id][0]);
+  }
+  return neu;
+}
+const serieJetzt = (s, heute) => !s ? 0 : s.letzter >= tagPlus(heute, -1) || s.letzter === tagPlus(heute, -2) && s.joker > 0 ? s.serie : 0;  // gestern zählt noch, mit Joker auch vorgestern
+const rangliste = woche => db.prepare(`select a.konto, a.name, coalesce(sum(x.xp), 0) xp, coalesce(sum(case when x.art = 'fokus' then x.wert end), 0) min
+  from arena a left join arena_xp x on x.konto = a.konto and x.tag >= ? and x.tag < ? where a.aus = 0 group by a.konto order by xp desc, min desc, a.konto`).all(woche, tagPlus(woche, 7));
+const arenaPreise = () => ({ art: wert('arena-art', 1), werte: [wert('arena-p1', 7), wert('arena-p2', 3), wert('arena-p3', 1)], min: wert('arena-min', 100) });  // art 0 aus, 1 Ultra-Tage, 2 Rabatt %
+const preisText = (art, w) => art === 1 ? `${w} ${w === 1 ? 'Tag' : 'Tage'} Ultra` : `${w} % Rabatt auf einen Monat`;
+async function arenaAbrechnen() {  // ab Montag: die besten drei der Vorwoche bekommen ihren Preis, genau einmal
+  const vorige = tagPlus(arenaWoche(), -7), nr = Number(vorige.replaceAll('-', ''));
+  if (wert('arena-abgerechnet', 0) >= nr) return;
+  wertSetzen('arena-abgerechnet', nr);
+  const P = arenaPreise();
+  if (!P.art) return;
+  const top = rangliste(vorige).filter(x => x.xp >= P.min).slice(0, 3);
+  for (const [i, x] of top.entries()) {
+    const w = P.werte[i];
+    if (!(w > 0)) continue;
+    db.prepare('insert or ignore into arena_preise (woche, platz, konto, name, xp, art, wert) values (?, ?, ?, ?, ?, ?, ?)').run(vorige, i + 1, x.konto, x.name, x.xp, P.art, w);
+    if (P.art === 1) db.prepare('update konten set preis_bis = max(preis_bis, ?) + ? where id = ?').run(jetzt(), w * TAG, x.konto);
+    else db.prepare('insert into gutscheine (konto, von, erstellt, prozent) values (?, null, ?, ?)').run(x.konto, jetzt(), w);
+    const k = kontoMit(x.konto);
+    if (k) await mail(k.email, `Lernhelfer: Platz ${i + 1} in der Arena`, `Hallo ${x.name},\n\nletzte Woche warst du in der Arena auf Platz ${i + 1}, mit ${x.xp} XP. Glückwunsch!\n\nDein Preis: ${preisText(P.art, w)}. ${P.art === 1 ? 'Er gilt ab sofort.' : 'Er wird beim nächsten Bestellen automatisch abgezogen.'}\n${BASIS}/app#/arena` + gruss).catch(e => console.error(e.message));
+  }
+  if (ADMIN && top.length) await mail(ADMIN, `Arena: Gewinner der Woche ab ${vorige}`, top.map((x, i) => `${i + 1}. ${x.name} (${kontoMit(x.konto)?.email}), ${x.xp} XP`).join('\n')).catch(() => {});
+}
+setInterval(() => arenaAbrechnen().catch(e => console.error(e)), 3600e3).unref();
+function arenaStand(k) {  // alles, was die Arena in der App zeigt
+  k = kontoMit(k.id);
+  const t = jetzt(), heute = wienTag(t), woche = montagVon(heute);
+  const a = db.prepare('select name, aus from arena where konto = ?').get(k.id), s = db.prepare('select * from arena_serie where konto = ?').get(k.id);
+  const tage = {};
+  for (const r of db.prepare('select tag, art, sum(xp) xp, sum(wert) wert, count(*) n from arena_xp where konto = ? and tag >= ? group by tag, art').all(k.id, tagPlus(heute, -120))) {
+    const d = tage[r.tag] ??= { xp: 0, min: 0, runden: 0, speedruns: 0 };
+    d.xp += r.xp;
+    if (r.art === 'fokus') d.min = r.wert; else if (r.art === 'runde') d.runden = r.n; else if (r.art === 'speed') d.speedruns = r.n;
+    else if (['login', 'vor10', 'frueh', 'eule', 'perfekt', 'rekord'].includes(r.art)) d[r.art] = true;
+  }
+  const summe = db.prepare(`select coalesce(sum(xp), 0) xp, coalesce(sum(case when art = 'fokus' then wert end), 0) min, coalesce(sum(art = 'runde'), 0) runden,
+    coalesce(sum(art = 'speed'), 0) speedruns, coalesce(sum(art = 'perfekt'), 0) fehlerfrei from arena_xp where konto = ?`).get(k.id);
+  const erledigt = new Set(db.prepare("select art from arena_xp where konto = ? and tag = ? and art like 'challenge:%'").all(k.id, heute).map(x => x.art.slice(10)));
+  const lauf = db.prepare("select start, min, aktiv, letzter, daten from arena_lauf where konto = ? and art = 'runde'").get(k.id);
+  const liste = rangliste(woche), rang = liste.findIndex(x => x.konto === k.id) + 1;
+  const serien = new Map(db.prepare('select * from arena_serie').all().map(x => [x.konto, serieJetzt(x, heute)]));
+  const zeile = (x, i) => ({ platz: i + 1, name: x.name, xp: x.xp, min: x.min, serie: serien.get(x.konto) || 0, ich: x.konto === k.id });
+  const P = arenaPreise(), vorige = tagPlus(woche, -7);
+  return {
+    name: a?.name || '', mit: !!a && !a.aus, aus: !!a?.aus, xp: summe.xp, summe, tage, heute,
+    best: Object.fromEntries(db.prepare('select fach, ms from arena_best where konto = ?').all(k.id).map(x => [x.fach, x.ms])),
+    serie: { tage: serieJetzt(s, heute), bester: s?.bester || 0, joker: s?.joker || 0, heute: s?.letzter === heute },
+    challenges: challengesVon(heute).map(id => ({ id, text: CHALLENGES[id][0], ok: erledigt.has(id) })),
+    lauf: lauf && t - lauf.letzter < ARENA.verfall ? { start: lauf.start, min: lauf.min, aktiv: lauf.aktiv, halt: !!JSON.parse(lauf.daten).halt } : null,
+    liste: liste.slice(0, 20).map(zeile), ich: rang > 20 ? zeile(liste[rang - 1], rang - 1) : null, rang: rang || null, teilnehmer: liste.length,
+    live: db.prepare("select count(*) n from arena_lauf where art = 'runde' and letzter > ?").get(t - 2 * 60e3).n,
+    preise: P.art ? { art: P.art, texte: P.werte.map(w => w > 0 ? preisText(P.art, w) : null), min: P.min } : null,
+    letzte: db.prepare('select platz, name, xp, art, wert from arena_preise where woche = ? order by platz').all(vorige).map(x => ({ platz: x.platz, name: x.name, xp: x.xp, preis: preisText(x.art, x.wert) })),
+    meinPreis: db.prepare('select platz, art, wert from arena_preise where konto = ? and woche = ?').all(k.id, vorige).map(x => ({ platz: x.platz, preis: preisText(x.art, x.wert) }))[0] || null,
+    preisBis: k.preis_bis > t ? k.preis_bis : null,
+  };
+}
+// Begriffe für den Speedrun aus der neuesten Ausgabe je Fach, wie in der App
+function lernBegriffe(konto, fach) {
+  const neueste = new Map();
+  for (const { pfad } of db.prepare("select pfad from dateien where konto = ? and pfad like 'lernseiten/%'").all(konto)) {
+    const [, f, d] = pfad.split('/');
+    if ((!fach || f === fach) && /^\d{4}-\d\d-\d\d\.md$/.test(d || '') && !(neueste.get(f) > d)) neueste.set(f, d);
+  }
+  return [...neueste].flatMap(([f, d]) => {
+    const text = Buffer.from(db.prepare('select inhalt from dateien where konto = ? and pfad = ?').get(konto, `lernseiten/${f}/${d}`).inhalt).toString('utf8');
+    try { return JSON.parse(text.match(/```json\s*([\s\S]*?)```\s*$/)[1]).begriffe.filter(b => b?.begriff && b.definition).map(b => ({ begriff: String(b.begriff), definition: String(b.definition) })); }
+    catch { return []; }
+  });
+}
+const mischen = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+
 // ZIP ohne Pakete (deflate, UTF-8-Namen) für „Alle meine Daten herunterladen“
 function zip(dateien) {
   const d = new Date(), zeit = d.getHours() << 11 | d.getMinutes() << 5 | d.getSeconds() >> 1, datum = d.getFullYear() - 1980 << 9 | d.getMonth() + 1 << 5 | d.getDate();
@@ -590,7 +720,9 @@ function exportieren(req, res, k) {
       .map(b => ({ ...b, betrag_euro: b.betrag / 100, rabatt_euro: b.rabatt / 100, betrag: undefined, rabatt: undefined, erstellt: iso(b.erstellt), gemeldet: iso(b.gemeldet), bezahlt: iso(b.bezahlt) })),
     nutzung: db.prepare('select tag, was, n from nutzung where konto = ? order by tag, was').all(k.id),
     fehlerberichte: db.prepare('select zeit, seite, meldung, text, geraet from fehler where konto = ? order by id').all(k.id).map(f => ({ ...f, zeit: iso(f.zeit) })),
-    arena: db.prepare('select name, woche, xp, min, serie from arena where konto = ?').get(k.id) ?? null,
+    arena: { teilnahme: db.prepare('select name, aus from arena where konto = ?').get(k.id) ?? null, serie: db.prepare('select serie, bester, letzter, joker from arena_serie where konto = ?').get(k.id) ?? null,
+      xp: db.prepare('select tag, zeit, art, xp, wert from arena_xp where konto = ? order by id').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
+      bestzeiten: db.prepare('select fach, ms from arena_best where konto = ?').all(k.id), preise: db.prepare('select woche, platz, xp, art, wert from arena_preise where konto = ?').all(k.id) },
   };
   const dateien = db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id);
   const liesmich = `Deine Daten aus dem Lernhelfer, Stand ${new Date().toLocaleString('de-AT')}.\n\nkonto.json: Konto, Tarif, Bestellungen, KI-Kosten pro Monat, welche Bereiche du an welchem Tag genutzt hast, deine Fehlerberichte, dein Arena-Eintrag.\n`
@@ -617,7 +749,7 @@ function bestellMail(k, T, monate, betrag, zweck) {
 
 /* ---------- Routen ---------- */
 const ROUTEN = {
-  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
+  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
     modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '' },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
@@ -700,22 +832,93 @@ const ROUTEN = {
     if (ADMIN) await mail(ADMIN, `Zahlung gemeldet: ${b.zweck} · ${eur(b.betrag)}`, `${k.email} meldet ${eur(b.betrag)} für ${TARIFE[b.tarif].name}, ${b.monate} Monat(e).\nVerwendungszweck: ${b.zweck}\n\nNach Zahlungseingang freischalten: ${BASIS}/app#/admin`);
     return ich(k);
   },
-  // Arena: Bestenliste der Woche (nur wer mitmacht, mit Spitzname) und wie viele gerade eine Fokus-Runde laufen haben
-  'GET /api/arena': ({ k }) => {
+  // Arena: Stand, Bestenliste der Woche (nur wer mitmacht, mit Spitzname), Preise; beim ersten Aufruf ab Montag wird die Vorwoche abgerechnet
+  'GET /api/arena': ({ k }) => { muss(k); arenaAbrechnen().catch(e => console.error(e)); return arenaStand(k); },
+  'POST /api/arena': ({ k, b }) => {  // mitmachen mit Spitzname oder aufhören; wer gesperrt ist, kommt nicht wieder rein
     muss(k);
-    return { liste: db.prepare('select konto, name, xp, min, serie from arena where woche = ? order by xp desc, min desc limit 20').all(arenaWoche())
-      .map(({ konto, ...x }) => ({ ...x, ich: konto === k.id })), live: db.prepare('select count(*) n from arena where laeuft > ?').get(jetzt()).n };
-  },
-  'POST /api/arena': ({ k, b }) => {  // ponytail: die Zahlen kommen vom Gerät und werden nur gedeckelt; Schummeln trifft nur die Bestenliste
-    muss(k);
-    if (b.aus) { db.prepare('delete from arena where konto = ?').run(k.id); return; }
+    if (db.prepare('select aus from arena where konto = ?').get(k.id)?.aus) nein(403, 'Du kannst in der Arena gerade nicht mitmachen.');
+    if (b.aus) { db.prepare('delete from arena where konto = ?').run(k.id); return arenaStand(k); }
     const name = String(b.name || '').normalize('NFKC').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
     if (name.length < 2) nein(400, 'Bitte einen Spitznamen mit mindestens 2 Zeichen.');
     if (db.prepare('select 1 from arena where name = ? collate nocase and konto != ?').get(name, k.id)) nein(409, 'Diesen Spitznamen hat schon jemand.');
-    const zahl = (x, max) => Math.max(0, Math.min(max, Math.round(Number(x) || 0)));
-    db.prepare(`insert into arena (konto, name, woche, xp, min, serie, laeuft) values (?, ?, ?, ?, ?, ?, ?) on conflict (konto) do update set
-      name = excluded.name, woche = excluded.woche, xp = excluded.xp, min = excluded.min, serie = excluded.serie, laeuft = excluded.laeuft`)
-      .run(k.id, name, arenaWoche(), zahl(b.xp, 20000), zahl(b.min, 7 * 24 * 60), zahl(b.serie, 3650), Math.min(zahl(b.laeuft, 9e15), jetzt() + 90 * 60e3));
+    db.prepare('insert into arena (konto, name, woche, xp, min, serie, laeuft) values (?, ?, ?, 0, 0, 0, 0) on conflict (konto) do update set name = excluded.name').run(k.id, name, arenaWoche());
+    return arenaStand(k);
+  },
+  'POST /api/arena/tag': ({ k }) => {  // einmal am Tag beim Öffnen: XP fürs Dranbleiben, Serie, alle 7 Tage ein Joker (höchstens 2), der einen verpassten Tag auffängt
+    muss(k);
+    const heute = wienTag(), s = db.prepare('select * from arena_serie where konto = ?').get(k.id);
+    if (s?.letzter === heute) return { ...arenaStand(k), neu: null };
+    const luecke = s ? Math.round((Date.parse(heute) - Date.parse(s.letzter)) / TAG) : 99;
+    let serie = 1, joker = s?.joker || 0, gerettet = false;
+    if (luecke === 1) serie = s.serie + 1;
+    else if (luecke === 2 && joker > 0) { serie = s.serie + 1; joker--; gerettet = true; }
+    if (serie % 7 === 0) joker = Math.min(2, joker + 1);
+    db.prepare(`insert into arena_serie (konto, serie, bester, letzter, joker) values (?, ?, ?, ?, ?) on conflict (konto) do update set
+      serie = excluded.serie, bester = max(bester, excluded.bester), letzter = excluded.letzter, joker = excluded.joker`).run(k.id, serie, serie, heute, joker);
+    const xp = ARENA.login + Math.min(serie - 1, ARENA.serieBonus), extra = ARENA.meilensteine[serie] || 0;
+    xpBuchen(k.id, 'login', xp, serie);
+    if (extra) xpBuchen(k.id, 'meilenstein', extra, serie);
+    return { ...arenaStand(k), neu: { xp, extra, serie, gerettet, joker } };
+  },
+  'POST /api/arena/runde': ({ k, b }) => {  // start: Minuten; puls: Lebenszeichen alle 30 s; halt: anhalten bzw. weiter; ende: abrechnen
+    muss(k);
+    const t = jetzt(), lauf = db.prepare("select * from arena_lauf where konto = ? and art = 'runde'").get(k.id);
+    if (b.start != null) {
+      const min = Number(b.start);
+      if (!ARENA.laengen.includes(min)) nein(400, 'Diese Länge gibt es nicht.');
+      if (lauf && t - lauf.letzter < ARENA.verfall) nein(409, 'Es läuft schon eine Runde, auch auf einem anderen Gerät.');
+      db.prepare(`insert into arena_lauf (konto, art, start, min, aktiv, letzter, daten) values (?, 'runde', ?, ?, 0, ?, '{}') on conflict (konto, art) do update set
+        start = excluded.start, min = excluded.min, aktiv = 0, letzter = excluded.letzter, daten = '{}'`).run(k.id, t, min, t);
+      zaehlen(k.id, 'arena-runde');
+      return arenaStand(k);
+    }
+    if (!lauf || t - lauf.letzter >= ARENA.verfall) { db.prepare("delete from arena_lauf where konto = ? and art = 'runde'").run(k.id); nein(410, 'Die Runde ist verfallen: Die App war länger als 10 Minuten zu.'); }
+    const d = JSON.parse(lauf.daten), dt = t - lauf.letzter;
+    if (!d.halt) lauf.aktiv += dt <= ARENA.puls ? dt : Math.min(dt, ARENA.weg);  // kurz weg, etwa in einer anderen App nachschauen: höchstens 5 Minuten
+    if (b.halt != null) d.halt = !!b.halt;
+    if (!b.ende) {
+      db.prepare("update arena_lauf set aktiv = ?, letzter = ?, daten = ? where konto = ? and art = 'runde'").run(Math.min(lauf.aktiv, lauf.min * 60e3), t, JSON.stringify(d), k.id);
+      return { aktiv: Math.min(lauf.aktiv, lauf.min * 60e3) };
+    }
+    db.prepare("delete from arena_lauf where konto = ? and art = 'runde'").run(k.id);
+    const soll = lauf.min * 60e3, gezaehlt = Math.min(lauf.aktiv, soll), min = Math.floor(gezaehlt / 60e3 + 0.05);  // ein paar Sekunden Netz zählen nicht gegen dich
+    const xp = Math.max(0, Math.min(min, ARENA.fokusTag - arenaHeute(k.id).fokusXp)), runde = lauf.min >= 10 && gezaehlt >= 0.9 * soll;
+    if (min > 0) xpBuchen(k.id, 'fokus', xp, min);
+    if (runde) {
+      xpBuchen(k.id, 'runde', 0, lauf.min, lauf.start);
+      const std = wienStunde(lauf.start);
+      for (const [art, ja] of [['vor10', std < 10], ['frueh', std < 8], ['eule', std >= 22]]) if (ja) xpBuchen(k.id, art, 0, 0, lauf.start);
+    }
+    const neu = challengesPruefen(k.id);
+    return { ...arenaStand(k), ergebnis: { min, xp, runde, soll: lauf.min, gedeckelt: xp < min, neu } };
+  },
+  'POST /api/arena/speed': ({ k, b }) => {  // start: Fach (leer = alle); antwort: frage und wahl; die richtige Antwort und die Zeit kennt nur der Server
+    muss(k);
+    const t = jetzt(), lauf = db.prepare("select * from arena_lauf where konto = ? and art = 'speed'").get(k.id);
+    if (b.start != null) {
+      const fach = String(b.start || '').slice(0, 80), pool = [...new Map(lernBegriffe(k.id, fach).map(x => [x.begriff.toLowerCase(), x])).values()];
+      if (pool.length < 4) nein(400, 'Für einen Speedrun braucht es mindestens 4 Begriffe aus deinen Ausgaben.');
+      const fragen = mischen(pool).slice(0, 10).map(r => { const o = mischen([r, ...mischen(pool.filter(x => x !== r)).slice(0, 3)]); return { definition: r.definition, optionen: o.map(x => x.begriff), richtig: o.indexOf(r) }; });
+      db.prepare(`insert into arena_lauf (konto, art, start, letzter, daten) values (?, 'speed', ?, ?, ?) on conflict (konto, art) do update set start = excluded.start, letzter = excluded.letzter, daten = excluded.daten`)
+        .run(k.id, t, t, JSON.stringify({ fach: fach || 'alle', fragen, i: 0, strafe: 0, fehler: 0 }));
+      return { fragen: fragen.map(({ definition, optionen }) => ({ definition, optionen })) };
+    }
+    if (!lauf) nein(404, 'Kein Speedrun offen.');
+    if (b.abbruch) { db.prepare("delete from arena_lauf where konto = ? and art = 'speed'").run(k.id); return; }
+    const d = JSON.parse(lauf.daten), speichern = () => db.prepare("update arena_lauf set daten = ?, letzter = ? where konto = ? and art = 'speed'").run(JSON.stringify(d), t, k.id);
+    if (Number(b.frage) !== d.i) nein(409, 'Diese Frage ist schon beantwortet.');
+    if (Number(b.wahl) !== d.fragen[d.i].richtig) { d.strafe += 5000; d.fehler++; speichern(); return { richtig: false, fehler: d.fehler }; }
+    if (++d.i < d.fragen.length) { speichern(); return { richtig: true }; }
+    db.prepare("delete from arena_lauf where konto = ? and art = 'speed'").run(k.id);
+    const ms = t - lauf.start + d.strafe, voll = d.fragen.length >= 10, alt = db.prepare('select ms from arena_best where konto = ? and fach = ?').get(k.id, d.fach)?.ms ?? null;
+    const rekord = voll && (alt == null || ms < alt), zaehlt = arenaHeute(k.id).speedruns < ARENA.speedTag;
+    if (rekord) db.prepare('insert into arena_best (konto, fach, ms) values (?, ?, ?) on conflict (konto, fach) do update set ms = excluded.ms').run(k.id, d.fach, ms);
+    const xp = zaehlt ? 15 + (d.fehler ? 0 : 10) + (rekord && alt != null ? 10 : 0) : 0;
+    xpBuchen(k.id, 'speed', xp, ms);
+    if (!d.fehler) xpBuchen(k.id, 'perfekt', 0);
+    if (rekord && alt != null) xpBuchen(k.id, 'rekord', 0);
+    zaehlen(k.id, 'arena-speed');
+    return { ...arenaStand(k), ergebnis: { ms, fehler: d.fehler, rekord, alt, voll, xp, gedeckelt: !zaehlt, neu: challengesPruefen(k.id) } };
   },
   'POST /api/nutzung': ({ k, b }) => { muss(k); if (MELDBAR.has(b.was)) zaehlen(k.id, b.was); },  // Seite geöffnet, gesperrte Funktion angetippt, PDF
   'POST /api/fehler': async ({ req, k, b }) => {  // „Fehler melden“, auch ohne Konto (etwa beim Registrieren); 5 je 15 Minuten
@@ -774,16 +977,24 @@ const ROUTEN = {
     await Promise.all(konten.map(async x => { x.api = x.or_hash && E.LH_OR_VERWALTUNG ? await orNutzung(x.or_hash) : null; delete x.or_hash; }));
     return {
       ...dashboard(konten), konten, funktionen: nutzungListe(), schluessel: schluesselStand(), neuEnglisch: wert('neu-englisch', 0), launchEin: !!wert('launch', 1),
+      reflexion: !!wert('reflexion', 0),
+      arena: { preise: arenaPreise(), woche: arenaWoche(),
+        teilnehmer: db.prepare(`select a.konto, a.name, a.aus, k.email, coalesce((select sum(xp) from arena_xp x where x.konto = a.konto and x.tag >= ?), 0) woche,
+          coalesce((select sum(xp) from arena_xp x where x.konto = a.konto), 0) gesamt, coalesce((select serie from arena_serie s where s.konto = a.konto), 0) serie
+          from arena a join konten k on k.id = a.konto order by a.aus, woche desc`).all(arenaWoche()),
+        gewinner: db.prepare('select woche, platz, name, xp, art, wert from arena_preise order by woche desc, platz limit 30').all().map(x => ({ ...x, preis: preisText(x.art, x.wert) })) },
       fehler: db.prepare('select id, zeit, kontakt, seite, meldung, text, geraet from fehler where erledigt = 0 order by id desc limit 50').all(),
       bestellungen: db.prepare("select id, email, tarif, monate, betrag, rabatt, zweck, status, erstellt, gemeldet, bezahlt from bestellungen where status in ('offen', 'gemeldet') or bezahlt > ? order by id desc").all(jetzt() - 60 * TAG),
     };
   },
   'POST /api/admin/werte': ({ k, b }) => {  // Fixkosten pro Monat in €, was 1 $ KI in € kostet, wie viele Tage neue Konten Englisch bekommen (0 = aus)
     admin(k);
-    for (const name of ['fixkosten', 'kurs', 'neu-englisch']) {
+    const ganz = ['neu-englisch', 'reflexion', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
+    for (const name of ['fixkosten', 'kurs', ...ganz]) {
       if (b[name] == null || b[name] === '') continue;
       const x = Number(String(b[name]).replace(',', '.'));
-      if (!(x >= 0 && x < 1e5) || name === 'neu-englisch' && !Number.isInteger(x)) nein(400, name === 'neu-englisch' ? 'Bitte ganze Tage eingeben, 0 schaltet es aus.' : 'Bitte eine Zahl eingeben, etwa 4,90.');
+      if (!(x >= 0 && x < 1e5) || ganz.includes(name) && !Number.isInteger(x) || name === 'reflexion' && x > 1 || name === 'arena-art' && x > 2
+        || /^arena-p/.test(name) && b['arena-art'] == 2 && x > 100) nein(400, ganz.includes(name) ? 'Bitte ganze Zahlen eingeben (Rabatt höchstens 100 %).' : 'Bitte eine Zahl eingeben, etwa 4,90.');
       wertSetzen(name, x);
     }
   },
@@ -821,6 +1032,30 @@ const ROUTEN = {
   'POST /api/admin/bezahlt': ({ k, b }) => { admin(k); return freischalten(Number(b.id)); },
   'POST /api/admin/fehler': ({ k, b }) => { admin(k); db.prepare('update fehler set erledigt = ? where id = ?').run(jetzt(), Number(b.id)); },
   'POST /api/admin/storno': ({ k, b }) => { admin(k); db.prepare("update bestellungen set status = 'storniert' where id = ? and status in ('offen', 'gemeldet')").run(Number(b.id)); },
+  'POST /api/admin/arena': ({ k, b }) => {  // aus der Bestenliste nehmen (darf wieder mitmachen), sperren bzw. entsperren, XP dieser Woche löschen
+    admin(k);
+    const z = Number(b.konto);
+    if (b.sperren != null) db.prepare('update arena set aus = ? where konto = ?').run(b.sperren ? 1 : 0, z);
+    if (b.entfernen) db.prepare('delete from arena where konto = ? and aus = 0').run(z);
+    if (b.xp) db.prepare('delete from arena_xp where konto = ? and tag >= ?').run(z, arenaWoche());
+  },
+  'POST /api/admin/konto': ({ k, b }) => {  // was ein Konto genutzt hat: je Bereich wie oft (30 Tage und gesamt), KI-Kosten, zuletzt; dazu die letzten Tage einzeln
+    admin(k);
+    const z = kontoMit(Number(b.konto));
+    if (!z) nein(404, 'Das Konto gibt es nicht mehr.');
+    const grenze = new Date(jetzt() - 29 * TAG).toISOString().slice(0, 10), zeilen = db.prepare('select was, tag, n, usd from nutzung where konto = ? order by tag desc').all(z.id);
+    const je = new Map();
+    for (const x of zeilen) {
+      const e = je.get(x.was) ?? je.set(x.was, { was: x.was, art: nutzungName(x.was)[0], name: nutzungName(x.was)[1] || x.was, n30: 0, n: 0, usd: 0, zuletzt: x.tag }).get(x.was);
+      e.n += x.n; e.usd += x.usd; if (x.tag >= grenze) e.n30 += x.n;
+    }
+    const tage = new Map();
+    for (const x of zeilen.filter(x => x.tag >= grenze)) (tage.get(x.tag) ?? tage.set(x.tag, []).get(x.tag)).push({ name: nutzungName(x.was)[1] || x.was, n: x.n });
+    const a = db.prepare('select name, aus from arena where konto = ?').get(z.id), s = db.prepare('select * from arena_serie where konto = ?').get(z.id);
+    return { email: z.email, erstellt: z.erstellt, zuletzt: z.zuletzt, nutzung: [...je.values()].sort((x, y) => y.n30 - x.n30 || y.n - x.n),
+      tage: [...tage].map(([tag, liste]) => ({ tag, liste })),
+      arena: { name: a?.name || null, aus: !!a?.aus, xp: db.prepare('select coalesce(sum(xp), 0) n from arena_xp where konto = ?').get(z.id).n, serie: serieJetzt(s, wienTag()), bester: s?.bester || 0 } };
+  },
   'POST /api/admin/konto-loeschen': async ({ k, b }) => {
     admin(k);
     const z = kontoMit(Number(b.konto));

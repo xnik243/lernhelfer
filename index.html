@@ -80,10 +80,22 @@
   main:focus { outline: none; }
   .tabs { position: fixed; inset: auto 0 0; z-index: 20; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); border-top: 1px solid var(--linie);
     background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px); }
-  .tabs a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: var(--tabs); padding: 6px 2px 4px; color: var(--text-3); font: 600 0.6875rem/1.1 var(--sans); text-decoration: none; -webkit-user-select: none; user-select: none; }
-  .tabs a[aria-current] { color: var(--akzent-text); }
+  .tabs :is(a, button) { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: var(--tabs); padding: 6px 2px 4px; color: var(--text-3); font: 600 0.6875rem/1.1 var(--sans); text-decoration: none; -webkit-user-select: none; user-select: none; }
+  .tabs button { border: 0; border-radius: 0; background: none; cursor: pointer; }
+  .tabs a.ueber { display: none; }
+  .tabs :is(a[aria-current], button[data-hier], button[aria-expanded="true"]) { color: var(--akzent-text); }
   .tabs svg.ic { width: 24px; height: 24px; }
-  .tabs a:active svg { transform: scale(0.92); }
+  .tabs :is(a, button):active svg { transform: scale(0.92); }
+  /* Handy: „Mehr“ zeigt die ganze Seitenleiste als Blatt über der Seite, die Tabs bleiben darunter */
+  @media (max-width: 899.98px) {
+    .leiste-offen { overflow: hidden; }
+    .leiste-offen .seitenleiste { display: block; position: fixed; inset: 0 0 calc(var(--tabs) + env(safe-area-inset-bottom)); z-index: 19; overflow-y: auto; overscroll-behavior: contain; background: var(--bg);
+      transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+    @starting-style { .leiste-offen .seitenleiste { opacity: 0; transform: translateY(16px); } }
+    .leiste-offen .leiste-innen { padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+    .leiste-offen .navi a, .leiste-offen .mehr-funktionen summary { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .leiste-offen .seitenleiste { transition: opacity 200ms ease; } }
   @media (min-width: 900px) {
     .tabs { display: none; }
     .app { display: grid; grid-template-columns: 252px minmax(0, 1fr); }
@@ -531,6 +543,23 @@
   .vortrag { max-width: 980px; }
   [data-art="grammatik"] { --k: var(--fehler); } [data-art="wortwahl"] { --k: var(--f-mathe); } [data-art="logik"] { --k: var(--f-bwl); }
   [data-art="irrefuehrend"] { --k: var(--f-vwl); } [data-art="leer"] { --k: var(--text-3); } [data-art="struktur"] { --k: var(--text-2); } [data-art="fuellwort"] { --k: var(--f-englisch); }
+  .vt-einbau { display: grid; gap: 4px; margin-top: 8px; padding: 10px 12px; border-radius: var(--r); background: var(--bg-2); }
+  .vt-wp mark { padding: 0 2px; border-radius: 3px; background: var(--gelb-hauch); color: inherit; }
+  /* Word Power: Teile, Glossar, Trainer, Time Log */
+  .wp-teile { margin-bottom: 18px; }
+  .wp-extra { display: grid; gap: 18px; }
+  .wp-liste { display: grid; gap: 8px; }
+  .wp-felder { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; }
+  .wp-felder.schmal { grid-template-columns: 7rem minmax(0, 1fr); }
+  .wp-eintrag { padding: 0 14px; border: 1px solid var(--linie); border-radius: var(--r); }
+  .wp-eintrag summary { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; padding: 12px 0; cursor: pointer; }
+  .wp-eintrag[open] { padding-bottom: 14px; }
+  .wp-eintrag[open] summary { margin-bottom: 4px; border-bottom: 1px solid var(--linie); }
+  .wp-satz { font: 400 1.125rem/1.6 var(--serif); }
+  .wp-gap { padding: 0 6px; border-bottom: 2px solid var(--akzent); font-weight: 650; }
+  .wp-log { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .wp-log li { display: grid; grid-template-columns: 6.5em 1fr auto auto; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--linie); }
+  .wp-log .knopf { min-height: 32px; padding: 2px 10px; }
   .vt-wahl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 12px; }
   .vt-wahl input:focus-visible + label, .kopf-aktionen input:focus-visible + label { outline: 2px solid var(--akzent); outline-offset: 2px; }
   .vt-kopf { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px 24px; }
@@ -639,6 +668,34 @@
   .arena-rang { display: grid; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
   .arena-rang li { display: grid; grid-template-columns: 2.2em 1fr auto auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--r-l); background: var(--bg-2); }
   .arena-rang li.ich { outline: 2px solid var(--akzent); }
+  .arena-rang li[data-platz="1"] { --medaille: #c9971c; } .arena-rang li[data-platz="2"] { --medaille: #8e99a8; } .arena-rang li[data-platz="3"] { --medaille: #b06a32; }
+  .arena-rang li[data-platz] { background: color-mix(in srgb, var(--medaille) 13%, var(--bg-2)); }
+  .arena-rang li[data-platz] .platz { color: var(--medaille); }
+  .arena-rang li.luecke { display: block; padding: 0; background: none; color: var(--text-3); text-align: center; }
+  @media (min-width: 700px) { .meldung:has(.innen.breit) { width: min(860px, calc(100% - 32px)); } }
+  .nutzung-tage { display: grid; gap: 6px; padding-left: 1.1em; font-size: 0.875rem; }
+  .arena-preise { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 12px; font: 600 0.8125rem/1.3 var(--sans); }
+  .arena-preise span[data-platz] { padding: 3px 10px; border-radius: 999px; background: var(--bg-2); }
+  .arena-preise span[data-platz="1"] { background: color-mix(in srgb, #c9971c 16%, var(--bg-2)); }
+  /* Serie auf „Heute“: ruhig, eine Zeile; nur beim ersten Öffnen am Tag springt die Flamme kurz und das Plus zählt hoch */
+  .serie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; width: fit-content; margin-top: 10px; color: var(--text-2); font: 550 0.875rem/1.3 var(--sans); text-decoration: none; }
+  .serie:hover { text-decoration: none; }
+  .serie-zahl { display: inline-flex; align-items: center; gap: 6px; }
+  .serie-zahl b { color: var(--text); font: 750 1.125rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .serie-flamme { display: inline-flex; color: var(--text-3); }
+  .serie-flamme svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; transition: color 200ms ease; }
+  .serie[data-an] .serie-flamme { color: var(--warn); }
+  .serie[data-an] .serie-flamme svg { fill: color-mix(in srgb, var(--warn) 22%, transparent); }
+  .serie-tage { display: inline-flex; gap: 5px; }
+  .serie-tage span { width: 9px; height: 9px; border: 1.5px solid var(--linie-2); border-radius: 50%; }
+  .serie-tage span[data-an] { border-color: var(--warn); background: var(--warn); }
+  .serie-tage span[data-heute] { outline: 1.5px solid var(--linie-2); outline-offset: 2px; }
+  .serie-xp b { font-variant-numeric: tabular-nums; }
+  .serie[data-neu] .serie-flamme svg { animation: serie-flamme 640ms cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: 50% 90%; }
+  .serie[data-neu] .serie-xp { animation: serie-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both; }
+  @keyframes serie-flamme { 45% { transform: scale(1.22) rotate(-5deg); } }
+  @keyframes serie-pop { from { opacity: 0; transform: translateY(4px) scale(0.92); } }
+  @media (prefers-reduced-motion: reduce) { .serie[data-neu] :is(.serie-flamme svg, .serie-xp) { animation: none; } }
   .arena-abzeichen { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
   .arena-abzeichen li { display: grid; gap: 2px; padding: 10px 12px; border: 1px dashed var(--linie-2); border-radius: var(--r-l); opacity: 0.55; }
   .arena-abzeichen li.hat { border: 1px solid var(--akzent); background: var(--akzent-flaeche); opacity: 1; }
@@ -1085,7 +1142,7 @@ aussehen();
 <body>
 <a class="sprung" href="#inhalt" onclick="event.preventDefault(); document.getElementById('inhalt').focus();">Zum Inhalt springen</a>
 <div class="app">
-  <aside class="seitenleiste"><div class="leiste-innen">
+  <aside class="seitenleiste" id="seitenleiste"><div class="leiste-innen">
     <a class="marke" href="#/" translate="no"><span class="zeichen" aria-hidden="true">L</span>Lernhelfer</a>
     <p class="heute-klein" id="datumszeile"></p>
     <nav class="navi" aria-label="Hauptnavigation">
@@ -1104,11 +1161,11 @@ aussehen();
         <a href="#/wordpower" data-ansicht="wordpower" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-8L7 20v-3.5H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg><span translate="no">Word Power</span></a>
         <a href="#/vortrag" data-ansicht="vortrag" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5M8.5 20.5h7"/></svg>Vortrag</a>
         <a href="#/video" data-ansicht="video" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M10.5 9.5v5l4-2.5z"/></svg>Videos</a>
-        <a href="#/unterlagen" data-ansicht="unterlagen" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 16.5v-6M9.5 13l2.5-2.5 2.5 2.5"/></svg>Unterlagen</a>
         <a href="#/upgrade" data-ansicht="upgrade" class="nur-server mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>Tarife</a>
       </div>
       <details class="mehr-funktionen" id="nav-mehr" hidden><summary><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg><span id="nav-mehr-titel">Pro und Ultra</span></summary><div class="navi" id="nav-mehr-liste"></div></details>
       <hr>
+      <a href="#/unterlagen" data-ansicht="unterlagen" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 16.5v-6M9.5 13l2.5-2.5 2.5 2.5"/></svg>Unterlagen</a>
       <a href="#/anleitung" data-ansicht="anleitung"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.5 5 8.3 4.5 4 4.5v14c4.3 0 6.5.5 8 2 1.5-1.5 3.7-2 8-2v-14c-4.3 0-6.5.5-8 2zM12 6.5v14"/></svg>Anleitung</a>
       <a href="#/einstellungen" data-ansicht="einstellungen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Einrichten</a>
       <a href="https://guns.lol/nik243" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 14v-2a7.5 7.5 0 0 1 15 0v2"/><rect x="3.5" y="13" width="4" height="6" rx="1.5"/><rect x="16.5" y="13" width="4" height="6" rx="1.5"/><path d="M18.5 19c0 1.6-1.6 2.5-4 2.5H13"/></svg>Support</a>
@@ -1125,6 +1182,7 @@ aussehen();
         <div>
           <h1 id="heute-titel">Heute</h1>
           <p class="unterzeile" id="heute-zeile"></p>
+          <div id="h-serie"></div>
         </div>
         <div class="kopf-aktionen">
           <p class="meta">Erstellt mit <a href="#/einstellungen" id="modell-name"></a></p>
@@ -1186,6 +1244,8 @@ aussehen();
         </div>
         <div class="kopf-aktionen"><button class="knopf" type="button" id="wp-sprache">English</button></div>
       </header>
+      <nav class="abschnitte wp-teile" id="wp-teile" aria-label="Teile von Word Power"></nav>
+      <div id="wp-extra" class="wp-extra" hidden></div>
       <form id="wp-sperre" class="sperre nur-eigen">
         <label><span data-en="Password">Passwort</span> <input id="wp-pin" name="passwort" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Passwort" data-en-ph="Password" required></label>
         <div><button class="knopf voll" data-en="Open">Öffnen</button></div>
@@ -1443,6 +1503,8 @@ aussehen();
         </ol>
         <p>Ältere Ausgaben bleiben unter „Frühere Ausgaben“ erhalten. Welches Modell schreibt, stellst du unter <span class="nur-eigen">Einrichten</span><span class="nur-server">Konto</span> ein.<span class="nur-server"> In Base schreibt immer DeepSeek V4.1, ab Pro wählst du selbst.</span></p>
         <p class="nur-server">Für Word Power gibt es in jedem Tarif die Vorlage: Du gibst deine Word Partnerships ein und bekommst das Journal mit allen Feldern zum Ausfüllen und der Progress-Tabelle, als Datei für Word. Ab Pro schreibt Gemini dazu jeden YouTube-Talk mit Zeitstempeln mit.</p>
+        <p>In Word Power gibt es außerdem das <b>Glossar</b> mit allen Word Partnerships des Semesters (Ziel laut Syllabus: 120) samt Satz aus dem Talk, den <b>Trainer</b> mit Karteikarten und Lückentexten aus deinen eigenen Einträgen und das <b>Time Log</b> mit Stoppuhr. Explanation, Synonym und Co. schreibst du selbst. In der <b>Vortragsanalyse</b> kannst du deine Word Partnerships eintragen: Sie zeigt, welche du im Probevideo eingebaut hast, und für die fehlenden die Stelle, an der sie am besten gepasst hätten.</p>
+        <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
         <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
 
@@ -1593,10 +1655,11 @@ aussehen();
   <a href="#/" data-ansicht="titelblatt" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>Heute</a>
   <a href="#/kalender" data-ansicht="kalender" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</a>
   <a href="#/wordpower" data-ansicht="wordpower" class="mit-daten" id="tab-wordpower"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-8L7 20v-3.5H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg><span translate="no">Word Power</span></a>
+  <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg><span>Arena</span></a>
   <a href="#/onlinetests" data-ansicht="onlinetests" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9.5 3.5h5M9 12.5l2 2 4-4"/></svg>Tests</a>
   <a href="#/vortrag" data-ansicht="vortrag" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5M8.5 20.5h7"/></svg>Vortrag</a>
-  <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg><span>Arena</span></a>
   <a href="#/einstellungen" data-ansicht="einstellungen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Einrichten</a>
+  <button type="button" class="tabs-mehr" id="tab-mehr" aria-expanded="false" aria-controls="seitenleiste"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></svg>Mehr</button>
 </nav>
 <dialog class="meldung" id="meldung" aria-labelledby="m-titel"></dialog>
 <script>
@@ -3303,7 +3366,12 @@ function wordpower() {
   $('wp-tsperre').replaceChildren(...hoeren ? [] : [sperrkarte('wp-transkript', true)]);
   $('wp-schritt2').hidden = !text; $('wp-vorlage').hidden = text;
   $('wp-zeile').textContent = text ? ue('Vom YouTube-Talk zum Hausaufgaben-Entwurf', 'From YouTube talk to homework draft') : hoeren ? ue('Talks mitschreiben, Vorlage mit deinen Wörtern', 'Transcribe talks, template with your words') : ue('Die Word-Power-Vorlage mit deinen Wörtern', 'The Word Power template with your words');
-  $('wp-sperre').hidden = !!WP; $('wp-werk').hidden = !SERVER && !WP;
+  const teile = wpTeile();
+  if (!teile.some(([k]) => k === WPT.teil)) WPT.teil = 'journal';
+  $('wp-teile').replaceChildren(...teile.map(([k, name]) => el('button', { type: 'button', 'aria-current': WPT.teil === k ? 'true' : null, onclick: () => wpTeil(k) }, name)));
+  const journal = WPT.teil === 'journal';
+  $('wp-sperre').hidden = !!WP || !journal; $('wp-werk').hidden = !journal || !SERVER && !WP; $('wp-extra').hidden = journal;
+  if (!journal && WPT.gezeigt !== WPT.teil) wpExtra();
   $('wp-dl').disabled = !$('wp-out').value.trim();
   wpVorlage();
   eaZeigen();
@@ -3513,6 +3581,275 @@ $('wp-hwgo').onclick = async () => {
 wpZeigen();
 if (wpVideo()) wpNachschlagen();
 
+/* ---------- Word Power: Glossar, Trainer, Time Log, Reflection-Feedback ---------- */
+// Alles hier arbeitet nur mit dem, was du selbst einträgst: Die App schreibt keine Erklärungen, Synonyme oder Reflections für dich.
+// Glossar: alle Word Partnerships des Semesters (Kursziel laut Syllabus: 120) mit dem Satz aus dem Talk und deinen eigenen Feldern.
+// Trainer: Karteikarten und Lückentexte aus genau diesen Einträgen, mit Wiederholplan. Time Log: Stoppuhr und Liste, wie im Kurs verlangt.
+// Reflection-Feedback (Schalter in der Admin-Ecke): Rückmeldung zur fertigen Reflection, ohne Sätze umzuschreiben.
+const WPJ_D = datei('wordpower.json', () => ({ eintraege: [], log: [], refl: [] }));
+let WPJ = null;
+const WPT = { teil: merk('wp-teil') || 'journal', gezeigt: null, runde: null, uhr: liesJson('wp-uhr'), ergebnis: null, laeuft: null };
+const reflexionDa = () => !SERVER || !!TARIFE?.reflexion || !!ICH?.ecke;
+const wpTeile = () => [['journal', 'Journal'], ['glossar', ue('Glossar', 'Glossary')], ['trainer', 'Trainer'], ['zeit', 'Time Log'], reflexionDa() && ['reflexion', 'Reflection']].filter(Boolean);
+function wpTeil(k) {
+  WPT.teil = k; WPT.gezeigt = null; merk('wp-teil', k);
+  if (SERVER && ICH && k !== 'journal') api('nutzung', { was: 'seite:wp-' + k }).catch(() => {});
+  wordpower();
+}
+const wpSichern = () => WPJ_D.speichern().catch(e => status(e.message, true));
+async function wpExtra() {
+  const box = $('wp-extra');
+  WPT.gezeigt = WPT.teil;
+  if (!WPJ) {
+    box.replaceChildren(el('p', { class: 'meta' }, ue('Lädt …', 'Loading …')));
+    try { WPJ = await WPJ_D.laden(); } catch (e) { WPT.gezeigt = null; return box.replaceChildren(el('p', { class: 'fehlertext' }, e.message)); }
+    for (const k of ['eintraege', 'log', 'refl']) WPJ[k] ??= [];
+  }
+  box.replaceChildren(...({ glossar: wpGlossar, trainer: wpTrainer, zeit: wpZeit, reflexion: wpReflexion }[WPT.teil] || (() => []))());
+}
+const wpNeu = () => { WPT.gezeigt = null; if (document.body.dataset.ansicht === 'wordpower') wordpower(); };
+// Der Satz aus dem Talk: aus dem Transkript, wenn der Ausdruck darin steht (ohne „to“ vorn, Groß- und Kleinschreibung egal)
+function satzFinden(text, ausdruck) {
+  const such = ausdruck.replace(/^to\s+/i, '').trim().toLowerCase();
+  if (!such || !text) return '';
+  const saetze = text.replace(/\[[^\]]*\]|\b\d{1,2}:\d\d(:\d\d)?\b/g, ' ').replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/);
+  return (saetze.find(s => s.toLowerCase().includes(such)) || '').trim().slice(0, 400);
+}
+const markiert = (satz, ausdruck) => {  // den Ausdruck im Satz fett zeigen
+  const such = ausdruck.replace(/^to\s+/i, '').trim(), i = such ? satz.toLowerCase().indexOf(such.toLowerCase()) : -1;
+  return i < 0 ? [satz] : [satz.slice(0, i), el('b', {}, satz.slice(i, i + such.length)), satz.slice(i + such.length)];
+};
+function wpGlossar() {
+  const E = WPJ.eintraege, n = E.length, wochen = [...new Set(E.map(e => e.woche))].sort((a, b) => b - a);
+  const naechste = (wochen[0] || 0) + 1;
+  const f = el('form', { class: 'schritt wp-neu', onsubmit: e => {
+    e.preventDefault();
+    const x = e.target.elements, woche = Math.max(1, Math.round(+x.woche.value || naechste)), talk = x.talk.value.trim();
+    const neu = x.woerter.value.split('\n').map(s => s.trim()).filter(Boolean).filter(a => !E.some(e => e.woche === woche && e.ausdruck.toLowerCase() === a.toLowerCase()));
+    if (!neu.length) return status(ue('Schreib mindestens eine neue Word Partnership hinein, eine pro Zeile.', 'Enter at least one new word partnership, one per line.'), true);
+    const transkript = $('wp-out').value;
+    for (const a of neu) E.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), woche, talk, ausdruck: a.slice(0, 120), satz: satzFinden(transkript, a),
+      erklaerung: '', synonym: '', antonym: '', assoziation: '', probe: false, kurs: false, box: 0, faellig: HEUTE });
+    wpSichern(); status(ue(`${neu.length} im Glossar.`, `${neu.length} added to the glossary.`)); wpNeu();
+  } },
+    el('h2', {}, ue('Neue Woche ins Glossar', 'Add a week to the glossary')),
+    el('div', { class: 'wp-felder schmal' }, el('label', { class: 'feld' }, ue('Woche', 'Week'), el('input', { name: 'woche', type: 'number', min: 1, max: 30, value: naechste })),
+      el('label', { class: 'feld' }, 'Talk', el('input', { name: 'talk', type: 'text', value: wpTitel, autocomplete: 'off', placeholder: 'Speaker, Title' }))),
+    el('label', { class: 'feld' }, ue('Word Partnerships, eine pro Zeile', 'Word partnerships, one per line'),
+      el('textarea', { name: 'woerter', rows: 5, spellcheck: 'false', autocapitalize: 'off', placeholder: 'devolve into an argument\nraise awareness\n…' }, E.some(e => e.woche === naechste - 1) ? '' : $('wp-woerter').value)),
+    el('p', { class: 'meta' }, ue('Den Satz aus dem Talk holt der Lernhelfer aus deinem Transkript, wenn du eins hast. Explanation, Synonym, Antonym und Association schreibst du selbst: Genau dabei lernst du die Wörter.',
+      'The Lernhelfer takes the sentence from your transcript if you have one. You write the explanation, synonym, antonym and association yourself: that is exactly how you learn the words.')),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, ue('Ins Glossar übernehmen', 'Add to glossary'))));
+  const feld = (e, k, name) => el('label', { class: 'feld' }, name, el('input', { type: 'text', value: e[k], autocomplete: 'off', spellcheck: 'true', lang: 'en', onchange: ev => { e[k] = ev.target.value.trim(); wpSichern(); } }));
+  const karte = e => {
+    const voll = ['erklaerung', 'synonym', 'antonym', 'assoziation'].filter(k => e[k]).length;
+    return el('details', { class: 'wp-eintrag' }, el('summary', {}, el('b', {}, e.ausdruck),
+      el('span', { class: 'meta' }, `${voll}/4`, e.probe && ue(' · im Probevideo', ' · in rehearsal'), e.kurs && ue(' · im Kurs', ' · in class'))),
+      el('label', { class: 'feld' }, ue('Satz aus dem Talk', 'Sentence from the talk'), el('textarea', { rows: 2, lang: 'en', onchange: ev => { e.satz = ev.target.value.trim(); wpSichern(); } }, e.satz)),
+      el('div', { class: 'wp-felder' }, feld(e, 'erklaerung', 'Explanation'), feld(e, 'synonym', 'Synonym'), feld(e, 'antonym', 'Antonym'), feld(e, 'assoziation', 'Association')),
+      el('div', { class: 'knopfreihe' },
+        el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: e.probe, onchange: ev => { e.probe = ev.target.checked; wpSichern(); } }), ue('im Probevideo benutzt', 'used in rehearsal video')),
+        el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: e.kurs, onchange: ev => { e.kurs = ev.target.checked; wpSichern(); } }), ue('im Kurs benutzt', 'used in class')),
+        el('button', { class: 'knopf', type: 'button', onclick: () => { if (!confirm(ue(`„${e.ausdruck}“ löschen?`, `Delete "${e.ausdruck}"?`))) return; E.splice(E.indexOf(e), 1); wpSichern(); wpNeu(); } }, ue('Löschen', 'Delete'))));
+  };
+  return [
+    el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, ue('Dein Glossar', 'Your glossary')), el('p', { class: 'meta' }, ue(`${n} von 120 Word Partnerships`, `${n} of 120 word partnerships`))),
+      el('div', { class: 'arena-balken', role: 'progressbar', 'aria-label': ue('Fortschritt zum Kursziel 120', 'Progress towards the course goal of 120'), 'aria-valuemin': 0, 'aria-valuemax': 120, 'aria-valuenow': n },
+        el('span', { style: `width:${Math.min(100, n / 1.2)}%` })),
+      el('p', { class: 'meta' }, ue('Laut Syllabus sollst du im Semester 120 Ausdrücke aktivieren und ein Glossar anlegen. Hier hast du es an einem Ort, mit dem Satz aus dem Talk.',
+        'According to the syllabus you activate 120 phrases this semester and create a glossary. Here it is in one place, with the sentence from the talk.'))),
+    f,
+    ...wochen.map(w => el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, `Week ${w}`), el('p', { class: 'meta' }, E.find(e => e.woche === w && e.talk)?.talk || '')),
+      el('div', { class: 'wp-liste' }, E.filter(e => e.woche === w).map(karte)))),
+    n > 0 && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: wpGlossarDatei }, ue('Glossar herunterladen (.html, öffnet in Word)', 'Download glossary (.html, opens in Word)'))),
+  ].filter(Boolean);
+}
+function wpGlossarDatei() {
+  const E = WPJ.eintraege, wochen = [...new Set(E.map(e => e.woche))].sort((a, b) => a - b), x = s => escHtml(s || '');
+  const html = wochen.map(w => `<h2>Week ${w}${E.find(e => e.woche === w && e.talk) ? ': ' + x(E.find(e => e.woche === w && e.talk).talk) : ''}</h2><table><tr><th>Word partnership</th><th>Sentence</th><th>Explanation</th><th>Synonym</th><th>Antonym</th><th>Association</th></tr>`
+    + E.filter(e => e.woche === w).map(e => `<tr><td><b>${x(e.ausdruck)}</b></td><td>${x(e.satz)}</td><td>${x(e.erklaerung)}</td><td>${x(e.synonym)}</td><td>${x(e.antonym)}</td><td>${x(e.assoziation)}</td></tr>`).join('') + '</table>').join('');
+  speichern(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Word Power Glossary</title><style>${WP_DOC_CSS}</style></head><body><h1>Word Power Glossary</h1><p>${E.length} word partnerships</p>${html}</body></html>`,
+    'word-power-glossar.html', 'text/html;charset=utf-8');
+}
+// Trainer: was fällig ist, nach 1, 2, 4, 8 und 16 Tagen wieder; was nicht sitzt, gleich nochmal
+const WP_ABSTAND = [1, 2, 4, 8, 16];
+function wpTrainer() {
+  const E = WPJ.eintraege, faellig = E.filter(e => (e.faellig || HEUTE) <= HEUTE), luecke = E.filter(e => e.satz && satzLuecke(e));
+  const R = WPT.runde;
+  if (!E.length) return [el('p', { class: 'leer' }, ue('Erst Word Partnerships ins Glossar übernehmen, dann geht es hier los.', 'Add word partnerships to the glossary first, then training starts here.'))];
+  const starten = (modus, alle) => {
+    const pool = modus === 'luecke' ? (alle ? luecke : luecke.filter(e => faellig.includes(e))) : alle ? E : faellig;
+    if (!pool.length) return status(ue('Dafür ist gerade nichts da.', 'Nothing to practise for this right now.'), true);
+    WPT.runde = { modus, liste: mischen(pool).slice(0, 20), i: 0, gewusst: 0, falsch: [], um: false, antwort: null };
+    wpNeu();
+  };
+  if (!R || R.i >= R.liste.length) return [
+    R && el('p', { class: 'arena-lob' }, ue(`${R.gewusst} von ${R.liste.length} gewusst.`, `${R.gewusst} of ${R.liste.length} correct.`), R.falsch.length ? ue(` Noch nicht sicher: ${R.falsch.map(e => e.ausdruck).join(', ')}.`, ` Not yet sure: ${R.falsch.map(e => e.ausdruck).join(', ')}.`) : ''),
+    el('div', { class: 'kacheln' }, kachel(ue('Heute dran', 'Due today'), faellig.length, ue('nach Wiederholplan', 'by review schedule')), kachel(ue('Im Glossar', 'In glossary'), E.length, ue('Word Partnerships', 'word partnerships')),
+      kachel(ue('Sitzt', 'Learnt'), E.filter(e => e.box >= 3).length, ue('auch nach einer Woche noch gewusst', 'still known after a week'))),
+    el('section', { class: 'block' }, el('h2', {}, ue('Karteikarten', 'Flashcards')), el('p', { class: 'klein' }, ue('Vorne der Ausdruck, hinten deine eigene Erklärung, Synonym, Antonym und der Satz aus dem Talk.', 'Front: the phrase. Back: your own explanation, synonym, antonym and the sentence from the talk.')),
+      el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', disabled: !faellig.length, onclick: () => starten('karte') }, ue(`${faellig.length} fällige üben`, `Practise ${faellig.length} due`)),
+        el('button', { class: 'knopf', type: 'button', onclick: () => starten('karte', true) }, ue('Alle mischen', 'Shuffle all')))),
+    el('section', { class: 'block' }, el('h2', {}, ue('Lückentext', 'Fill the gap')), el('p', { class: 'klein' }, ue('Der Satz aus dem Talk mit einer Lücke. Du tippst den Ausdruck ein, als Hilfe steht deine Erklärung dabei.', 'The sentence from the talk with a gap. You type the phrase; your explanation is there as a hint.')),
+      luecke.length ? el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: () => starten('luecke', true) }, ue(`${luecke.length} Sätze üben`, `Practise ${luecke.length} sentences`)))
+        : el('p', { class: 'meta' }, ue('Dafür braucht ein Eintrag den Satz aus dem Talk, in dem der Ausdruck vorkommt.', 'For this an entry needs the sentence from the talk that contains the phrase.'))),
+  ].filter(Boolean);
+  const e = R.liste[R.i], weiter = gewusst => {
+    if (gewusst) { R.gewusst++; e.box = Math.min(5, (e.box || 0) + 1); e.faellig = plusTage(WP_ABSTAND[e.box - 1]); }
+    else { R.falsch.push(e); e.box = 0; e.faellig = HEUTE; }
+    R.i++; R.um = false; R.antwort = null; wpSichern(); wpNeu();
+  };
+  const kopf = el('p', { class: 'fortschritt meta' }, `${R.i + 1} / ${R.liste.length}`);
+  if (R.modus === 'karte') {
+    const karte = el('button', { class: `karte${R.um ? ' um' : ''}`, type: 'button', 'aria-label': ue(`Karte ${e.ausdruck}. Tippen zum Umdrehen.`, `Card ${e.ausdruck}. Tap to flip.`),
+      onclick: ev => { R.um = ev.currentTarget.classList.toggle('um'); ev.currentTarget.querySelector('.seite-h').setAttribute('aria-hidden', String(!R.um)); } },
+      el('span', { class: 'innen' },
+        el('span', { class: 'seite-v' }, el('span', { class: 'pille' }, `Week ${e.woche}`), el('span', { class: 'begriff', lang: 'en' }, e.ausdruck), el('span', { class: 'hinweis' }, ue('Tippen zum Umdrehen', 'Tap to flip'))),
+        el('span', { class: 'seite-h', 'aria-hidden': String(!R.um) },
+          el('span', { class: 'definition', lang: 'en' }, e.erklaerung || ue('Noch keine Erklärung: trag sie im Glossar ein.', 'No explanation yet: add it in the glossary.')),
+          (e.synonym || e.antonym) && el('span', { class: 'hinweis', lang: 'en' }, [e.synonym && `≈ ${e.synonym}`, e.antonym && `≠ ${e.antonym}`].filter(Boolean).join(' · ')),
+          e.satz && el('span', { class: 'hinweis', lang: 'en' }, '„', markiert(e.satz, e.ausdruck), '“'))));
+    return [el('div', { class: 'lexikon-karte' }, kopf, karte, el('div', { class: 'karten-aktionen' },
+      el('button', { class: 'knopf', type: 'button', onclick: () => weiter(false) }, ue('Nochmal', 'Again')), el('button', { class: 'knopf voll', type: 'button', onclick: () => weiter(true) }, ue('Gewusst', 'Knew it')))),
+      el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => { WPT.runde = null; wpNeu(); } }, ue('Beenden', 'Stop')))];
+  }
+  const [vor, nach] = satzLuecke(e), eingabe = el('input', { type: 'text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', lang: 'en', 'aria-label': ue('Fehlender Ausdruck', 'Missing phrase'), value: R.antwort ?? '' });
+  const pruefen = ev => { ev.preventDefault(); if (R.antwort != null) return; R.antwort = eingabe.value; wpNeu(); };
+  const richtig = R.antwort != null && gleich(R.antwort, satzTreffer(e));
+  return [el('form', { class: 'schritt wp-luecke', onsubmit: pruefen }, kopf,
+    el('p', { class: 'wp-satz', lang: 'en' }, vor, el('span', { class: 'wp-gap' }, R.antwort == null ? '_____' : satzTreffer(e)), nach),
+    e.erklaerung && el('p', { class: 'meta' }, ue('Deine Erklärung: ', 'Your explanation: '), el('span', { lang: 'en' }, e.erklaerung), ` · ${satzTreffer(e)[0]}…`),
+    R.antwort == null ? el('div', { class: 'zeile' }, eingabe, el('button', { class: 'knopf voll' }, ue('Prüfen', 'Check')))
+      : [el('p', { class: richtig ? 'arena-lob' : 'fehlertext' }, richtig ? ue('Richtig!', 'Correct!') : ue(`Gesucht war „${satzTreffer(e)}“, du hattest „${R.antwort}“.`, `The answer was "${satzTreffer(e)}", you wrote "${R.antwort}".`)),
+        el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => weiter(richtig) }, ue('Weiter', 'Next')),
+          !richtig && el('button', { class: 'knopf', type: 'button', onclick: () => weiter(true) }, ue('Hatte ich doch richtig', 'I was right after all')))]),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => { WPT.runde = null; wpNeu(); } }, ue('Beenden', 'Stop')))];
+}
+const satzTreffer = e => { const such = e.ausdruck.replace(/^to\s+/i, '').trim(), i = e.satz.toLowerCase().indexOf(such.toLowerCase()); return i < 0 ? '' : e.satz.slice(i, i + such.length); };
+const satzLuecke = e => { const w = satzTreffer(e); if (!w) return null; const i = e.satz.indexOf(w); return [e.satz.slice(0, i), e.satz.slice(i + w.length)]; };
+const gleich = (a, b) => { const n = s => String(s).toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim(); return n(a) === n(b); };
+// Time Log: Stoppuhr (läuft auf dem Gerät weiter, auch nach dem Neuladen) und Einträge von Hand; Summen je Woche und fürs Semester
+const wpArten = () => [['wordpower', 'Word Power', 50], ['reflexion', 'Reflection', 40], ['assignment', 'Assignment', 40], ['vorbereitung', ue('Vor- und Nachbereitung', 'Preparation and follow-up'), 40], ['sonst', ue('Sonstiges', 'Other'), 0]];
+const wpArt = k => wpArten().find(a => a[0] === k)?.[1] || k;
+const stunden = min => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')} h`;
+let WP_UHR_TICK = null;
+function wpZeit() {
+  const L = WPJ.log, U = WPT.uhr;
+  clearInterval(WP_UHR_TICK);
+  const anzeige = el('b', { class: 'arena-gross' }, U ? minuten(Date.now() - U.start) : '0:00');
+  if (U) WP_UHR_TICK = setInterval(() => { if (document.body.dataset.ansicht !== 'wordpower' || WPT.teil !== 'zeit') return clearInterval(WP_UHR_TICK); anzeige.textContent = minuten(Date.now() - U.start); }, 1000);
+  const eintragen = (datum, min, art, notiz) => { L.push({ id: Date.now().toString(36), datum, min, art, notiz: notiz.slice(0, 200) }); L.sort((a, b) => b.datum.localeCompare(a.datum)); wpSichern(); };
+  const arten = wert => el('select', { name: 'art' }, wpArten().map(([k, n]) => el('option', { value: k, selected: k === wert }, n)));
+  const uhrForm = el('form', { class: 'schritt', onsubmit: e => {
+    e.preventDefault();
+    if (U) {
+      const min = Math.round((Date.now() - U.start) / 60e3);
+      if (min > 0) eintragen(iso(new Date(U.start)), min, U.art, U.notiz);
+      WPT.uhr = null; merk('wp-uhr', null); status(min > 0 ? ue(`${min} Minuten eingetragen.`, `${min} minutes logged.`) : ue('Weniger als eine Minute, nichts eingetragen.', 'Less than a minute, nothing logged.'));
+    } else { WPT.uhr = { start: Date.now(), art: e.target.elements.art.value, notiz: e.target.elements.notiz.value.trim() }; merk('wp-uhr', JSON.stringify(WPT.uhr)); }
+    wpNeu();
+  } },
+    el('h2', {}, ue('Stoppuhr', 'Stopwatch')),
+    U ? el('p', {}, anzeige, el('span', { class: 'meta' }, ` · ${wpArt(U.art)}${U.notiz ? ' · ' + U.notiz : ''}`))
+      : el('div', { class: 'wp-felder' }, el('label', { class: 'feld' }, ue('Woran', 'Activity'), arten('wordpower')), el('label', { class: 'feld' }, ue('Notiz ', 'Note '), el('input', { name: 'notiz', type: 'text', autocomplete: 'off', placeholder: ue('z. B. TED-Talk ausgesucht', 'e.g. chose a TED talk') }))),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, U ? ue('Stoppen und eintragen', 'Stop and log') : ue('Starten', 'Start')),
+      U && el('button', { class: 'knopf', type: 'button', onclick: () => { WPT.uhr = null; merk('wp-uhr', null); wpNeu(); } }, ue('Verwerfen', 'Discard'))));
+  const hand = el('form', { class: 'schritt', onsubmit: e => {
+    e.preventDefault();
+    const x = e.target.elements, min = Math.round(+x.min.value);
+    if (!(min > 0 && min <= 24 * 60) || !x.datum.value) return status(ue('Bitte Datum und Minuten angeben.', 'Please enter date and minutes.'), true);
+    eintragen(x.datum.value, min, x.art.value, x.notiz.value.trim()); wpNeu();
+  } },
+    el('h2', {}, ue('Von Hand eintragen', 'Add manually')),
+    el('div', { class: 'zeile2' }, el('label', { class: 'feld' }, ue('Datum', 'Date'), el('input', { name: 'datum', type: 'date', value: HEUTE, max: HEUTE })),
+      el('label', { class: 'feld' }, ue('Minuten', 'Minutes'), el('input', { name: 'min', type: 'number', min: 1, max: 1440, step: 1, inputmode: 'numeric' }))),
+    el('div', { class: 'wp-felder' }, el('label', { class: 'feld' }, ue('Woran', 'Activity'), arten('wordpower')), el('label', { class: 'feld' }, ue('Notiz ', 'Note '), el('input', { name: 'notiz', type: 'text', autocomplete: 'off' }))),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf' }, ue('Eintragen', 'Add'))));
+  const summe = arten => L.filter(x => arten.includes(x.art)).reduce((s, x) => s + x.min, 0);
+  const wochen = [...new Set(L.map(x => iso(new Date(new Date(x.datum + 'T12:00').getTime() - ((new Date(x.datum + 'T12:00').getDay() + 6) % 7) * 864e5))))].sort().reverse();
+  const text = () => L.slice().sort((a, b) => a.datum.localeCompare(b.datum)).map(x => `${x.datum};${x.min};${wpArt(x.art)};${(x.notiz || '').replace(/;/g, ',')}`).join('\n');
+  return [
+    el('div', { class: 'kacheln' },
+      kachel('Word Power', stunden(summe(['wordpower'])), ue('von 50 h laut Syllabus', 'of 50 h in the syllabus')),
+      kachel(ue('Journal und Assignments', 'Journal and assignments'), stunden(summe(['reflexion', 'assignment', 'vorbereitung'])), ue('von 40 h laut Syllabus', 'of 40 h in the syllabus')),
+      kachel(ue('Insgesamt', 'Total'), stunden(summe(wpArten().map(a => a[0]))), ue(`${L.length} Einträge`, `${L.length} entries`))),
+    uhrForm, hand,
+    ...wochen.map(m => {
+      const liste = L.filter(x => x.datum >= m && x.datum < plusTageVon(m, 7));
+      return el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, ue('Woche ab ', 'Week from ') + new Date(m + 'T12:00').toLocaleDateString(EN ? 'en-GB' : 'de-AT', { day: 'numeric', month: 'short' })),
+        el('p', { class: 'meta' }, stunden(liste.reduce((s, x) => s + x.min, 0)))),
+        el('ul', { class: 'wp-log' }, liste.map(x => el('li', {}, el('span', {}, new Date(x.datum + 'T12:00').toLocaleDateString(EN ? 'en-GB' : 'de-AT', { weekday: 'short', day: 'numeric', month: 'numeric' })),
+          el('span', {}, wpArt(x.art), x.notiz && el('span', { class: 'meta' }, ' · ' + x.notiz)), el('b', {}, `${x.min} min`),
+          el('button', { class: 'knopf', type: 'button', 'aria-label': ue('Eintrag löschen', 'Delete entry'), onclick: () => { L.splice(L.indexOf(x), 1); wpSichern(); wpNeu(); } }, '×')))));
+    }),
+    L.length > 0 && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => speichern('\ufeffDatum;Minuten;Tätigkeit;Notiz\n' + text(), 'time-log.csv', 'text/csv;charset=utf-8') }, ue('Als Tabelle herunterladen (.csv)', 'Download as table (.csv)')),
+      el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, text().replace(/;/g, ' · ')) }, ue('Kopieren', 'Copy'))),
+  ].filter(Boolean);
+}
+const plusTageVon = (tag, n) => { const d = new Date(tag + 'T12:00'); d.setDate(d.getDate() + n); return iso(d); };
+// Reflection-Feedback: die Richtlinien der Lehrenden als Maßstab; die KI zeigt nur, was fehlt oder falsch ist, und fragt nach
+const WP_REFL_AUFTRAG = () => `Du gibst Studierenden Rückmeldung zu einer selbst geschriebenen Reflection für den Kurs „Communication in Business“ (Universität Innsbruck, Wirtschaftsenglisch, erwartetes Schreibniveau B2). Die Richtlinien der Lehrenden verlangen:
+- mindestens eine Seite pro Woche (Schrift 11 oder 12, einfacher Zeilenabstand, grob 450 bis 600 Wörter);
+- keine Zusammenfassung des Inhalts, sondern eigene Gedanken, Gefühle und Standpunkte: was spannend, auffällig oder langweilig war, die eigene Meinung begründet;
+- Bezug auf das, was in und um die Stunde passiert: Inhalte, Aufgaben, Fortschritt, eigenes Verhalten, Zusammenarbeit, Gefühle, Learnings und Key Takeaways;
+- Überlegungen zum künftigen Verhalten: nicht nur, was man ändern will, sondern auch wie;
+- vor allem Kreativität, Originalität, Authentizität und Ehrlichkeit; sorgfältig Korrektur gelesen.
+Hilfreiche Leitfragen der Lehrenden: Key Takeaway in einem Satz; Nutzen für die Karriere und was das Interesse geweckt hat; wann man selbst oder andere am besten waren; Schwierigkeiten und die nächsten Schritte; Zusammenhänge mit dem Studium und dem größeren Kontext.
+
+Wichtig, ohne Ausnahme: Du schreibst nichts für die Person. Keine umformulierten oder verbesserten Sätze, keine Beispielsätze, keine Inhalte oder Ideen zum Übernehmen. Du zeigst nur, wo etwas fehlt oder nicht stimmt, und stellst offene Fragen, mit denen sie selbst weiterdenkt. Bei Sprachfehlern nennst du die Stelle, die Art des Fehlers und die Regel in einem Satz, nie die korrigierte Fassung.
+Antworte ausschließlich mit einem JSON-Objekt:
+{"woerter": Zahl, "laenge": "passt" oder "knapp" oder "zu kurz", "laenge_kommentar": "ein Satz",
+ "reflektiert": {"urteil": "ja" oder "teilweise" oder "nein", "kommentar": "zwei bis drei Sätze, mit einer Stelle als Beleg"},
+ "punkte": [{"punkt": "Key Takeaway", "urteil": "da" oder "teilweise" oder "fehlt", "kommentar": "ein bis zwei Sätze"}],
+ "naechste_schritte": {"urteil": "konkret" oder "vage" oder "fehlen", "kommentar": "ein bis zwei Sätze"},
+ "fragen": ["drei offene Fragen an die Person, die zum tieferen Reflektieren anregen, ohne Antworten vorzugeben"],
+ "sprache": [{"zitat": "wörtlich, nur die betroffene Stelle", "art": "Grammatik, Wortwahl, Rechtschreibung, Zeichensetzung oder Stil", "hinweis": "die Regel in einem Satz, ohne Korrektur"}],
+ "staerken": ["konkrete Stärke mit kurzem Beleg"]}
+punkte: genau diese fünf in dieser Reihenfolge: Key Takeaway, Bezug zu Studium und Beruf, Beste Momente, Schwierigkeiten und nächste Schritte, Zusammenhänge und größerer Kontext. Nicht jede Reflection muss alle Leitfragen beantworten; „fehlt“ ist ein Hinweis, kein Fehler.
+sprache: höchstens 15 Stellen, die wichtigsten zuerst. Ehrlich in beide Richtungen: Was gut ist, sagst du genauso klar.
+Alle Kommentare, Hinweise und Fragen ${EN ? 'auf Englisch (britisches Englisch, einfach und klar)' : 'auf Deutsch'}, Zitate wörtlich aus dem Text.`;
+const woerterVon = s => (s.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
+function wpReflexion() {
+  const text = el('textarea', { rows: 14, lang: 'en', spellcheck: 'true', placeholder: ue('Deine fertige Reflection hier einfügen …', 'Paste your finished reflection here …'), oninput: e => { merk('wp-refl', e.target.value); zahl.textContent = zaehlung(e.target.value); } }, merk('wp-refl') || '');
+  const zaehlung = s => { const n = woerterVon(s); return ue(`${n} Wörter`, `${n} words`) + (n ? ue(n >= 450 ? ' · etwa eine Seite oder mehr' : ' · weniger als eine Seite', n >= 450 ? ' · about one page or more' : ' · less than one page') : ''); };
+  const zahl = el('span', { class: 'meta' }, zaehlung(text.value)), a = WPT.ergebnis, L = WPT.laeuft;
+  const pille = (wert, gut, mittel) => el('span', { class: `pille ${wert === gut ? 'ok' : wert === mittel ? 'warn' : 'fehler'}` }, wert);
+  const holen = async () => {
+    if (woerterVon(text.value) < 40) return status(ue('Erst die Reflection einfügen, mindestens ein paar Sätze.', 'Paste the reflection first, at least a few sentences.'), true);
+    WPT.laeuft = { hinweis: ue('Liest deine Reflection …', 'Reading your reflection …'), start: Date.now() }; WPT.fehler = ''; wpNeu();
+    const uhr = setInterval(() => presseZeigen('wp-refl', WPT.laeuft), 1000);
+    await wach(true);
+    try {
+      const { text: antwort } = await strom({ model: WP_MODELL, reasoning: { effort: 'medium' }, feature: 'reflexion', response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: WP_REFL_AUFTRAG() }, { role: 'user', content: text.value }] }, () => { WPT.laeuft.hinweis = ue('Schreibt die Rückmeldung …', 'Writing the feedback …'); }, () => { WPT.laeuft.hinweis = ue('Denkt nach …', 'Thinking …'); });
+      const j = JSON.parse(antwort.slice(antwort.indexOf('{'), antwort.lastIndexOf('}') + 1)), liste = x => Array.isArray(x) ? x.filter(Boolean) : [];
+      WPT.ergebnis = { ...j, woerter: woerterVon(text.value), punkte: liste(j.punkte), fragen: liste(j.fragen), sprache: liste(j.sprache).filter(s => s.zitat), staerken: liste(j.staerken) };
+      WPJ.refl.unshift({ datum: HEUTE, woerter: WPT.ergebnis.woerter, ergebnis: WPT.ergebnis }); WPJ.refl.length = Math.min(WPJ.refl.length, 10); wpSichern();
+    } catch (e) { WPT.fehler = wpWarum(e); }
+    clearInterval(uhr); wach(false); kosten(); WPT.laeuft = null; wpNeu();
+  };
+  if (!a && WPJ.refl[0]) WPT.ergebnis = WPJ.refl[0].ergebnis;
+  const r = WPT.ergebnis;
+  return [
+    el('section', { class: 'schritt' }, el('h2', {}, ue('Deine Reflection', 'Your reflection')),
+      el('p', { class: 'klein' }, ue('Du schreibst, die KI liest gegen: Länge, ob du reflektierst statt zusammenzufassen, die Leitfragen deiner Lehrenden und Sprachfehler. Sie schreibt keinen Satz um und gibt keine Inhalte vor; verbessern musst du selbst.',
+        'You write, the AI reads it through: length, whether you reflect rather than summarise, your lecturer\'s guiding questions and language mistakes. It does not rewrite any sentence or suggest content; you improve it yourself.')),
+      text, zahl,
+      L ? presse('wp-refl', L) : el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: holen }, ue('Rückmeldung holen', 'Get feedback'))),
+      WPT.fehler && el('p', { class: 'fehlertext' }, WPT.fehler)),
+    r && el('section', { class: 'block wp-feedback' }, el('div', { class: 'block-kopf' }, el('h2', {}, ue('Rückmeldung', 'Feedback')), el('p', { class: 'meta' }, ue(`${r.woerter} Wörter`, `${r.woerter} words`))),
+      el('ul', { class: 'vt-abgleich' },
+        el('li', {}, el('div', { class: 'vt-b-kopf' }, el('span', { class: 'meta' }, ue('Länge', 'Length')), pille(r.laenge, 'passt', 'knapp')), el('p', {}, r.laenge_kommentar)),
+        r.reflektiert && el('li', {}, el('div', { class: 'vt-b-kopf' }, el('span', { class: 'meta' }, ue('Reflektiert statt zusammengefasst', 'Reflects rather than summarises')), pille(r.reflektiert.urteil, 'ja', 'teilweise')), el('p', {}, r.reflektiert.kommentar)),
+        r.punkte.map(p => el('li', {}, el('div', { class: 'vt-b-kopf' }, el('span', { class: 'meta' }, p.punkt), pille(p.urteil, 'da', 'teilweise')), el('p', {}, p.kommentar))),
+        r.naechste_schritte && el('li', {}, el('div', { class: 'vt-b-kopf' }, el('span', { class: 'meta' }, ue('Nächste Schritte', 'Next steps')), pille(r.naechste_schritte.urteil, 'konkret', 'vage')), el('p', {}, r.naechste_schritte.kommentar))),
+      r.fragen.length > 0 && [el('h3', {}, ue('Fragen zum Weiterdenken', 'Questions to think further')), el('ol', { class: 'vt-staerken' }, r.fragen.map(f => el('li', {}, f)))],
+      r.sprache.length > 0 && [el('h3', {}, ue('Sprache: hier noch einmal hinschauen', 'Language: take another look here')),
+        el('ul', { class: 'vt-befunde' }, r.sprache.map(s => el('li', { class: 'vt-befund' }, el('div', { class: 'vt-b-kopf' }, el('span', { class: 'vt-art' }, s.art)), el('p', { class: 'vt-zitat', lang: 'en' }, `„${s.zitat}“`), el('p', {}, s.hinweis))))],
+      r.staerken.length > 0 && [el('h3', {}, ue('Das ist gut', 'What works well')), el('ul', { class: 'vt-staerken' }, r.staerken.map(s => el('li', {}, s)))]),
+  ].filter(Boolean);
+}
+
 /* ---------- Vortrag: Video oder Aufnahme → wortgetreues Transkript → Analyse mit Note, Befunden und Tipps ---------- */
 // Transkript: Gemini hört am genauesten hin und lässt jedes äh stehen. Nur Google nimmt Ton und YouTube-Links, aber höchstens
 // 20 MB pro Anfrage und nur öffentliche Videos. Darum schneidet die App die Tonspur selbst aus der Datei und schickt sie in Teilen.
@@ -3654,7 +3991,7 @@ const VT_QUELLEN = [
 ];
 const VT_OHNE_INHALT = 'Bewerte nur Sprache und Vortragsweise, nicht den Inhalt: Ob die Argumente logisch sind, ob Aussagen stimmen oder belegt sind und wie gut die Beispiele sind, gehört nicht in die Analyse, weder in Urteil und Kriterien noch in Stärken, Tipps oder Befunde.';
 const vtKriterien = (massstab, inhalt) => (VT_MASSSTAB[massstab] || VT_MASSSTAB.kurs).kriterien.filter(k => inhalt || !k[3]);
-const vtAnalyse = (inhalt, massstab = 'kurs', ziel = '') => {
+const vtAnalyse = (inhalt, massstab = 'kurs', ziel = '', mitWp = false) => {
   const M = VT_MASSSTAB[massstab] || VT_MASSSTAB.kurs, kriterien = vtKriterien(massstab, inhalt), kurs = M === VT_MASSSTAB.kurs;
   const zielText = ziel || 'B2';
   return `${M.rolle(zielText)} Du bekommst das wortgetreue Transkript des Vortrags mit Zeitstempeln [m:ss], inklusive aller äh und ähm, Wiederholungen, Abbrüche und Fehler, dazu Kennzahlen, die die App gezählt hat, Anlass und Vorgaben, soweit angegeben, und manchmal Standbilder aus dem Video.
@@ -3671,7 +4008,8 @@ Analysiere gründlich, konkret und fair, wie eine erfahrene Lehrkraft, die gut e
  "staerken": ["konkrete Stärke, mit Zeitstempel, wo möglich"],
  "tipps": [{"titel": "kurze Handlungsanweisung", "warum": "ein bis zwei Sätze mit Beleg aus dem Vortrag", "uebung": "konkrete Übung für die nächste Probe"}],
  "fuellwoerter": [{"wort": "like", "anzahl": 4}],
- "befunde": [{"zeit": "m:ss", "art": "grammatik", "zitat": "…", "problem": "…", "besser": "…"}]}
+ "befunde": [{"zeit": "m:ss", "art": "grammatik", "zitat": "…", "problem": "…", "besser": "…"}]${mitWp ? `,
+ "partnerships": [{"ausdruck": "…", "status": "passt", "zeit": "m:ss oder null", "zitat": "… oder null", "kommentar": "…", "einbau": {"zeit": "m:ss", "original": "…", "neu": "…", "warum": "…"} oder null}]` : ''}}
 
 kriterien: genau diese ${kriterien.length}, in dieser Reihenfolge und mit genau diesen Namen (${M.grundlage}):
 ${kriterien.map(([n, en, t]) => `- ${n} (${en}): ${t}`).join('\n')}
@@ -3689,7 +4027,11 @@ gesamt: niveau und stand, die die fünf Skalen zusammen am besten treffen, nicht
 reflexion: nur, wenn unten eine SELBSTREFLEXION steht, sonst null. Die Person hat ihr Video noch einmal angesehen und sich selbst eingeschätzt; prüfe jede ihrer Aussagen an Transkript, Kennzahlen und Standbildern. punkte: jede Aussage einzeln, in ihrer Reihenfolge; feld ist gut, schlecht oder besser, je nachdem, wo sie steht; aussage gibt sie in wenigen Worten wieder. urteil ist genau einer dieser Werte: stimmt, teilweise, stimmt nicht. Bei gut und schlecht: ob die Belege die Einschätzung stützen. Bei besser: stimmt, wenn der Vorsatz eine der größten Schwächen trifft; teilweise, wenn er hilft, aber nicht das Wichtigste ist; stimmt nicht, wenn er an den Befunden vorbeigeht, und dann was wichtiger wäre. begruendung: immer, zwei bis drei Sätze, mit Beleg (Zeitstempel, Zitat oder Kennzahl), direkt an die Person (du). Sei ehrlich in beide Richtungen: Wer zu streng mit sich ist, hört genauso deutlich, dass etwas gar nicht schlimm war, wie jemand, der etwas übersieht. uebersehen: höchstens drei wichtige Punkte aus deiner Analyse, die in der Reflexion fehlen, je ein Satz mit Begründung. fazit: zwei Sätze, wie treffend die Selbsteinschätzung insgesamt ist.
 
 tipps: drei bis fünf, das Wichtigste zuerst. Nur Tipps, die sich aus diesem Vortrag ergeben, keine allgemeinen Ratschläge.
-
+${mitWp ? `
+partnerships: Die Person sollte die Word Partnerships unten (WORD PARTNERSHIPS) in diesen Vortrag einbauen; das ist ihre Probe für den Word-Power-Talk im Kurs. Je Ausdruck genau ein Eintrag, in derselben Reihenfolge, ausdruck wie angegeben.
+status ist genau einer dieser Werte: passt (benutzt, richtig und natürlich, auch gebeugt oder leicht abgewandelt), holprig (benutzt, aber unnatürlich, falsche Kollokation, falsches Register oder Bedeutung leicht daneben), falsch (benutzt, aber grammatisch oder inhaltlich falsch), fehlt (nicht benutzt). zeit und zitat: die Stelle wörtlich aus dem Transkript, bei fehlt null. kommentar: ein Satz, was gut ist oder was nicht stimmt.
+einbau: bei fehlt, holprig und falsch Pflicht, bei passt null. Such im Vortrag die EINE Stelle, an der der Ausdruck am natürlichsten passt: dort, wo die Person schon etwas Ähnliches sagt oder der Gedanke dazu passt. original: dieser Satz wörtlich aus dem Transkript. neu: derselbe Satz mit dem Ausdruck, so wenig wie möglich geändert, gleiche Aussage, im Stil und auf dem Niveau der Person, ohne neue Inhalte. warum: ein Satz, warum der Ausdruck genau dort passt (Bedeutung, Kollokation, Register). Passt der Ausdruck nirgends ohne neuen Inhalt, nimm die Stelle, an der ein halber Satz genügt, und sag das im warum.
+` : ''}
 fuellwoerter: Wörter und Floskeln, die hier als Füller dienen (etwa also, halt, eben, sozusagen, quasi, irgendwie, eigentlich, ja, genau, okay, like, you know, basically, actually, so, I mean, kind of), mit Anzahl. Nur zählen, wo sie wirklich Füller sind. Laute wie äh, ähm, uh und um zählt die App selbst; die gehören nicht hierher.
 
 befunde: Jede einzelne Stelle als eigener Eintrag, nichts zusammenfassen. Nur echte Fehler und deutliche Schwächen: Ist das Original auch richtig oder nur Geschmackssache, ist es kein Befund. art ist genau einer dieser Werte:
@@ -3885,14 +4227,17 @@ async function vtAnalysieren(v, job) {
 Kennzahlen der App: Dauer ${mmss(v.dauer)} · ${z.woerter} Wörter · ${z.tempo} Wörter pro Minute · ${z.aeh} äh-Laute (${komma(z.aehMin)} pro Minute) · ${z.pausen.length} Pausen ab 2 Sekunden
 ${bilder.length ? `Dazu ${bilder.length} Standbilder aus dem Video, gleichmäßig verteilt.` : 'Keine Standbilder: das Kriterium Folien entfällt, Haltung und Blickkontakt sind nicht zu sehen.'}
 
-${v.reflexion ? `=== SELBSTREFLEXION ===
+${v.partnerships?.length ? `=== WORD PARTNERSHIPS ===
+${v.partnerships.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+` : ''}${v.reflexion ? `=== SELBSTREFLEXION ===
 Was war gut: ${v.reflexion.gut || '(nichts eingetragen)'}
 Was war nicht so gut: ${v.reflexion.schlecht || '(nichts eingetragen)'}
 Was will ich beim nächsten Mal anders machen: ${v.reflexion.besser || '(nichts eingetragen)'}` : 'Keine Selbstreflexion: reflexion ist null.'}
 
 === TRANSKRIPT ===
 ${vtText(v)}`;
-  const { text: antwort, preis } = await strom({ ...VT_DENKEN, feature: 'vortrag', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: vtAnalyse(v.inhalt, v.massstab, v.ziel) },
+  const { text: antwort, preis } = await strom({ ...VT_DENKEN, feature: 'vortrag', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: vtAnalyse(v.inhalt, v.massstab, v.ziel, !!v.partnerships?.length) },
     { role: 'user', content: [{ type: 'text', text }, ...bilder.flatMap(b => [{ type: 'text', text: `Standbild bei ${mmss(b.t)}:` }, { type: 'image_url', image_url: { url: b.url } }])] }] },
     x => { job.hinweis = ue('Schreibt die Bewertung … ', 'Writing the rating … ') + (x.match(/"zeit"/g) || []).length + ue(' Befunde', ' findings'); }, () => { job.hinweis = ue('Analysiert … denkt nach', 'Analysing … thinking'); });
   let a;
@@ -3910,7 +4255,9 @@ ${vtText(v)}`;
   v.analyse = { ...a, ger: ger?.skalen.length ? ger : null, reflexion: refl?.punkte.length ? refl : null, massstab: v.massstab || 'kurs',
     ziel: v.massstab === 'buehne' ? null : GER_STUFEN.includes(a.ziel) ? a.ziel : v.ziel || 'B2',
     punkte, note: vtNote(punkte), kriterien, staerken: liste(a.staerken), tipps: liste(a.tipps),
-    fuellwoerter: liste(a.fuellwoerter).filter(f => f.wort && f.anzahl > 0), befunde: liste(a.befunde).filter(b => b.zitat).sort((x, y) => vtSek(x.zeit) - vtSek(y.zeit)) };
+    fuellwoerter: liste(a.fuellwoerter).filter(f => f.wort && f.anzahl > 0), befunde: liste(a.befunde).filter(b => b.zitat).sort((x, y) => vtSek(x.zeit) - vtSek(y.zeit)),
+    partnerships: v.partnerships?.length ? liste(a.partnerships).filter(p => p.ausdruck && ['passt', 'holprig', 'falsch', 'fehlt'].includes(p.status))
+      .map(p => ({ ...p, einbau: p.status !== 'passt' && p.einbau?.original && p.einbau?.neu ? p.einbau : null })) : [] };
   v.bilder = bilder.length; v.kosten = (v.kosten || 0) + preis; v.bewertet = new Date().toISOString();
 }
 async function vtSpeichern(v) {
@@ -3966,8 +4313,8 @@ function vtStart(form) {
     form.reset(); form.querySelector('.vt-datei-name').textContent = ue('Keine Datei gewählt', 'No file chosen');
   });
 }
-const vtBewerten = (v, kontext, reflexion, inhalt, massstab, ziel) => vtLauf(v.id, async job => {
-  Object.assign(v, { kontext, reflexion, inhalt, massstab, ziel });
+const vtBewerten = (v, kontext, reflexion, inhalt, massstab, ziel, partnerships = []) => vtLauf(v.id, async job => {
+  Object.assign(v, { kontext, reflexion, inhalt, massstab, ziel, partnerships });
   await vtAnalysieren(v, job);
   job.hinweis = ue('Speichert die Analyse …', 'Saving the analysis …');
   await vtSpeichern(v);
@@ -4089,6 +4436,10 @@ function vtReflexionForm(v) {
       Object.entries(VT_MASSSTAB).map(([k, m]) => el('label', { class: 'haken' },
         el('input', { type: 'radio', name: 'massstab', value: k, checked: (v.massstab || 'kurs') === k, onchange: () => { ziel.hidden = k !== 'kurs'; } }), EN ? m.en[1] : m.lang))),
     ziel,
+    el('label', { class: 'feld' }, el('span', {}, 'Word Partnerships ', el('span', { class: 'opt' }, ue('optional, eine pro Zeile', 'optional, one per line'))),
+      el('textarea', { name: 'partnerships', rows: 3, lang: 'en', spellcheck: 'false', autocapitalize: 'off', placeholder: 'devolve into an argument\nraise awareness\n…' }, (v.partnerships || []).join('\n') || merk('wp.woerter') || '')),
+    el('p', { class: 'meta' }, ue('Für Word Power: Die Analyse zeigt, welche du eingebaut hast, und für die fehlenden die Stelle in deinem Vortrag, an der sie am besten gepasst hätten.',
+      'For Word Power: the analysis shows which ones you used and, for the missing ones, the place in your talk where they would have fitted best.')),
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'inhalt', checked: !!v.inhalt }), ue('Auch den Inhalt prüfen: Logik der Argumente, Belege und Beispiele', 'Also check the content: logic of the arguments, evidence and examples')),
     el('p', { class: 'meta' }, ue('Ohne Haken geht es nur um Sprache und Vortragsweise: Grammatik, Wortwahl, Füllwörter, Tempo und Aufbau.', 'Unticked, it is only about language and delivery: grammar, word choice, fillers, pace and structure.')),
     meldungP,
@@ -4100,7 +4451,8 @@ function vtReflexionForm(v) {
     const f = form.elements, r = Object.fromEntries(VT_REFL.map(([k]) => [k, f[k].value.trim()]));
     if (mit && !Object.values(r).some(Boolean)) { Object.assign(meldungP, { textContent: ue('Schreib mindestens einen Punkt, oder überspring die Reflexion.', 'Write at least one point, or skip the reflection.'), hidden: false }); return f.gut.focus(); }
     meldungP.hidden = true;
-    vtBewerten(v, f.kontext.value.trim(), mit ? r : null, f.inhalt.checked, f.massstab.value || 'kurs', f.massstab.value === 'buehne' ? '' : f.ziel.value);
+    vtBewerten(v, f.kontext.value.trim(), mit ? r : null, f.inhalt.checked, f.massstab.value || 'kurs', f.massstab.value === 'buehne' ? '' : f.ziel.value,
+      f.partnerships.value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20));
   }
   return form;
 }
@@ -4244,6 +4596,7 @@ function vtSeite(v) {
       zahl(fwSumme, ue('Füllwörter', 'Filler words'), a.fuellwoerter[0] && ue('am häufigsten „', 'most often "') + a.fuellwoerter.slice().sort((x, y) => y.anzahl - x.anzahl)[0].wort + ue('“', '"')),
       zahl(z.pausen.length, ue('Pausen ab 2 s', 'Pauses of 2 s or more'), z.pausen.length ? ue('längste ', 'longest ') + komma(Math.max(...z.pausen)) + ' s' : null),
       zahl(a.befunde.length, ue('Befunde', 'Findings'), zaehle('grammatik') + ue(' Grammatik', ' grammar') + (v.inhalt ? `, ${zaehle('logik') + zaehle('irrefuehrend')}` + ue(' Logik', ' logic') : `, ${zaehle('wortwahl')}` + ue(' Wortwahl', ' word choice')))),
+    a.partnerships?.length > 0 && vtPartnerships(v, a, zeit),
     a.tipps.length > 0 && el('section', { class: 'block' }, el('h2', {}, ue('Die wichtigsten Tipps', 'Top tips')),
       el('ol', { class: 'vt-tipps' }, a.tipps.map(t => el('li', {}, el('h3', {}, t.titel), el('p', {}, t.warum), t.uebung && el('p', { class: 'vt-uebung' }, el('b', {}, ue('Übung: ', 'Exercise: ')), t.uebung))))),
     a.staerken.length > 0 && el('section', { class: 'block' }, el('h2', {}, ue('Das war gut', 'What went well')), el('ul', { class: 'vt-staerken' }, a.staerken.map(s => el('li', {}, s)))),
@@ -4262,6 +4615,34 @@ function vtSeite(v) {
         vorschlaege: EN ? ['Write me a stronger opening.', 'How can I structure the talk better?', 'Which sentences should I rephrase before the next rehearsal?']
           : ['Schreib mir einen stärkeren Einstieg.', 'Wie baue ich den Vortrag besser auf?', 'Welche Sätze sollte ich vor der nächsten Probe umformulieren?'] })),
     el('details', { class: 'quellen' }, el('summary', {}, r ? ue('Reflexion ändern und neu bewerten', 'Change reflection and re-rate') : ue('Reflexion nachholen und neu bewerten', 'Add reflection and re-rate')), vtReflexionTeil(v))];
+}
+// Word Partnerships im Probevideo: welche drin sind (mit Stelle), welche holpern, und wo die fehlenden am natürlichsten gepasst hätten
+const VT_WP = { passt: ['eingebaut', 'used well', 'ok'], holprig: ['holprig', 'awkward', 'warn'], falsch: ['falsch benutzt', 'used wrongly', 'fehler'], fehlt: ['fehlt', 'missing', ''] };
+function vtPartnerships(v, a, zeit) {
+  const P = a.partnerships, drin = P.filter(p => p.status !== 'fehlt').length, soll = 240;
+  const hervor = (satz, ausdruck) => { const i = satz.toLowerCase().indexOf(ausdruck.replace(/^to\s+/i, '').toLowerCase()); return i < 0 ? satz : [satz.slice(0, i), el('mark', {}, satz.slice(i, i + ausdruck.replace(/^to\s+/i, '').length)), satz.slice(i + ausdruck.replace(/^to\s+/i, '').length)]; };
+  return el('section', { class: 'block vt-wp' },
+    el('div', { class: 'block-kopf' }, el('h2', {}, 'Word Partnerships'), el('p', { class: 'meta' }, ue(`${drin} von ${P.length} eingebaut`, `${drin} of ${P.length} used`) + ` · ${mmss(v.dauer)}` + ue(` von 4:00`, ` of 4:00`))),
+    Math.abs(v.dauer - soll) > 30 && el('p', { class: 'meta' }, v.dauer < soll ? ue(`Für den Word-Power-Talk (4 Minuten) fehlen noch ${mmss(soll - v.dauer)}.`, `For the Word Power talk (4 minutes) ${mmss(soll - v.dauer)} are still missing.`)
+      : ue(`${mmss(v.dauer - soll)} länger als die 4 Minuten für Word Power.`, `${mmss(v.dauer - soll)} longer than the 4 minutes for Word Power.`)),
+    el('ul', { class: 'vt-abgleich' }, P.map(p => el('li', {},
+      el('div', { class: 'vt-b-kopf' }, el('b', { lang: 'en' }, p.ausdruck), p.zeit && zeit(vtSek(p.zeit)), el('span', { class: `pille ${VT_WP[p.status][2]}` }, VT_WP[p.status][+EN])),
+      p.zitat && el('p', { class: 'vt-zitat', lang: 'en' }, '„', hervor(p.zitat, p.ausdruck), '“'),
+      p.kommentar && el('p', {}, p.kommentar),
+      p.einbau && el('div', { class: 'vt-einbau' }, el('p', { class: 'meta' }, ue('Hätte am besten hier gepasst', 'Would have fitted best here'), p.einbau.zeit && [' · ', zeit(vtSek(p.einbau.zeit))]),
+        el('p', { class: 'vt-zitat', lang: 'en' }, `„${p.einbau.original}“`), el('p', { class: 'vt-besser', lang: 'en' }, '→ „', hervor(p.einbau.neu, p.ausdruck), '“'),
+        p.einbau.warum && el('p', { class: 'meta' }, p.einbau.warum))))),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async e => {
+      e.currentTarget.disabled = true;
+      try {
+        WPJ ??= await WPJ_D.laden();
+        WPJ.eintraege ??= [];
+        let n = 0;
+        for (const p of P.filter(p => p.status !== 'fehlt')) for (const x of WPJ.eintraege.filter(x => x.ausdruck.toLowerCase() === p.ausdruck.toLowerCase())) { x.probe = true; n++; }
+        await WPJ_D.speichern();
+        status(n ? ue(`${n} im Glossar als „im Probevideo benutzt“ markiert.`, `${n} marked as "used in rehearsal video" in the glossary.`) : ue('Keiner dieser Ausdrücke steht im Glossar.', 'None of these phrases is in the glossary.'));
+      } catch (err) { status(err.message, true); }
+    } }, ue('Im Glossar abhaken', 'Tick off in glossary'))));
 }
 // Eine GER-Skala als Karte: zu sieht man Stufe, Leiter und Fortschritt; aufgeklappt Begründung, die Deskriptoren der eigenen und der
 // nächsten Stufe und jede Stelle aus dem Vortrag (gesagt → besser → warum). Die Stellen holt beim ersten Aufklappen EINE Anfrage für alle fünf.
@@ -5646,6 +6027,27 @@ async function adminZeigen() {
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.neuEnglisch > 0 }), 'Neue Konten bekommen Englisch statt Base'),
     el('label', {}, 'für so viele Tage', el('input', { name: 'tage', type: 'number', min: 1, step: 1, value: d.neuEnglisch || 180 })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
+  const reflexion = el('form', { class: 'werte-form', onsubmit: async e => {
+    e.preventDefault();
+    e.target.elements.knopf.disabled = true;
+    try { await api('admin/werte', { reflexion: e.target.elements.an.checked ? 1 : 0 }); TARIFE = await api('tarife'); } catch (err) { alert(err.message); }
+    adminZeigen();
+  } },
+    el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.reflexion }), 'Reflection-Feedback in Word Power zeigen'),
+    el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
+  const A = d.arena, P = A.preise;
+  const arenaPreise = el('form', { class: 'werte-form', onsubmit: async e => {
+    e.preventDefault();
+    const f = e.target.elements;
+    f.knopf.disabled = true;
+    try { await api('admin/werte', { 'arena-art': f.art.value, 'arena-p1': f.p1.value, 'arena-p2': f.p2.value, 'arena-p3': f.p3.value, 'arena-min': f.min.value }); } catch (err) { alert(err.message); }
+    adminZeigen();
+  } },
+    el('label', {}, 'Preis', el('select', { name: 'art' }, [[0, 'keine Preise'], [1, 'Tage Ultra'], [2, 'Rabatt in % auf einen Monat']].map(([w, n]) => el('option', { value: w, selected: P.art === w }, n)))),
+    ['p1', 'p2', 'p3'].map((n, i) => el('label', {}, `Platz ${i + 1}`, el('input', { name: n, type: 'number', min: 0, step: 1, value: P.werte[i] }))),
+    el('label', {}, 'ab so vielen XP in der Woche', el('input', { name: 'min', type: 'number', min: 0, step: 1, value: P.min })),
+    el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
+  const arenaKnopf = (text, body, frage) => el('button', { class: 'knopf', type: 'button', onclick: e => (!frage || confirm(frage)) && tun('admin/arena', body)(e) }, text);
   s.replaceChildren(
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Admin-Ecke'),
       el('p', { class: 'unterzeile' }, el('span', {}, `Stand ${zeitpunkt(jetzt)}`), el('span', {}, 'Bleibt 12 Stunden nach dem Öffnen offen')),
@@ -5671,6 +6073,10 @@ async function adminZeigen() {
     el('p', { class: 'klein' }, 'Kostenlos: alles aus Base, dazu Vortrag analysieren und YouTube-Talks für Word Power transkribieren. Der Hausaufgaben-Entwurf bleibt bei dir. In der Seitenleiste stehen nur Word Power, Vortrag und Unterlagen oben, alles andere eingeklappt darunter. Einzelne Konten: unten bei „Tarif von Hand“ Englisch wählen. Für Testerinnen und Tester gibt es dort Beta: Rechte wie Ultra, zu sehen nur die Bereiche, die du anhakst.'),
     el('p', { class: 'meta' }, d.neuEnglisch > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuEnglisch} Tage Englisch. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.` : `Aus: Neue Konten starten mit Base. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.`),
     englisch,
+    el('h3', {}, 'Reflection-Feedback'),
+    el('p', { class: 'klein' }, 'In Word Power unter „Reflection“: Die KI liest eine fertige Reflection und sagt, ob sie lang genug ist, ob sie reflektiert statt zusammenfasst und wo Sprachfehler stehen. Sie schreibt keinen Satz um. Aus, bis du es einschaltest; du selbst siehst es in der Ecke immer.'),
+    el('p', { class: 'meta' }, d.reflexion ? 'An: alle mit Pro, Ultra oder Englisch sehen es.' : 'Aus: niemand außer dir sieht es.'),
+    reflexion,
     el('h2', {}, 'Auf einen Blick'),
     el('div', { class: 'kacheln' },
       kachel('Konten', K.konten, `+${K.neu7} in 7 Tagen, +${K.neu30} in 30 Tagen`),
@@ -5691,6 +6097,21 @@ async function adminZeigen() {
     tabelle(['Bereich', 'Art', 'Konten 7 T', 'Konten 30 T', 'Anteil der aktiven', 'Nutzungen 30 T', 'KI-Kosten 30 T'], d.funktionen.map(x => [x.name, x.art, String(x.k7), String(x.k30),
       el('span', {}, el('span', { class: 'anteil', 'aria-hidden': 'true' }, el('i', { style: `width: ${K.aktiv30 ? Math.min(100, Math.round(100 * x.k30 / K.aktiv30)) : 0}%` })), anteil(x.k30, K.aktiv30)),
       String(x.n30), x.usd30 ? geld(x.usd30) : '–'])),
+    el('h2', {}, 'Arena'),
+    el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
+    el('p', { class: 'meta' }, P.art ? `Gerade: Platz 1 bis 3 bekommen ${P.werte.join(', ')} ${P.art === 1 ? 'Tage Ultra' : '% Rabatt'}, ab ${P.min} XP.${P.art === 2 && !TARIFE.verkauf ? ' Achtung: Der Verkauf ist aus, Rabatte nützen gerade niemandem.' : ''}` : 'Gerade keine Preise.'),
+    arenaPreise,
+    el('h3', {}, `Mitmachende (${A.teilnehmer.length})`),
+    A.teilnehmer.length ? tabelle(['Spitzname', 'Konto', 'XP diese Woche', 'XP gesamt', 'Serie', 'Stand', ''], A.teilnehmer.map(x => [x.name, x.email, String(x.woche), String(x.gesamt), String(x.serie),
+      x.aus ? 'gesperrt' : 'dabei',
+      el('div', { class: 'knopfreihe' },
+        x.aus ? arenaKnopf('Entsperren', { konto: x.konto, sperren: false }) : [arenaKnopf('Entfernen', { konto: x.konto, entfernen: true }, `${x.name} aus der Bestenliste nehmen? Mitmachen geht danach wieder.`),
+          arenaKnopf('Sperren', { konto: x.konto, sperren: true }, `${x.name} sperren? Dann erscheint das Konto nicht mehr in der Bestenliste und kann nicht wieder mitmachen.`)],
+        x.woche > 0 && arenaKnopf('XP der Woche löschen', { konto: x.konto, xp: true }, `Alle XP von ${x.name} aus dieser Woche löschen?`))]))
+      : el('p', { class: 'leer' }, 'Noch niemand.'),
+    el('h3', {}, 'Gewinner'),
+    A.gewinner.length ? tabelle(['Woche ab', 'Platz', 'Spitzname', 'XP', 'Preis'], A.gewinner.map(g => [new Date(g.woche + 'T12:00').toLocaleDateString('de-AT'), `${g.platz}.`, g.name, String(g.xp), g.preis]))
+      : el('p', { class: 'leer' }, 'Noch keine Woche abgerechnet.'),
     el('h2', {}, `Fehlerberichte (${d.fehler.length})`),
     d.fehler.length ? tabelle(['Wann', 'Von', 'Seite', 'Beschreibung', 'Meldungen', 'Gerät', ''], d.fehler.map(f => [zeitpunkt(f.zeit), f.kontakt || '–', f.seite || '–',
       el('span', { class: 'umbruch' }, f.text || '–'), el('span', { class: 'umbruch' }, f.meldung || '–'), el('span', { class: 'umbruch' }, f.geraet || '–'),
@@ -5720,12 +6141,27 @@ async function adminZeigen() {
     bezahlt.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Am'], bezahlt.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b), tag(b.bezahlt)]))
       : el('p', { class: 'leer' }, 'Noch nichts.'),
     el('h2', {}, `Konten (${d.konten.length})`),
-    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Geworben', 'Geworben von', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
-      k.email + (k.bestaetigt ? '' : ' (unbestätigt)'), tag(k.erstellt), tag(k.zuletzt), stand(k),
+    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Nutzung', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Geworben', 'Geworben von', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
+      k.email + (k.bestaetigt ? '' : ' (unbestätigt)'), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k),
       geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
       k.geworben ? `${k.geworben}, davon ${k.geworben_zahlend} zahlend` : '–', k.werber || '–',
       `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`, setzen(k),
       k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])));
+}
+// Admin-Ecke: was ein Konto in der App genutzt hat, je Bereich und Tag für Tag
+async function kontoNutzung(id) {
+  let n;
+  try { n = await api('admin/konto', { konto: id }); } catch (e) { return alert(e.message); }
+  const d = $('meldung'), tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–';
+  d.replaceChildren(el('div', { class: 'innen breit' },
+    el('h2', { id: 'm-titel' }, n.email),
+    el('p', { class: 'meta' }, `Registriert ${tag(n.erstellt)} · zuletzt aktiv ${tag(n.zuletzt)}${n.arena.name ? ` · Arena: ${n.arena.name}${n.arena.aus ? ' (gesperrt)' : ''}` : ''} · ${n.arena.xp} XP · Serie ${n.arena.serie}, Rekord ${n.arena.bester}`),
+    n.nutzung.length ? tabelle(['Bereich', 'Art', '30 Tage', 'Gesamt', 'KI-Kosten', 'Zuletzt'], n.nutzung.map(x => [x.name, x.art, String(x.n30), String(x.n), x.usd ? geld(x.usd) : '–',
+      new Date(x.zuletzt + 'T12:00').toLocaleDateString('de-AT')])) : el('p', { class: 'leer' }, 'Noch nichts genutzt.'),
+    n.tage.length > 0 && [el('h3', {}, 'Die letzten 30 Tage'), el('ul', { class: 'nutzung-tage' }, n.tage.map(x => el('li', {},
+      el('b', {}, new Date(x.tag + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric', month: 'short' })), ' ', x.liste.map(y => `${y.name}${y.n > 1 ? ` ×${y.n}` : ''}`).join(', '))))],
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen'))));
+  d.showModal();
 }
 // Standard- und Transkript-Modell als OpenRouter-ID: in der Server-Version stellt sie der Admin für alle ein, in der eigenen Version du unter Einrichten.
 // Der Standard steht in der Auswahl ganz vorn und ist das einzige Modell für Base; transkript leer = wie bisher (Word Power Gemini Flash, Vortrag Argon).
@@ -5959,12 +6395,31 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') $('fx-box')?
 // kleine Ziele für heute, ein schneller Begriffe-Speedrun und Wettbewerb. Abbrechen bestraft nicht: gelernte Minuten zählen immer.
 const ARENA_D = datei('arena.json', () => ({ xp: 0, tage: {}, best: {}, speedruns: 0, fehlerfrei: 0, erledigt: {}, abzeichen: {}, name: '', mit: false }));
 let ARENA = null, RUNDE = liesJson('arena-runde');  // RUNDE: laufende Fokus-Runde oder Pause, überlebt Neuladen und Seitenwechsel
+if (SERVER && RUNDE && !RUNDE.server && !RUNDE.pause) { RUNDE = null; merk('arena-runde', null); }  // Runde aus der Zeit vor der Server-Wertung
+if (RUNDE?.server) wach(true);
 const AR = { sr: null, uhr: null, minuten: Number(merk('arena-min')) || 20, aufgabe: '', fach: '', weiter: false, liste: null };
-const arenaLaden = async () => ARENA ??= await ARENA_D.laden();
+const arenaLaden = async () => ARENA ??= SERVER ? arenaVomServer(await api('arena')) : await ARENA_D.laden();
+// Server-Version: XP, Serie, Challenges und Bestenliste rechnet der Server aus dem, was er selbst sieht; die App zeigt sie nur.
+// Abzeichen ergeben sich aus dem Stand. Die eigene Version rechnet alles wie bisher auf dem Gerät.
+function arenaVomServer(j) {
+  ARENA = { ...j, erledigt: { [HEUTE]: j.challenges.filter(c => c.ok).map(c => c.id) }, fehlerfrei: j.summe.fehlerfrei, speedruns: j.summe.speedruns, abzeichen: {} };
+  ARENA.abzeichen = Object.fromEntries(ABZEICHEN.filter(a => a[3]()).map(a => [a[0], true]));
+  AR.hatte ??= { ...ARENA.abzeichen };
+  return ARENA;
+}
+let TAG_GEMELDET = '';
+async function arenaTagMelden() {  // einmal am Tag beim Öffnen: XP fürs Dranbleiben und die Serie; „Heute“ zeigt das Plus einmal
+  if (!SERVER || !ICH || TAG_GEMELDET === iso(new Date())) return;
+  TAG_GEMELDET = iso(new Date());
+  try { const j = await api('arena/tag', {}); arenaVomServer(j); if (j.neu) SERIE_NEU = j.neu; } catch { TAG_GEMELDET = ''; return; }
+  arenaNeu();
+}
+let SERIE_NEU = null;
 const arenaTag = (d = HEUTE) => ARENA.tage[d] ??= { min: 0, runden: 0, xp: 0 };
 const LEVEL = xp => Math.floor(Math.sqrt(xp / 25)) + 1, levelXp = l => 25 * (l - 1) ** 2;  // Level 2 ab 25 XP, 3 ab 100, 5 ab 400, 10 ab 2025
-const gesamt = k => Object.values(ARENA.tage).reduce((s, t) => s + (t[k] || 0), 0);
-function serie() {  // Tage in Folge mit mindestens einer Runde; heute zählt mit, sobald die erste geschafft ist
+const gesamt = k => ARENA.summe?.[k] ?? Object.values(ARENA.tage).reduce((s, t) => s + (t[k] || 0), 0);
+function serie() {  // Server: Tage in Folge, an denen du da warst. Eigene Version: Tage in Folge mit mindestens einer Runde
+  if (SERVER) return ARENA.serie?.tage || 0;
   let n = 0;
   for (let i = ARENA.tage[HEUTE]?.runden ? 0 : 1; ARENA.tage[plusTage(-i)]?.runden; i++) n++;
   return n;
@@ -6023,10 +6478,7 @@ async function arenaPlus(xp, was) {  // XP gutschreiben, erfüllte Challenges un
   arenaNeu();
   status(`${xp >= 0 ? '+' : ''}${xp} XP${was ? ' · ' + was : ''}${neu.length ? ' · Neues Abzeichen: ' + neu.map(a => a[1]).join(', ') : ''}`);
   try { await ARENA_D.speichern(); } catch (e) { status(e.message, true); }
-  arenaMelden();
 }
-const arenaMelden = () => SERVER && ARENA?.mit && api('arena', { name: ARENA.name, xp: wocheSumme('xp'), min: wocheSumme('min'), serie: serie(),
-  laeuft: RUNDE && !RUNDE.pause && RUNDE.halt == null ? RUNDE.ende : 0 }).then(() => { AR.liste = null; }).catch(() => {});
 const arenaNeu = () => { const a = document.body.dataset.ansicht; if (a === 'arena') arenaZeigen(); else if (a === 'titelblatt') arenaKurz(); };
 function piep() {  // drei kurze Töne, ohne Tondatei
   try {
@@ -6037,21 +6489,40 @@ function piep() {  // drei kurze Töne, ohne Tondatei
   navigator.vibrate?.([200, 100, 200]);
 }
 const melden = (titel, text) => { status(`${titel} ${text}`); try { if (Notification.permission === 'granted' && document.hidden) new Notification(titel, { body: text, tag: 'arena' }); } catch {} };
-function rundeStarten(min) {
+const rundeRest = () => RUNDE.server ? Math.max(0, RUNDE.min * 60e3 - RUNDE.aktiv) : Math.max(0, RUNDE.halt ?? RUNDE.ende - Date.now());
+// Server: Die Runde zählt nur, solange die App offen ist; kurz weg (andere App, Bildschirm aus) zählt höchstens 5 Minuten am Stück, wie auf dem Server.
+const rundePuls = (extra = {}) => api('arena/runde', { puls: true, ...extra }).catch(e => { if (e.status === 410 && RUNDE?.server) { RUNDE = null; merk('arena-runde', null); status(e.message, true); arenaNeu(); } });
+document.addEventListener('visibilitychange', () => {
+  if (SERVER && document.visibilityState === 'visible') arenaTagMelden();
+  if (!RUNDE?.server || RUNDE.halt != null) return;
+  const t = Date.now();
+  if (document.hidden) RUNDE.weg = t;
+  else if (RUNDE.weg) { RUNDE.aktiv += Math.min(t - RUNDE.weg, 5 * 60e3); RUNDE.weg = null; RUNDE.tick = t; }
+  merk('arena-runde', JSON.stringify(RUNDE)); rundePuls();
+});
+async function rundeStarten(min) {
+  if (SERVER) {
+    try { arenaVomServer(await api('arena/runde', { start: min })); } catch (e) { return status(e.message, true); }
+    RUNDE = { server: true, start: Date.now(), tick: Date.now(), aktiv: 0, min, aufgabe: AR.aufgabe.trim(), fach: AR.fach };
+    AR.weiter = false; merk('arena-runde', JSON.stringify(RUNDE)); wach(true);
+    return arenaNeu(), rundeTicken();
+  }
   RUNDE = { start: Date.now(), ende: Date.now() + min * 60e3, min, aufgabe: AR.aufgabe.trim(), fach: AR.fach };
   AR.weiter = false; merk('arena-runde', JSON.stringify(RUNDE));
   try { if (Notification.permission === 'default') Notification.requestPermission(); } catch {}
-  arenaNeu(); rundeTicken(); arenaMelden();
+  arenaNeu(); rundeTicken();
 }
 function rundeHalten() {  // pausieren und weiter
-  if (RUNDE.halt == null) RUNDE.halt = RUNDE.ende - Date.now(); else { RUNDE.ende = Date.now() + RUNDE.halt; delete RUNDE.halt; }
-  merk('arena-runde', JSON.stringify(RUNDE)); arenaNeu(); arenaMelden();
+  if (RUNDE.server) { const an = RUNDE.halt == null; if (an) RUNDE.halt = rundeRest(); else { delete RUNDE.halt; RUNDE.tick = Date.now(); } rundePuls({ halt: an }); }
+  else if (RUNDE.halt == null) RUNDE.halt = RUNDE.ende - Date.now(); else { RUNDE.ende = Date.now() + RUNDE.halt; delete RUNDE.halt; }
+  merk('arena-runde', JSON.stringify(RUNDE)); arenaNeu();
 }
 async function rundeAbbrechen() {
   const r = RUNDE;
   if (!r || !r.pause && !confirm('Runde beenden? Die Minuten bis jetzt zählen trotzdem.')) return;
   RUNDE = null; merk('arena-runde', null); arenaNeu();
   if (r.pause) return;
+  if (r.server) { wach(false); const e = await rundeAbrechnen(); if (e) arenaMeldung(e.xp, e.min ? `${e.min} ${e.min === 1 ? 'Minute zählt' : 'Minuten zählen'}` : 'Noch keine ganze Minute', e); return; }
   const min = Math.floor((r.halt != null ? r.min * 60e3 - r.halt : Date.now() - r.start) / 60e3);
   if (min > 0) { await arenaLaden(); arenaTag().min += min; await arenaPlus(min, `${min} ${min === 1 ? 'Minute zählt' : 'Minuten zählen'} trotzdem`); }
 }
@@ -6059,6 +6530,20 @@ async function rundeFertig() {
   const r = RUNDE;
   RUNDE = null; merk('arena-runde', null); piep();
   if (r.pause) { melden('Pause vorbei.', 'Bereit für die nächste Runde?'); return arenaNeu(); }
+  if (r.server) {
+    wach(false);
+    const e = await rundeAbrechnen();
+    if (!e) return arenaNeu();
+    if (r.min <= 2) { AR.weiter = true; melden('Du bist drin!', 'Der Anfang ist geschafft. Weiter mit einer richtigen Runde?'); }
+    else {
+      const n = ARENA.tage[HEUTE]?.runden || 0, lang = n > 0 && n % 4 === 0;
+      RUNDE = { pause: true, start: Date.now(), ende: Date.now() + (lang ? 15 : 5) * 60e3, min: lang ? 15 : 5, tipp: PAUSEN[Math.floor(Math.random() * PAUSEN.length)] };
+      merk('arena-runde', JSON.stringify(RUNDE));
+      melden('Runde geschafft!', `${e.min} Minuten fokussiert. Jetzt ${RUNDE.min} Minuten Pause.`);
+    }
+    arenaMeldung(e.xp, `${e.min} Minuten Fokus`, e);
+    return arenaNeu();
+  }
   await arenaLaden();
   const t = arenaTag(), h = new Date(r.start).getHours();
   t.min += r.min; t.runden++;
@@ -6074,31 +6559,66 @@ async function rundeFertig() {
   }
   await arenaPlus(r.min, `${r.min} Minuten Fokus`);
 }
+async function rundeAbrechnen() {  // Server: rechnet die gemessenen Minuten ab
+  try { const j = await api('arena/runde', { ende: true }); arenaVomServer(j); return j.ergebnis; }
+  catch (e) { status(e.message, true); return null; }
+}
+function arenaMeldung(xp, was, e) {  // Server: was die Runde oder der Speedrun gebracht hat, mit Tagesgrenze und neuen Challenges
+  const neu = ABZEICHEN.filter(a => ARENA.abzeichen[a[0]] && !AR.hatte?.[a[0]]);
+  AR.hatte = { ...ARENA.abzeichen };
+  status(`+${xp} XP · ${was}${e?.gedeckelt ? ' (Tagesgrenze erreicht, zählt nicht mehr für XP)' : ''}${e?.neu?.length ? ' · Challenge geschafft: ' + e.neu.join(', ') + ' (+25 XP)' : ''}${neu.length ? ' · Neues Abzeichen: ' + neu.map(a => a[1]).join(', ') : ''}`);
+}
 function rundeTicken() {
   const titel = document.title.replace(/^(\d+:\d\d|Pause \d+:\d\d) · /, '');
   if (!RUNDE) { document.querySelectorAll('[data-runde-uhr]').forEach(e => { e.textContent = ''; }); document.title = titel; return; }
-  const rest = Math.max(0, RUNDE.halt ?? RUNDE.ende - Date.now()), text = minuten(rest + 999);
+  if (RUNDE.server) {  // nur sichtbare Zeit zählt hier mit; Lebenszeichen alle 30 Sekunden
+    const t = Date.now(), dt = t - RUNDE.tick;
+    RUNDE.tick = t;
+    if (RUNDE.halt == null && !document.hidden && !RUNDE.weg) RUNDE.aktiv += dt <= 75e3 ? dt : Math.min(dt, 5 * 60e3);
+    if (RUNDE.halt == null && !document.hidden && t - (RUNDE.puls || 0) >= 30e3) { RUNDE.puls = t; rundePuls(); }
+    merk('arena-runde', JSON.stringify(RUNDE));
+  }
+  const rest = rundeRest(), text = minuten(rest + 999);
   document.querySelectorAll('[data-runde-uhr]').forEach(e => { e.textContent = text; });
   document.querySelectorAll('[data-runde-balken]').forEach(e => { e.style.width = `${100 - rest / (RUNDE.min * 600)}%`; });
   document.title = `${RUNDE.pause ? 'Pause ' : ''}${text} · ${titel}`;
-  if (rest <= 0 && RUNDE.halt == null && fertig()) rundeFertig();  // erst wenn Speicher und Konto da sind
+  if (rest <= 0 && RUNDE.halt == null && fertig() && (!RUNDE.server || ARENA)) rundeFertig();  // erst wenn Speicher und Konto da sind
 }
 setInterval(rundeTicken, 1000);
 // Speedrun: zur Definition schnell den richtigen Begriff aus vier wählen; jeder Fehler kostet 5 Sekunden
 const mischen = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
 const sekunden = ms => (ms / 1000).toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' s';
 const srPool = f => (f ? [f] : Object.keys(R)).flatMap(x => (aktuell(x)?.begriffe || []).map(b => ({ ...b, f: x })));
-function speedStart(f) {
-  const pool = srPool(f);
-  if (pool.length < 4) return status('Für einen Speedrun braucht es mindestens 4 Begriffe aus deinen Ausgaben.', true);
-  AR.sr = { fach: f || 'alle', i: 0, start: Date.now(), strafe: 0, fehler: 0,
-    fragen: mischen(pool).slice(0, 10).map(b => ({ b, optionen: mischen([b, ...mischen(pool.filter(x => x.begriff !== b.begriff)).slice(0, 3)]) })) };
+async function speedStart(f) {
+  if (SERVER) {
+    let j;
+    try { j = await api('arena/speed', { start: f || '' }); } catch (e) { return status(e.message, true); }
+    AR.sr = { server: true, fach: f || 'alle', i: 0, start: Date.now(), strafe: 0, fehler: 0,
+      fragen: j.fragen.map(q => ({ b: { definition: q.definition }, optionen: q.optionen.map((begriff, wahl) => ({ begriff, wahl })) })) };
+  } else {
+    const pool = srPool(f);
+    if (pool.length < 4) return status('Für einen Speedrun braucht es mindestens 4 Begriffe aus deinen Ausgaben.', true);
+    AR.sr = { fach: f || 'alle', i: 0, start: Date.now(), strafe: 0, fehler: 0,
+      fragen: mischen(pool).slice(0, 10).map(b => ({ b, optionen: mischen([b, ...mischen(pool.filter(x => x.begriff !== b.begriff)).slice(0, 3)]) })) };
+  }
   clearInterval(AR.uhr);
   AR.uhr = setInterval(() => { const e = document.querySelector('[data-sr-uhr]'); if (e && AR.sr && !AR.sr.ergebnis) e.textContent = sekunden(Date.now() - AR.sr.start + AR.sr.strafe); }, 100);
   arenaZeigen();
 }
 async function srAntwort(knopf, o) {
   const sr = AR.sr, q = sr.fragen[sr.i];
+  if (sr.server) {
+    if (sr.wartet) return;
+    sr.wartet = true;
+    let r;
+    try { r = await api('arena/speed', { frage: sr.i, wahl: o.wahl }); } catch (e) { status(e.message, true); return; } finally { sr.wartet = false; }
+    if (r.richtig === false) { sr.strafe += 5000; sr.fehler++; knopf.disabled = true; knopf.classList.add('falsch'); return; }
+    if (!r.ergebnis) { sr.i++; return arenaZeigen(); }
+    clearInterval(AR.uhr);
+    arenaVomServer(r); sr.ergebnis = r.ergebnis;
+    arenaMeldung(r.ergebnis.xp, r.ergebnis.gedeckelt ? 'Speedrun (heute schon 3 gewertet)' : 'Speedrun', r.ergebnis);
+    return arenaNeu();
+  }
   if (o.begriff !== q.b.begriff) { sr.strafe += 5000; sr.fehler++; knopf.disabled = true; knopf.classList.add('falsch'); return; }
   if (++sr.i < sr.fragen.length) return arenaZeigen();
   clearInterval(AR.uhr);
@@ -6111,13 +6631,42 @@ async function srAntwort(knopf, o) {
   sr.ergebnis = { ms, rekord, alt, voll };
   await arenaPlus(15 + (sr.fehler ? 0 : 10) + (rekord ? 10 : 0), 'Speedrun');
 }
+// Heute, oben: die Serie auf einen Blick (Server-Version). Flamme und Zahl, die Woche als Punkte; beim ersten Öffnen am Tag zählt das Plus
+// einmal hoch. Dazu, was als Nächstes kommt: der nächste Meilenstein, Joker und der Platz der Woche. Sonst ruhig.
+const MEILENSTEINE = { 7: 50, 30: 150, 100: 500 };
+const flamme = () => { const s = el('span', { class: 'serie-flamme', 'aria-hidden': 'true' }); s.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>'; return s; };
+function zaehlHoch(knoten, bis, ms = 700) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { knoten.textContent = bis; return; }
+  const t0 = performance.now(), schritt = t => { const p = Math.min(1, (t - t0) / ms); knoten.textContent = Math.round(bis * (1 - (1 - p) ** 3)); if (p < 1) requestAnimationFrame(schritt); };
+  requestAnimationFrame(schritt);
+}
+function serieZeigen() {
+  const box = $('h-serie');
+  if (!SERVER || !ARENA?.serie) return box.replaceChildren();
+  const s = ARENA.serie, neu = SERIE_NEU, naechster = Object.keys(MEILENSTEINE).map(Number).find(m => m > s.tage);
+  SERIE_NEU = null;
+  const heuteXp = ARENA.tage[HEUTE]?.xp || 0, plus = el('b', {}, neu ? '0' : String(heuteXp));
+  box.replaceChildren(el('a', { class: 'serie', href: '#/arena', 'data-an': s.heute ? '' : null, 'data-neu': neu ? '' : null },
+    el('span', { class: 'serie-zahl' }, flamme(), el('b', {}, String(s.tage)), s.tage === 1 ? 'Tag in Folge' : 'Tage in Folge'),
+    el('span', { class: 'serie-tage', role: 'img', 'aria-label': `Diese Woche an ${wocheTage().filter(d => ARENA.tage[d]?.login).length} von 7 Tagen da` },
+      wocheTage().map(d => el('span', { 'data-an': ARENA.tage[d]?.login ? '' : null, 'data-heute': d === HEUTE ? '' : null }))),
+    heuteXp > 0 && el('span', { class: 'pille akzent serie-xp' }, '+', plus, ' XP heute'),
+    s.joker > 0 && el('span', { class: 'meta', title: 'Verpasst du einen Tag, rettet ein Joker deine Serie. Alle 7 Tage gibt es einen, höchstens zwei.' }, `${s.joker} Joker`),
+    naechster && el('span', { class: 'meta' }, `noch ${naechster - s.tage} ${naechster - s.tage === 1 ? 'Tag' : 'Tage'} bis +${MEILENSTEINE[naechster]} XP`),
+    ARENA.mit && ARENA.rang && el('span', { class: 'meta' }, `Platz ${ARENA.rang} diese Woche`)));
+  if (!neu) return;
+  zaehlHoch(plus, heuteXp);
+  if (neu.extra) status(`${neu.serie} Tage am Stück! +${neu.extra} XP Bonus.`);
+  else if (neu.gerettet) status(`Ein Joker hat deine Serie gerettet: ${neu.serie} Tage.`);
+}
 function arenaKurz() {  // Heute: Stand und ein Knopf zum Loslegen
   const box = $('h-arena-inhalt');
   if (!ARENA) { box.replaceChildren(el('p', { class: 'meta' }, 'Lädt …')); arenaLaden().then(arenaKurz, () => box.replaceChildren()); return; }
+  serieZeigen();
   const lv = LEVEL(ARENA.xp), t = ARENA.tage[HEUTE] || { min: 0, runden: 0 };
   box.replaceChildren(el('div', { class: 'arena-kurz' },
     el('p', {}, el('b', {}, `Level ${lv}`), ` · ${ARENA.xp} XP · Serie ${serie()} ${serie() === 1 ? 'Tag' : 'Tage'} · heute ${t.min} min`),
-    RUNDE ? el('p', { class: 'arena-gross' }, RUNDE.pause ? 'Pause ' : 'Fokus ', el('span', { 'data-runde-uhr': '' }, minuten(Math.max(0, RUNDE.halt ?? RUNDE.ende - Date.now()) + 999)))
+    RUNDE ? el('p', { class: 'arena-gross' }, RUNDE.pause ? 'Pause ' : 'Fokus ', el('span', { 'data-runde-uhr': '' }, minuten(rundeRest() + 999)))
       : el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: () => rundeStarten(AR.minuten) }, `${AR.minuten} Minuten Fokus starten`),
         el('button', { class: 'knopf', type: 'button', onclick: () => rundeStarten(2) }, 'Nur 2 Minuten anfangen'))));
 }
@@ -6130,7 +6679,7 @@ async function arenaZeigen() {
   }
   const lv = LEVEL(ARENA.xp), von = levelXp(lv), bis = levelXp(lv + 1), t = ARENA.tage[HEUTE] || { min: 0, runden: 0 }, sr = AR.sr;
   const erledigt = ARENA.erledigt[HEUTE] || [], faecher = Object.keys(R).filter(f => aktuell(f)?.begriffe?.length);
-  const uhr = () => minuten(Math.max(0, RUNDE.halt ?? RUNDE.ende - Date.now()) + 999);
+  const uhr = () => minuten(rundeRest() + 999);
   const fokus = RUNDE?.pause ? [
       el('p', { class: 'arena-gross', 'data-runde-uhr': '' }, uhr()),
       el('p', {}, el('b', {}, 'Pause. '), RUNDE.tipp),
@@ -6138,7 +6687,7 @@ async function arenaZeigen() {
         el('button', { class: 'knopf', type: 'button', onclick: rundeAbbrechen }, 'Für heute aufhören'))]
     : RUNDE ? [
       el('p', { class: 'arena-gross', 'data-runde-uhr': '' }, uhr()),
-      el('div', { class: 'arena-balken', 'aria-hidden': 'true' }, el('span', { 'data-runde-balken': '', style: `width:${100 - Math.max(0, RUNDE.halt ?? RUNDE.ende - Date.now()) / (RUNDE.min * 600)}%` })),
+      el('div', { class: 'arena-balken', 'aria-hidden': 'true' }, el('span', { 'data-runde-balken': '', style: `width:${100 - rundeRest() / (RUNDE.min * 600)}%` })),
       el('p', {}, RUNDE.aufgabe ? ['Du arbeitest an: ', el('b', {}, RUNDE.aufgabe)] : 'Eine Sache, sonst nichts. Handy weg, alle anderen Tabs zu.', RUNDE.fach && ` (${RUNDE.fach})`),
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: rundeHalten }, RUNDE.halt != null ? 'Weiter' : 'Kurz anhalten'),
         el('button', { class: 'knopf', type: 'button', onclick: rundeAbbrechen }, 'Beenden'))]
@@ -6152,12 +6701,13 @@ async function arenaZeigen() {
         onclick: () => { AR.minuten = m; merk('arena-min', String(m)); arenaZeigen(); } }, `${m} min`))),
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: () => rundeStarten(AR.minuten) }, `${AR.minuten} Minuten starten`),
         el('button', { class: 'knopf', type: 'button', onclick: () => rundeStarten(2) }, 'Keine Lust? Nur 2 Minuten anfangen')),
-      el('p', { class: 'meta' }, 'Nach jeder Runde 5 Minuten Pause, nach jeder vierten 15. Jede Minute gibt 1 XP; wer abbricht, behält die Minuten.')];
+      el('p', { class: 'meta' }, SERVER ? 'Nach jeder Runde 5 Minuten Pause, nach jeder vierten 15. Jede Minute gibt 1 XP, wer abbricht, behält die Minuten. Gezählt wird, solange der Lernhelfer offen ist; kurz in eine andere App wechseln zählt bis 5 Minuten mit. Höchstens 240 Fokus-XP am Tag.'
+        : 'Nach jeder Runde 5 Minuten Pause, nach jeder vierten 15. Jede Minute gibt 1 XP; wer abbricht, behält die Minuten.')];
   const speed = sr && !sr.ergebnis ? [
       el('div', { class: 'block-kopf' }, el('p', { class: 'arena-gross', 'data-sr-uhr': '' }, sekunden(Date.now() - sr.start + sr.strafe)), el('p', { class: 'meta' }, `${sr.i + 1} von ${sr.fragen.length} · ${sr.fehler} Fehler`)),
       el('p', { class: 'arena-def' }, sr.fragen[sr.i].b.definition),
       el('div', { class: 'arena-optionen' }, sr.fragen[sr.i].optionen.map(o => el('button', { type: 'button', class: 'knopf', onclick: e => srAntwort(e.currentTarget, o) }, o.begriff))),
-      el('button', { class: 'knopf', type: 'button', onclick: () => { clearInterval(AR.uhr); AR.sr = null; arenaZeigen(); } }, 'Abbrechen')]
+      el('button', { class: 'knopf', type: 'button', onclick: () => { clearInterval(AR.uhr); if (AR.sr.server) api('arena/speed', { abbruch: true }).catch(() => {}); AR.sr = null; arenaZeigen(); } }, 'Abbrechen')]
     : [
       sr?.ergebnis && el('p', { class: 'arena-lob' }, el('b', {}, sekunden(sr.ergebnis.ms)), sr.fehler ? ` mit ${sr.fehler} ${sr.fehler === 1 ? 'Fehler' : 'Fehlern'} (je +5 s).` : ' ohne Fehler.',
         sr.ergebnis.rekord ? (sr.ergebnis.alt ? ` Neue Bestzeit, ${sekunden(sr.ergebnis.alt - sr.ergebnis.ms)} schneller!` : ' Deine erste Bestzeit.') : sr.ergebnis.alt ? ` Bestzeit bleibt ${sekunden(sr.ergebnis.alt)}.` : '',
@@ -6167,7 +6717,9 @@ async function arenaZeigen() {
         : el('p', { class: 'leer' }, 'Sobald deine Ausgaben Begriffe haben, geht es hier los.'),
       Object.keys(ARENA.best).length > 0 && el('p', { class: 'meta' }, 'Bestzeiten: ' + Object.entries(ARENA.best).map(([f, ms]) => `${f === 'alle' ? 'alle Fächer' : f} ${sekunden(ms)}`).join(' · '))];
   const tage = wocheTage(), maxMin = Math.max(25, ...tage.map(d => ARENA.tage[d]?.min || 0));
-  const challenge = ([id, text, ok]) => el('li', { class: erledigt.includes(id) ? 'erledigt' : null },
+  const challenge = SERVER ? c => el('li', { class: c.ok ? 'erledigt' : null }, el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: c.ok, disabled: true }), el('span', {}, c.text)),
+    el('span', { class: 'pille' }, c.ok ? 'geschafft · 25 XP' : '25 XP'))
+    : ([id, text, ok]) => el('li', { class: erledigt.includes(id) ? 'erledigt' : null },
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: erledigt.includes(id), disabled: !!ok,
       onchange: async e => { const l = ARENA.erledigt[HEUTE] ??= []; if (e.target.checked) l.push(id); else l.splice(l.indexOf(id), 1); await arenaPlus(e.target.checked ? 25 : -25, 'Challenge'); } }),
       el('span', {}, text)), el('span', { class: 'pille' }, ok ? 'zählt von selbst · 25 XP' : '25 XP'));
@@ -6176,52 +6728,65 @@ async function arenaZeigen() {
       el('p', { class: 'schlagzeile' }, 'Lernen als Spiel: kurze Fokus-Runden, Tagesziele, Speedruns und eine Bestenliste.')),
     el('section', { class: 'arena-stand', 'aria-label': 'Dein Stand' },
       kachel('Level', lv, `${ARENA.xp} XP · noch ${bis - ARENA.xp} bis Level ${lv + 1}`),
-      kachel('Serie', `${serie()} ${serie() === 1 ? 'Tag' : 'Tage'}`, t.runden ? 'heute schon gelernt' : 'heute noch keine Runde'),
+      kachel('Serie', `${serie()} ${serie() === 1 ? 'Tag' : 'Tage'}`, SERVER ? `Rekord ${ARENA.serie.bester} · ${ARENA.serie.joker} ${ARENA.serie.joker === 1 ? 'Joker' : 'Joker'}` : t.runden ? 'heute schon gelernt' : 'heute noch keine Runde'),
       kachel('Heute', `${t.min} min`, `${t.runden} ${t.runden === 1 ? 'Runde' : 'Runden'}`),
       kachel('Diese Woche', `${wocheSumme('min')} min`, `${wocheSumme('xp')} XP, letzte Woche ${wocheSumme('xp', -1)}`)),
     el('div', { class: 'arena-balken', role: 'progressbar', 'aria-label': `Fortschritt zu Level ${lv + 1}`, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round((ARENA.xp - von) / (bis - von) * 100) },
       el('span', { style: `width:${(ARENA.xp - von) / (bis - von) * 100}%` })),
     el('section', { class: 'schritt' }, el('h2', {}, RUNDE?.pause ? 'Pause' : 'Fokus-Runde'), fokus),
     el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, 'Challenges für heute'), el('p', { class: 'meta' }, `${erledigt.length} von 3`)),
-      el('ul', { class: 'arena-liste' }, heuteChallenges().map(challenge))),
+      el('ul', { class: 'arena-liste' }, (SERVER ? ARENA.challenges : heuteChallenges()).map(challenge)),
+      SERVER && el('p', { class: 'meta' }, 'Zählen von selbst, sobald du sie schaffst. Jeden Tag drei neue, für alle dieselben.')),
     el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, 'Begriffe-Speedrun'), el('p', { class: 'meta' }, '10 Begriffe, so schnell du kannst; Fehler kosten 5 s')), speed),
     el('section', { class: 'block' }, el('h2', {}, 'Deine Woche'),
       el('div', { class: 'arena-woche' }, tage.map(d => el('div', { class: d === HEUTE ? 'heute' : null, title: `${ARENA.tage[d]?.min || 0} min` },
         el('span', { class: 'arena-saeule', style: `height:${(ARENA.tage[d]?.min || 0) / maxMin * 100}%` }), el('span', { class: 'meta' }, datum(d, { weekday: 'short' }))))),
       el('p', { class: 'meta' }, `${wocheSumme('runden')} Runden, ${wocheSumme('min')} Minuten. Insgesamt ${gesamt('min')} Minuten in ${gesamt('runden')} Runden.`)),
-    el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, 'Bestenliste'), el('p', { class: 'meta' }, 'XP dieser Woche, jeden Montag neu')), bestenliste()),
+    el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, 'Bestenliste'), el('p', { class: 'meta' }, SERVER ? wertung() : 'XP dieser Woche, jeden Montag neu')), bestenliste()),
     el('section', { class: 'block' }, el('h2', {}, 'Abzeichen'), el('ul', { class: 'arena-abzeichen' }, ABZEICHEN.map(([id, name, wofuer]) =>
-      el('li', { class: ARENA.abzeichen[id] ? 'hat' : null }, el('b', {}, name), el('span', { class: 'meta' }, ARENA.abzeichen[id] ? `${wofuer} · seit ${kurz(ARENA.abzeichen[id])}` : wofuer))))),
+      el('li', { class: ARENA.abzeichen[id] ? 'hat' : null }, el('b', {}, name), el('span', { class: 'meta' }, typeof ARENA.abzeichen[id] === 'string' ? `${wofuer} · seit ${kurz(ARENA.abzeichen[id])}` : wofuer))))),
   ].filter(Boolean));
+}
+const wertung = () => {  // Sonntag um Mitternacht (Innsbruck) wird gewertet
+  const bis = 7 - (heute.getDay() + 6) % 7;
+  return bis === 1 ? 'Wertung heute um Mitternacht' : `Wertung in ${bis} Tagen, jeden Montag neu`;
+};
+function bestenlisteServer(box) {
+  if (ARENA.aus) return box.append(el('p', { class: 'klein' }, 'Du kannst in der Arena gerade nicht in der Bestenliste mitmachen. Fragen dazu: Support.'));
+  const P = ARENA.preise;
+  const preise = P && el('p', { class: 'arena-preise' }, P.texte.map((x, i) => x && el('span', { 'data-platz': i + 1 }, `Platz ${i + 1}: ${x}`)), el('span', { class: 'meta' }, `ab ${P.min} XP in der Woche`));
+  if (!ARENA.mit) {
+    const name = el('input', { type: 'text', maxlength: 24, value: ARENA.name, placeholder: 'Spitzname, nicht dein echter Name', autocomplete: 'off' });
+    return box.append(...[el('p', { class: 'klein' }, 'Miss dich mit anderen Studierenden. Sichtbar sind nur dein Spitzname, deine XP, Minuten und Serie dieser Woche.'), preise,
+      el('div', { class: 'knopfreihe' }, name, el('button', { class: 'knopf voll', type: 'button', onclick: async () => {
+        try { arenaVomServer(await api('arena', { name: name.value })); } catch (e) { return status(e.message, true); }
+        arenaZeigen();
+      } }, 'Mitmachen'))].filter(Boolean));
+  }
+  const zeile = x => el('li', { class: x.ich ? 'ich' : null, 'data-platz': x.platz <= 3 ? x.platz : null },
+    el('b', { class: 'platz' }, `${x.platz}.`), el('span', {}, x.name), el('span', { class: 'meta' }, `${x.min} min · Serie ${x.serie}`), el('b', {}, `${x.xp} XP`));
+  const ich = ARENA.liste.find(x => x.ich) || ARENA.ich, vor = ich && ich.platz > 1 && (ARENA.liste[ich.platz - 2]);
+  box.append(...[
+    ARENA.meinPreis && el('p', { class: 'arena-lob' }, el('b', {}, `Platz ${ARENA.meinPreis.platz} letzte Woche!`), ` Dein Preis: ${ARENA.meinPreis.preis}${ARENA.preisBis ? `, gilt bis ${new Date(ARENA.preisBis).toLocaleDateString('de-AT')}` : ''}.`),
+    preise,
+    ARENA.live > 0 && el('p', { class: 'meta' }, `Gerade lernen ${ARENA.live} ${ARENA.live === 1 ? 'Person' : 'Leute'} in einer Fokus-Runde.`),
+    ARENA.liste.length ? el('ol', { class: 'arena-rang' }, ARENA.liste.map(zeile), ARENA.ich && [el('li', { class: 'luecke', 'aria-hidden': 'true' }, '…'), zeile(ARENA.ich)])
+      : el('p', { class: 'leer' }, 'Diese Woche noch niemand. Sei die erste Person!'),
+    vor && el('p', { class: 'meta' }, `Noch ${vor.xp - ich.xp + 1} XP bis Platz ${vor.platz}.`),
+    ARENA.letzte.length > 0 && el('p', { class: 'meta' }, 'Letzte Woche: ' + ARENA.letzte.map(x => `${x.platz}. ${x.name} (${x.xp} XP)`).join(' · ')),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async () => { try { arenaVomServer(await api('arena')); } catch (e) { status(e.message, true); } arenaZeigen(); } }, 'Aktualisieren'),
+      el('button', { class: 'knopf', type: 'button', onclick: async () => {
+        if (!confirm('Nicht mehr in der Bestenliste erscheinen? Deine XP bleiben.')) return;
+        try { arenaVomServer(await api('arena', { aus: true })); } catch (e) { status(e.message, true); }
+        arenaZeigen();
+      } }, 'Nicht mehr mitmachen'))].filter(Boolean));
 }
 function bestenliste() {
   const box = el('div', {});
-  if (!SERVER) {  // eigene Version: niemand sonst da, also gegen dich selbst
-    box.append(el('p', { class: 'klein' }, 'Mit anderen messen kannst du dich in der Server-Version. Hier trittst du gegen dich selbst an:'),
-      tabelle(['Woche', 'XP', 'Minuten', 'Runden'], [0, -1, -2, -3].map(n => [n ? `vor ${-n} ${n === -1 ? 'Woche' : 'Wochen'}` : 'diese', wocheSumme('xp', n), wocheSumme('min', n), wocheSumme('runden', n)])));
-    return box;
-  }
-  if (!ARENA.mit) {
-    const name = el('input', { type: 'text', maxlength: 24, value: ARENA.name, placeholder: 'Spitzname, nicht dein echter Name', autocomplete: 'off' });
-    box.append(el('p', { class: 'klein' }, 'Miss dich mit anderen Studierenden. Sichtbar sind nur dein Spitzname, XP, Minuten und Serie dieser Woche.'),
-      el('div', { class: 'knopfreihe' }, name, el('button', { class: 'knopf voll', type: 'button', onclick: async () => {
-        try { await api('arena', { name: name.value, xp: wocheSumme('xp'), min: wocheSumme('min'), serie: serie(), laeuft: 0 }); }
-        catch (e) { return status(e.message, true); }
-        Object.assign(ARENA, { mit: true, name: name.value.trim() }); AR.liste = null; await ARENA_D.speichern().catch(() => {}); arenaZeigen();
-      } }, 'Mitmachen')));
-    return box;
-  }
-  if (!AR.liste) { box.append(el('p', { class: 'meta' }, 'Lädt …')); api('arena').then(j => { AR.liste = j; arenaNeu(); }, e => box.replaceChildren(el('p', { class: 'fehlertext' }, e.message))); return box; }
-  const { liste, live } = AR.liste;
-  box.append(live > 0 && el('p', { class: 'arena-lob' }, `Gerade lernen ${live} ${live === 1 ? 'Person' : 'Leute'} mit dir.`),
-    liste.length ? el('ol', { class: 'arena-rang' }, liste.map((x, i) => el('li', { class: x.ich ? 'ich' : null },
-      el('b', {}, `${i + 1}.`), el('span', {}, x.name), el('span', { class: 'meta' }, `${x.min} min · Serie ${x.serie}`), el('b', {}, `${x.xp} XP`))))
-      : el('p', { class: 'leer' }, 'Diese Woche noch niemand. Sei die erste Person!'),
-    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => { AR.liste = null; arenaZeigen(); } }, 'Aktualisieren'),
-      el('button', { class: 'knopf', type: 'button', onclick: async () => {
-        if (!confirm('Nicht mehr in der Bestenliste erscheinen?')) return;
-        await api('arena', { aus: true }).catch(() => {}); ARENA.mit = false; await ARENA_D.speichern().catch(() => {}); arenaZeigen();
-      } }, 'Nicht mehr mitmachen')));
+  if (SERVER) { bestenlisteServer(box); return box; }
+  // eigene Version: niemand sonst da, also gegen dich selbst
+  box.append(el('p', { class: 'klein' }, 'Mit anderen messen kannst du dich in der Server-Version. Hier trittst du gegen dich selbst an:'),
+    tabelle(['Woche', 'XP', 'Minuten', 'Runden'], [0, -1, -2, -3].map(n => [n ? `vor ${-n} ${n === -1 ? 'Woche' : 'Wochen'}` : 'diese', wocheSumme('xp', n), wocheSumme('min', n), wocheSumme('runden', n)])));
   return box;
 }
 
@@ -6240,7 +6805,7 @@ function modellWahl() {
 // Beta: nur die Bereiche, die der Admin für das Konto angehakt hat. Alle anderen Tarife: Reihenfolge wie im HTML, gesperrte mit Marke „Pro“ oder „Ultra“.
 const WERKZEUGE = [...document.querySelectorAll('#nav-werkzeuge > a')];
 const BEREICHE = WERKZEUGE.map(a => a.dataset.ansicht).filter(v => v !== 'upgrade');  // was der Admin für Beta anhaken kann
-const ENGLISCH_VORN = ['wordpower', 'vortrag', 'unterlagen'];
+const ENGLISCH_VORN = ['wordpower', 'vortrag'];
 const ANSICHTEN = { start: 'Start', arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
 const betaWeg = v => SERVER && !!ICH?.beta && !ICH.ecke && BEREICHE.includes(v) && !ICH.beta.includes(v);  // Beta: diesen Bereich nicht zeigen
@@ -6258,7 +6823,9 @@ function leisteOrdnen() {
   // Handy: unten nur, was oben in der Seitenleiste steht; Word Power springt für einen fehlenden Kalender ein
   document.querySelectorAll('.tabs a[data-ansicht]').forEach(a => { a.hidden ||= zu(a.dataset.ansicht) || betaWeg(a.dataset.ansicht); });
   $('tab-wordpower').hidden ||= !document.querySelector('.tabs a[data-ansicht="kalender"]').hidden;
+  [...document.querySelectorAll('.tabs a[data-ansicht]')].filter(a => !a.hidden).forEach((a, i) => a.classList.toggle('ueber', i >= 4));  // vier Tabs, der Rest unter „Mehr“
 }
+const mehrZu = () => { document.body.classList.remove('leiste-offen'); $('tab-mehr').setAttribute('aria-expanded', 'false'); };
 // Start: eine Seite für alle, die neu sind. Oben der eine nächste Schritt zum Drücken, darunter in drei Sätzen, wie es läuft.
 const eingerichtet = () => !SERVER ? fertig() : !!ICH && (ICH.tarif === 'englisch' || !!ICH.pc || !!ABGLEICH || Object.keys(R).length > 0);
 function startZeigen() {
@@ -6267,7 +6834,7 @@ function startZeigen() {
   $('start').replaceChildren(...[
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Los geht’s'), el('p', { class: 'schlagzeile' }, englisch ? 'Word Power, Vortrag und Unterlagen, ohne etwas einzurichten.' : 'Einmal einrichten, dann kommt jede Woche alles von selbst.')),
     !ICH ? kasten('Noch kein Konto? Hier drücken:', el('a', { class: 'knopf voll', href: '#/einstellungen' }, 'Konto erstellen'), el('p', { class: 'klein' }, 'Kostenlos, nur mit E-Mail und Passwort.'))
-    : englisch ? kasten('Du musst nichts einrichten', el('p', { class: 'klein' }, 'Links stehen deine drei Werkzeuge. Alles andere findest du darunter unter „Weitere Funktionen“.'),
+    : englisch ? kasten('Du musst nichts einrichten', el('p', { class: 'klein' }, 'In der Leiste stehen Word Power und Vortrag, deine Unterlagen weiter unten. Alles andere findest du unter „Weitere Funktionen“, am Handy unter „Mehr“.'),
       el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower' }, 'Word Power'), el('a', { class: 'knopf', href: '#/vortrag' }, 'Vortrag'), el('a', { class: 'knopf', href: '#/unterlagen' }, 'Unterlagen')))
     : !eingerichtet() ? kasten('Noch nicht eingerichtet? Hier drücken:', pcEinrichten(), el('p', { class: 'klein' }, 'Kein Windows-PC oder Mac? ', el('a', { href: '#/unterlagen' }, 'Folien selbst hochladen'), '.'))
     : el('section', { class: 'start-jetzt fertig' }, el('h2', {}, 'Fertig eingerichtet'),
@@ -6312,6 +6879,7 @@ async function zeichne() {
     if (SERVER && ICH && f && !darf(f) && a.closest('.navi')) a.dataset.marke = stufeName(f); else delete a.dataset.marke;
   });
   if ($('nav-mehr').querySelector('[aria-current]')) $('nav-mehr').open = true;  // gerade dort: aufgeklappt lassen
+  mehrZu(); $('tab-mehr').toggleAttribute('data-hier', !document.querySelector('.tabs a[aria-current]:not(.ueber):not([hidden])'));
   $('nav-faecher').replaceChildren(...Object.keys(R).map(f => el('a', { href: `#/${encodeURIComponent(f)}`, 'aria-current': neu === 'ausgabe' && teil === f ? 'page' : null },
     el('span', { class: 'punkt', 'data-fach': f, 'aria-hidden': 'true' }), f, R[f].druckt && el('span', { class: 'laeuft', role: 'img', 'aria-label': 'wird erstellt' }))));
   $('nav-faecher-kopf').hidden = !fertig() || !Object.keys(R).length;
@@ -6362,6 +6930,7 @@ async function start() {
   if (await zeichne() === 'verbunden') return;
   kosten();
   if (!fertig()) return;
+  arenaTagMelden();
   if (!SERVER) STIL_D.laden().catch(() => {});  // Server-Version: Stilwünsche setzt der Server ein
   status('Lade die Ausgaben …');
   kalenderNachladen();
@@ -6374,6 +6943,9 @@ window.onhashchange = () => SERVER && /^#(bestaetigen|passwort)=/.test(location.
 if (SERVER) for (const a of document.querySelectorAll('a[data-ansicht="einstellungen"]')) a.lastChild.textContent = 'Konto';
 $('design').value = merk('design') || '';
 $('design').onchange = () => { merk('design', $('design').value || null); aussehen(); };
+$('tab-mehr').onclick = () => $('tab-mehr').setAttribute('aria-expanded', document.body.classList.toggle('leiste-offen'));
+$('seitenleiste').addEventListener('click', e => { if (e.target.closest('a')) mehrZu(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('leiste-offen')) mehrZu(); });
 for (const s of document.querySelectorAll('.thema-schalter')) s.onclick = () => { merk('thema', s.getAttribute('aria-checked') === 'true' ? null : 'dunkel'); aussehen(); };
 aussehen();
 $('modell').onchange = () => { merk('modell', $('modell').value); $('modell-name').textContent = $('modell').value; };

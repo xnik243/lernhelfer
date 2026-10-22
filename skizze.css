@@ -72,7 +72,6 @@ body { background-color: var(--bg); background-image: radial-gradient(circle at 
 main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 92%; }
 .fach .schlagzeile, #ausgabe .ausgabe-kopf .schlagzeile { font-weight: 600; font-stretch: 94%; letter-spacing: -0.01em; }
 .vt-zitat, .vt-du { font-style: normal; }
-.vt-zitat::before, .vt-du::before { content: "„"; } .vt-zitat::after, .vt-du::after { content: "“"; }
 
 /* ---------- Gerüst: Seitenleiste mit gezeichnetem Schriftzug und Strich statt Kante ---------- */
 @media (min-width: 900px) {
@@ -88,8 +87,8 @@ main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 9
 .navi .punkt::before { border-radius: 50% 42% 55% 46%; }
 .navi hr { height: 6px; border: 0; background: var(--strich-waagrecht) left center / 360px 6px repeat-x; opacity: 0.6; }
 .tabs { border-top: 0; background: var(--strich-waagrecht) left top / 360px 6px repeat-x, color-mix(in srgb, var(--bg) 90%, transparent); }
-.tabs a[aria-current] { color: var(--auf-gelb); background: var(--marker) center calc(100% - 7px) / min(80%, 76px) 13px no-repeat; }
-.tabs a[aria-current] svg.ic { color: var(--text); }
+.tabs :is(a[aria-current], button[data-hier], button[aria-expanded="true"]) { color: var(--auf-gelb); background: var(--marker) center calc(100% - 7px) / min(80%, 76px) 13px no-repeat; }
+.tabs :is(a[aria-current], button[data-hier], button[aria-expanded="true"]) svg.ic { color: var(--text); }
 
 /* ---------- Gezeichnete Kästen ---------- */
 :is(.fach, .abschnitt:not(.blick), .aufgabe, .schritt, .kal-panel, .tarif, .sperrkarte, .assistent, .liste-rahmen, .woche, .testzeilen, .ul-liste,

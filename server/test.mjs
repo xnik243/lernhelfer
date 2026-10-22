@@ -338,7 +338,8 @@ try {
   assert.equal((await anna2('GET', '/api/ich')).j.email, 'anna@example.com');
 
   // Alle meine Daten herunterladen: ZIP mit Konto und jeder Datei im Speicher; der PC-Schlüssel darf das nicht
-  await anna2('POST', '/api/arena', { name: 'Anni', xp: 120, min: 25, serie: 2 });
+  await anna2('POST', '/api/arena', { name: 'Anni' });
+  await anna2('POST', '/api/arena/tag', {});
   const zipAntwort = await fetch(BASIS + '/api/export', { headers: { Cookie: (await (async () => { const r = await fetch(BASIS + '/api/anmelden', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BASIS }, body: JSON.stringify({ email: 'anna@example.com', passwort: 'neues-passwort-1' }) }); return r.headers.getSetCookie()[0].split(';')[0]; })()) } });
   assert.equal(zipAntwort.status, 200); assert.equal(zipAntwort.headers.get('content-type'), 'application/zip');
   assert.match(zipAntwort.headers.get('content-disposition'), /lernhelfer-daten-\d{4}-\d\d-\d\d\.zip/);
@@ -346,7 +347,7 @@ try {
   assert.equal(z['dateien/faecher/BWL.json'], 'neu'); assert.equal(z['dateien/abgleich.json'], '{"ok":true}'); assert.match(z['LIESMICH.txt'], /nur auf deinem Gerät/);
   assert.equal(kj.email, 'anna@example.com'); assert.equal(kj.bestellungen.length, 3); assert.equal(kj.bestellungen[0].status, 'storniert'); assert.equal(kj.bestellungen[1].betrag_euro, 6.93);
   assert.ok(kj.nutzung.some(x => x.was === 'unterlagen')); assert.equal(kj.fehlerberichte[0].text, 'Ausgabe bricht ab'); assert.ok(kj.ueber_einladung);
-  assert.deepEqual([kj.arena.name, kj.arena.xp, kj.arena.min, kj.arena.serie], ['Anni', 120, 25, 2], 'Arena-Eintrag im Export'); assert.match(kj.arena.woche, /^\d{4}-\d\d-\d\d$/);
+  assert.equal(kj.arena.teilnahme.name, 'Anni', 'Arena im Export'); assert.equal(kj.arena.serie.serie, 1); assert.equal(kj.arena.xp[0].art, 'login');
   assert.equal((await mitPc('GET', '/api/export')).status, 401, 'PC-Schlüssel: kein Export');
   // Konto löschen: Daten weg, Bestellungen bleiben für die Buchhaltung, Schlüssel bei OpenRouter gelöscht
   assert.equal((await anna2('POST', '/api/konto-loeschen', { passwort: 'falsch' })).status, 403);
@@ -420,12 +421,67 @@ try {
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.model, 'deepseek/deepseek-v4.1-flash-1017');
   assert.equal((await max('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 200);
   assert.equal(or.anfragen.at(-1).model, 'deepseek/deepseek-v4.1-flash-1017'); assert.equal(or.anfragen.at(-1).reasoning.effort, 'high');
-  // Arena: Bestenliste nur mit Spitzname, Zahlen gedeckelt, eigener Eintrag markiert, laufende Runden gezählt
+  // Arena: XP nur vom Server. Zahlen vom Gerät zählen nicht, Anmelde-XP einmal am Tag, Runde ohne gemessene Zeit bringt nichts,
+  // Speedrun mit Antworten vom Server (falsche kosten 5 s), Spitzname eindeutig, gesperrte Konten kommen nicht wieder rein
   assert.equal((await max('POST', '/api/arena', { name: 'x' })).status, 400);
-  await max('POST', '/api/arena', { name: 'Maxi', xp: 1e9, min: 50, serie: 3, laeuft: Date.now() + 60e3 });
+  let ar = (await max('POST', '/api/arena', { name: 'Maxi', xp: 1e9, min: 50, serie: 3 })).j;
+  assert.deepEqual([ar.mit, ar.xp, ar.liste[0].name, ar.liste[0].xp, ar.liste[0].ich], [true, 0, 'Maxi', 0, true], 'XP vom Gerät zählen nicht');
   assert.equal((await chef('POST', '/api/arena', { name: 'maxi' })).status, 409, 'Spitzname vergeben');
-  const ar = (await max('GET', '/api/arena')).j;
-  assert.deepEqual([ar.liste[0].name, ar.liste[0].xp, ar.liste[0].ich, ar.live], ['Maxi', 20000, true, 1]);
+  ar = (await max('POST', '/api/arena/tag', {})).j;
+  assert.deepEqual([ar.neu.xp, ar.neu.serie, ar.serie.tage, ar.serie.heute, ar.xp], [10, 1, 1, true, 10], 'Anmelde-XP');
+  assert.equal((await max('POST', '/api/arena/tag', {})).j.neu, null, 'nur einmal am Tag');
+  assert.equal((await max('POST', '/api/arena/runde', { start: 7 })).status, 400, 'nur feste Längen');
+  ar = (await max('POST', '/api/arena/runde', { start: 20 })).j;
+  assert.equal(ar.lauf.min, 20); assert.equal(ar.live, 1);
+  assert.equal((await max('POST', '/api/arena/runde', { start: 20 })).status, 409, 'eine Runde auf einmal');
+  assert.ok((await max('POST', '/api/arena/runde', { puls: true })).j.aktiv < 60e3);
+  ar = (await max('POST', '/api/arena/runde', { ende: true })).j;
+  assert.deepEqual([ar.ergebnis.min, ar.ergebnis.xp, ar.ergebnis.runde, ar.xp, ar.lauf], [0, 0, false, 10, null], 'sofort beendet: nichts gezählt');
+  assert.equal((await max('POST', '/api/arena/runde', { ende: true })).status, 410);
+  assert.equal(ar.challenges.length, 3);
+  assert.equal((await max('POST', '/api/arena/speed', { start: '' })).status, 400, 'ohne Begriffe kein Speedrun');
+  const begriffe = Array.from({ length: 6 }, (_, i) => ({ begriff: `Begriff ${i}`, definition: `Bedeutung ${i}` }));
+  await max('PUT', gh('lernseiten/BWL/2026-10-01.md'), { content: b64('## Auf einen Blick\n- x\n\n```json\n' + JSON.stringify({ begriffe: begriffe.slice(0, 2) }) + '\n```') });
+  await max('PUT', gh('lernseiten/BWL/2026-10-08.md'), { content: b64('## Auf einen Blick\n- x\n\n```json\n' + JSON.stringify({ begriffe }) + '\n```') });
+  const sr = (await max('POST', '/api/arena/speed', { start: 'BWL' })).j;
+  assert.equal(sr.fragen.length, 6, 'neueste Ausgabe'); assert.equal(sr.fragen[0].richtig, undefined, 'die Lösung bleibt auf dem Server');
+  let fehler = 0, ende;
+  for (const [i, q] of sr.fragen.entries()) {
+    const richtig = Number(q.definition.split(' ')[1]);
+    for (let w = 0; w < 4 && !ende; w++) {
+      if (q.optionen[w] !== `Begriff ${richtig}` && fehler) continue;  // genau einmal falsch antworten
+      const r = (await max('POST', '/api/arena/speed', { frage: i, wahl: w })).j;
+      if (r.richtig === false) { fehler++; continue; }
+      if (r.ergebnis) ende = r;
+      break;
+    }
+  }
+  assert.equal((await max('POST', '/api/arena/speed', { frage: 0, wahl: 0 })).status, 404, 'vorbei');
+  assert.deepEqual([ende.ergebnis.fehler, ende.ergebnis.voll, ende.ergebnis.rekord, ende.ergebnis.xp], [1, false, false, 15], 'Speedrun mit Fehler, unter 10 Begriffen keine Bestzeit');
+  assert.ok(ende.ergebnis.ms >= 5000, 'Fehler kostet 5 Sekunden');
+  assert.ok(ende.xp >= 25 && ende.tage[ende.heute].speedruns === 1);
+  const arDash = (await chef('GET', '/api/admin')).j.arena;
+  assert.equal(arDash.teilnehmer.find(x => x.konto === maxId).name, 'Maxi');
+  await chef('POST', '/api/admin/arena', { konto: maxId, sperren: true });
+  assert.equal((await max('GET', '/api/arena')).j.liste.length, 0, 'gesperrt: nicht in der Liste');
+  assert.equal((await max('POST', '/api/arena', { name: 'Maxi2' })).status, 403, 'gesperrt: kein Wiedereinstieg');
+  await chef('POST', '/api/admin/arena', { konto: maxId, sperren: false });
+  assert.equal((await max('GET', '/api/arena')).j.liste[0].name, 'Maxi');
+  const nutzungMax = (await chef('POST', '/api/admin/konto', { konto: maxId })).j;
+  assert.equal(nutzungMax.email, 'max@example.com'); assert.ok(nutzungMax.nutzung.some(x => x.name === 'Arena: Speedrun')); assert.ok(nutzungMax.tage.length >= 1);
+  assert.equal((await max('POST', '/api/admin/konto', { konto: maxId })).status, 403, 'nur in der Admin-Ecke');
+  // Reflection-Feedback: erst nach dem Schalter in der Admin-Ecke, dann mit Englisch
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).reflexion, false);
+  const refl = { feature: 'reflexion', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] };
+  await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'englisch', tage: 30 });
+  assert.equal((await max('POST', '/api/ki', refl)).status, 403, 'aus');
+  await chef('POST', '/api/admin/werte', { reflexion: 1 });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).reflexion, true);
+  assert.equal((await max('POST', '/api/ki', refl)).status, 200, 'an, mit Englisch');
+  assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna');
+  assert.equal((await chef('POST', '/api/admin/werte', { reflexion: 2 })).status, 400);
+  await chef('POST', '/api/admin/werte', { reflexion: 0 });
+  await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
   // Auf Eis: Löser und Test-Fotos nur mit dem Zusatz Manual Access (vom Admin), und auch dann nur mit REGEL
   const foto = { feature: 'test-foto', model: 'google/gemini-3.8-flash', reasoning: { effort: 'max' }, provider: { x: 1 }, stil: false,
     messages: [{ role: 'user', content: [{ type: 'text', text: 'Abschreiben' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } }] }] };
