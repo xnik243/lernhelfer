@@ -477,6 +477,14 @@ try {
     assert.equal(r.status, 200, pfad); assert.match(r.headers.get('cache-control'), /max-age/);
     assert.equal('sha384-' + createHash('sha384').update(Buffer.from(await r.arrayBuffer())).digest('base64'), sri, pfad);
   }
+  // Admin löscht ein Konto: weg samt Sitzung; das eigene geht nur unter Konto, ohne Ecke gar nicht
+  const chefId = (await chef('GET', '/api/admin')).j.konten.find(x => x.email === 'chef@example.com').id;
+  assert.equal((await max('POST', '/api/admin/konto-loeschen', { konto: chefId })).status, 403);
+  assert.equal((await chef('POST', '/api/admin/konto-loeschen', { konto: chefId })).status, 400);
+  assert.equal((await chef('POST', '/api/admin/konto-loeschen', { konto: maxId })).status, 200);
+  assert.equal((await max('GET', '/api/ich')).status, 401);
+  assert.ok(!(await chef('GET', '/api/admin')).j.konten.some(x => x.id === maxId));
+  assert.equal((await chef('POST', '/api/admin/konto-loeschen', { konto: maxId })).status, 404);
   console.log('Server: alles in Ordnung.');
 } catch (e) {
   console.error(log);

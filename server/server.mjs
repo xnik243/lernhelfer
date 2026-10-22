@@ -214,6 +214,18 @@ const gruss = '\n\nViele Grüße\nLernhelfer';
 
 /* ---------- Konten ---------- */
 const kontoMit = id => db.prepare('select * from konten where id = ?').get(id);
+async function kontoWeg(k) {  // selbst gelöscht oder von der Admin-Ecke
+  // Kosten bleiben in der Bilanz der Admin-Ecke, ohne Bezug zur Person
+  db.prepare("insert into werte (name, wert) select 'ki-geloescht:' || monat, usd from verbrauch where konto = ? and monat != 'test' on conflict (name) do update set wert = wert + excluded.wert").run(k.id);
+  if (k.or_hash && E.LH_OR_VERWALTUNG) {
+    const u = await orNutzung(k.or_hash);
+    if (u) wertDazu.run('api-geloescht:' + monat(), u.gesamt);  // ponytail: ganzer Verbrauch des Schlüssels im Löschmonat gebucht
+    await orSchluessel('/' + k.or_hash, 'DELETE').catch(e => console.error(e.message));
+  }
+  db.prepare('update nutzung set konto = -konto where konto = ?').run(k.id);  // Nutzung bleibt nur als Zahl, ohne Bezug zur Person
+  db.prepare('update fehler set kontakt = null where konto = ?').run(k.id);
+  db.prepare('delete from konten where id = ?').run(k.id);  // Speicher, Sitzungen, Verbrauch gehen mit; Bestellungen bleiben für die Buchhaltung
+}
 const keks = (req, name) => new RegExp(`(?:^|;\\s*)${name}=([\\w-]+)`).exec(req.headers.cookie || '')?.[1];
 const sitzung = req => keks(req, 'lh');
 function konto(req) {
@@ -723,16 +735,7 @@ const ROUTEN = {
   'POST /api/konto-loeschen': async ({ k, b, res }) => {
     muss(k);
     if (!pwOk(String(b.passwort || ''), k.pw)) nein(403, 'Das Passwort stimmt nicht.');
-    // Kosten bleiben in der Bilanz der Admin-Ecke, ohne Bezug zur Person
-    db.prepare("insert into werte (name, wert) select 'ki-geloescht:' || monat, usd from verbrauch where konto = ? and monat != 'test' on conflict (name) do update set wert = wert + excluded.wert").run(k.id);
-    if (k.or_hash && E.LH_OR_VERWALTUNG) {
-      const u = await orNutzung(k.or_hash);
-      if (u) wertDazu.run('api-geloescht:' + monat(), u.gesamt);  // ponytail: ganzer Verbrauch des Schlüssels im Löschmonat gebucht
-      await orSchluessel('/' + k.or_hash, 'DELETE').catch(e => console.error(e.message));
-    }
-    db.prepare('update nutzung set konto = -konto where konto = ?').run(k.id);  // Nutzung bleibt nur als Zahl, ohne Bezug zur Person
-    db.prepare('update fehler set kontakt = null where konto = ?').run(k.id);
-    db.prepare('delete from konten where id = ?').run(k.id);  // Speicher, Sitzungen, Verbrauch gehen mit; Bestellungen bleiben für die Buchhaltung
+    await kontoWeg(k);
     abmelden(res);
   },
   'GET /api/geschuetzt/wordpower': async ({ k }) => {
@@ -818,6 +821,13 @@ const ROUTEN = {
   'POST /api/admin/bezahlt': ({ k, b }) => { admin(k); return freischalten(Number(b.id)); },
   'POST /api/admin/fehler': ({ k, b }) => { admin(k); db.prepare('update fehler set erledigt = ? where id = ?').run(jetzt(), Number(b.id)); },
   'POST /api/admin/storno': ({ k, b }) => { admin(k); db.prepare("update bestellungen set status = 'storniert' where id = ? and status in ('offen', 'gemeldet')").run(Number(b.id)); },
+  'POST /api/admin/konto-loeschen': async ({ k, b }) => {
+    admin(k);
+    const z = kontoMit(Number(b.konto));
+    if (!z) nein(404, 'Das Konto gibt es nicht mehr.');
+    if (z.id === k.id) nein(400, 'Dein eigenes Konto löschst du unter Konto.');
+    await kontoWeg(z);
+  },
   'POST /api/admin/tarif': async ({ k, b }) => {  // von Hand: Tarif für n Tage setzen (0 Tage = zurück auf Base), etwa als Geschenk oder Erstattung
     admin(k);
     const z = kontoMit(Number(b.konto)), tage = Number(b.tage);
