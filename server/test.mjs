@@ -115,6 +115,8 @@ try {
   const a = await anna('POST', '/api/registrieren', { email: 'anna@example.com', passwort: 'annas-passwort', agb: true, code: c.j.code.toLowerCase() });
   assert.equal(a.j.erstrabatt, true); assert.equal(a.j.testFrei, true);
   assert.equal((await fremd('POST', '/api/registrieren', { email: 'anna@example.com', passwort: 'irgendwas-langes', agb: true })).status, 409);
+  assert.equal((await fremd('POST', '/api/registrieren', { email: 'Anna+zwei@example.com', passwort: 'irgendwas-langes', agb: true })).status, 409, '+Zusatz: dasselbe Postfach');
+  assert.equal((await fremd('POST', '/api/registrieren', { email: 'weg@yopmail.com', passwort: 'irgendwas-langes', agb: true })).status, 400, 'Wegwerf-Adresse');
   assert.equal((await fremd('POST', '/api/anmelden', { email: 'anna@example.com', passwort: 'falsch-falsch' })).status, 401);
   assert.equal((await fremd('GET', '/api/ich')).status, 401);
   for (let i = 0; i < 10; i++) await fremd('POST', '/api/anmelden', { email: 'rate@example.com', passwort: 'falsch-falsch' });
@@ -156,6 +158,11 @@ try {
   assert.equal((await anna('POST', '/api/sprache', { input: [{ text: 'Hallo', voice: 'Kore' }] })).status, 402, 'Anhören ist Ultra');
   assert.equal((await anna('POST', '/api/ki', { feature: 'probeklausur', model: 'openai/gpt-6-luna', messages: [] })).status, 402);
   assert.equal((await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'anthropic/teuer', messages: [] })).status, 400);
+  // KI und Ultra-Test erst mit bestätigter Adresse
+  assert.equal((await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 403, 'unbestätigt: keine KI');
+  assert.equal((await anna('POST', '/api/test')).status, 403);
+  assert.equal((await anna('POST', '/api/bestaetigen', { token: await link('anna@example.com', 'bestaetigen') })).status, 200);
+  assert.match(log, /\/app#bestaetigen=/, 'Mail-Links führen in die App');
   r = await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }], plugins: [{ id: 'web' }] });
   assert.equal(r.j.choices[0].message.content, 'Antwort');
   assert.equal(or.anfragen.at(-1).auth, 'Bearer sk-or-server'); assert.equal(or.anfragen.at(-1).plugins, undefined, 'fremde Felder fliegen raus');
@@ -176,10 +183,7 @@ try {
   assert.equal((await anna('POST', '/api/fehler', { text: 'Ausgabe bricht ab', seite: '#/BWL', meldung: 'Die Verbindung ist abgerissen', geraet: 'Chrome' })).status, 200);
   assert.match(log, /\[Mail an chef@example.com\] Fehlerbericht #1: #\/einstellungen[\s\S]*gast@example.com[\s\S]*Registrieren hängt/);
 
-  // 24 Stunden Ultra: erst nach Bestätigung, dann Chat im Strom, Testbudget 0,50 $
-  assert.equal((await anna('POST', '/api/test')).status, 403);
-  assert.equal((await anna('POST', '/api/bestaetigen', { token: await link('anna@example.com', 'bestaetigen') })).status, 200);
-  assert.match(log, /\/app#bestaetigen=/, 'Mail-Links führen in die App');
+  // 24 Stunden Ultra: Chat im Strom, Testbudget 0,50 $
   assert.match((await anna('GET', '/')).text, /<a class="go" href="app">/, 'auch angemeldet zuerst die Startseite');
   r = await anna('POST', '/api/test');
   assert.equal(r.j.tarif, 'ultra'); assert.equal(r.j.test, true); assert.ok(r.j.bis - Date.now() > 23.9 * 3600e3);
@@ -347,6 +351,7 @@ try {
   assert.equal(z['dateien/faecher/BWL.json'], 'neu'); assert.equal(z['dateien/abgleich.json'], '{"ok":true}'); assert.match(z['LIESMICH.txt'], /nur auf deinem Gerät/);
   assert.equal(kj.email, 'anna@example.com'); assert.equal(kj.bestellungen.length, 3); assert.equal(kj.bestellungen[0].status, 'storniert'); assert.equal(kj.bestellungen[1].betrag_euro, 6.93);
   assert.ok(kj.nutzung.some(x => x.was === 'unterlagen')); assert.equal(kj.fehlerberichte[0].text, 'Ausgabe bricht ab'); assert.ok(kj.ueber_einladung);
+  assert.ok(kj.nutzung_mit_uhrzeit.some(x => x.was === 'seite:kalender' && x.zeit.endsWith('Z')), 'Uhrzeiten im Export');
   assert.equal(kj.arena.teilnahme.name, 'Anni', 'Arena im Export'); assert.equal(kj.arena.serie.serie, 1); assert.equal(kj.arena.xp[0].art, 'login');
   assert.equal((await mitPc('GET', '/api/export')).status, 401, 'PC-Schlüssel: kein Export');
   // Konto löschen: Daten weg, Bestellungen bleiben für die Buchhaltung, Schlüssel bei OpenRouter gelöscht
@@ -377,6 +382,7 @@ try {
   const lea = person();
   r = (await lea('POST', '/api/registrieren', { email: 'lea@example.com', passwort: 'leas-passwort-1', agb: true })).j;
   assert.equal(r.tarif, 'englisch'); assert.ok(Math.abs(r.bis - Date.now() - 180 * 864e5) < 60e3); assert.equal(r.testFrei, true);
+  await lea('POST', '/api/bestaetigen', { token: await link('lea@example.com', 'bestaetigen') });
   await lea('POST', '/api/ki', { feature: 'vortrag', model: 'openai/gpt-6-luna', reasoning: { effort: 'high' }, messages: [{ role: 'user', content: 'Analyse' }] });
   assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna', 'Englisch: Vortrag nicht mit DeepSeek'); assert.deepEqual(or.anfragen.at(-1).reasoning, { effort: 'high' });
   assert.equal((await lea('POST', '/api/ki', { feature: 'wp-transkript', model: 'google/gemini-4-argon', messages: [{ role: 'user', content: 'x' }] })).status, 200);
@@ -388,7 +394,6 @@ try {
   assert.equal((await lea('PUT', gh('vortraege/v1.json'), { content: b64('{}') })).status, 201, 'Vorträge speichern');
   assert.equal((await lea('PUT', gh('noten.json'), { content: b64('{}') })).status, 402);
   assert.equal((await lea('POST', '/api/bestellen', { tarif: 'englisch', monate: 1, sofort: true })).status, 400, 'Englisch gibt es nicht zu kaufen');
-  await lea('POST', '/api/bestaetigen', { token: await link('lea@example.com', 'bestaetigen') });
   assert.equal((await lea('POST', '/api/test')).j.tarif, 'ultra', 'Gratis-Test auch mit Englisch');
   await chef('POST', '/api/admin/werte', { 'neu-englisch': '0' });
   const max = person();
@@ -400,6 +405,13 @@ try {
   assert.equal((await chef('GET', '/api/admin')).j.kennzahlen.englisch, 2);
   await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
   assert.equal((await max('GET', '/api/ich')).j.tarif, 'base', 'zurück auf Base');
+  assert.equal((await max('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 403, 'unbestätigt: keine KI');
+  assert.equal((await max('POST', '/api/arena', { name: 'Maxi' })).status, 403, 'unbestätigt: keine Arena');
+  const mailsMax = log.split('[Mail an max@example.com]').length;
+  await chef('POST', '/api/admin/bestaetigung', { konto: maxId });
+  assert.equal(log.split('[Mail an max@example.com]').length, mailsMax + 1, 'Admin schickt die Bestätigung nochmal');
+  assert.equal((await max('POST', '/api/admin/bestaetigung', { konto: maxId })).status, 403);
+  await max('POST', '/api/bestaetigen', { token: await link('max@example.com', 'bestaetigen') });
 
   // Ecke sperren: Dashboard wieder zu; Raten wird gebremst
   assert.equal((await chef('POST', '/api/ecke-zu')).j.ecke, false);
@@ -469,6 +481,8 @@ try {
   assert.equal((await max('GET', '/api/arena')).j.liste[0].name, 'Maxi');
   const nutzungMax = (await chef('POST', '/api/admin/konto', { konto: maxId })).j;
   assert.equal(nutzungMax.email, 'max@example.com'); assert.ok(nutzungMax.nutzung.some(x => x.name === 'Arena: Speedrun')); assert.ok(nutzungMax.tage.length >= 1);
+  const speed = nutzungMax.zeiten.find(x => x.name === 'Arena: Speedrun');
+  assert.ok(speed && Math.abs(speed.zeit - Date.now()) < 120e3, 'Nutzung mit Uhrzeit'); assert.ok(nutzungMax.zeiten[0].zeit >= nutzungMax.zeiten.at(-1).zeit, 'neueste zuerst');
   assert.equal((await max('POST', '/api/admin/konto', { konto: maxId })).status, 403, 'nur in der Admin-Ecke');
   // Reflection-Feedback: erst nach dem Schalter in der Admin-Ecke, dann mit Englisch
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).reflexion, false);

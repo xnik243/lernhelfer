@@ -231,6 +231,8 @@
   .fach .schlagzeile { margin: 0; font: 550 1.0625rem/1.35 var(--serif); }
   .fach .anriss { margin: 0; color: var(--text-2); font-size: 0.875rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .willkommen { padding: 24px; border-radius: var(--r-l); background: var(--bg-2); }
+  .h-mail { display: grid; gap: 10px; margin-bottom: 28px; }
+  .h-mail h3, .h-mail p, .h-mail .knopfreihe { margin: 0; }
   .willkommen h3 { margin: 0 0 6px; font: 650 1.25rem/1.3 var(--sans); }
   /* Diese Woche: fünf Tage zum Antippen, darunter der gewählte Tag */
   .woche-feld { padding: 12px 14px 6px; border-radius: var(--r-l); background: var(--bg-2); }
@@ -674,6 +676,9 @@
   .arena-rang li.luecke { display: block; padding: 0; background: none; color: var(--text-3); text-align: center; }
   @media (min-width: 700px) { .meldung:has(.innen.breit) { width: min(860px, calc(100% - 32px)); } }
   .nutzung-tage { display: grid; gap: 6px; padding-left: 1.1em; font-size: 0.875rem; }
+  .nutzung-zeiten { display: inline; }
+  .nutzung-zeiten > span:not(:last-child)::after { content: ', '; }
+  .nutzung-zeiten time { color: var(--text-3); font-variant-numeric: tabular-nums; }
   .arena-preise { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 12px; font: 600 0.8125rem/1.3 var(--sans); }
   .arena-preise span[data-platz] { padding: 3px 10px; border-radius: 999px; background: var(--bg-2); }
   .arena-preise span[data-platz="1"] { background: color-mix(in srgb, #c9971c 16%, var(--bg-2)); }
@@ -1177,6 +1182,7 @@ aussehen();
 
   <main id="inhalt" tabindex="-1">
     <p id="status" role="status" aria-live="polite"></p>
+    <div id="h-mail"></div>
     <section id="titelblatt" hidden>
       <header class="seitenkopf">
         <div>
@@ -2105,6 +2111,10 @@ function fachZeile(f) {
     r.druckt && presse(f),
     r.fehler && el('p', { class: 'fehlertext' }, r.fehler));
 }
+const mailNochmal = () => el('button', { class: 'knopf', type: 'button', onclick: async e => {
+  const k = e.currentTarget; k.disabled = true;
+  try { await api('bestaetigung-senden', {}); k.textContent = 'Gesendet, schau ins Postfach'; } catch (err) { status(err.message, true); k.disabled = false; }
+} }, 'Mail nochmal senden');
 function titelblatt() {
   const termine = kommende();
   const offen = termine.filter(t => FRISTEN.has(t.art) && !merk(fristSchluessel(t)));
@@ -5762,10 +5772,7 @@ function kontoZeigen() {
   $('ei-schritte').replaceChildren(...[
     !ICH.bestaetigt && el('section', { class: 'schritt', 'aria-labelledby': 'k-mail' }, el('h2', { id: 'k-mail' }, 'E-Mail bestätigen'),
       el('p', { class: 'klein' }, `Wir haben dir einen Link an ${ICH.email} geschickt.${TARIFE.verkauf ? ' Danach gibt es den Gratis-Test und Mails zu deinem Tarif.' : ''}`),
-      el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async e => {
-        const k = e.currentTarget; k.disabled = true;
-        try { await api('bestaetigung-senden', {}); k.textContent = 'Gesendet, schau ins Postfach'; } catch (err) { status(err.message, true); k.disabled = false; }
-      } }, 'Mail nochmal senden'))),
+      el('div', { class: 'knopfreihe' }, mailNochmal())),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-tarif' }, el('h2', { id: 'k-tarif' }, 'Dein Tarif'),
       el('p', { class: `stand${gratis() ? '' : ' ok'}` }, ICH.test ? `Ultra-Test bis ${zeitpunkt(ICH.bis)}`
         : T[ICH.tarif].name + (ICH.bis ? ` bis ${new Date(ICH.bis).toLocaleDateString('de-AT')}` : '') + (gratis() ? ', kostenlos' : '')),
@@ -5968,7 +5975,7 @@ async function adminZeigen() {
     return s.replaceChildren(el('p', { class: 'fehlertext' }, e.message));
   }
   if (document.body.dataset.ansicht !== 'admin') return;
-  const T = TARIFE.tarife, K = d.kennzahlen, G = d.geld, F = d.freunde, tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–', jetzt = Date.now();
+  const T = TARIFE.tarife, K = d.kennzahlen, G = d.geld, tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–', jetzt = Date.now();
   const tun = (pfad, body) => async e => {
     e.currentTarget.disabled = true;
     try { const r = await api(pfad, body); if (r.warnung) alert('Freigeschaltet, aber: ' + r.warnung); } catch (err) { alert(err.message); }
@@ -6136,8 +6143,6 @@ async function adminZeigen() {
     el('h2', {}, 'Letzte sechs Monate'),
     tabelle(['Monat', 'Neue Konten', 'Einnahmen', 'KI-Kosten', 'Gewinn'], d.verlauf.map(v => [
       new Date(v.monat + '-15').toLocaleDateString('de-AT', { month: 'long', year: 'numeric' }), String(v.neu), euro(v.einnahmen), kostet(v.kiUsd), euro(v.gewinn)])),
-    el('h2', {}, 'Freunde-Bonus'),
-    el('p', { class: 'klein' }, `${F.geworben} ${F.geworben === 1 ? 'Konto' : 'Konten'} über Einladungslinks, davon ${F.zahlend} zahlend (${anteil(F.zahlend, F.geworben)}). Rabatte für Werbende: ${F.offen} offen, ${F.eingeloest} eingelöst.`),
     el('h2', {}, 'Offene Zahlungen'),
     offen.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Stand', ''], offen.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b),
       b.status === 'gemeldet' ? `bezahlt gemeldet ${tag(b.gemeldet)}` : `offen seit ${tag(b.erstellt)}`,
@@ -6148,12 +6153,29 @@ async function adminZeigen() {
     bezahlt.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Am'], bezahlt.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b), tag(b.bezahlt)]))
       : el('p', { class: 'leer' }, 'Noch nichts.'),
     el('h2', {}, `Konten (${d.konten.length})`),
-    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Nutzung', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Geworben', 'Geworben von', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
+    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Nutzung', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
       k.email + (k.bestaetigt ? '' : ' (unbestätigt)'), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k),
       geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
-      k.geworben ? `${k.geworben}, davon ${k.geworben_zahlend} zahlend` : '–', k.werber || '–',
       `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`, setzen(k),
-      k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])));
+      k.email === ICH.email ? '' : el('div', { class: 'knopfreihe' },
+        !k.bestaetigt && el('button', { class: 'knopf', type: 'button', onclick: async e => {
+          e.currentTarget.disabled = true;
+          try { await api('admin/bestaetigung', { konto: k.id }); e.target.textContent = 'Gesendet'; } catch (err) { alert(err.message); e.target.disabled = false; }
+        } }, 'Bestätigung senden'),
+        el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen'))])));
+}
+// Tage mit Uhrzeiten (Wiener Tag, neueste zuerst); davor, aus der Zeit ohne Uhrzeiten, nur die Zähler je Tag
+const wienTag = z => new Date(z).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
+function nutzungTage(n) {
+  const ab = n.zeiten.length ? wienTag(n.zeiten.at(-1).zeit) : '9999';
+  return [...new Set(n.zeiten.map(z => wienTag(z.zeit)))].map(tag => ({ tag, zeiten: n.zeiten.filter(z => wienTag(z.zeit) === tag) })).concat(n.tage.filter(x => x.tag < ab));
+}
+// „14:02 Heute, 14:03 Mathematik ×2“: aufeinanderfolgende gleiche Schritte zusammen
+function zeitenListe(zeiten) {
+  const aus = [];
+  for (const z of [...zeiten].reverse()) if (aus.at(-1)?.name === z.name) aus.at(-1).n++; else aus.push({ ...z, n: 1 });
+  return el('span', { class: 'nutzung-zeiten' }, aus.map(z => el('span', {}, el('time', {}, new Date(z.zeit).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' })),
+    ` ${z.name}${z.n > 1 ? ` ×${z.n}` : ''}`)));
 }
 // Admin-Ecke: was ein Konto in der App genutzt hat, je Bereich und Tag für Tag
 async function kontoNutzung(id) {
@@ -6165,8 +6187,10 @@ async function kontoNutzung(id) {
     el('p', { class: 'meta' }, `Registriert ${tag(n.erstellt)} · zuletzt aktiv ${tag(n.zuletzt)}${n.arena.name ? ` · Arena: ${n.arena.name}${n.arena.aus ? ' (gesperrt)' : ''}` : ''} · ${n.arena.xp} XP · Serie ${n.arena.serie}, Rekord ${n.arena.bester}`),
     n.nutzung.length ? tabelle(['Bereich', 'Art', '30 Tage', 'Gesamt', 'KI-Kosten', 'Zuletzt'], n.nutzung.map(x => [x.name, x.art, String(x.n30), String(x.n), x.usd ? geld(x.usd) : '–',
       new Date(x.zuletzt + 'T12:00').toLocaleDateString('de-AT')])) : el('p', { class: 'leer' }, 'Noch nichts genutzt.'),
-    n.tage.length > 0 && [el('h3', {}, 'Die letzten 30 Tage'), el('ul', { class: 'nutzung-tage' }, n.tage.map(x => el('li', {},
-      el('b', {}, new Date(x.tag + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric', month: 'short' })), ' ', x.liste.map(y => `${y.name}${y.n > 1 ? ` ×${y.n}` : ''}`).join(', '))))],
+    n.tage.length > 0 && [el('h3', {}, 'Die letzten 30 Tage'), el('p', { class: 'meta' }, 'Uhrzeiten in Wiener Zeit; gleiche Schritte direkt hintereinander zusammengefasst.'),
+      el('ul', { class: 'nutzung-tage' }, nutzungTage(n).map(x => el('li', {},
+        el('b', {}, new Date(x.tag + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric', month: 'short' })), ' ',
+        x.zeiten ? zeitenListe(x.zeiten) : x.liste.map(y => `${y.name}${y.n > 1 ? ` ×${y.n}` : ''}`).join(', '))))],
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen'))));
   d.showModal();
 }
@@ -6873,6 +6897,10 @@ async function zeichne() {
   if ($('meldung').open) $('meldung').close();
   for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
+  $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
+    el('h3', {}, 'Bestätige noch deine E-Mail-Adresse'),
+    el('p', { class: 'klein' }, `Erst dann schreibt die KI für dich und du kannst in der Arena mitmachen. Der Link ging an ${ICH.email}. Nichts da? Schau im Spam-Ordner nach oder lass ihn nochmal schicken.`),
+    el('div', { class: 'knopfreihe' }, mailNochmal()))] : []);
   document.documentElement.toggleAttribute('data-verkauf', !!TARIFE?.verkauf);
   document.documentElement.toggleAttribute('data-loeser', darf('loeser'));
   document.querySelectorAll('.mit-daten').forEach(a => { a.hidden = !fertig(); });

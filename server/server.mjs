@@ -243,6 +243,7 @@ async function kontoWeg(k) {  // selbst gelöscht oder von der Admin-Ecke
   db.prepare('update nutzung set konto = -konto where konto = ?').run(k.id);  // Nutzung bleibt nur als Zahl, ohne Bezug zur Person
   db.prepare('update fehler set kontakt = null where konto = ?').run(k.id);
   db.prepare("update arena_preise set name = 'Gelöschtes Konto' where konto = ?").run(k.id);  // Gewinnerliste ohne Spitznamen
+  db.prepare('delete from nutzung_log where konto = ?').run(k.id);
   db.prepare('delete from konten where id = ?').run(k.id);  // Speicher, Sitzungen, Verbrauch gehen mit; Bestellungen bleiben für die Buchhaltung
 }
 const keks = (req, name) => new RegExp(`(?:^|;\\s*)${name}=([\\w-]+)`).exec(req.headers.cookie || '')?.[1];
@@ -280,7 +281,17 @@ const keksSetzen = (res, name, wert, sekunden, art = 'Lax') =>
 const anmelden = (res, id) => keksSetzen(res, 'lh', marke(id, 'sitzung', 60 * TAG), 60 * 86400);
 const abmelden = res => { keksSetzen(res, 'lh', '', 0); keksSetzen(res, 'lhe', '', 0, 'Strict'); };
 const bestaetigungSenden = (id, email) => mail(email, 'Lernhelfer: E-Mail bestätigen',
-  `Hallo,\n\nbitte bestätige deine E-Mail-Adresse für den Lernhelfer:\n${BASIS}/app#bestaetigen=${marke(id, 'bestaetigen', 3 * TAG)}\n\nDer Link gilt drei Tage. Hast du dich nicht angemeldet, ignoriere diese Mail einfach.` + gruss);
+  `Hallo,\n\nbitte bestätige deine E-Mail-Adresse für den Lernhelfer:\n${BASIS}/app#bestaetigen=${marke(id, 'bestaetigen', 3 * TAG)}\n\nErst danach schreibt die KI für dich. Der Link gilt drei Tage; unter „Konto“ bekommst du jederzeit einen neuen. Ohne Bestätigung löschen wir das Konto nach 30 Tagen. Hast du dich nicht angemeldet, ignoriere diese Mail einfach.` + gruss);
+const WEGWERF = new Set(['mailinator.com', 'yopmail.com', 'yopmail.fr', '10minutemail.com', 'guerrillamail.com', 'guerrillamail.de', 'sharklasers.com', 'grr.la', 'temp-mail.org',
+  'temp-mail.io', 'tempmail.com', 'tempmailo.com', 'tmpmail.org', 'tempail.com', 'trashmail.com', 'trash-mail.com', 'getnada.com', 'maildrop.cc', 'dispostable.com', 'throwawaymail.com',
+  'mohmal.com', 'emailondeck.com', 'minuteinbox.com', 'fakeinbox.com', 'mailnesia.com', 'mintemail.com', 'burnermail.io', 'mail.tm', 'emailfake.com', 'wegwerfmail.de', 'wegwerfemail.de',
+  'einrot.com', 'spambog.com', 'byom.de', 'mytemp.email', 'tempr.email', 'discard.email', 'spamgourmet.com']);
+const emailKern = e => {  // a.b+x@googlemail.com und ab@gmail.com sind dasselbe Postfach
+  let [l, d] = e.split('@');
+  l = l.split('+')[0];
+  if (d === 'googlemail.com') d = 'gmail.com';
+  return (d === 'gmail.com' ? l.replaceAll('.', '') : l) + '@' + d;
+};
 const passwortPruefen = pw => { if (pw.length < 10 || pw.length > 200) nein(400, 'Das Passwort braucht mindestens 10 Zeichen.'); return pw; };
 
 // Was gilt gerade: bezahlter Tarif, sonst der 24-Stunden-Test (zählt als Ultra), sonst die Aktion Englisch, sonst Base
@@ -306,7 +317,9 @@ const verbraucht = (id, test) => db.prepare('select usd from verbrauch where kon
 const buchenSql = db.prepare('insert into verbrauch (konto, monat, usd) values (?, ?, ?) on conflict (konto, monat) do update set usd = usd + excluded.usd');
 const buchen = (id, usd, test) => { if (!(usd > 0)) return; buchenSql.run(id, monat(), usd); if (test) buchenSql.run(id, 'test', usd); };
 const zaehlenSql = db.prepare('insert into nutzung (konto, was, tag, n, usd) values (?, ?, ?, ?, ?) on conflict (konto, was, tag) do update set n = n + excluded.n, usd = usd + excluded.usd');
-const zaehlen = (id, was, usd = 0, n = 1) => zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0);
+db.exec('create table if not exists nutzung_log (konto integer not null, zeit integer not null, was text not null); create index if not exists nutzung_log_konto on nutzung_log (konto, zeit)');
+const logSql = db.prepare('insert into nutzung_log (konto, zeit, was) values (?, ?, ?)');
+const zaehlen = (id, was, usd = 0, n = 1) => { zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0); if (n > 0) logSql.run(id, jetzt(), was); };
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
 const SEITEN = { start: 'Start', titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
   karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos',
@@ -446,6 +459,7 @@ async function ki(req, res, k) {
 // Kontingent des Monats und gleichzeitige Anfragen prüfen, dann fn ausführen; für Text und für Sprache
 async function mitKontingent(k, s, fn) {
   if (!E.LH_OR_KEY) nein(503, 'Die KI ist auf dem Server noch nicht eingerichtet.');
+  if (!k.ecke && !k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse. Den Link haben wir dir geschickt; unter „Konto“ kannst du ihn nochmal anfordern.');
   if (!k.ecke && verbraucht(k.id, s.test) >= (s.test ? TEST.budget : TARIFE[s.tarif].budget))
     nein(429, s.test ? 'Das KI-Guthaben des Tests ist aufgebraucht. Mit einem Tarif geht es sofort weiter.'
       : `Dein KI-Kontingent für diesen Monat ist aufgebraucht. Am 1. geht es weiter${s.tarif === 'ultra' || s.tarif === 'ultraplus' ? '' : ', mit einem größeren Tarif sofort'}.`);
@@ -627,7 +641,8 @@ async function arenaAbrechnen() {  // ab Montag: die besten drei der Vorwoche be
   wertSetzen('arena-abgerechnet', nr);
   const P = arenaPreise();
   if (!P.art) return;
-  const top = rangliste(vorige).filter(x => x.xp >= P.min).slice(0, 3);
+  const berechtigt = id => { const k = kontoMit(id); return !!k?.bestaetigt && k.erstellt <= jetzt() - 7 * TAG; };
+  const top = rangliste(vorige).filter(x => x.xp >= P.min && berechtigt(x.konto)).slice(0, 3);
   for (const [i, x] of top.entries()) {
     const w = P.werte[i];
     if (!(w > 0)) continue;
@@ -720,6 +735,7 @@ function exportieren(req, res, k) {
     bestellungen: db.prepare('select zweck, tarif, monate, betrag, rabatt, status, erstellt, gemeldet, bezahlt from bestellungen where konto = ? order by id').all(k.id)
       .map(b => ({ ...b, betrag_euro: b.betrag / 100, rabatt_euro: b.rabatt / 100, betrag: undefined, rabatt: undefined, erstellt: iso(b.erstellt), gemeldet: iso(b.gemeldet), bezahlt: iso(b.bezahlt) })),
     nutzung: db.prepare('select tag, was, n from nutzung where konto = ? order by tag, was').all(k.id),
+    nutzung_mit_uhrzeit: db.prepare('select zeit, was from nutzung_log where konto = ? order by zeit').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
     fehlerberichte: db.prepare('select zeit, seite, meldung, text, geraet from fehler where konto = ? order by id').all(k.id).map(f => ({ ...f, zeit: iso(f.zeit) })),
     arena: { teilnahme: db.prepare('select name, aus from arena where konto = ?').get(k.id) ?? null, serie: db.prepare('select serie, bester, letzter, joker from arena_serie where konto = ?').get(k.id) ?? null,
       xp: db.prepare('select tag, zeit, art, xp, wert from arena_xp where konto = ? order by id').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
@@ -761,7 +777,9 @@ const ROUTEN = {
     const email = String(b.email || '').trim().toLowerCase(), pw = passwortPruefen(String(b.passwort || ''));
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) nein(400, 'Bitte eine gültige E-Mail-Adresse eingeben.');
     if (!b.agb) nein(400, 'Bitte bestätige, dass du AGB und Datenschutzerklärung gelesen hast.');
-    if (db.prepare('select 1 from konten where email = ?').get(email)) nein(409, 'Mit dieser E-Mail gibt es schon ein Konto. Anmelden oder „Passwort vergessen“?');
+    if (WEGWERF.has(email.split('@')[1])) nein(400, 'Bitte nimm eine Adresse, die du dauerhaft nutzt, keine Wegwerf-Adresse.');
+    const kern = emailKern(email);  // ponytail: liest alle Adressen, ab einigen Tausend Konten eine eigene Spalte
+    if (db.prepare('select email from konten').all().some(x => emailKern(x.email) === kern)) nein(409, 'Mit dieser E-Mail gibt es schon ein Konto. Anmelden oder „Passwort vergessen“?');
     const werber = b.code ? db.prepare('select id from konten where code = ?').get(String(b.code).trim().toUpperCase()) : null;
     if (b.code && !werber) nein(400, 'Diesen Freundescode gibt es nicht. Leer lassen geht auch.');
     let neu; do neu = code(6); while (db.prepare('select 1 from konten where code = ?').get(neu));
@@ -838,6 +856,7 @@ const ROUTEN = {
   'POST /api/arena': ({ k, b }) => {  // mitmachen mit Spitzname oder aufhören; wer gesperrt ist, kommt nicht wieder rein
     muss(k);
     if (db.prepare('select aus from arena where konto = ?').get(k.id)?.aus) nein(403, 'Du kannst in der Arena gerade nicht mitmachen.');
+    if (!b.aus && !k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse, dann kannst du mitmachen.');
     if (b.aus) { db.prepare('delete from arena where konto = ?').run(k.id); return arenaStand(k); }
     const name = String(b.name || '').normalize('NFKC').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
     if (name.length < 2) nein(400, 'Bitte einen Spitznamen mit mindestens 2 Zeichen.');
@@ -1055,7 +1074,14 @@ const ROUTEN = {
     const a = db.prepare('select name, aus from arena where konto = ?').get(z.id), s = db.prepare('select * from arena_serie where konto = ?').get(z.id);
     return { email: z.email, erstellt: z.erstellt, zuletzt: z.zuletzt, nutzung: [...je.values()].sort((x, y) => y.n30 - x.n30 || y.n - x.n),
       tage: [...tage].map(([tag, liste]) => ({ tag, liste })),
+      zeiten: db.prepare('select zeit, was from nutzung_log where konto = ? order by zeit desc limit 2000').all(z.id).map(x => ({ zeit: x.zeit, name: nutzungName(x.was)[1] || x.was })),
       arena: { name: a?.name || null, aus: !!a?.aus, xp: db.prepare('select coalesce(sum(xp), 0) n from arena_xp where konto = ?').get(z.id).n, serie: serieJetzt(s, wienTag()), bester: s?.bester || 0 } };
+  },
+  'POST /api/admin/bestaetigung': async ({ k, b }) => {
+    admin(k);
+    const z = kontoMit(Number(b.konto));
+    if (!z) nein(404, 'Das Konto gibt es nicht mehr.');
+    if (!z.bestaetigt) await bestaetigungSenden(z.id, z.email);
   },
   'POST /api/admin/konto-loeschen': async ({ k, b }) => {
     admin(k);
@@ -1111,6 +1137,8 @@ async function aufraeumen() {
   db.prepare('delete from marken where bis < ?').run(t);
   db.prepare("update bestellungen set status = 'verfallen' where status = 'offen' and erstellt < ?").run(t - 14 * TAG);
   db.prepare('delete from nutzung where tag < ?').run(new Date(t - 400 * TAG).toISOString().slice(0, 10));
+  db.prepare('delete from nutzung_log where zeit < ?').run(t - 30 * TAG);
+  for (const k of db.prepare('select * from konten where bestaetigt = 0 and erstellt < ?').all(t - 30 * TAG)) await kontoWeg(k);  // nie bestätigt: weg nach 30 Tagen
   db.prepare('delete from fehler where erledigt > 0 and erledigt < ?').run(t - 90 * TAG);
   for (const k of db.prepare('select id from konten where or_hash is not null or (tarif = ? and bis > ?)').all('ultraplus', t)) await apiAbgleich(k).catch(e => console.error(e.message));
   for (const k of db.prepare('select * from konten where tarif is not null and bis > ? and bis < ? and erinnert != bis').all(t, t + 3 * TAG)) {
