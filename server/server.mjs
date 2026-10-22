@@ -31,6 +31,8 @@ const TARIFE = {
   ultraplus: { name: 'Ultra+ API', preis: 1490, launchPreis: 1490, regulaer: 1990, rang: 2, budget: 6, rabatt: 30, rabattAuf: 990, apiUsd: 11 },
   // Zusatz neben jedem Tarif, nur vom Admin vergeben (eigene Spalte manual_bis): schaltet Funktionen auf Eis frei, der Löser bleibt dabei bei REGEL
   manual: { name: 'Manual Access', preis: 0, rang: 0, aktion: true, zusatz: ['loeser', 'test-foto'] },
+  // Testerinnen und Tester, nur vom Admin vergeben: Rechte wie Ultra, sehen in der App aber nur die Bereiche, die der Admin je Konto anhakt (Spalte beta)
+  beta: { name: 'Beta', preis: 0, rang: 2, budget: 6, aktion: true },
 };
 // Vorerst nichts zu kaufen (2026-10-20, rechtlich auf Nummer sicher): ohne Haken in der Admin-Ecke keine Tarifseite, kein Bestellen, kein Ultra-Test
 const verkauf = () => !!wert('verkauf', E.LH_VERKAUF === '1' ? 1 : 0);
@@ -145,6 +147,7 @@ create table if not exists arena (konto integer primary key references konten(id
   xp integer not null, min integer not null, serie integer not null, laeuft integer not null default 0);`);  // werte: Einstellungen der Admin-Ecke, KI-Kosten gelöschter Konten
 // nutzung: was = Funktion (KI-Anfrage oder Speichern), „seite:…“ (Seite geöffnet) oder „gesperrt:…“ (gesperrte Funktion angetippt); für die Admin-Ecke
 for (const spalte of ['zuletzt', 'englisch_bis', 'manual_bis']) try { db.exec(`alter table konten add column ${spalte} integer not null default 0`); } catch {}  // ältere Datenbank: Spalten nachrüsten
+try { db.exec("alter table konten add column beta text not null default '[]'"); } catch {}  // Beta: sichtbare Bereiche als JSON-Liste
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -273,7 +276,7 @@ const buchen = (id, usd, test) => { if (!(usd > 0)) return; buchenSql.run(id, mo
 const zaehlenSql = db.prepare('insert into nutzung (konto, was, tag, n, usd) values (?, ?, ?, ?, ?) on conflict (konto, was, tag) do update set n = n + excluded.n, usd = usd + excluded.usd');
 const zaehlen = (id, was, usd = 0, n = 1) => zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0);
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
-const SEITEN = { titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
+const SEITEN = { start: 'Start', titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
   karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos' };
 const MELDBAR = new Set([...Object.keys(SEITEN).map(x => 'seite:' + x), ...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2).map(f => 'gesperrt:' + f), 'export']);
 const bezahlt = id => !!db.prepare("select 1 from bestellungen where konto = ? and status = 'bezahlt'").get(id);
@@ -287,7 +290,7 @@ function ich(k) {
   return {
     email: k.email, bestaetigt: !!k.bestaetigt, admin: istAdmin(k), ecke,
     tarif: s.tarif, bis: s.bis, test: s.test, testFrei: verkauf() && !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis,
-    zusatz: zusatz(k), manual_bis: k.manual_bis > jetzt() ? k.manual_bis : null,
+    zusatz: zusatz(k), manual_bis: k.manual_bis > jetzt() ? k.manual_bis : null, beta: s.tarif === 'beta' ? JSON.parse(k.beta) : null,
     genutzt: Math.min(100, Math.round(100 * verbraucht(k.id, s.test) / budget)),
     code: k.code, freunde: db.prepare('select count(*) n from konten where geworben_von = ?').get(k.id).n,
     gutscheine: db.prepare('select count(*) n from gutscheine where konto = ? and eingeloest is null').get(k.id).n,
@@ -757,7 +760,7 @@ const ROUTEN = {
 
   'GET /api/admin': async ({ k }) => {
     admin(k);
-    const konten = db.prepare(`select k.id, k.email, k.erstellt, k.bestaetigt, k.tarif, k.bis, k.test_bis, k.englisch_bis, k.manual_bis, k.zuletzt, k.or_hash, w.email werber,
+    const konten = db.prepare(`select k.id, k.email, k.erstellt, k.bestaetigt, k.tarif, k.bis, k.test_bis, k.englisch_bis, k.manual_bis, k.beta, k.zuletzt, k.or_hash, w.email werber,
         coalesce((select usd from verbrauch where konto = k.id and monat = ?), 0) ki_monat,
         coalesce((select sum(usd) from verbrauch where konto = k.id and monat != 'test'), 0) ki_gesamt,
         (select count(*) from konten g where g.geworben_von = k.id) geworben,
@@ -823,6 +826,10 @@ const ROUTEN = {
     if (b.tarif === 'englisch' || b.tarif === 'manual') db.prepare(`update konten set ${b.tarif}_bis = ? where id = ?`).run(bis, z.id);  // eigene Spalte: bleibt neben einem gekauften Tarif
     else if (b.tarif === 'base') db.prepare('update konten set tarif = null, bis = 0, englisch_bis = 0, manual_bis = 0 where id = ?').run(z.id);
     else db.prepare('update konten set tarif = ?, bis = ? where id = ?').run(b.tarif, bis, z.id);
+    if (b.tarif === 'beta') {  // die Bereiche, die das Konto in der App sieht (Ansichten wie „kalender“), jederzeit neu setzbar
+      const bereiche = Array.isArray(b.bereiche) ? b.bereiche.filter(x => typeof x === 'string' && /^[a-z]{2,20}$/.test(x)).slice(0, 30) : [];
+      db.prepare('update konten set beta = ? where id = ?').run(JSON.stringify(bereiche), z.id);
+    }
     await apiAbgleich(z).catch(e => console.error(e.message));
   },
 };
@@ -861,6 +868,7 @@ async function aufraeumen() {
   db.prepare('delete from fehler where erledigt > 0 and erledigt < ?').run(t - 90 * TAG);
   for (const k of db.prepare('select id from konten where or_hash is not null or (tarif = ? and bis > ?)').all('ultraplus', t)) await apiAbgleich(k).catch(e => console.error(e.message));
   for (const k of db.prepare('select * from konten where tarif is not null and bis > ? and bis < ? and erinnert != bis').all(t, t + 3 * TAG)) {
+    if (TARIFE[k.tarif].aktion || !verkauf()) continue;  // von Hand vergeben oder nichts zu kaufen: keine Mail „Verlängern“
     db.prepare('update konten set erinnert = bis where id = ?').run(k.id);
     await mail(k.email, `Lernhelfer: ${TARIFE[k.tarif].name} endet bald`, `Hallo,\n\ndein Tarif ${TARIFE[k.tarif].name} läuft am ${new Date(k.bis).toLocaleDateString('de-AT')} ab. Danach geht es mit ${k.englisch_bis > k.bis ? 'Englisch' : 'Base'} weiter, deine Daten bleiben. Verlängern kannst du hier:\n${BASIS}/app#/upgrade` + gruss);
   }

@@ -731,6 +731,14 @@
   @media (hover: hover) { .mehr-funktionen > summary:hover { background: var(--bg-3); color: var(--text); } }
   @media (prefers-reduced-motion: reduce) { .mehr-funktionen > summary::after { transition: none; } }
   .mehr-funktionen .navi { padding-left: 10px; }
+  /* Start: eine Seite für Neue, ganz oben in der Seitenleiste; solange nichts eingerichtet ist, hervorgehoben */
+  .navi a.nav-start[data-neu] { color: var(--text); background: var(--akzent-flaeche); }
+  .navi a.nav-start[data-neu]::after { content: "Hier beginnen"; margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--akzent); color: var(--auf-akzent); font: 650 0.6875rem/1.4 var(--sans); }
+  .start-jetzt { display: grid; justify-items: start; gap: 10px; max-width: 640px; margin: 8px 0 32px; padding: 22px; border: 2px solid var(--akzent); border-radius: var(--r-l); background: var(--bg-2); }
+  .start-jetzt h2 { margin: 0; font: 650 1.25rem/1.3 var(--sans); }
+  .start-jetzt p, .start-jetzt ol { margin: 0; }
+  .start-jetzt.fertig { border-color: var(--linie); }
+  .start-so { display: grid; gap: 12px; max-width: 640px; padding-left: 1.3em; }
   .navi a[data-marke]::after { content: attr(data-marke); margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--bg-3); color: var(--text-3); font: 650 0.6875rem/1.4 var(--sans); }
   .sperrkarte { display: grid; justify-items: start; gap: 8px; max-width: 600px; margin-top: 16px; padding: 22px; border: 1px solid var(--linie); border-radius: var(--r-l); background: var(--bg-2); }
   .sperrkarte h2, .sperrkarte h3 { margin: 0; font: 650 1.1875rem/1.3 var(--sans); }
@@ -783,6 +791,10 @@
   .tabelle th { color: var(--text-3); font-weight: 600; white-space: nowrap; }
   .tabelle .knopfreihe { flex-wrap: nowrap; margin: 0; }
   .admin-setzen { display: flex; align-items: center; gap: 6px; }
+  .beta-wahl { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0; padding: 0; border: 0; font-size: 0.8125rem; }
+  .beta-wahl legend { padding: 0; margin-bottom: 2px; color: var(--text-3); }
+  .beta-wahl label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .beta-wahl input { width: auto; margin: 0; }
   .admin-setzen select { width: auto; min-width: 7.5em; }
   .admin-setzen input { width: 5.5em; }
   .seitenleiste .ecke-link { margin: 8px 10px 0; color: var(--text-3); font-size: 0.75rem; text-decoration: none; }
@@ -976,10 +988,11 @@ aussehen();
     <a class="marke" href="#/" translate="no"><span class="zeichen" aria-hidden="true">L</span>Lernhelfer</a>
     <p class="heute-klein" id="datumszeile"></p>
     <nav class="navi" aria-label="Hauptnavigation">
+      <a href="#/start" data-ansicht="start" class="nur-server nav-start" id="nav-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20.5V4M6 4.5h11l-2.5 4 2.5 4H6"/></svg>Start</a>
       <a href="#/" data-ansicht="titelblatt" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>Heute</a>
       <p class="gruppe mit-daten" id="nav-faecher-kopf">Fächer</p>
       <div class="navi mit-daten" id="nav-faecher"></div>
-      <p class="gruppe mit-daten">Werkzeuge</p>
+      <p class="gruppe mit-daten" id="nav-werkzeuge-kopf">Werkzeuge</p>
       <div class="navi" id="nav-werkzeuge">
         <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg>Arena<span class="arena-uhr" data-runde-uhr></span></a>
         <a href="#/kalender" data-ansicht="kalender" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</a>
@@ -1161,11 +1174,14 @@ aussehen();
       </section>
     </section>
 
+    <section id="start" hidden class="werkstatt"></section>
+
     <section id="anleitung" hidden class="werkstatt anleitung">
       <header class="ausgabe-kopf">
         <h1>Anleitung</h1>
         <p class="schlagzeile">Jede Woche das Wichtigste aus OLAT, ohne selbst zu suchen.</p>
         <p class="meta">Für das 1. Semester Wirtschaftswissenschaften an der Universität Innsbruck, Stand Oktober 2026</p>
+        <p class="nur-server"><a href="#/start">Neu hier? Die Kurzfassung auf einer Seite</a></p>
       </header>
       <ol class="inhalt">
         <li><a href="#a-was">Was der Lernhelfer macht</a></li>
@@ -5050,6 +5066,15 @@ async function pcLaden(e) {
   catch (err) { status(err.message, true); }
   knopf.disabled = false;
 }
+// Das PC-Programm holen: Knopf und die drei Klicks danach (Konto und Start)
+const pcEinrichten = () => WINDOWS ? [
+    el('div', { class: 'knopfreihe' }, el('button', { class: `knopf${ABGLEICH ? '' : ' voll'}`, type: 'button', onclick: pcLaden }, ICH.pc ? 'PC-Programm neu laden' : 'PC-Programm herunterladen')),
+    el('ol', { class: 'schritte klein' },
+      el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
+      el('li', {}, 'Datei öffnen. Zeigt Windows „Der Computer wurde durch Windows geschützt“: „Weitere Informationen“, dann „Trotzdem ausführen“.'),
+      el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
+  : MAC ? macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc)
+  : el('p', { class: 'klein' }, `Auf diesem Gerät läuft das Programm nicht. Hast du einen Windows-PC oder Mac: dort ${location.host} öffnen, anmelden und hier das Programm laden.`);
 function kontoZeigen() {
   $('ei-titel').textContent = 'Konto';
   const einst = $('ei-einst').closest('section');
@@ -5126,15 +5151,7 @@ function kontoZeigen() {
     el('section', { class: 'schritt', 'aria-labelledby': 'k-pc' }, el('h2', { id: 'k-pc' }, 'Unterlagen aus OLAT'),
       el('p', { class: `stand${ABGLEICH?.ok ? ' ok' : ''}${ABGLEICH?.ok === false ? ' warnung' : ''}` }, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text),
       el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Den OLAT-Login mit Authenticator machst du selbst im Browserfenster.'),
-      WINDOWS ? [
-        el('div', { class: 'knopfreihe' }, el('button', { class: `knopf${ABGLEICH ? '' : ' voll'}`, type: 'button', onclick: pcLaden }, ICH.pc ? 'PC-Programm neu laden' : 'PC-Programm herunterladen')),
-        el('ol', { class: 'schritte klein' },
-          el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
-          el('li', {}, 'Datei öffnen. Zeigt Windows „Der Computer wurde durch Windows geschützt“: „Weitere Informationen“, dann „Trotzdem ausführen“.'),
-          el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
-        : MAC ? macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc)
-        : el('p', { class: 'klein' }, `Auf diesem Gerät läuft das Programm nicht. Hast du einen Windows-PC oder Mac: dort ${location.host} öffnen, anmelden und hier das Programm laden.`),
-      ohneComputer()),
+      pcEinrichten(), ohneComputer()),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-weg' }, el('h2', { id: 'k-weg' }, 'Abmelden'),
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async () => {
         await api('abmelden', {}).catch(() => {});
@@ -5313,11 +5330,21 @@ async function adminZeigen() {
   const tun = (pfad, body) => async e => {
     e.currentTarget.disabled = true;
     try { const r = await api(pfad, body); if (r.warnung) alert('Freigeschaltet, aber: ' + r.warnung); } catch (err) { alert(err.message); }
-    adminZeigen();
+    const y = scrollY, x = [...s.querySelectorAll('.tabelle-rahmen')].map(t => t.scrollLeft);  // nach dem Neuzeichnen dieselbe Stelle, auch seitlich in der Tabelle
+    await adminZeigen();
+    scrollTo(0, y); s.querySelectorAll('.tabelle-rahmen').forEach((t, i) => { t.scrollLeft = x[i] || 0; });
   };
-  const setzen = k => el('form', { class: 'admin-setzen', onsubmit: e => { e.preventDefault(); const f = e.target.elements; tun('admin/tarif', { konto: k.id, tarif: f.tarif.value, tage: +f.tage.value })({ currentTarget: f.knopf }); } },
-    el('select', { name: 'tarif', 'aria-label': 'Tarif' }, Object.keys(T).map(t => el('option', { value: t }, T[t].name))),
-    el('input', { name: 'tage', type: 'number', min: 0, value: 30, 'aria-label': 'Tage' }), el('button', { class: 'knopf', name: 'knopf' }, 'Setzen'));
+  const gilt = k => k.tarif && k.bis > jetzt ? k.tarif : k.englisch_bis > jetzt ? 'englisch' : 'base';  // was gerade gilt, in der Auswahl vorausgewählt
+  const setzen = k => {
+    const beta = JSON.parse(k.beta || '[]');
+    const haken = el('fieldset', { class: 'beta-wahl', hidden: gilt(k) !== 'beta' }, el('legend', {}, 'Sieht in Beta'),
+      BEREICHE.map(v => el('label', {}, el('input', { type: 'checkbox', name: 'bereich', value: v, checked: beta.includes(v) }), ANSICHTEN[v])));
+    return el('form', { onsubmit: e => { e.preventDefault(); const f = e.target.elements;
+      tun('admin/tarif', { konto: k.id, tarif: f.tarif.value, tage: +f.tage.value, bereiche: [...e.target.querySelectorAll('[name=bereich]:checked')].map(x => x.value) })({ currentTarget: f.knopf }); } },
+      el('div', { class: 'admin-setzen' }, el('select', { name: 'tarif', 'aria-label': 'Tarif', onchange: e => { haken.hidden = e.target.value !== 'beta'; } },
+        Object.keys(T).map(t => el('option', { value: t, selected: t === gilt(k) }, T[t].name))),
+        el('input', { name: 'tage', type: 'number', min: 0, value: 30, 'aria-label': 'Tage' }), el('button', { class: 'knopf', name: 'knopf' }, 'Setzen')), haken);
+  };
   const offen = d.bestellungen.filter(b => b.status !== 'bezahlt'), bezahlt = d.bestellungen.filter(b => b.status === 'bezahlt');
   const betrag = b => euro(b.betrag) + (b.rabatt ? ` (−${euro(b.rabatt)})` : '');
   const anteil = (a, b) => b ? `${Math.round(100 * a / b)} %` : '–';
@@ -5385,7 +5412,7 @@ async function adminZeigen() {
       : 'Kein Launch-Angebot: Es gelten die regulären Preise, Freundes-Rabatte und Gutscheine werden abgezogen.'),
     preise,
     el('h2', {}, 'Aktion Englisch'),
-    el('p', { class: 'klein' }, 'Kostenlos: alles aus Base, dazu Vortrag analysieren und YouTube-Talks für Word Power transkribieren. Der Hausaufgaben-Entwurf bleibt bei dir. In der Seitenleiste stehen diese Funktionen oben, Pro und Ultra eingeklappt darunter. Einzelne Konten: unten bei „Tarif von Hand“ Englisch wählen.'),
+    el('p', { class: 'klein' }, 'Kostenlos: alles aus Base, dazu Vortrag analysieren und YouTube-Talks für Word Power transkribieren. Der Hausaufgaben-Entwurf bleibt bei dir. In der Seitenleiste stehen nur Word Power, Vortrag und Unterlagen oben, alles andere eingeklappt darunter. Einzelne Konten: unten bei „Tarif von Hand“ Englisch wählen. Für Testerinnen und Tester gibt es dort Beta: Rechte wie Ultra, zu sehen nur die Bereiche, die du anhakst.'),
     el('p', { class: 'meta' }, d.neuEnglisch > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuEnglisch} Tage Englisch. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.` : `Aus: Neue Konten starten mit Base. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.`),
     englisch,
     el('h2', {}, 'Auf einen Blick'),
@@ -5952,21 +5979,49 @@ function modellWahl() {
   if (!SERVER && $('modelle-teil') && !$('modelle-teil').firstChild) $('modelle-teil').append(el('details', { class: 'quellen' }, el('summary', {}, 'Eigenes Standard- und Transkript-Modell'),
     modellKarte(modelle(), async neu => { merk('modelle', JSON.stringify(neu)); merk('modell', `Standard · ${neu.model.split('/').pop()}`); })));
 }
-// Englisch (Aktion): oben steht, was man hat, Vortrag und Word Power zuerst; gesperrte Pro- und Ultra-Funktionen eingeklappt darunter.
-// Alle anderen Tarife: Reihenfolge wie im HTML, gesperrte mit Marke „Pro“ oder „Ultra“.
+// Englisch (Aktion): oben nur Word Power, Vortrag und Unterlagen; Fächer und alle anderen Werkzeuge eingeklappt darunter, auch was freigeschaltet ist.
+// Beta: nur die Bereiche, die der Admin für das Konto angehakt hat. Alle anderen Tarife: Reihenfolge wie im HTML, gesperrte mit Marke „Pro“ oder „Ultra“.
 const WERKZEUGE = [...document.querySelectorAll('#nav-werkzeuge > a')];
+const BEREICHE = WERKZEUGE.map(a => a.dataset.ansicht).filter(v => v !== 'upgrade');  // was der Admin für Beta anhaken kann
+const ENGLISCH_VORN = ['wordpower', 'vortrag', 'unterlagen'];
+const ANSICHTEN = { start: 'Start', arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
+  upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
+const betaWeg = v => SERVER && !!ICH?.beta && !ICH.ecke && BEREICHE.includes(v) && !ICH.beta.includes(v);  // Beta: diesen Bereich nicht zeigen
 function leisteOrdnen() {
-  const englisch = SERVER && !!ICH && !!TARIFE?.tarife[ICH.tarif]?.dazu && !ICH.ecke;
-  const zu = a => englisch && SPERREN[a.dataset.ansicht] && !darf(SPERREN[a.dataset.ansicht]);
-  const vorn = a => englisch && ['vortrag', 'wordpower'].includes(a.dataset.ansicht) ? 0 : 1;
-  $('nav-werkzeuge').replaceChildren(...WERKZEUGE.filter(a => !zu(a)).sort((a, b) => vorn(a) - vorn(b)));
-  $('nav-mehr-liste').replaceChildren(...WERKZEUGE.filter(zu));
-  $('nav-mehr').hidden = !fertig() || !$('nav-mehr-liste').children.length;
-  $('nav-mehr-titel').textContent = `Pro und Ultra (${$('nav-mehr-liste').children.length})`;
-  if ($('nav-mehr-liste').querySelector('[aria-current]')) $('nav-mehr').open = true;  // gerade dort: aufgeklappt lassen
-  const kalenderZu = englisch && !darf('kalender');  // Handy: Word Power statt des gesperrten Kalenders
-  document.querySelector('.tabs a[data-ansicht="kalender"]').hidden ||= kalenderZu;
-  $('tab-wordpower').hidden ||= !kalenderZu;
+  const englisch = SERVER && ICH?.tarif === 'englisch' && !ICH.ecke;
+  const zu = v => englisch && BEREICHE.includes(v) && !ENGLISCH_VORN.includes(v);  // eingeklappt
+  const vorn = a => englisch ? ENGLISCH_VORN.indexOf(a.dataset.ansicht) : 0;
+  $('nav-werkzeuge').replaceChildren(...WERKZEUGE.filter(a => !betaWeg(a.dataset.ansicht) && !zu(a.dataset.ansicht)).sort((a, b) => vorn(a) - vorn(b)));
+  $('nav-mehr-liste').replaceChildren(...WERKZEUGE.filter(a => !betaWeg(a.dataset.ansicht) && zu(a.dataset.ansicht)));
+  if (englisch) $('nav-mehr-liste').before($('nav-faecher-kopf'), $('nav-faecher'));  // die Fächer klappen mit ein
+  else $('nav-werkzeuge-kopf').before($('nav-faecher-kopf'), $('nav-faecher'));
+  const n = $('nav-mehr-liste').children.length + (englisch ? Object.keys(R).length : 0);
+  $('nav-mehr').hidden = !fertig() || !n;
+  $('nav-mehr-titel').textContent = `Weitere Funktionen (${n})`;
+  // Handy: unten nur, was oben in der Seitenleiste steht; Word Power springt für einen fehlenden Kalender ein
+  document.querySelectorAll('.tabs a[data-ansicht]').forEach(a => { a.hidden ||= zu(a.dataset.ansicht) || betaWeg(a.dataset.ansicht); });
+  $('tab-wordpower').hidden ||= !document.querySelector('.tabs a[data-ansicht="kalender"]').hidden;
+}
+// Start: eine Seite für alle, die neu sind. Oben der eine nächste Schritt zum Drücken, darunter in drei Sätzen, wie es läuft.
+const eingerichtet = () => !SERVER ? fertig() : !!ICH && (ICH.tarif === 'englisch' || !!ICH.pc || !!ABGLEICH || Object.keys(R).length > 0);
+function startZeigen() {
+  const kasten = (titel, ...inhalt) => el('section', { class: 'start-jetzt', 'aria-labelledby': 'st-jetzt' }, el('h2', { id: 'st-jetzt' }, titel), ...inhalt);
+  const englisch = ICH?.tarif === 'englisch';
+  $('start').replaceChildren(...[
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Los geht’s'), el('p', { class: 'schlagzeile' }, englisch ? 'Word Power, Vortrag und Unterlagen, ohne etwas einzurichten.' : 'Einmal einrichten, dann kommt jede Woche alles von selbst.')),
+    !ICH ? kasten('Noch kein Konto? Hier drücken:', el('a', { class: 'knopf voll', href: '#/einstellungen' }, 'Konto erstellen'), el('p', { class: 'klein' }, 'Kostenlos, nur mit E-Mail und Passwort.'))
+    : englisch ? kasten('Du musst nichts einrichten', el('p', { class: 'klein' }, 'Links stehen deine drei Werkzeuge. Alles andere findest du darunter unter „Weitere Funktionen“.'),
+      el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower' }, 'Word Power'), el('a', { class: 'knopf', href: '#/vortrag' }, 'Vortrag'), el('a', { class: 'knopf', href: '#/unterlagen' }, 'Unterlagen')))
+    : !eingerichtet() ? kasten('Noch nicht eingerichtet? Hier drücken:', pcEinrichten(), el('p', { class: 'klein' }, 'Kein Windows-PC oder Mac? ', el('a', { href: '#/unterlagen' }, 'Folien selbst hochladen'), '.'))
+    : el('section', { class: 'start-jetzt fertig' }, el('h2', {}, 'Fertig eingerichtet'),
+      el('p', { class: 'klein' }, ABGLEICH?.ok ? `Letzter Abgleich: ${ABGLEICH.text}` : 'Deine Unterlagen sind da.'),
+      el('a', { class: 'knopf voll', href: '#/' }, 'Zu deiner Woche')),
+    !englisch && [el('h2', {}, 'So funktioniert’s'),
+      el('ol', { class: 'start-so' },
+        el('li', {}, el('b', {}, 'Das Programm holt deine Unterlagen. '), 'Es läuft auf deinem Windows-PC oder Mac und lädt neue Folien und Tests aus OLAT, solange der Computer an ist. Dein OLAT-Passwort sieht der Lernhelfer nie.'),
+        el('li', {}, el('b', {}, 'Der Lernhelfer fasst zusammen. '), 'Pro Fach entsteht jede Woche eine Seite: das Wichtigste aus der Vorlesung, Übungen mit Lösung und deine Fristen.'),
+        el('li', {}, el('b', {}, 'Du lernst. '), 'Links auf ein Fach tippen und lesen. Mehr musst du nicht tun.'))],
+    el('p', { class: 'klein' }, 'Alle Details stehen in der ', el('a', { href: '#/anleitung' }, 'Anleitung'), '.')].flat().filter(Boolean));
 }
 async function zeichne() {
   const v = !SERVER && verbindungLesen(location.hash);  // QR-Code bzw. Verbindungslink von einem anderen Gerät
@@ -5974,16 +6029,19 @@ async function zeichne() {
   const anker = location.hash.match(/^#(a-[\w-]+)$/)?.[1];  // Sprungmarken in der Anleitung
   const [teil, tag] = anker ? ['anleitung'] : location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const offen = SERVER && (teil === 'recht' || teil === 'upgrade' && !!TARIFE?.verkauf);  // Preise und Impressum auch ohne Konto; ohne Verkauf keine Tarifseite
-  let neu = teil === 'anleitung' ? 'anleitung' : offen ? teil : !fertig() || teil === 'einstellungen' ? 'einstellungen'
-    : ['kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe' : 'titelblatt';
+  let neu = teil === 'anleitung' || teil === 'start' && SERVER ? teil : offen ? teil : !fertig() || teil === 'einstellungen' ? (SERVER && !teil ? 'start' : 'einstellungen')
+    : ['kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
+    : !teil && !eingerichtet() ? 'start' : 'titelblatt';  // wer noch nichts eingerichtet hat, landet auf Start
+  if (betaWeg(neu)) neu = 'titelblatt';
   if (SPERREN[neu] && !darf(SPERREN[neu])) neu = 'gesperrt';  // Server: Funktion ohne passenden Tarif
   if ($('meldung').open) $('meldung').close();
-  for (const id of ['titelblatt', 'ausgabe', 'einstellungen', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
+  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
   document.documentElement.toggleAttribute('data-verkauf', !!TARIFE?.verkauf);
   document.documentElement.toggleAttribute('data-loeser', darf('loeser'));
   document.querySelectorAll('.mit-daten').forEach(a => { a.hidden = !fertig(); });
   leisteOrdnen();
+  $('nav-start').toggleAttribute('data-neu', SERVER && !eingerichtet());
   $('nav-admin').hidden = !ICH?.admin;
   const hier = neu === 'gesperrt' ? teil : neu;
   document.querySelectorAll('a[data-ansicht]').forEach(a => {
@@ -5991,12 +6049,11 @@ async function zeichne() {
     const f = SPERREN[a.dataset.ansicht];
     if (SERVER && ICH && f && !darf(f) && a.closest('.navi')) a.dataset.marke = stufeName(f); else delete a.dataset.marke;
   });
+  if ($('nav-mehr').querySelector('[aria-current]')) $('nav-mehr').open = true;  // gerade dort: aufgeklappt lassen
   $('nav-faecher').replaceChildren(...Object.keys(R).map(f => el('a', { href: `#/${encodeURIComponent(f)}`, 'aria-current': neu === 'ausgabe' && teil === f ? 'page' : null },
     el('span', { class: 'punkt', 'data-fach': f, 'aria-hidden': 'true' }), f, R[f].druckt && el('span', { class: 'laeuft', role: 'img', 'aria-label': 'wird erstellt' }))));
   $('nav-faecher-kopf').hidden = !fertig() || !Object.keys(R).length;
-  const namen = { arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
-    upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
-  document.title = neu === 'titelblatt' ? 'Lernhelfer' : `${neu === 'ausgabe' ? teil : namen[hier]} – Lernhelfer`;
+  document.title = neu === 'titelblatt' ? 'Lernhelfer' : `${neu === 'ausgabe' ? teil : ANSICHTEN[hier]} – Lernhelfer`;
   modellWahl(); $('modell-name').textContent = $('modell').value;
   $('alle').disabled = Object.values(R).some(r => r.druckt) || !Object.keys(R).length;
   if (neu !== 'einstellungen') kameraZu();
@@ -6015,11 +6072,12 @@ async function zeichne() {
   else if (neu === 'unterlagen') await unterlagenZeigen(tag);
   else if (neu === 'arena') await arenaZeigen();
   else if (neu === 'video') await videoZeigen(tag);
-  else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, namen[teil])), sperrkarte(SPERREN[teil]));
+  else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, ANSICHTEN[teil])), sperrkarte(SPERREN[teil]));
   else if (neu === 'upgrade') upgradeZeigen();
   else if (neu === 'admin') await adminZeigen();
   else if (neu === 'recht') await rechtZeigen();
   else if (neu === 'titelblatt') titelblatt();
+  else if (neu === 'start') startZeigen();
   if (neu !== 'vortrag' && $('vt-spieler') && !$('vt-spieler').hidden) { $('vt-spieler').querySelector('video').pause(); $('vt-spieler').hidden = true; }
   const woanders = location.hash !== ort;  // Seitenwechsel, nicht nur neu gezeichnet
   if (woanders && ort != null) $('inhalt').focus({ preventScroll: true });

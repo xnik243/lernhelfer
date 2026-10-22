@@ -448,6 +448,18 @@ try {
   assert.ok((await chef('GET', '/api/admin')).j.konten.find(x => x.id === maxId).manual_bis > Date.now(), 'Admin sieht den Zusatz');
   await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
   assert.deepEqual((await max('GET', '/api/ich')).j.zusatz, [], 'Base setzt auch den Zusatz zurück');
+  // Beta: Rechte wie Ultra, die App zeigt nur die angehakten Bereiche; der Admin kann sie jederzeit neu setzen
+  await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'beta', tage: 30, bereiche: ['vortrag', 'kalender', 'X!', 42] });
+  let ichMax = (await max('GET', '/api/ich')).j;
+  assert.equal(ichMax.tarif, 'beta'); assert.deepEqual(ichMax.beta, ['vortrag', 'kalender'], 'nur gültige Namen');
+  assert.equal((await max('POST', '/api/ki', { feature: 'probeklausur', model: 'openai/gpt-6-luna', messages: [] })).status, 200, 'Beta darf, was Ultra darf');
+  assert.equal((await max('POST', '/api/ki', foto)).status, 403, 'Löser und Fotos bleiben auf Eis');
+  await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'beta', tage: 30, bereiche: ['wordpower'] });
+  assert.deepEqual((await max('GET', '/api/ich')).j.beta, ['wordpower']);
+  assert.equal((await chef('GET', '/api/admin')).j.konten.find(x => x.id === maxId).beta, '["wordpower"]');
+  await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
+  ichMax = (await max('GET', '/api/ich')).j;
+  assert.equal(ichMax.tarif, 'base'); assert.equal(ichMax.beta, null);
   // Verkauf aus (Admin-Ecke): keine Tarife, kein Bestellen, kein Ultra-Test
   assert.equal((await max('GET', '/api/ich')).j.testFrei, true);
   assert.equal((await chef('POST', '/api/admin/preise', { verkauf: false })).j.verkauf, false);
