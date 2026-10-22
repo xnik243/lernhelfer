@@ -481,6 +481,13 @@ try {
   assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna');
   assert.equal((await chef('POST', '/api/admin/werte', { reflexion: 2 })).status, 400);
   await chef('POST', '/api/admin/werte', { reflexion: 0 });
+  // Glossar, Trainer, Time Log: nur ein Schalter, aus bis zum Einschalten
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).wpExtras, false);
+  await chef('POST', '/api/admin/werte', { 'wp-extras': 1 });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).wpExtras, true);
+  assert.equal((await chef('GET', '/api/admin')).j.wpExtras, true);
+  assert.equal((await chef('POST', '/api/admin/werte', { 'wp-extras': 2 })).status, 400);
+  await chef('POST', '/api/admin/werte', { 'wp-extras': 0 });
   await chef('POST', '/api/admin/tarif', { konto: maxId, tarif: 'base', tage: 0 });
   // Auf Eis: Löser und Test-Fotos nur mit dem Zusatz Manual Access (vom Admin), und auch dann nur mit REGEL
   const foto = { feature: 'test-foto', model: 'google/gemini-3.8-flash', reasoning: { effort: 'max' }, provider: { x: 1 }, stil: false,

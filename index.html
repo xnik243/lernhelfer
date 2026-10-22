@@ -1503,7 +1503,7 @@ aussehen();
         </ol>
         <p>Ältere Ausgaben bleiben unter „Frühere Ausgaben“ erhalten. Welches Modell schreibt, stellst du unter <span class="nur-eigen">Einrichten</span><span class="nur-server">Konto</span> ein.<span class="nur-server"> In Base schreibt immer DeepSeek V4.1, ab Pro wählst du selbst.</span></p>
         <p class="nur-server">Für Word Power gibt es in jedem Tarif die Vorlage: Du gibst deine Word Partnerships ein und bekommst das Journal mit allen Feldern zum Ausfüllen und der Progress-Tabelle, als Datei für Word. Ab Pro schreibt Gemini dazu jeden YouTube-Talk mit Zeitstempeln mit.</p>
-        <p>In Word Power gibt es außerdem das <b>Glossar</b> mit allen Word Partnerships des Semesters (Ziel laut Syllabus: 120) samt Satz aus dem Talk, den <b>Trainer</b> mit Karteikarten und Lückentexten aus deinen eigenen Einträgen und das <b>Time Log</b> mit Stoppuhr. Explanation, Synonym und Co. schreibst du selbst. In der <b>Vortragsanalyse</b> kannst du deine Word Partnerships eintragen: Sie zeigt, welche du im Probevideo eingebaut hast, und für die fehlenden die Stelle, an der sie am besten gepasst hätten.</p>
+        <p>In der <b>Vortragsanalyse</b> kannst du deine Word Partnerships eintragen: Sie zeigt, welche du im Probevideo eingebaut hast, und für die fehlenden die Stelle, an der sie am besten gepasst hätten.</p>
         <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
         <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
@@ -1704,6 +1704,7 @@ Hat die Einheit keine Formeln (etwa in Englisch oder in rein begrifflichen Einhe
 Erklär wie eine geduldige Tutorin oder ein geduldiger Tutor, weiterhin ohne Ich-Form. Die Regeln zu laufenden Onlinetests und zu den Stammdaten gelten unverändert.`;
 // Fassung je Fach (PROFIL.fassung): Niveau und Form betreffen nur, wie die Zusammenfassung geschrieben ist; Abschnitte und JSON bleiben gleich
 const DOSIS = 'Formeln dosiert: nur die, mit denen man rechnet oder die man kennen muss, höchstens zwei abgesetzte Formeln pro ###-Teil; einfache Zusammenhänge stehen in Worten („Gewinn ist Erlös minus Kosten“), Zwischenschritte und Varianten gar nicht.';
+const DOSIS_BALANCED = 'Formeln mittel dosiert: jede Formel, mit der man in Aufgaben rechnet, steht abgesetzt da, bis zu vier pro ###-Teil, dazu die eine Umstellung, die man am häufigsten braucht; ganz einfache Zusammenhänge bleiben in Worten, Herleitungen und Schreibvarianten entfallen.';
 const NIVEAUS = {
   einsteiger: { name: 'Einsteiger', kurz: 'Einfach erklärt, ohne Vorwissen, trotzdem vollständig',
     auftrag: 'Für Studierende ohne Vorwissen, die den Stoff zum ersten Mal sehen. Alltagssprache und kurze Sätze, kein Fachbegriff ohne Erklärung, zu jedem Gedanken erst ein Alltagsbeispiel, dann die Fachsprache; jede Formel erst in Worten, dann als Formel. Fachlich bleibt alles vollständig und richtig: Einfacher erklären heißt nicht, Prüfungsrelevantes wegzulassen oder falsch zu vereinfachen.' },
@@ -1715,6 +1716,8 @@ const NIVEAUS = {
 const FORMEN = {
   text: { name: 'Fließtext', kurz: 'Zusammenhängend erklärt, wenige Formeln', icon: 'M4 7h16M4 11h16M4 15h11M4 19h7',
     auftrag: 'Zusammenhängender Text in kurzen Absätzen unter den ###-Überschriften.' },
+  balanced: { name: 'Balanced', kurz: 'Kurz erklärt, dann die Formeln dazu', icon: 'M4 6h16M4 10h7M4 14h7M4 18h16M19 9h-6l3 3-3 3h6',
+    auftrag: 'Jeder ###-Teil hat zwei Hälften: erst 2–4 Sätze, worum es geht und wie die Größen zusammenhängen, dann die Formeln dieses Teils. Jede Formel steht abgesetzt, darunter in einer Zeile, was die Zeichen bedeuten, ein Satz, wann man sie braucht, und ein kurzes Zahlenbeispiel. Mehr Formeln als im Fließtext, aber keine Formelsammlung: Der Text erklärt das Warum, die Formeln zeigen, wie man rechnet.' },
   stichpunkte: { name: 'Stichpunkte', kurz: 'Gegliedert, schnell zu überfliegen', icon: 'M5 7h.01M5 12h.01M5 17h.01M9 7h10M9 12h8M9 17h9',
     auftrag: 'Unter jeder ###-Überschrift Stichpunkte statt Absätzen, höchstens zwei Ebenen tief. Jeder Stichpunkt ist ein verständlicher ganzer Satz, kein Telegrammstil; Fachbegriffe **fett**. Zusammenhänge stehen ausdrücklich da („daraus folgt“, „weil“, „im Gegensatz zu“).' },
   beispiele: { name: 'An Beispielen', kurz: 'Erst die Aufgabe, dann die Regel', icon: 'M4 5h9v6H4zM8.5 11v4.5H17M14.5 13l2.5 2.5-2.5 2.5M4 19.5h7',
@@ -1727,7 +1730,7 @@ const FORMEN = {
 const fassungAuftrag = w => `FASSUNG DIESER AUSGABE. Sie betrifft nur, wie der Abschnitt „Zusammenfassung der letzten Einheit“ geschrieben ist; Abschnitte, Reihenfolge und der JSON-Block bleiben wie oben.
 Niveau ${NIVEAUS[w.niveau].name}: ${NIVEAUS[w.niveau].auftrag}
 Form ${FORMEN[w.form].name}: ${FORMEN[w.form].auftrag}${w.form === 'formeln' ? (w.niveau === 'ultra' ? ' Der Abschnitt „Formeln Schritt für Schritt“ entfällt; andere Schreibweisen und das Umstellen stehen knapp direkt bei jeder Formel.' : '')
-  : ' ' + DOSIS + (w.niveau === 'ultra' ? ' Alle weiteren Formeln gehören in „Formeln Schritt für Schritt“.' : '')}`;
+  : ' ' + (w.form === 'balanced' ? DOSIS_BALANCED : DOSIS) + (w.niveau === 'ultra' ? ' Alle weiteren Formeln gehören in „Formeln Schritt für Schritt“.' : '')}`;
 const fassung = f => {  // gespeicherte Wahl; Ultra nur mit dem Recht dazu, sonst wie bisher: Ultra, wer darf, sonst Normal
   const w = PROFIL.fassung?.[f] || {}, n = NIVEAUS[w.niveau] && (!NIVEAUS[w.niveau].recht || darf(NIVEAUS[w.niveau].recht)) ? w.niveau : null;
   return { niveau: n || (darf('ausgabe-ultra') ? 'ultra' : 'normal'), form: FORMEN[w.form] ? w.form : 'text' };
@@ -3368,6 +3371,7 @@ function wordpower() {
   $('wp-zeile').textContent = text ? ue('Vom YouTube-Talk zum Hausaufgaben-Entwurf', 'From YouTube talk to homework draft') : hoeren ? ue('Talks mitschreiben, Vorlage mit deinen Wörtern', 'Transcribe talks, template with your words') : ue('Die Word-Power-Vorlage mit deinen Wörtern', 'The Word Power template with your words');
   const teile = wpTeile();
   if (!teile.some(([k]) => k === WPT.teil)) WPT.teil = 'journal';
+  $('wp-teile').hidden = teile.length < 2;
   $('wp-teile').replaceChildren(...teile.map(([k, name]) => el('button', { type: 'button', 'aria-current': WPT.teil === k ? 'true' : null, onclick: () => wpTeil(k) }, name)));
   const journal = WPT.teil === 'journal';
   $('wp-sperre').hidden = !!WP || !journal; $('wp-werk').hidden = !journal || !SERVER && !WP; $('wp-extra').hidden = journal;
@@ -3590,7 +3594,8 @@ const WPJ_D = datei('wordpower.json', () => ({ eintraege: [], log: [], refl: [] 
 let WPJ = null;
 const WPT = { teil: merk('wp-teil') || 'journal', gezeigt: null, runde: null, uhr: liesJson('wp-uhr'), ergebnis: null, laeuft: null };
 const reflexionDa = () => !SERVER || !!TARIFE?.reflexion || !!ICH?.ecke;
-const wpTeile = () => [['journal', 'Journal'], ['glossar', ue('Glossar', 'Glossary')], ['trainer', 'Trainer'], ['zeit', 'Time Log'], reflexionDa() && ['reflexion', 'Reflection']].filter(Boolean);
+const wpExtrasDa = () => !SERVER || !!TARIFE?.wpExtras || !!ICH?.ecke;  // Glossar, Trainer, Time Log
+const wpTeile = () => [['journal', 'Journal'], ...wpExtrasDa() ? [['glossar', ue('Glossar', 'Glossary')], ['trainer', 'Trainer'], ['zeit', 'Time Log']] : [], reflexionDa() && ['reflexion', 'Reflection']].filter(Boolean);
 function wpTeil(k) {
   WPT.teil = k; WPT.gezeigt = null; merk('wp-teil', k);
   if (SERVER && ICH && k !== 'journal') api('nutzung', { was: 'seite:wp-' + k }).catch(() => {});
@@ -4632,7 +4637,7 @@ function vtPartnerships(v, a, zeit) {
       p.einbau && el('div', { class: 'vt-einbau' }, el('p', { class: 'meta' }, ue('Hätte am besten hier gepasst', 'Would have fitted best here'), p.einbau.zeit && [' · ', zeit(vtSek(p.einbau.zeit))]),
         el('p', { class: 'vt-zitat', lang: 'en' }, `„${p.einbau.original}“`), el('p', { class: 'vt-besser', lang: 'en' }, '→ „', hervor(p.einbau.neu, p.ausdruck), '“'),
         p.einbau.warum && el('p', { class: 'meta' }, p.einbau.warum))))),
-    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async e => {
+    wpExtrasDa() && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async e => {
       e.currentTarget.disabled = true;
       try {
         WPJ ??= await WPJ_D.laden();
@@ -6027,13 +6032,15 @@ async function adminZeigen() {
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.neuEnglisch > 0 }), 'Neue Konten bekommen Englisch statt Base'),
     el('label', {}, 'für so viele Tage', el('input', { name: 'tage', type: 'number', min: 1, step: 1, value: d.neuEnglisch || 180 })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
-  const reflexion = el('form', { class: 'werte-form', onsubmit: async e => {
+  const extras = el('form', { class: 'werte-form', onsubmit: async e => {
     e.preventDefault();
-    e.target.elements.knopf.disabled = true;
-    try { await api('admin/werte', { reflexion: e.target.elements.an.checked ? 1 : 0 }); TARIFE = await api('tarife'); } catch (err) { alert(err.message); }
+    const f = e.target.elements;
+    f.knopf.disabled = true;
+    try { await api('admin/werte', { 'wp-extras': f.extras.checked ? 1 : 0, reflexion: f.an.checked ? 1 : 0 }); TARIFE = await api('tarife'); } catch (err) { alert(err.message); }
     adminZeigen();
   } },
-    el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.reflexion }), 'Reflection-Feedback in Word Power zeigen'),
+    el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'extras', checked: d.wpExtras }), 'Glossar, Trainer und Time Log zeigen'),
+    el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.reflexion }), 'Reflection-Feedback zeigen'),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
   const A = d.arena, P = A.preise;
   const arenaPreise = el('form', { class: 'werte-form', onsubmit: async e => {
@@ -6073,10 +6080,10 @@ async function adminZeigen() {
     el('p', { class: 'klein' }, 'Kostenlos: alles aus Base, dazu Vortrag analysieren und YouTube-Talks für Word Power transkribieren. Der Hausaufgaben-Entwurf bleibt bei dir. In der Seitenleiste stehen nur Word Power, Vortrag und Unterlagen oben, alles andere eingeklappt darunter. Einzelne Konten: unten bei „Tarif von Hand“ Englisch wählen. Für Testerinnen und Tester gibt es dort Beta: Rechte wie Ultra, zu sehen nur die Bereiche, die du anhakst.'),
     el('p', { class: 'meta' }, d.neuEnglisch > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuEnglisch} Tage Englisch. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.` : `Aus: Neue Konten starten mit Base. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.`),
     englisch,
-    el('h3', {}, 'Reflection-Feedback'),
-    el('p', { class: 'klein' }, 'In Word Power unter „Reflection“: Die KI liest eine fertige Reflection und sagt, ob sie lang genug ist, ob sie reflektiert statt zusammenfasst und wo Sprachfehler stehen. Sie schreibt keinen Satz um. Aus, bis du es einschaltest; du selbst siehst es in der Ecke immer.'),
-    el('p', { class: 'meta' }, d.reflexion ? 'An: alle mit Pro, Ultra oder Englisch sehen es.' : 'Aus: niemand außer dir sieht es.'),
-    reflexion,
+    el('h3', {}, 'Extras in Word Power'),
+    el('p', { class: 'klein' }, 'Glossar, Trainer und Time Log: Ablage und Übung nur mit dem, was man selbst einträgt. Reflection-Feedback: Die KI liest eine fertige Reflection und sagt, ob sie lang genug ist, ob sie reflektiert statt zusammenfasst und wo Sprachfehler stehen; sie schreibt keinen Satz um. Beides ist aus, bis du es einschaltest; du selbst siehst alles in der Ecke immer. Sind beide aus, steht über Word Power keine Leiste mit Teilen.'),
+    el('p', { class: 'meta' }, `Glossar, Trainer, Time Log: ${d.wpExtras ? 'an für alle' : 'aus'} · Reflection-Feedback: ${d.reflexion ? 'an für alle mit Pro, Ultra oder Englisch' : 'aus'}`),
+    extras,
     el('h2', {}, 'Auf einen Blick'),
     el('div', { class: 'kacheln' },
       kachel('Konten', K.konten, `+${K.neu7} in 7 Tagen, +${K.neu30} in 30 Tagen`),

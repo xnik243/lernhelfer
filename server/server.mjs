@@ -749,7 +749,7 @@ function bestellMail(k, T, monate, betrag, zweck) {
 
 /* ---------- Routen ---------- */
 const ROUTEN = {
-  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
+  'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
     modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '' },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
@@ -977,7 +977,7 @@ const ROUTEN = {
     await Promise.all(konten.map(async x => { x.api = x.or_hash && E.LH_OR_VERWALTUNG ? await orNutzung(x.or_hash) : null; delete x.or_hash; }));
     return {
       ...dashboard(konten), konten, funktionen: nutzungListe(), schluessel: schluesselStand(), neuEnglisch: wert('neu-englisch', 0), launchEin: !!wert('launch', 1),
-      reflexion: !!wert('reflexion', 0),
+      reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0),
       arena: { preise: arenaPreise(), woche: arenaWoche(),
         teilnehmer: db.prepare(`select a.konto, a.name, a.aus, k.email, coalesce((select sum(xp) from arena_xp x where x.konto = a.konto and x.tag >= ?), 0) woche,
           coalesce((select sum(xp) from arena_xp x where x.konto = a.konto), 0) gesamt, coalesce((select serie from arena_serie s where s.konto = a.konto), 0) serie
@@ -989,11 +989,11 @@ const ROUTEN = {
   },
   'POST /api/admin/werte': ({ k, b }) => {  // Fixkosten pro Monat in €, was 1 $ KI in € kostet, wie viele Tage neue Konten Englisch bekommen (0 = aus)
     admin(k);
-    const ganz = ['neu-englisch', 'reflexion', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
+    const ganz = ['neu-englisch', 'reflexion', 'wp-extras', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion und wp-extras 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
     for (const name of ['fixkosten', 'kurs', ...ganz]) {
       if (b[name] == null || b[name] === '') continue;
       const x = Number(String(b[name]).replace(',', '.'));
-      if (!(x >= 0 && x < 1e5) || ganz.includes(name) && !Number.isInteger(x) || name === 'reflexion' && x > 1 || name === 'arena-art' && x > 2
+      if (!(x >= 0 && x < 1e5) || ganz.includes(name) && !Number.isInteger(x) || ['reflexion', 'wp-extras'].includes(name) && x > 1 || name === 'arena-art' && x > 2
         || /^arena-p/.test(name) && b['arena-art'] == 2 && x > 100) nein(400, ganz.includes(name) ? 'Bitte ganze Zahlen eingeben (Rabatt höchstens 100 %).' : 'Bitte eine Zahl eingeben, etwa 4,90.');
       wertSetzen(name, x);
     }
