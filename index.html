@@ -5286,10 +5286,12 @@ async function unterlagenZeigen(wahl) {
       x.text ? el('span', { class: 'pille ok' }, 'Hinzugefügt') : el('span', { class: 'pille fehler' }, x.name ? 'Nicht hinzugefügt' : 'Fehler'),
       x.name && el('span', {}, x.name), x.text ? el('span', { class: 'meta' }, `${x.text.length.toLocaleString('de-AT')} Zeichen`) : el('span', { class: 'meta' }, x.fehler)))),
     gut.length > 0 && R[UL.fach] && el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: `#/${encodeURIComponent(UL.fach)}` }, `Zu ${UL.fach}: neue Ausgabe erstellen`)));
-  const liste = UL.quellen && faecher.map(f => {
-    const d = UL.quellen[f]?.dateien || [], eigen = d.filter(x => x.datei?.startsWith('Hochgeladen/')), pc = d.length - eigen.length;
+  const fehlt = faecher.filter(f => !UL.quellen?.[f]);  // je Fach: die Seite kann vor den Fächern da sein (neu geladen auf Unterlagen)
+  const liste = !fehlt.length && faecher.map(f => {
+    const d = UL.quellen[f].dateien || [], eigen = d.filter(x => x.datei?.startsWith('Hochgeladen/')), pc = d.length - eigen.length;
     return el('section', { class: 'ul-fach', 'aria-label': f }, el('h3', {}, f),
-      el('p', { class: 'meta' }, [pc && `${pc} ${pc === 1 ? 'Datei' : 'Dateien'} vom Abgleich am PC oder Mac`, `${eigen.length} selbst hochgeladen`].filter(Boolean).join(', ')),
+      UL.quellen[f].fehler ? el('p', { class: 'fehlertext' }, `Konnte die Unterlagen nicht laden: ${UL.quellen[f].fehler}`)
+        : el('p', { class: 'meta' }, [pc && `${pc} ${pc === 1 ? 'Datei' : 'Dateien'} vom Abgleich am PC oder Mac`, `${eigen.length} selbst hochgeladen`].filter(Boolean).join(', ')),
       teileListe(f, d),
       eigen.length > 0 && el('ul', { class: 'ul-liste' }, eigen.map(x => el('li', {}, el('span', { class: 'name' }, x.datei.slice(12)),
         el('span', { class: 'meta' }, [UL_ARTEN[x.art] || x.art, x.hochgeladen && `am ${kurz(x.hochgeladen)}`, `${(x.text?.length || 0).toLocaleString('de-AT')} Zeichen`].filter(Boolean).join(' · ')),
@@ -5304,9 +5306,9 @@ async function unterlagenZeigen(wahl) {
     el('p', { class: 'klein' }, 'Ein neues Fach legst du an, indem du oben einen neuen Namen eingibst. Laufen Vorlesung und Proseminar mit eigenem Stoff, teil das Fach unten auf.'),
     liste ? (liste.length ? liste : el('p', { class: 'leer' }, 'Noch keine Fächer. Lade oben die ersten Folien hoch.')) : el('p', { class: 'meta' }, 'Lade …'),
   ].flat().filter(Boolean));
-  if (!UL.quellen) {
-    const alle = await Promise.all(faecher.map(f => quelle(f).catch(() => null)));
-    UL.quellen = Object.fromEntries(faecher.map((f, i) => [f, alle[i]]));
+  if (fehlt.length) {
+    const alle = await Promise.all(fehlt.map(f => quelle(f).catch(e => ({ dateien: [], fehler: e.message }))));
+    UL.quellen = { ...UL.quellen, ...Object.fromEntries(fehlt.map((f, i) => [f, alle[i]])) };
     if (document.body.dataset.ansicht === 'unterlagen' && !UL.laeuft) unterlagenZeigen();
   }
 }
