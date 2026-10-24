@@ -949,7 +949,7 @@
   .ul-liste .name { overflow-wrap: anywhere; font-size: 0.9375rem; font-weight: 600; }
   .ul-liste .meta { grid-column: 1; }
   .ul-liste .knopf { grid-row: 1 / span 2; grid-column: 2; }
-  .ul-liste select { grid-row: 1 / span 2; grid-column: 2; width: auto; max-width: 11rem; min-height: 40px; }
+  .ul-zusammen { max-width: 30rem; margin-top: 12px; }
   .ul-teile { margin: 4px 0 12px; }
   .ul-teile > summary { width: max-content; color: var(--akzent-text); }
   .ul-teile > p { margin: 4px 0 10px; }
@@ -1525,7 +1525,7 @@ aussehen();
         <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
         <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Balanced (kurz erklärt, dann die Formeln), Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
-        <p><b>Fach aufteilen:</b> Haben Vorlesung und Proseminar eigenen Stoff, öffne <a href="#/unterlagen">Unterlagen</a>, tippe beim Fach auf „Aufteilen oder zusammenlegen“ und wähle beim PS „Neues Fach …“. Dann bekommt jeder Teil eigene Wochenausgaben, Termine und Begriffe. Genauso legst du zwei Fächer zusammen oder holst einen Teil zurück. Ein ganz neues Fach entsteht, wenn du unter Unterlagen Dateien mit einem neuen Fachnamen hochlädst.</p>
+        <p><b>Fach aufteilen:</b> Haben Vorlesung und Proseminar eigenen Stoff, öffne <a href="#/unterlagen">Unterlagen</a>, tippe beim Fach auf „Fach aufteilen“ und beim PS auf „Eigenes Fach“. Dann bekommt jeder Teil eigene Wochenausgaben, Termine und Begriffe. „Zurück zu …“ holt den Teil wieder. Hat der Lernhelfer ein Fach doppelt angelegt, etwa VO und PS unter zwei Namen, legst du die beiden dort zusammen. Ein ganz neues Fach entsteht, wenn du unter Unterlagen Dateien mit einem neuen Fachnamen hochlädst.</p>
 
         <h2 id="a-termine">Termine und Kalender</h2>
         <ul>
@@ -1944,10 +1944,11 @@ const PROFIL_D = datei('profil.json', () => ({ studium: 'Wirtschaftswissenschaft
 let PROFIL = { studium: 'Wirtschaftswissenschaften', semester: 1, pstest: {}, aus: [] }, ALLE_FAECHER = [];
 const studium = () => `${PROFIL.semester}. Semester ${PROFIL.studium} an der Universität Innsbruck`;
 // Fächer aufteilen und zusammenlegen (Unterlagen): Ein Teil ist die LV-Art vorn im Ordnernamen (VO, PS …, so benennt holen.py die Ordner),
-// sonst der Ordner. PROFIL.teile = { Fach: { Teil: anderes Fach } }; Hochgeladenes bleibt in dem Fach, in das es hochgeladen wurde.
+// sonst der Ordner. PROFIL.teile = { Fach: { Teil: anderes Fach, '*': Fach für alles Übrige (zusammengelegt) } };
+// Hochgeladenes ist kein Teil: Es bleibt in seinem Fach und geht nur mit, wenn das ganze Fach zusammengelegt wird.
 const teilVon = datei => datei.match(/^([A-Z]{2}) /)?.[1] || datei.split('/')[0];
-const wohin = (f, datei) => datei.startsWith('Hochgeladen/') ? f : PROFIL.teile?.[f]?.[teilVon(datei)] || f;
-const lvFach = t => PROFIL.teile?.[t.fach]?.[t.art] || t.fach;  // Stundenplan: das PS von BWL gehört zu „BWL PS“, wenn der PS-Teil dort liegt
+const wohin = (f, datei) => { const t = PROFIL.teile?.[f]; return (!datei.startsWith('Hochgeladen/') && t?.[teilVon(datei)]) || t?.['*'] || f; };
+const lvFach = t => PROFIL.teile?.[t.fach]?.[t.art] || PROFIL.teile?.[t.fach]?.['*'] || t.fach;  // Stundenplan: das PS von BWL gehört zu „BWL PS“, wenn der PS-Teil dort liegt
 const rang = f => ORDNUNG.findIndex(o => f === o || f.startsWith(o + ' ')) + 1 || 99;
 let ABGLEICH = null, GUTHABEN = null;  // abgleich.json vom PC, Restguthaben
 
@@ -2052,7 +2053,7 @@ async function laden(profil = true) {
   if (profil) PROFIL = { ...PROFIL, ...await PROFIL_D.laden().catch(() => ({})) };
   const dateien = ((await gh('faecher', { roh: false })) || []).map(f => f.name.replace(/\.json$/, ''));
   // ponytail: verschwindet ein Teil (neues Semester), bleibt sein Fach leer stehen; ausblenden geht unter Konto bzw. Einrichten
-  ALLE_FAECHER = [...new Set([...dateien, ...dateien.flatMap(f => Object.values(PROFIL.teile?.[f] || {}))])];
+  ALLE_FAECHER = [...new Set([...dateien.filter(f => !PROFIL.teile?.[f]?.['*']), ...dateien.flatMap(f => Object.values(PROFIL.teile?.[f] || {}))])];
   ALLE_FAECHER.sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, 'de'));
   const namen = ALLE_FAECHER.filter(f => !PROFIL.aus?.includes(f));
   for (const f of namen) R[f] = { ausgaben: [], cache: {}, quelle: null, druckt: false, fehler: '' };  // feste Reihenfolge, egal was zuerst lädt
@@ -5209,45 +5210,59 @@ async function unterlagenEntfernen(fach, datei, knopf) {
   try { await unterlagenAendern(fach, alt => alt.filter(x => x.datei !== datei)); UL.quellen = null; unterlagenZeigen(); }
   catch (e) { status(e.message, true); knopf.disabled = false; }
 }
-// Teile eines Fachs (VO, PS oder Ordner) mit der Wahl, zu welchem Fach sie gehören; Teile aus anderen Fächern stehen mit „aus …“ dabei
+// Teile eines Fachs (VO, PS oder Ordner): einer wird ein eigenes Fach, ein abgetrennter geht zurück. Zusammenlegen nur für Fächer,
+// die der Lernhelfer nicht von selbst erkennt (ORDNUNG): Dort kann dasselbe Fach unter zwei Namen entstehen, etwa VO und PS mit anderen Titeln.
 function teileListe(f, dateien) {
   const teile = {};
-  for (const x of dateien) (teile[x.von + '\n' + teilVon(x.datei)] ??= []).push(x);
-  const n = Object.keys(teile).length;
-  return n > 0 && el('details', { class: 'ul-teile', open: UL.offen.has(f) || Object.keys(teile).some(k => !k.startsWith(f + '\n')),
-    ontoggle: e => UL.offen[e.target.open ? 'add' : 'delete'](f) },
-    el('summary', {}, 'Aufteilen oder zusammenlegen'),
-    el('p', { class: 'klein' }, n > 1 ? `Jeder Teil kann ein eigenes Fach mit eigenen Wochenausgaben werden, etwa wenn Vorlesung und Proseminar nicht denselben Stoff haben.`
-      : 'Gehört das zu einem anderen Fach, wähl es hier aus.'),
-    el('ul', { class: 'ul-liste' }, Object.entries(teile).map(([k, liste]) => {
-      const [von, teil] = k.split('\n'), lv = /^[A-Z]{2}$/.test(teil), wer = teil + (von !== f ? ` aus ${von}` : '');
-      const ordner = lv ? [...new Set(liste.map(x => x.datei.split('/')[0].slice(3)))].join(', ') + ' · ' : '';
-      return el('li', {}, el('span', { class: 'name' }, wer), el('span', { class: 'meta' }, `${ordner}${liste.length} ${liste.length === 1 ? 'Datei' : 'Dateien'}`),
-        el('select', { 'aria-label': `${wer} gehört zu`, onchange: e => teilVerschieben(von, teil, e.target) },
-          [...new Set([...Object.keys(R), von])].map(z => el('option', { value: z, selected: z === f }, z)), el('option', { value: '' }, 'Neues Fach …')));
-    })));
-}
-async function teilVerschieben(von, teil, feld) {
-  let ziel = feld.value;
-  if (Object.values(R).some(r => r.druckt)) { status('Gerade entsteht eine Ausgabe. Teil das Fach danach auf.', true); return unterlagenZeigen(); }
-  if (!ziel) {
-    const name = prompt(`Name des neuen Fachs für ${teil}:`, /^[A-Z]{2}$/.test(teil) ? `${von} ${teil}` : teil)?.trim().replace(/\s+/g, ' ');
-    if (!name) return unterlagenZeigen();  // abgebrochen: Auswahl wie vorher
-    if (/[\\/:*?"<>|#%]|^\.|\.$/.test(name) || name.length > 40) { status('Bitte im Fachnamen nur Buchstaben, Zahlen und Leerzeichen, höchstens 40 Zeichen.', true); return unterlagenZeigen(); }
-    ziel = [...ALLE_FAECHER, ...Object.keys(R)].find(x => x.toLowerCase() === name.toLowerCase()) || name;
+  for (const x of dateien) {
+    const t = teilVon(x.datei), k = x.von !== f && PROFIL.teile?.[x.von]?.[t] !== f ? '*' : t;  // '*': kam mit dem ganzen Fach
+    if (k !== '*' && x.datei.startsWith('Hochgeladen/')) continue;  // Hochgeladenes ist kein Teil, es bleibt in seinem Fach
+    (teile[x.von + '\n' + k] ??= []).push(x);
   }
+  const eigene = Object.keys(teile).filter(k => k.startsWith(f + '\n')).length;
+  const andere = !ORDNUNG.includes(f) && dateien.some(x => x.von === f) ? Object.keys(R).filter(x => x !== f) : [];
+  const was = [eigene > 1 && 'aufteilen', andere.length > 0 && 'zusammenlegen'].filter(Boolean).join(' oder ');
+  if (!was && eigene === Object.keys(teile).length) return null;  // ein Teil, nichts abgetrennt: nichts zu tun
+  const zeile = (name, meta, knopf) => el('li', {}, el('span', { class: 'name' }, name), el('span', { class: 'meta' }, meta), knopf);
+  const anzahl = n => `${n} ${n === 1 ? 'Datei' : 'Dateien'}`;
+  return el('details', { class: 'ul-teile', open: UL.offen.has(f) || eigene < Object.keys(teile).length, ontoggle: e => UL.offen[e.target.open ? 'add' : 'delete'](f) },
+    el('summary', {}, was ? `Fach ${was}` : 'Woher die Unterlagen kommen'),
+    eigene > 1 && el('p', { class: 'klein' }, 'Haben Vorlesung und Proseminar eigenen Stoff, mach aus einem Teil ein eigenes Fach. Es bekommt eigene Wochenausgaben, Termine und Begriffe.'),
+    Object.keys(teile).length > 0 && el('ul', { class: 'ul-liste' }, Object.entries(teile).map(([k, liste]) => {
+      const [von, teil] = k.split('\n'), knopf = (text, fn) => el('button', { class: 'knopf', type: 'button', onclick: fn }, text);
+      if (teil === '*') return zeile(`Alles aus ${von}`, anzahl(liste.length), knopf('Wieder trennen', () => teileSetzen(von, '*', von, `${von} ist wieder ein eigenes Fach.`)));
+      const ordner = /^[A-Z]{2}$/.test(teil) ? [...new Set(liste.map(x => x.datei.split('/')[0].slice(3)))].join(', ') + ' · ' : '';
+      return von !== f ? zeile(`${teil} aus ${von}`, ordner + anzahl(liste.length), knopf(`Zurück zu ${von}`, () => teileSetzen(von, teil, von, `${teil} gehört wieder zu ${von}.`)))
+        : zeile(teil, ordner + anzahl(liste.length), eigene > 1 && knopf('Eigenes Fach', () => eigenesFach(f, teil)));
+    })),
+    andere.length > 0 && el('label', { class: 'feld ul-zusammen' }, `Gibt es ${f} doppelt, etwa unter einem zweiten Namen? Dann hier zusammenlegen:`,
+      el('select', { onchange: e => {
+        const g = e.target.value;
+        if (g && confirm(`${f} mit ${g} zusammenlegen? Alle Unterlagen von ${f} kommen dann in die Ausgaben von ${g}. „Wieder trennen“ bei ${g} macht es rückgängig.`))
+          teileSetzen(f, '*', g, `${f} gehört jetzt zu ${g}.`);
+        else e.target.value = '';
+      } }, el('option', { value: '' }, 'Fach wählen …'), andere.map(x => el('option', { value: x }, x)))));
+}
+function eigenesFach(von, teil) {
+  const name = prompt(`Name des neuen Fachs für ${teil}:`, `${von} ${teil}`.slice(0, 40))?.trim().replace(/\s+/g, ' ');
+  if (!name || name.toLowerCase() === von.toLowerCase()) return;
+  if (/[\\/:*?"<>|#%]|^\.|\.$/.test(name) || name.length > 40) return status('Bitte im Fachnamen nur Buchstaben, Zahlen und Leerzeichen, höchstens 40 Zeichen.', true);
+  const ziel = [...ALLE_FAECHER, ...Object.keys(R)].find(x => x.toLowerCase() === name.toLowerCase()) || name;  // vorhandener Name: der Teil kommt dazu
+  teileSetzen(von, teil, ziel, `${teil} gehört jetzt zu ${ziel}. Ab der nächsten Ausgabe ist der Stoff getrennt.`);
+}
+async function teileSetzen(von, teil, ziel, meldung) {  // ziel = von: zurück; teil '*': das ganze Fach
+  if (Object.values(R).some(r => r.druckt)) return status('Gerade entsteht eine Ausgabe. Teil das Fach danach auf.', true);
   const t = { ...PROFIL.teile?.[von] };
   if (ziel === von) delete t[teil]; else t[teil] = ziel;
   PROFIL = { ...PROFIL, teile: { ...PROFIL.teile, [von]: t }, aus: (PROFIL.aus || []).filter(x => x !== ziel),
     pstest: { ...PROFIL.pstest, [ziel]: PROFIL.pstest?.[ziel] ?? PROFIL.pstest?.[von] ?? false } };
   PROFIL_D.daten = PROFIL;
-  feld.disabled = true;
   try {
     await PROFIL_D.speichern();
     for (const f of Object.keys(R)) delete R[f];
     TESTS = null; UL.quellen = null;
     await laden(false);
-    status(ziel === von ? `${teil} gehört wieder zu ${von}.` : `${teil} gehört jetzt zu ${ziel}. Ab der nächsten Ausgabe ist der Stoff getrennt.`);
+    status(meldung);
   } catch (e) { status(e.message, true); }
   zeichne();
 }
@@ -5275,10 +5290,10 @@ async function unterlagenZeigen(wahl) {
     const d = UL.quellen[f]?.dateien || [], eigen = d.filter(x => x.datei?.startsWith('Hochgeladen/')), pc = d.length - eigen.length;
     return el('section', { class: 'ul-fach', 'aria-label': f }, el('h3', {}, f),
       el('p', { class: 'meta' }, [pc && `${pc} ${pc === 1 ? 'Datei' : 'Dateien'} vom Abgleich am PC oder Mac`, `${eigen.length} selbst hochgeladen`].filter(Boolean).join(', ')),
-      teileListe(f, d.filter(x => !x.datei?.startsWith('Hochgeladen/'))),
+      teileListe(f, d),
       eigen.length > 0 && el('ul', { class: 'ul-liste' }, eigen.map(x => el('li', {}, el('span', { class: 'name' }, x.datei.slice(12)),
         el('span', { class: 'meta' }, [UL_ARTEN[x.art] || x.art, x.hochgeladen && `am ${kurz(x.hochgeladen)}`, `${(x.text?.length || 0).toLocaleString('de-AT')} Zeichen`].filter(Boolean).join(' · ')),
-        el('button', { class: 'knopf', type: 'button', onclick: e => unterlagenEntfernen(f, x.datei, e.currentTarget) }, 'Entfernen')))));
+        el('button', { class: 'knopf', type: 'button', onclick: e => unterlagenEntfernen(x.von || f, x.datei, e.currentTarget) }, 'Entfernen')))));
   });
   s.replaceChildren(...[
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Unterlagen'),
