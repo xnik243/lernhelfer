@@ -373,11 +373,11 @@
   @media (prefers-reduced-motion: reduce) { .karte .innen { transition: none; } }
   .karten-aktionen { display: flex; gap: 8px; margin-top: 14px; }
   .karten-aktionen .knopf { flex: 1; }
-  :is(.liste, .quellen, .einrichten details) > summary { display: flex; align-items: center; gap: 6px; min-height: 40px; cursor: pointer; list-style: none; font-weight: 600; }
-  :is(.liste, .quellen, .einrichten details) > summary::-webkit-details-marker { display: none; }
-  :is(.liste, .quellen, .einrichten details) > summary::before { content: ""; width: 16px; height: 16px; flex: none; background: currentColor; -webkit-mask: var(--pfeil-rechts) center / contain no-repeat; mask: var(--pfeil-rechts) center / contain no-repeat; transition: transform 0.2s; }
-  :is(.liste, .quellen, .einrichten details)[open] > summary::before { transform: rotate(90deg); }
-  @media (prefers-reduced-motion: reduce) { :is(.liste, .quellen, .einrichten details) > summary::before { transition: none; } }
+  :is(.liste, .quellen, .ul-teile, .einrichten details) > summary { display: flex; align-items: center; gap: 6px; min-height: 40px; cursor: pointer; list-style: none; font-weight: 600; }
+  :is(.liste, .quellen, .ul-teile, .einrichten details) > summary::-webkit-details-marker { display: none; }
+  :is(.liste, .quellen, .ul-teile, .einrichten details) > summary::before { content: ""; width: 16px; height: 16px; flex: none; background: currentColor; -webkit-mask: var(--pfeil-rechts) center / contain no-repeat; mask: var(--pfeil-rechts) center / contain no-repeat; transition: transform 0.2s; }
+  :is(.liste, .quellen, .ul-teile, .einrichten details)[open] > summary::before { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) { :is(.liste, .quellen, .ul-teile, .einrichten details) > summary::before { transition: none; } }
   .liste dl { margin: 6px 0 0; }
   .liste dt { margin-top: 14px; font-weight: 650; }
   .liste dt.gewusst::after { content: "gewusst"; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: var(--ok-flaeche); color: var(--ok); font-size: 0.75rem; font-weight: 600; }
@@ -949,6 +949,10 @@
   .ul-liste .name { overflow-wrap: anywhere; font-size: 0.9375rem; font-weight: 600; }
   .ul-liste .meta { grid-column: 1; }
   .ul-liste .knopf { grid-row: 1 / span 2; grid-column: 2; }
+  .ul-liste select { grid-row: 1 / span 2; grid-column: 2; width: auto; max-width: 11rem; min-height: 40px; }
+  .ul-teile { margin: 4px 0 12px; }
+  .ul-teile > summary { width: max-content; color: var(--akzent-text); }
+  .ul-teile > p { margin: 4px 0 10px; }
   .mac-befehl { font: 0.75rem/1.5 ui-monospace, Menlo, Consolas, monospace; }
   .befehl-zeile { display: flex; align-items: flex-start; gap: 8px; width: 100%; margin-top: 12px; }
   .befehl-zeile .mac-befehl { flex: 1; min-width: 0; }
@@ -1206,7 +1210,7 @@ aussehen();
       <div class="heute-raster">
         <div class="heute-spalte">
           <section aria-labelledby="f-kopf" class="h-faecher">
-            <div class="block-kopf"><h2 id="f-kopf">Fächer</h2><a href="#/unterlagen" class="meta">Unterlagen hinzufügen</a></div>
+            <div class="block-kopf"><h2 id="f-kopf">Fächer</h2><a href="#/unterlagen" class="meta">Unterlagen und Fächer</a></div>
             <div id="ressorts"></div>
           </section>
           <section aria-labelledby="c-kopf" class="h-chat">
@@ -1520,7 +1524,8 @@ aussehen();
         <p>In der <b>Vortragsanalyse</b> kannst du deine Word Partnerships eintragen: Sie zeigt, welche du im Probevideo eingebaut hast, und für die fehlenden die Stelle, an der sie am besten gepasst hätten.</p>
         <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
-        <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
+        <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Balanced (kurz erklärt, dann die Formeln), Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
+        <p><b>Fach aufteilen:</b> Haben Vorlesung und Proseminar eigenen Stoff, öffne <a href="#/unterlagen">Unterlagen</a>, tippe beim Fach auf „Aufteilen oder zusammenlegen“ und wähle beim PS „Neues Fach …“. Dann bekommt jeder Teil eigene Wochenausgaben, Termine und Begriffe. Genauso legst du zwei Fächer zusammen oder holst einen Teil zurück. Ein ganz neues Fach entsteht, wenn du unter Unterlagen Dateien mit einem neuen Fachnamen hochlädst.</p>
 
         <h2 id="a-termine">Termine und Kalender</h2>
         <ul>
@@ -1896,7 +1901,7 @@ const GLYPHEN = {  // eigene Zeichen je Fach, 24er-Raster wie die Symbole der Le
   Vortrag: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5M8.5 20.5h7"/>',
   Englisch: '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h7A2.5 2.5 0 0 1 16 6.5v3a2.5 2.5 0 0 1-2.5 2.5H9.5L6.5 14.5V12A2.5 2.5 0 0 1 4 9.5z"/><path d="M19 9.5a1.5 1.5 0 0 1 1 1.4v3.6a2 2 0 0 1-2 2v2.5l-3-2.5h-3a2 2 0 0 1-2-2"/>',
 };
-const glyph = f => { const s = el('span', { class: 'glyph', 'aria-hidden': 'true' }); s.innerHTML = `<svg viewBox="0 0 24 24">${GLYPHEN[f] || '<path d="M6 4h12v16H6zM9 8.5h6M9 12h6"/>'}</svg>`; return s; };
+const glyph = f => { const s = el('span', { class: 'glyph', 'aria-hidden': 'true' }); s.innerHTML = `<svg viewBox="0 0 24 24">${GLYPHEN[f] || GLYPHEN[f.split(' ')[0]] || '<path d="M6 4h12v16H6zM9 8.5h6M9 12h6"/>'}</svg>`; return s; };
 const wochenMontag = n => { const w = (heute.getDay() + 6) % 7; return new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() - w + 7 * (n + (w > 4))); };  // Sa/So: schon die nächste Woche
 const nachZeit = (a, b) => (a.datum + (a.zeit || '')).localeCompare(b.datum + (b.zeit || ''));
 const geld = x => `${x.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: x < 0.1 ? 3 : 2 })}\u00a0$`;
@@ -1938,6 +1943,12 @@ const R = {};  // Fach → { ausgaben: [{datum, sha}], cache: {datum: Ausgabe}, 
 const PROFIL_D = datei('profil.json', () => ({ studium: 'Wirtschaftswissenschaften', semester: 1, pstest: {}, aus: [] }));
 let PROFIL = { studium: 'Wirtschaftswissenschaften', semester: 1, pstest: {}, aus: [] }, ALLE_FAECHER = [];
 const studium = () => `${PROFIL.semester}. Semester ${PROFIL.studium} an der Universität Innsbruck`;
+// Fächer aufteilen und zusammenlegen (Unterlagen): Ein Teil ist die LV-Art vorn im Ordnernamen (VO, PS …, so benennt holen.py die Ordner),
+// sonst der Ordner. PROFIL.teile = { Fach: { Teil: anderes Fach } }; Hochgeladenes bleibt in dem Fach, in das es hochgeladen wurde.
+const teilVon = datei => datei.match(/^([A-Z]{2}) /)?.[1] || datei.split('/')[0];
+const wohin = (f, datei) => datei.startsWith('Hochgeladen/') ? f : PROFIL.teile?.[f]?.[teilVon(datei)] || f;
+const lvFach = t => PROFIL.teile?.[t.fach]?.[t.art] || t.fach;  // Stundenplan: das PS von BWL gehört zu „BWL PS“, wenn der PS-Teil dort liegt
+const rang = f => ORDNUNG.findIndex(o => f === o || f.startsWith(o + ' ')) + 1 || 99;
 let ABGLEICH = null, GUTHABEN = null;  // abgleich.json vom PC, Restguthaben
 
 async function gh(pfad, { method = 'GET', body, roh = true } = {}) {  // Server: derselbe Aufbau wie bei GitHub, nur unter api/gh
@@ -2037,10 +2048,12 @@ function zerlege(text, tag) {
 }
 const abschnitt = (a, anfang) => Object.entries(a.abschnitte).find(([k]) => k.toLowerCase().startsWith(anfang))?.[1] || '';
 
-async function laden() {
-  PROFIL = { ...PROFIL, ...await PROFIL_D.laden().catch(() => ({})) };
-  ALLE_FAECHER = ((await gh('faecher', { roh: false })) || []).map(f => f.name.replace(/\.json$/, ''));
-  ALLE_FAECHER.sort((a, b) => (ORDNUNG.indexOf(a) + 1 || 99) - (ORDNUNG.indexOf(b) + 1 || 99));
+async function laden(profil = true) {
+  if (profil) PROFIL = { ...PROFIL, ...await PROFIL_D.laden().catch(() => ({})) };
+  const dateien = ((await gh('faecher', { roh: false })) || []).map(f => f.name.replace(/\.json$/, ''));
+  // ponytail: verschwindet ein Teil (neues Semester), bleibt sein Fach leer stehen; ausblenden geht unter Konto bzw. Einrichten
+  ALLE_FAECHER = [...new Set([...dateien, ...dateien.flatMap(f => Object.values(PROFIL.teile?.[f] || {}))])];
+  ALLE_FAECHER.sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, 'de'));
   const namen = ALLE_FAECHER.filter(f => !PROFIL.aus?.includes(f));
   for (const f of namen) R[f] = { ausgaben: [], cache: {}, quelle: null, druckt: false, fehler: '' };  // feste Reihenfolge, egal was zuerst lädt
   await Promise.all(namen.map(async f => {
@@ -2054,7 +2067,14 @@ async function ausgabe(f, tag) {
   return R[f].cache[tag] ??= zerlege(await gh(`lernseiten/${f}/${tag}.md`) || '', tag);
 }
 const aktuell = f => R[f]?.ausgaben[0] && R[f].cache[R[f].ausgaben[0].datum];
-async function quelle(f) { return R[f].quelle ??= JSON.parse(await gh(`faecher/${f}.json`)); }
+async function quelle(f) {  // die eigene Datei ohne weggegebene Teile, dazu die Teile anderer Fächer, die hierher gehören
+  if (R[f]?.quelle) return R[f].quelle;
+  const von = [f, ...Object.keys(PROFIL.teile || {}).filter(s => s !== f && Object.values(PROFIL.teile[s]).includes(f))];
+  const q = { dateien: (await Promise.all(von.map(async s => (JSON.parse(await gh(`faecher/${s}.json`) || '{}').dateien || [])
+    .filter(d => wohin(s, d.datei) === f).map(d => ({ ...d, von: s }))))).flat() };
+  if (R[f]) R[f].quelle = q;
+  return q;
+}
 
 async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausgaben früherer Einheiten
   const r = R[f];
@@ -2350,13 +2370,14 @@ ${a.roh}
 // Frühere Vorlesungen nacharbeiten: Ausgabe zum Stichtag einer vergangenen VO (aus dem Stundenplan) oder einem Wunschtag
 function nachtrag(f) {
   const r = R[f], da = new Set(r.ausgaben.map(x => x.datum));
-  const vos = [...new Set((KAL || []).flatMap(k => k.termine).filter(t => t.fach === f && t.art === 'VO' && t.datum < HEUTE && !da.has(t.datum)).map(t => t.datum))].sort().reverse();
+  const lv = (KAL || []).flatMap(k => k.termine).filter(t => lvFach(t) === f && t.datum < HEUTE), art = lv.some(t => t.art === 'VO') ? 'VO' : 'PS';  // ein eigenes PS-Fach: seine PS-Termine
+  const vos = [...new Set(lv.filter(t => t.art === art && !da.has(t.datum)).map(t => t.datum))].sort().reverse();
   const feld = el('input', { type: 'date', name: 'stichtag', max: HEUTE, 'aria-label': 'Anderer Tag' });
   return el('div', { class: 'nachtrag' },
-    el('h3', {}, 'Frühere Vorlesung nacharbeiten'),
+    el('h3', {}, art === 'VO' ? 'Frühere Vorlesung nacharbeiten' : 'Frühere Einheit nacharbeiten'),
     el('p', { class: 'klein' }, `Erstellt eine Ausgabe mit Stand dieses Tages: Zusammenfassung dieser Einheit, Übungen, Begriffe. Dauert ${dauer(f)} Minuten.`),
     r.druckt ? presse(f) : [
-      vos.length > 0 && el('div', { class: 'knopfreihe' }, vos.map(d => el('button', { class: 'knopf', type: 'button', onclick: () => drucke(f, d) }, `VO ${kurz(d)}`))),
+      vos.length > 0 && el('div', { class: 'knopfreihe' }, vos.map(d => el('button', { class: 'knopf', type: 'button', onclick: () => drucke(f, d) }, `${art} ${kurz(d)}`))),
       el('form', { class: 'zeile nachtrag-tag', onsubmit: e => { e.preventDefault(); if (feld.value && feld.value <= HEUTE) drucke(f, feld.value); } }, feld, el('button', { class: 'knopf' }, 'Für diesen Tag erstellen'))]);
 }
 // Wie die nächste Ausgabe aussieht: Knopf mit der Wahl, darunter ein Popover mit Niveau und Form, gespeichert je Fach im Profil
@@ -2457,7 +2478,7 @@ async function ausgabeZeigen(f, tag) {
     klarTeil(f, tag, a),
     tag === r.ausgaben[0].datum && fassungHinweis(f),
     quellen.length > 0 && el('details', { class: 'quellen' }, el('summary', {}, `Beruht auf ${quellen.length} ${quellen.length === 1 ? 'Unterlage' : 'Unterlagen'}`), el('p', {}, quellen.join(', ')),
-      el('p', {}, el('a', { href: `#/unterlagen/${encodeURIComponent(f)}` }, 'Unterlagen ansehen oder hinzufügen'))),
+      el('p', {}, el('a', { href: `#/unterlagen/${encodeURIComponent(f)}` }, 'Unterlagen ansehen, hinzufügen oder Fach aufteilen'))),
     leiste,
     el('div', { class: 'raster', id: 'teil-ueberblick' },
       el('article', { class: 'artikel' }, el('h2', {}, FORMEN[fa.form].titel || 'Zusammenfassung der letzten Einheit'),
@@ -3156,7 +3177,7 @@ const alleTermine = () => Object.keys(R).flatMap(f => (aktuell(f)?.termine || []
 // Lehrveranstaltungen nur aus den Kalenderdateien; aus den Ausgaben kommen die Fristen (Abgaben, Tests) und das Thema der Einheit
 function kalenderTermine() {
   const aus = alleTermine();
-  return [...(KAL || []).flatMap(k => k.termine).map(t => {
+  return [...(KAL || []).flatMap(k => k.termine).map(t => ({ ...t, fach: lvFach(t) })).map(t => {
     const a = aus.find(a => a.fach === t.fach && a.datum === t.datum && a.art === t.art);
     return a ? { ...t, titel: a.titel || t.titel, code: a.code || t.code, info: a.info } : t;
   }), ...aus.filter(t => FRISTEN.has(t.art))];
@@ -4968,7 +4989,7 @@ async function loesen(t, q) {
 const EIGENE_D = datei('eigene-tests.json', () => ({ tests: [] }));
 async function testsLaden() {
   const [pc, eigen] = await Promise.all([gh('onlinetests.json').then(t => JSON.parse(t || '[]')), EIGENE_D.laden().then(d => d.tests)]);
-  return [...pc, ...eigen];
+  return [...pc.map(t => ({ ...t, fach: wohin(t.fach, 'Tests/') })), ...eigen];
 }
 const fotoTestText = t => `=== TEST: Fotos/${t.titel} ===\nOLAT-Test „${t.titel}“, selbst abfotografiert am ${new Date(t.erstellt).toLocaleDateString('de-AT')}${t.bis ? `, bearbeitbar bis ${zeitpunkt(t.bis)}` : ''}${t.uebung ? ', zählt nicht für die Note' : ''}, ohne Lösung.\n\n${[t.startseite, t.fragen].filter(Boolean).join('\n\n').slice(0, 60000)}`;
 const TEST_FOTO = String.raw`Du bekommst Bildschirmfotos aus einem OLAT-Onlinetest der Universität Innsbruck: die Startseite des Tests und/oder einzelne Fragen. Schreib genau ab, was darauf steht, vollständig und wortgetreu. Löse nichts, ergänze nichts, bewerte nichts und erfinde nichts.
@@ -5078,7 +5099,7 @@ function eigenerTestBearbeiten(t) {  // falsch gelesen? Text korrigieren oder de
 // Den Text liest die App auf dem Gerät aus wie holen.py am PC: PDF mit pdf.js, PowerPoint und Word selbst, ZIP mit DecompressionStream.
 // Er landet in faecher/<Fach>.json unter „Hochgeladen/…“; der PC-Abgleich lässt diese Einträge stehen.
 const UL_ARTEN = { folien: 'Folien der Vorlesung', ps: 'Proseminar: Aufgaben und Unterlagen', syllabus: 'Syllabus und Organisatorisches' };
-const UL = { fach: '', art: 'folien', laeuft: false, hinweis: '', ergebnis: null, quellen: null };
+const UL = { fach: '', art: 'folien', laeuft: false, hinweis: '', ergebnis: null, quellen: null, offen: new Set() };  // offen: Fächer mit aufgeklappten Teilen
 const UL_MAX = 300000;  // Zeichen pro Datei; die Ausgabe nimmt ohnehin höchstens 60 000
 async function zipLesen(puffer) {  // [{name, daten}] aus einer ZIP-Datei, ohne Bibliothek: Zentralverzeichnis lesen, deflate entpacken
   const d = new DataView(puffer), u8 = new Uint8Array(puffer), aus = [];
@@ -5153,7 +5174,7 @@ async function unterlagenAendern(fach, aendern) {  // faecher/<Fach>.json lesen,
     q.dateien = aendern(Array.isArray(q.dateien) ? q.dateien : []);
     await gh(pfad, { method: 'PUT', roh: false, body: { message: `Unterlagen ${fach}`, content: base64(JSON.stringify(q)), sha } });
     R[fach] ??= { ausgaben: [], cache: {}, quelle: null, druckt: false, fehler: '' };
-    R[fach].quelle = q;
+    R[fach].quelle = null;  // neu zusammensetzen, mit Teilen aus anderen Fächern
     return q;
   });
 }
@@ -5188,6 +5209,48 @@ async function unterlagenEntfernen(fach, datei, knopf) {
   try { await unterlagenAendern(fach, alt => alt.filter(x => x.datei !== datei)); UL.quellen = null; unterlagenZeigen(); }
   catch (e) { status(e.message, true); knopf.disabled = false; }
 }
+// Teile eines Fachs (VO, PS oder Ordner) mit der Wahl, zu welchem Fach sie gehören; Teile aus anderen Fächern stehen mit „aus …“ dabei
+function teileListe(f, dateien) {
+  const teile = {};
+  for (const x of dateien) (teile[x.von + '\n' + teilVon(x.datei)] ??= []).push(x);
+  const n = Object.keys(teile).length;
+  return n > 0 && el('details', { class: 'ul-teile', open: UL.offen.has(f) || Object.keys(teile).some(k => !k.startsWith(f + '\n')),
+    ontoggle: e => UL.offen[e.target.open ? 'add' : 'delete'](f) },
+    el('summary', {}, 'Aufteilen oder zusammenlegen'),
+    el('p', { class: 'klein' }, n > 1 ? `Jeder Teil kann ein eigenes Fach mit eigenen Wochenausgaben werden, etwa wenn Vorlesung und Proseminar nicht denselben Stoff haben.`
+      : 'Gehört das zu einem anderen Fach, wähl es hier aus.'),
+    el('ul', { class: 'ul-liste' }, Object.entries(teile).map(([k, liste]) => {
+      const [von, teil] = k.split('\n'), lv = /^[A-Z]{2}$/.test(teil), wer = teil + (von !== f ? ` aus ${von}` : '');
+      const ordner = lv ? [...new Set(liste.map(x => x.datei.split('/')[0].slice(3)))].join(', ') + ' · ' : '';
+      return el('li', {}, el('span', { class: 'name' }, wer), el('span', { class: 'meta' }, `${ordner}${liste.length} ${liste.length === 1 ? 'Datei' : 'Dateien'}`),
+        el('select', { 'aria-label': `${wer} gehört zu`, onchange: e => teilVerschieben(von, teil, e.target) },
+          [...new Set([...Object.keys(R), von])].map(z => el('option', { value: z, selected: z === f }, z)), el('option', { value: '' }, 'Neues Fach …')));
+    })));
+}
+async function teilVerschieben(von, teil, feld) {
+  let ziel = feld.value;
+  if (Object.values(R).some(r => r.druckt)) { status('Gerade entsteht eine Ausgabe. Teil das Fach danach auf.', true); return unterlagenZeigen(); }
+  if (!ziel) {
+    const name = prompt(`Name des neuen Fachs für ${teil}:`, /^[A-Z]{2}$/.test(teil) ? `${von} ${teil}` : teil)?.trim().replace(/\s+/g, ' ');
+    if (!name) return unterlagenZeigen();  // abgebrochen: Auswahl wie vorher
+    if (/[\\/:*?"<>|#%]|^\.|\.$/.test(name) || name.length > 40) { status('Bitte im Fachnamen nur Buchstaben, Zahlen und Leerzeichen, höchstens 40 Zeichen.', true); return unterlagenZeigen(); }
+    ziel = [...ALLE_FAECHER, ...Object.keys(R)].find(x => x.toLowerCase() === name.toLowerCase()) || name;
+  }
+  const t = { ...PROFIL.teile?.[von] };
+  if (ziel === von) delete t[teil]; else t[teil] = ziel;
+  PROFIL = { ...PROFIL, teile: { ...PROFIL.teile, [von]: t }, aus: (PROFIL.aus || []).filter(x => x !== ziel),
+    pstest: { ...PROFIL.pstest, [ziel]: PROFIL.pstest?.[ziel] ?? PROFIL.pstest?.[von] ?? false } };
+  PROFIL_D.daten = PROFIL;
+  feld.disabled = true;
+  try {
+    await PROFIL_D.speichern();
+    for (const f of Object.keys(R)) delete R[f];
+    TESTS = null; UL.quellen = null;
+    await laden(false);
+    status(ziel === von ? `${teil} gehört wieder zu ${von}.` : `${teil} gehört jetzt zu ${ziel}. Ab der nächsten Ausgabe ist der Stoff getrennt.`);
+  } catch (e) { status(e.message, true); }
+  zeichne();
+}
 async function unterlagenZeigen(wahl) {
   const s = $('unterlagen'), faecher = Object.keys(R);
   if (wahl && !UL.laeuft) UL.fach = wahl;
@@ -5195,7 +5258,7 @@ async function unterlagenZeigen(wahl) {
   const gut = UL.ergebnis?.filter(x => x.text) || [];
   const form = el('form', { class: 'schritt', novalidate: true, 'aria-labelledby': 'ul-kopf', onsubmit: e => { e.preventDefault(); unterlagenHinzufuegen(e.target); } },
     el('h2', { id: 'ul-kopf' }, 'Dateien hinzufügen'),
-    el('label', { class: 'feld' }, 'Fach', el('input', { name: 'fach', list: 'ul-faecher', autocomplete: 'off', value: UL.fach || faecher[0] || '', placeholder: 'z. B. Mathematik' })),
+    el('label', { class: 'feld' }, 'Fach', el('input', { name: 'fach', list: 'ul-faecher', autocomplete: 'off', value: UL.fach || faecher[0] || '', placeholder: 'z. B. Mathematik oder ein neues Fach' })),
     el('datalist', { id: 'ul-faecher' }, faecher.map(f => el('option', { value: f }))),
     el('label', { class: 'feld' }, 'Was ist es?', el('select', { name: 'art' }, Object.entries(UL_ARTEN).map(([k, v]) => el('option', { value: k, selected: UL.art === k }, v)))),
     el('div', { class: 'vt-wahl' }, el('input', { type: 'file', id: 'ul-dateien', name: 'dateien', class: 'sr', multiple: true, accept: '.pdf,.pptx,.docx,.zip,.txt,.md,.html,.htm,application/pdf,application/zip',
@@ -5212,16 +5275,18 @@ async function unterlagenZeigen(wahl) {
     const d = UL.quellen[f]?.dateien || [], eigen = d.filter(x => x.datei?.startsWith('Hochgeladen/')), pc = d.length - eigen.length;
     return el('section', { class: 'ul-fach', 'aria-label': f }, el('h3', {}, f),
       el('p', { class: 'meta' }, [pc && `${pc} ${pc === 1 ? 'Datei' : 'Dateien'} vom Abgleich am PC oder Mac`, `${eigen.length} selbst hochgeladen`].filter(Boolean).join(', ')),
+      teileListe(f, d.filter(x => !x.datei?.startsWith('Hochgeladen/'))),
       eigen.length > 0 && el('ul', { class: 'ul-liste' }, eigen.map(x => el('li', {}, el('span', { class: 'name' }, x.datei.slice(12)),
         el('span', { class: 'meta' }, [UL_ARTEN[x.art] || x.art, x.hochgeladen && `am ${kurz(x.hochgeladen)}`, `${(x.text?.length || 0).toLocaleString('de-AT')} Zeichen`].filter(Boolean).join(' · ')),
         el('button', { class: 'knopf', type: 'button', onclick: e => unterlagenEntfernen(f, x.datei, e.currentTarget) }, 'Entfernen')))));
   });
   s.replaceChildren(...[
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Unterlagen'),
-      el('p', { class: 'schlagzeile' }, 'Folien und Unterlagen aus OLAT selbst hinzufügen'),
+      el('p', { class: 'schlagzeile' }, 'Unterlagen hinzufügen, Fächer aufteilen'),
       el('p', { class: 'meta' }, 'Für iPad, Handy und alle ohne Programm am PC oder Mac. Wie du die Dateien aus OLAT bekommst, steht in der ', el('a', { href: '#a-ohne-pc' }, 'Anleitung'), '.')),
     form,
     el('h2', { class: 'ul-fach' }, 'Was der Lernhelfer kennt'),
+    el('p', { class: 'klein' }, 'Ein neues Fach legst du an, indem du oben einen neuen Namen eingibst. Laufen Vorlesung und Proseminar mit eigenem Stoff, teil das Fach unten auf.'),
     liste ? (liste.length ? liste : el('p', { class: 'leer' }, 'Noch keine Fächer. Lade oben die ersten Folien hoch.')) : el('p', { class: 'meta' }, 'Lade …'),
   ].flat().filter(Boolean));
   if (!UL.quellen) {
@@ -5467,7 +5532,7 @@ function profilZeigen() {
       alle.length > 0 && [tabelle(['Fach', 'Zeigen', 'PS-Test am Ende jeder PS-Einheit'], alle.map(x => [x,
         el('input', { type: 'checkbox', name: 'an:' + x, checked: !PROFIL.aus?.includes(x), 'aria-label': `${x} zeigen` }),
         el('input', { type: 'checkbox', name: 'ps:' + x, checked: !!PROFIL.pstest?.[x], 'aria-label': `${x}: PS-Test am Ende jeder PS-Einheit` })])),
-      el('p', { class: 'meta' }, 'Welche Fächer es gibt, findet das PC-Programm in deinen aktiven OLAT-Kursen, egal welches Studium und Semester. Schreibt ihr in einem PS am Ende jeder Einheit einen kurzen Test, setz dort den Haken: Dann bereitet jede Ausgabe gezielt darauf vor.')],
+      el('p', { class: 'meta' }, 'Welche Fächer es gibt, findet das PC-Programm in deinen aktiven OLAT-Kursen, egal welches Studium und Semester. Aufteilen (etwa VO und PS getrennt) und zusammenlegen geht unter Unterlagen. Schreibt ihr in einem PS am Ende jeder Einheit einen kurzen Test, setz dort den Haken: Dann bereitet jede Ausgabe gezielt darauf vor.')],
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, 'Speichern')), hinweis));
 }
 let STIL_FORM = null;
