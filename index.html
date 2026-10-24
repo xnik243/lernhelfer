@@ -1762,7 +1762,7 @@ const fassungName = w => [w.niveau === 'ultra' ? 'Ultra-Fassung' : w.niveau !== 
 const dauer = f => fassung(f).niveau === 'ultra' ? 'vier bis sechs' : 'zwei bis vier';
 const auftrag = (fach, tag, d = HEUTE, wahl = { niveau: 'normal', form: 'text' }) => `Du bist Tutor:in für Studierende im ${studium()}.
 ${d === HEUTE ? `Heute ist ${tag}, ${UHR} Uhr (${HEUTE})` : `Dies ist eine nachträgliche Ausgabe zum Stichtag ${datum(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} abends (${d}). Schreib sie so, als wäre heute dieser Tag: die letzte Einheit ist die bis zu diesem Tag, „als Nächstes“ heißt nach diesem Tag. Unterlagen, Tests und Folien, die erst danach dazukamen, ignorierst du`}. Fach: ${fach}.
-Unten stehen ALLE Unterlagen, die in OLAT für dieses Fach liegen: Vorlesungsfolien, Proseminar-Unterlagen, Syllabus und Tests (TEST). Bei den Tests sind das die Startseiten der Onlinetests mit Thema, Bearbeitungszeitraum und Bewertung, nach Ablauf auch mit den Fragen, der eigenen Antwort in [eckigen Klammern] und der Lösung; die Fragen laufender Onlinetests, gelesen während der Bearbeitungszeit, mit „Max. … Punkt“ im Kopf jeder Frage; und die Fragen der unbewerteten Selbsttests.
+Unten stehen ALLE Unterlagen, die in OLAT für dieses Fach liegen: Vorlesungsfolien, Proseminar-Unterlagen, Syllabus und Tests (TEST). Bei den Tests sind das die Startseiten der Onlinetests mit Thema, Bearbeitungszeitraum und Bewertung, nach Ablauf auch mit den Fragen, der eigenen Antwort in [eckigen Klammern] und der Lösung; die Fragen laufender Onlinetests, gelesen während der Bearbeitungszeit, mit „Max. … Punkt“ im Kopf jeder Frage; und die Fragen der unbewerteten Selbsttests.${teilHinweis(fach)}
 
 Schritt 1 (nur für dich, nicht ausgeben): Bestimme mit dem Terminplan im Syllabus und dem heutigen Datum, welche Vorlesungs- und PS-Einheit zuletzt stattgefunden hat, welche Unterlagen dazu gehören und welche Einheiten, Abgaben und Tests als Nächstes kommen. Unterlagen, die dafür nicht relevant sind, ignorierst du.
 
@@ -1950,6 +1950,11 @@ const teilVon = datei => datei.match(/^([A-Z]{2}) /)?.[1] || datei.split('/')[0]
 const wohin = (f, datei) => { const t = PROFIL.teile?.[f]; return (!datei.startsWith('Hochgeladen/') && t?.[teilVon(datei)]) || t?.['*'] || f; };
 const lvFach = t => PROFIL.teile?.[t.fach]?.[t.art] || PROFIL.teile?.[t.fach]?.['*'] || t.fach;  // Stundenplan: das PS von BWL gehört zu „BWL PS“, wenn der PS-Teil dort liegt
 const rang = f => ORDNUNG.findIndex(o => f === o || f.startsWith(o + ' ')) + 1 || 99;
+const teilHinweis = f => {  // für den Auftrag: aufgeteiltes Fach, die KI schreibt nur über den Teil, der hier liegt
+  const weg = Object.entries(PROFIL.teile?.[f] || {}).filter(([t]) => t !== '*').map(([t, z]) => `${t} läuft als eigenes Fach „${z}“`);
+  const her = Object.entries(PROFIL.teile || {}).flatMap(([s, t]) => s === f ? [] : Object.entries(t).filter(([k, z]) => k !== '*' && z === f).map(([k]) => `hier steht nur ${k} aus ${s}, der Rest läuft als Fach „${s}“`));
+  return weg.length || her.length ? ` Dieses Fach ist aufgeteilt: ${[...her, ...weg].join('; ')}. Schreib nur über den Teil, dessen Unterlagen unten stehen. Ein Abschnitt zum anderen Teil (etwa Nächste Vorlesung oder Nächstes Proseminar) ist ein Satz mit Verweis auf das andere Fach; in "termine" stehen nur Termine dieses Teils.` : '';
+};
 let ABGLEICH = null, GUTHABEN = null;  // abgleich.json vom PC, Restguthaben
 
 async function gh(pfad, { method = 'GET', body, roh = true } = {}) {  // Server: derselbe Aufbau wie bei GitHub, nur unter api/gh
@@ -5221,20 +5226,22 @@ function teileListe(f, dateien) {
   }
   const eigene = Object.keys(teile).filter(k => k.startsWith(f + '\n')).length;
   const andere = !ORDNUNG.includes(f) && dateien.some(x => x.von === f) ? Object.keys(R).filter(x => x !== f) : [];
+  const weg = Object.entries(PROFIL.teile?.[f] || {}).filter(([t]) => t !== '*');  // an andere Fächer abgegeben
   const was = [eigene > 1 && 'aufteilen', andere.length > 0 && 'zusammenlegen'].filter(Boolean).join(' oder ');
-  if (!was && eigene === Object.keys(teile).length) return null;  // ein Teil, nichts abgetrennt: nichts zu tun
+  if (!was && !weg.length && eigene === Object.keys(teile).length) return null;  // ein Teil, nichts abgetrennt: nichts zu tun
   const zeile = (name, meta, knopf) => el('li', {}, el('span', { class: 'name' }, name), el('span', { class: 'meta' }, meta), knopf);
   const anzahl = n => `${n} ${n === 1 ? 'Datei' : 'Dateien'}`;
-  return el('details', { class: 'ul-teile', open: UL.offen.has(f) || eigene < Object.keys(teile).length, ontoggle: e => UL.offen[e.target.open ? 'add' : 'delete'](f) },
-    el('summary', {}, was ? `Fach ${was}` : 'Woher die Unterlagen kommen'),
-    eigene > 1 && el('p', { class: 'klein' }, 'Haben Vorlesung und Proseminar eigenen Stoff, mach aus einem Teil ein eigenes Fach. Es bekommt eigene Wochenausgaben, Termine und Begriffe.'),
-    Object.keys(teile).length > 0 && el('ul', { class: 'ul-liste' }, Object.entries(teile).map(([k, liste]) => {
-      const [von, teil] = k.split('\n'), knopf = (text, fn) => el('button', { class: 'knopf', type: 'button', onclick: fn }, text);
+  const knopf = (text, fn) => el('button', { class: 'knopf', type: 'button', onclick: fn }, text);
+  return el('details', { class: 'ul-teile', open: UL.offen.has(f) || weg.length > 0 || eigene < Object.keys(teile).length, ontoggle: e => UL.offen[e.target.open ? 'add' : 'delete'](f) },
+    el('summary', {}, was ? `Fach ${was}` : weg.length ? 'Fach aufgeteilt' : 'Woher die Unterlagen kommen'),
+    eigene > 1 && el('p', { class: 'klein' }, `Haben Vorlesung und Proseminar eigenen Stoff, mach aus dem Proseminar ein eigenes Fach (etwa ${f} PS); die Vorlesung bleibt ${f}. Jedes Fach bekommt eigene Wochenausgaben, Termine und Begriffe.`),
+    el('ul', { class: 'ul-liste' }, Object.entries(teile).map(([k, liste]) => {
+      const [von, teil] = k.split('\n');
       if (teil === '*') return zeile(`Alles aus ${von}`, anzahl(liste.length), knopf('Wieder trennen', () => teileSetzen(von, '*', von, `${von} ist wieder ein eigenes Fach.`)));
       const ordner = /^[A-Z]{2}$/.test(teil) ? [...new Set(liste.map(x => x.datei.split('/')[0].slice(3)))].join(', ') + ' · ' : '';
       return von !== f ? zeile(`${teil} aus ${von}`, ordner + anzahl(liste.length), knopf(`Zurück zu ${von}`, () => teileSetzen(von, teil, von, `${teil} gehört wieder zu ${von}.`)))
         : zeile(teil, ordner + anzahl(liste.length), eigene > 1 && knopf('Eigenes Fach', () => eigenesFach(f, teil)));
-    })),
+    }), weg.map(([teil, ziel]) => zeile(`${teil} ist jetzt ${ziel}`, 'eigenes Fach', knopf('Zurückholen', () => teileSetzen(f, teil, f, `${teil} gehört wieder zu ${f}.`))))),
     andere.length > 0 && el('label', { class: 'feld ul-zusammen' }, `Gibt es ${f} doppelt, etwa unter einem zweiten Namen? Dann hier zusammenlegen:`,
       el('select', { onchange: e => {
         const g = e.target.value;
