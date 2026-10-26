@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com; img-src data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com https://i.ytimg.com; img-src data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernhelfer">
@@ -462,6 +462,17 @@
   .blatt-wp { margin-top: 16px; padding: clamp(18px, 4vw, 36px); border: 1px solid var(--linie); border-radius: var(--r-l); background: var(--bg-2); }
   .blatt-wp h2 { margin: 1.6em 0 0.5em; padding-bottom: 0.3em; border-bottom: 1px solid var(--linie); font: 650 1.375rem/1.25 var(--serif); }
   .blatt-wp h2:first-child { margin-top: 0; }
+  .wp-fassung { position: static; margin: 16px 0 0; padding: 0; border: 0; }
+  /* zweite Fassung: so wie das Word-Dokument (Calibri Light 11, schwarz auf weiß, Tabelle mit hellem Rahmen) */
+  .blatt-wp.abgabe { background: #fff; color: #000; font: 11pt/1.45 "Calibri Light", Calibri, Carlito, "Segoe UI", sans-serif; }
+  .blatt-wp.abgabe :is(h2, h3) { margin: 1.6em 0 0.6em; padding: 0; border: 0; color: inherit; font-family: inherit; font-size: 1em; font-weight: 700; line-height: inherit; }
+  .blatt-wp.abgabe h2:first-child { margin-top: 0; }
+  .blatt-wp.abgabe p { margin: 0 0 0.6em; }
+  .blatt-wp.abgabe b { color: inherit; }
+  .blatt-wp.abgabe img { display: block; max-width: 100%; height: auto; }
+  .blatt-wp.abgabe table { width: 100%; margin: 1em 0; border-collapse: collapse; font: inherit; }
+  .blatt-wp.abgabe :is(th, td) { padding: 0.5em 0.7em; border: 1px solid #cfc7b5; background: none; color: inherit; font: inherit; text-align: left; vertical-align: top; }
+  .blatt-wp.abgabe th { background: #f1ede3; }
 
   /* Einrichten: Stand jedes Schritts als Abzeichen */
   .stand { display: inline-flex; align-items: center; gap: 7px; margin: 4px 0 6px; padding: 3px 10px 3px 9px; border-radius: 999px; background: var(--bg-2); color: var(--text-2); font-size: 0.8125rem; font-weight: 600; }
@@ -1260,7 +1271,7 @@ aussehen();
           <p class="schlagzeile" id="wp-zeile">Vom YouTube-Talk zum Hausaufgaben-Entwurf</p>
           <p class="meta" data-en="English, Communication in Business">Englisch, Communication in Business</p>
         </div>
-        <div class="kopf-aktionen"><button class="knopf" type="button" id="wp-sprache">English</button></div>
+        <div class="kopf-aktionen"><a class="knopf" id="wp-normal" href="#/wordpower" hidden data-en="Normal view">Normale Ansicht</a><button class="knopf" type="button" id="wp-sprache">English</button></div>
       </header>
       <nav class="abschnitte wp-teile" id="wp-teile" aria-label="Teile von Word Power"></nav>
       <div id="wp-extra" class="wp-extra" hidden></div>
@@ -1303,9 +1314,14 @@ aussehen();
             <textarea id="wp-notes" name="notizen" placeholder="Was ist diese Woche passiert, was war schwierig, was hat dich überrascht? …" data-en-ph="What happened this week, what was difficult, what surprised you? …"></textarea></label>
           <div class="knopfreihe"><button id="wp-hwgo" class="knopf voll" type="button" data-en="Create homework from transcript">Hausaufgabe aus Transkript erstellen</button></div>
           <p id="wp-hwst" class="wp-status" role="status"></p>
+          <nav class="abschnitte wp-fassung" id="wp-fassung" aria-label="Fassung" hidden>
+            <button type="button" data-f="voll" data-en="Full version">Volle Fassung</button>
+            <button type="button" data-f="abgabe" data-en="Short version">Kurzfassung</button>
+          </nav>
           <div id="wp-blatt" class="blatt-wp text" hidden></div>
           <div class="knopfreihe">
-            <button id="wp-hwdl" class="knopf" type="button" disabled data-en="Download as .html (opens in Word)">Als .html herunterladen (öffnet in Word)</button>
+            <button id="wp-hwdocx" class="knopf voll" type="button" disabled data-en="Download as Word (.docx)">Als Word-Datei (.docx)</button>
+            <button id="wp-hwdl" class="knopf" type="button" disabled data-en="Download as .html">Als .html herunterladen</button>
             <button id="wp-zu" class="knopf nur-eigen" type="button" data-en="Lock again">Wieder sperren</button>
           </div>
         </section>
@@ -1931,7 +1947,7 @@ async function api(pfad, body) {
   if (!r.ok) throw Object.assign(new Error(j.error?.message || `Der Server antwortet ${r.status}. Bitte gleich nochmal.`), { status: r.status });
   return j;
 }
-const darf = f => { const T = ICH && TARIFE?.tarife[ICH.tarif]; return !SERVER || !!ICH?.ecke || !!ICH?.zusatz?.includes(f) || !!T && (T.rang >= TARIFE.funktionen[f] || !!T.dazu?.includes(f)); };  // Admin-Ecke: alles; Englisch: dazu; Manual Access: Löser
+const darf = (f, ohneEcke) => { const T = ICH && TARIFE?.tarife[ICH.tarif]; return !SERVER || !ohneEcke && !!ICH?.ecke || !!ICH?.zusatz?.includes(f) || !!T && (T.rang >= TARIFE.funktionen[f] || !!T.dazu?.includes(f)); };  // Admin-Ecke: alles; Englisch: dazu; Manual Access: Löser
 const gratis = () => !ICH || !TARIFE?.tarife[ICH.tarif]?.preis;  // Base oder die Aktion Englisch
 const danach = () => ICH?.tarif === 'englisch' ? 'Englisch' : 'Base';  // was nach einem Test oder Tarif gilt (Englisch läuft daneben weiter)
 
@@ -3405,11 +3421,19 @@ const WP_DOC_CSS = ':root{color-scheme:light}html{background:#fdfbf6}'
   + 'h2:first-child{margin-top:0}h3{font-size:1.12em;margin:1.8em 0 .4em}p{margin:.45em 0}b{color:#23389a}'
   + 'li{margin:.3em 0}table{border-collapse:collapse;width:100%;margin:1em 0;font-size:.92em}'
   + 'th,td{border:1px solid #cfc7b5;padding:.5em .7em;text-align:left;vertical-align:top}th{background:#f1ede3}';
+const WP_KURZ_CSS = ':root{color-scheme:light}body{max-width:760px;margin:0 auto;padding:clamp(24px,6vw,72px);color:#000;background:#fff;'
+  + 'font:11pt/1.45 "Calibri Light",Calibri,Carlito,"Segoe UI",sans-serif}h2,h3{font-size:1em;margin:1.6em 0 .6em}h2:first-child{margin-top:0}'
+  + 'p{margin:0 0 .6em}img{display:block;max-width:100%;height:auto}table{border-collapse:collapse;width:100%;margin:1em 0}'
+  + 'th,td{border:1px solid #cfc7b5;padding:.5em .7em;text-align:left;vertical-align:top;font-weight:400}th{background:#f1ede3}';
 let WP = null, wpTitel = merk('wp.title') || '', wpDoc = merk('wp.doc') || '';
 
 let WP_LAEDT = false;
+// Admin-Ecke: alles nur über den Knopf in der Ecke (#/wordpower/voll), sonst sieht Word Power aus wie bei allen anderen
+const wpVoll = () => !!ICH?.ecke && location.hash === '#/wordpower/voll';
+const wpDarf = f => darf(f, !wpVoll());
 function wordpower() {
-  const hoeren = darf('wp-transkript'), text = darf('wp-text');
+  const hoeren = wpDarf('wp-transkript'), text = wpDarf('wp-text');
+  $('wp-normal').hidden = !wpVoll();
   if (SERVER && !WP && !WP_LAEDT && hoeren) {  // Server: Prompts mit dem Tarif statt mit Passwort
     WP_LAEDT = true;
     api('geschuetzt/wordpower').then(j => { WP = j; }, e => status(e.message, true)).finally(() => { WP_LAEDT = false; if (WP && document.body.dataset.ansicht === 'wordpower') wordpower(); });
@@ -3550,7 +3574,7 @@ const eaMachen = (i, notiz) => eaLauf(i, async () => {
   EA.ergebnis[i] = text;
 });
 function eaZeigen() {
-  const s = $('wp-aufgaben'), offen = SERVER ? darf('wp-text') : !!WP;
+  const s = $('wp-aufgaben'), offen = SERVER ? wpDarf('wp-text') : !!WP;
   s.hidden = !offen;
   if (!offen) return;
   const L = EA.liste;
@@ -3568,11 +3592,121 @@ function eaZeigen() {
           el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, EA.ergebnis[i]) }, 'Kopieren'))]);
     })) : el('p', { class: 'leer' }, 'Keine Aufgaben gefunden. Steht die Task List schon in OLAT?')));
 }
-function wpZeigen() {
+let WP_KURZ = false, WP_ZEIG = 0;
+const WP_BILD = {};  // Vorschaubild je Video (Promise): {url, b, width, height} oder null
+const wpBild = id => WP_BILD[id] ??= (async () => {
+  for (const n of ['maxresdefault', 'hqdefault']) try {
+    const url = `https://i.ytimg.com/vi/${id}/${n}.jpg`, r = await fetch(url);
+    if (!r.ok) continue;
+    const blob = await r.blob(), { width, height } = await createImageBitmap(blob);
+    return { url, b: new Uint8Array(await blob.arrayBuffer()), width, height };
+  } catch {}
+  return null;
+})();
+// Kurzfassung: Talk mit Vorschaubild, Journal, die zwei Strategien je in einer Zeile, Progress ohne „Used in class“
+function wpKurz(d) {
+  const teile = [], name = x => (x.tagName === 'H3' ? x : x.firstChild).textContent.replace(/^\s*(strategy\s*)?\d*\s*[:.)–-]?\s*/i, '').replace(/[\s:.]+$/, '');
+  for (const k of [...d.children]) k.tagName === 'H2' || !teile.length ? teile.push([k]) : teile.at(-1).push(k);
+  for (const [h, ...rest] of teile) {
+    const t = h.textContent;
+    if (/script|cue card|reflection/i.test(t)) [h, ...rest].forEach(x => x.remove());
+    else if (/strateg/i.test(t)) {
+      const k = rest.filter(x => x.tagName === 'H3'), namen = (k.length ? k : rest.flatMap(x => x.matches('ul, ol') ? [...x.children] : [x]).filter(x => x.firstChild?.nodeName === 'B')).slice(0, 2).map(name);
+      if (namen.length === 2) { rest.forEach(x => x.remove()); h.after(...namen.map((n, i) => el('p', {}, `Strategy ${i + 1}: ${n}`))); }
+    } else if (/progress/i.test(t)) for (const tab of rest.filter(x => x.tagName === 'TABLE')) {
+      const i = [...tab.rows[0]?.cells || []].findIndex(c => /in class/i.test(c.textContent));
+      if (i >= 0) for (const r of tab.rows) r.cells[i]?.remove();
+    }
+  }
+}
+async function wpSeite() {  // die gewählte Fassung als Element, bei der Kurzfassung mit Vorschaubild
+  const d = el('div'), inhalt = wpDoc.match(/<body>([\s\S]*)<\/body>/)?.[1] || '';
+  if (window.DOMPurify) d.innerHTML = DOMPurify.sanitize(inhalt); else d.textContent = inhalt;
+  if (!WP_KURZ) return { d };
+  wpKurz(d);
+  const p = [...d.querySelectorAll('p')].find(x => ytLink(x.textContent)), id = (ytLink(p?.textContent) || wpVideo() || '').slice(-11), bild = id ? await wpBild(id) : null;
+  if (bild) (p || d.firstElementChild)?.after(el('p', {}, el('img', { src: bild.url, alt: '', width: bild.width, height: bild.height })));
+  return { d, bild };
+}
+async function wpZeigen() {
   if (!wpDoc) return;
-  const inhalt = wpDoc.match(/<body>([\s\S]*)<\/body>/)?.[1] || '';
-  if (window.DOMPurify) $('wp-blatt').innerHTML = DOMPurify.sanitize(inhalt); else $('wp-blatt').textContent = inhalt;
-  $('wp-blatt').hidden = false; $('wp-hwdl').disabled = false;
+  const nr = ++WP_ZEIG;
+  for (const b of $('wp-fassung').children) b.dataset.f === (WP_KURZ ? 'abgabe' : 'voll') ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current');
+  const { d } = await wpSeite();
+  if (nr !== WP_ZEIG) return;
+  $('wp-blatt').replaceChildren(...d.childNodes); $('wp-blatt').classList.toggle('abgabe', WP_KURZ);
+  $('wp-fassung').hidden = $('wp-blatt').hidden = false; $('wp-hwdl').disabled = $('wp-hwdocx').disabled = false;
+}
+
+// Word-Datei (.docx) ohne Bibliothek: Überschriften, Fett/Kursiv, Links, Listen, Tabellen und ein Bild, Calibri Light 11
+const CRC = Array.from({ length: 256 }, (_, n) => { for (let k = 0; k < 8; k++) n = n & 1 ? 0xedb88320 ^ n >>> 1 : n >>> 1; return n >>> 0; });
+function zipBauen(dateien) {  // [[Name, Text oder Bytes]] → ZIP ohne Kompression, das reicht Word
+  const enc = new TextEncoder(), u16 = v => [v & 255, v >>> 8 & 255], u32 = v => [...u16(v & 65535), ...u16(v >>> 16)], teile = [], verz = [];
+  let pos = 0;
+  for (const [name, inhalt] of dateien) {
+    const d = typeof inhalt === 'string' ? enc.encode(inhalt) : inhalt, n = enc.encode(name);
+    let c = -1;
+    for (const x of d) c = CRC[(c ^ x) & 255] ^ c >>> 8;
+    const kopf = [...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(33), ...u32(~c >>> 0), ...u32(d.length), ...u32(d.length), ...u16(n.length), ...u16(0)];
+    teile.push(new Uint8Array([...u32(0x04034b50), ...kopf]), n, d);
+    verz.push(new Uint8Array([...u32(0x02014b50), ...u16(20), ...kopf, ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(pos)]), n);
+    pos += 30 + n.length + d.length;
+  }
+  const groesse = verz.reduce((s, x) => s + x.length, 0);
+  return new Blob([...teile, ...verz, new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(dateien.length), ...u16(dateien.length), ...u32(groesse), ...u32(pos), ...u16(0)])]);
+}
+const xmlText = s => s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function wordDatei(wurzel, bild) {
+  const W = 'http://schemas.openxmlformats.org/', rels = [];
+  let bilder = 0;
+  const rel = (typ, ziel, extern) => { rels.push(`<Relationship Id="r${rels.length + 1}" Type="${W}officeDocument/2006/relationships/${typ}" Target="${xmlText(ziel)}"${extern ? ' TargetMode="External"' : ''}/>`); return 'r' + rels.length; };
+  rel('styles', 'styles.xml');
+  for (const b of wurzel.querySelectorAll('p, h1, h2, h3, h4, li, td, th')) {  // Zeilenumbrüche im HTML am Rand eines Absatzes sind keine Leerzeichen
+    if (b.firstChild?.nodeType === 3) b.firstChild.textContent = b.firstChild.textContent.trimStart();
+    if (b.lastChild?.nodeType === 3) b.lastChild.textContent = b.lastChild.textContent.trimEnd();
+  }
+  const lauf = (s, f) => s && `<w:r><w:rPr>${f.link ? '<w:rStyle w:val="Hyperlink"/>' : ''}${f.b ? '<w:b/>' : ''}${f.i ? '<w:i/>' : ''}${f.u ? '<w:u w:val="single"/>' : ''}</w:rPr><w:t xml:space="preserve">${xmlText(s)}</w:t></w:r>`;
+  const link = (ziel, innen) => `<w:hyperlink r:id="${rel('hyperlink', ziel, true)}">${innen}</w:hyperlink>`;
+  const text = (s, f) => f.link ? lauf(s, f) : s.split(/(https?:\/\/[^\s"“”<>()]*[^\s"“”<>().,;:!?])/).map((x, i) => i % 2 ? link(x, lauf(x, { ...f, link: 1 })) : lauf(x, f)).join('');
+  const bildLauf = () => {
+    if (!bild) return '';
+    const id = rel('image', 'media/bild.jpg'), cx = 5486400, cy = Math.round(cx * bild.height / bild.width), nr = ++bilder;  // 6 Zoll breit
+    return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${nr}" name="Bild ${nr}"/>`
+      + `<a:graphic xmlns:a="${W}drawingml/2006/main"><a:graphicData uri="${W}drawingml/2006/picture"><pic:pic xmlns:pic="${W}drawingml/2006/picture">`
+      + `<pic:nvPicPr><pic:cNvPr id="${nr}" name="bild.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`
+      + `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+  };
+  const inline = (k, f = {}) => [...k.childNodes].map(c => c.nodeType === 3 ? text(c.textContent.replace(/\s+/g, ' '), f)
+    : c.nodeType !== 1 ? '' : c.tagName === 'BR' ? '<w:r><w:br/></w:r>' : c.tagName === 'IMG' ? bildLauf()
+    : c.tagName === 'A' && /^https?:/.test(c.href) && !f.link ? link(c.href, inline(c, { ...f, link: 1 }))
+    : inline(c, { ...f, b: f.b || /^(B|STRONG)$/.test(c.tagName), i: f.i || /^(I|EM)$/.test(c.tagName), u: f.u || c.tagName === 'U' })).join('');
+  const absatz = (k, stil, marke) => `<w:p>${stil ? `<w:pPr><w:pStyle w:val="${stil}"/></w:pPr>` : ''}${marke ? `<w:r><w:t>${marke}</w:t></w:r><w:r><w:tab/></w:r>` : ''}${inline(k)}</w:p>`;
+  const tabelle = t => {
+    const zeilen = [...t.rows].filter(r => r.cells.length), n = Math.max(1, ...zeilen.map(r => r.cells.length)), b = Math.floor(9026 / n);
+    const rand = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(s => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="CFC7B5"/>`).join('');
+    return !zeilen.length ? '' : `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${rand}</w:tblBorders><w:tblCellMar><w:top w:w="100" w:type="dxa"/><w:left w:w="140" w:type="dxa"/><w:bottom w:w="100" w:type="dxa"/><w:right w:w="140" w:type="dxa"/></w:tblCellMar></w:tblPr>`
+      + `<w:tblGrid>${`<w:gridCol w:w="${b}"/>`.repeat(n)}</w:tblGrid>`
+      + zeilen.map(r => `<w:tr>${r.cells[0].tagName === 'TH' ? '<w:trPr><w:tblHeader/></w:trPr>' : ''}${[...r.cells].map(c => `<w:tc><w:tcPr><w:tcW w:w="${b}" w:type="dxa"/>${c.tagName === 'TH' ? '<w:shd w:val="clear" w:color="auto" w:fill="F1EDE3"/>' : ''}</w:tcPr>${absatz(c, 'Zelle')}</w:tc>`).join('')}</w:tr>`).join('') + '</w:tbl><w:p/>';  // Leerzeile danach wie in Word
+  };
+  const block = k => /^H[1-6]$/.test(k.tagName) ? absatz(k, k.tagName <= 'H2' ? 'Heading2' : 'Heading3')
+    : /^(UL|OL)$/.test(k.tagName) ? [...k.children].map((li, i) => absatz(li, 'Liste', k.tagName === 'OL' ? `${i + 1}.` : '•')).join('')
+    : k.tagName === 'TABLE' ? tabelle(k) : /^(DIV|SECTION|BLOCKQUOTE)$/.test(k.tagName) ? [...k.children].map(block).join('') : absatz(k);
+  const inhalt = [...wurzel.children].map(block).join(''), kopf = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const stil = (id, name, ppr, rpr = '') => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr>${ppr}</w:pPr>${rpr && `<w:rPr>${rpr}</w:rPr>`}</w:style>`;
+  return zipBauen([
+    ['[Content_Types].xml', `${kopf}<Types xmlns="${W}package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/>`
+      + `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`],
+    ['_rels/.rels', `${kopf}<Relationships xmlns="${W}package/2006/relationships"><Relationship Id="r1" Type="${W}officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`],
+    ['word/document.xml', `${kopf}<w:document xmlns:w="${W}wordprocessingml/2006/main" xmlns:r="${W}officeDocument/2006/relationships" xmlns:wp="${W}drawingml/2006/wordprocessingDrawing"><w:body>${inhalt}`
+      + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>'],
+    ['word/styles.xml', `${kopf}<w:styles xmlns:w="${W}wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri Light" w:hAnsi="Calibri Light" w:eastAsia="Calibri Light" w:cs="Calibri Light"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-GB"/></w:rPr></w:rPrDefault>`
+      + '<w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
+      + stil('Heading2', 'heading 2', '<w:keepNext/><w:spacing w:before="360" w:after="160"/><w:outlineLvl w:val="1"/>', '<w:b/>')
+      + stil('Heading3', 'heading 3', '<w:keepNext/><w:spacing w:before="280" w:after="80"/><w:outlineLvl w:val="2"/>', '<w:b/>')
+      + stil('Liste', 'List Paragraph', '<w:spacing w:after="80"/><w:ind w:left="360" w:hanging="360"/>') + stil('Zelle', 'Table Text', '<w:spacing w:after="0"/>')
+      + '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style></w:styles>'],
+    ['word/_rels/document.xml.rels', `${kopf}<Relationships xmlns="${W}package/2006/relationships">${rels.join('')}</Relationships>`],
+    ...bilder ? [['word/media/bild.jpg', bild.b]] : []]);
 }
 $('wp-sperre').onsubmit = async e => {
   e.preventDefault();
@@ -3589,7 +3723,13 @@ for (const [id, k] of [['wp-url', 'wp.url'], ['wp-out', 'wp.out'], ['wp-notes', 
 }
 $('wp-url').addEventListener('change', wpNachschlagen);
 $('wp-dl').onclick = () => speichern($('wp-out').value, 'transkript.txt', 'text/plain;charset=utf-8');
-$('wp-hwdl').onclick = () => speichern(wpDoc, 'word-power.html', 'text/html;charset=utf-8');
+const wpName = endung => `Word Power${WP_KURZ ? '' : ' (voll)'}.${endung}`;
+$('wp-hwdl').onclick = async () => {
+  const { d } = await wpSeite();
+  speichern(WP_KURZ ? `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Word Power</title><style>${WP_KURZ_CSS}</style></head><body>${d.innerHTML}</body></html>` : wpDoc, wpName('html'), 'text/html;charset=utf-8');
+};
+$('wp-hwdocx').onclick = async () => { const { d, bild } = await wpSeite(); speichern(wordDatei(d, bild), wpName('docx'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'); };
+$('wp-fassung').onclick = e => { const f = e.target.closest('button')?.dataset.f; if (f) { WP_KURZ = f === 'abgabe'; wpZeigen(); } };
 $('wp-vdl').onclick = () => speichern(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Word Power Journal</title><style>${WP_DOC_CSS}</style></head><body>${$('wp-vblatt').innerHTML}</body></html>`,
   'word-power-vorlage.html', 'text/html;charset=utf-8');
 $('wp-tform').onsubmit = async e => {
@@ -3624,7 +3764,7 @@ $('wp-hwgo').onclick = async () => {
     + (notizen.trim() ? `Student's notes for the reflection:\n${notizen}` : 'No notes given: skip section 7.');
   try {
     const { text, preis } = await strom({ model: WP_MODELL, feature: 'wp-text', reasoning: { effort: 'medium' }, messages: [
-      { role: 'system', content: WP.homework }, { role: 'user', content: nachricht }] },
+      { role: 'system', content: WP.homework + '\nIn section 5, start the two strategies with <h3>Strategy 1: short name</h3> and <h3>Strategy 2: short name</h3>.' }, { role: 'user', content: nachricht }] },
       t => wpSag(st, ue('Schreibt … ', 'Writing … ') + t.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length + ue(' Wörter', ' words'), 'presse'),
       () => wpSag(st, ue('Denkt nach …', 'Thinking …'), 'presse'));
     wpDoc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Word Power</title><style>${WP_DOC_CSS}</style></head><body>${text}</body></html>`;
@@ -3643,8 +3783,8 @@ if (wpVideo()) wpNachschlagen();
 const WPJ_D = datei('wordpower.json', () => ({ eintraege: [], log: [], refl: [] }));
 let WPJ = null;
 const WPT = { teil: merk('wp-teil') || 'journal', gezeigt: null, runde: null, uhr: liesJson('wp-uhr'), ergebnis: null, laeuft: null };
-const reflexionDa = () => !SERVER || !!TARIFE?.reflexion || !!ICH?.ecke;
-const wpExtrasDa = () => !SERVER || !!TARIFE?.wpExtras || !!ICH?.ecke;  // Glossar, Trainer, Time Log
+const reflexionDa = () => !SERVER || !!TARIFE?.reflexion || wpVoll();
+const wpExtrasDa = () => !SERVER || !!TARIFE?.wpExtras || (document.body.dataset.ansicht === 'wordpower' ? wpVoll() : !!ICH?.ecke);  // Glossar, Trainer, Time Log
 const wpTeile = () => [['journal', 'Journal'], ...wpExtrasDa() ? [['glossar', ue('Glossar', 'Glossary')], ['trainer', 'Trainer'], ['zeit', 'Time Log']] : [], reflexionDa() && ['reflexion', 'Reflection']].filter(Boolean);
 function wpTeil(k) {
   WPT.teil = k; WPT.gezeigt = null; merk('wp-teil', k);
@@ -6201,8 +6341,8 @@ async function adminZeigen() {
       TARIFE = await api('tarife');
     }),
     el('h2', {}, 'Volle Werkzeuge'),
-    el('p', { class: 'klein' }, 'Nur für dich, solange die Ecke offen ist: Word Power mit Hausaufgaben-Entwurf und der Löser mit den Originalzahlen. Alle anderen bekommen nur das Transkript. Löser und Test-Fotos sind auf Eis: Nur wer von dir unten bei „Tarif von Hand“ den Zusatz Manual Access bekommt, sieht sie, und dann nur als Lösungsweg an Übungsaufgaben mit anderen Zahlen.'),
-    el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower' }, 'Word Power, voll'), el('a', { class: 'knopf voll', href: '#/onlinetests' }, 'Onlinetests mit vollem Löser')),
+    el('p', { class: 'klein' }, 'Nur für dich, solange die Ecke offen ist: Word Power mit Hausaufgaben-Entwurf (nur über den Knopf hier; über die Seitenleiste siehst du Word Power wie alle anderen) und der Löser mit den Originalzahlen. Alle anderen bekommen nur das Transkript. Löser und Test-Fotos sind auf Eis: Nur wer von dir unten bei „Tarif von Hand“ den Zusatz Manual Access bekommt, sieht sie, und dann nur als Lösungsweg an Übungsaufgaben mit anderen Zahlen.'),
+    el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower/voll' }, 'Word Power, voll'), el('a', { class: 'knopf voll', href: '#/onlinetests' }, 'Onlinetests mit vollem Löser')),
     el('h2', {}, 'Preise und Launch-Angebot'),
     el('p', { class: 'meta' }, TARIFE.verkauf ? 'Verkauf an: Die Tarifseite ist für alle sichtbar.' : 'Verkauf aus: Niemand sieht Preise, die Tarifseite, den Ultra-Test oder den Freunde-Rabatt, und Bestellen geht nicht.'),
     el('p', { class: 'klein' }, L.aktiv ? `Das Launch-Angebot läuft${L.tag ? ` bis ${new Date(L.tag + 'T12:00').toLocaleDateString('de-AT')}` : ', bis du es ausschaltest'}: Die Tarifseite zeigt die Launch-Preise mit „später …“, Freundes-Rabatte und Gutscheine werden nicht abgezogen und bleiben für danach.`
