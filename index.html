@@ -1761,7 +1761,7 @@ Erklär wie eine geduldige Tutorin oder ein geduldiger Tutor, weiterhin ohne Ich
 // Fassung je Fach (PROFIL.fassung): Niveau und Form betreffen nur, wie die Zusammenfassung geschrieben ist; Abschnitte und JSON bleiben gleich
 const BILD_REGEL = `Schaubilder: Wo ein Bild mehr erklärt als ein Absatz (Verlauf einer Funktion, Steigung und Ableitung, Angebot und Nachfrage, Verschiebung einer Kurve, Flächen wie Konsumenten- und Produzentenrente, Budgetgerade, Kosten- und Erlösverläufe, Gleichgewicht, Break-even), setzt du eines als Codeblock \`\`\`bild mit genau einem JSON-Objekt, direkt nach dem Absatz, den es zeigt. Beispiel:
 {"titel": "Angebot und Nachfrage", "x": "Menge", "y": "Preis", "von": 0, "bis": 10, "kurven": [{"f": "10 - x", "name": "Nachfrage"}, {"f": "2 + 0.6*x", "name": "Angebot"}], "punkte": [{"x": 5, "y": 5, "name": "Gleichgewicht"}], "flaechen": [{"oben": "10 - x", "unten": "5", "von": 0, "bis": 5, "name": "Konsumentenrente"}], "linien": [{"y": 7, "name": "Mindestpreis"}]}
-"f", "oben" und "unten" sind Funktionen von x in einfacher Schreibweise: Zahlen mit Punkt, + - * / ^, Klammern, sqrt(), ln(), log(), exp(), sin(), cos(), abs(), e und pi. Kein LaTeX und keine anderen Buchstaben: Die Größe auf der waagrechten Achse heißt im Bild immer x, auch wenn sie im Text Q oder t heißt. "kurven" ist Pflicht; "punkte", "flaechen", "linien" (senkrecht mit "x", waagrecht mit "y"), "ymin", "ymax" und "strich": true für eine gestrichelte Kurve nur bei Bedarf. Eine verschobene Kurve zeichnest du als zweite Kurve, die alte gestrichelt. Die Zahlen stimmen mit dem Text überein: Schnittpunkte ausrechnen, nicht schätzen. Der Satz davor sagt, worauf man im Bild achten soll. Nur Bilder, die beim Verstehen helfen, nie zur Zierde.`;
+"f", "oben" und "unten" sind Funktionen von x in einfacher Schreibweise: Zahlen mit Punkt, + - * / ^, Klammern, sqrt(), ln(), log(), exp(), sin(), cos(), abs(), e und pi. Kein LaTeX und keine anderen Buchstaben: Die Größe auf der waagrechten Achse heißt im Bild immer x, auch wenn sie im Text Q oder t heißt. "kurven" ist Pflicht; "punkte", "flaechen", "linien" (senkrecht mit "x", waagrecht mit "y"), "ymin", "ymax" und "strich": true für eine gestrichelte Kurve nur bei Bedarf. Eine verschobene Kurve zeichnest du als zweite Kurve, die alte gestrichelt. Die Zahlen stimmen mit dem Text überein: Schnittpunkte ausrechnen, nicht schätzen. Der Name eines Punktes ist ein Wort wie „Minimum“ oder „Gleichgewicht“; die Koordinaten schreibt das Bild selbst dazu. Der Satz davor sagt, worauf man im Bild achten soll. Nur Bilder, die beim Verstehen helfen, nie zur Zierde.`;
 const CHECK = 'Jeder ###-Teil endet mit einer Verständnisfrage als Überschrift „#### Check: Frage?“ und darunter der Antwort in ein bis drei Sätzen. Die Frage prüft, ob man den Teil verstanden hat (anwenden, begründen, einen typischen Fehler finden), und fragt nicht bloß eine Definition ab.';
 const DOSIS = 'Formeln dosiert: nur die, mit denen man rechnet oder die man kennen muss, höchstens zwei abgesetzte Formeln pro ###-Teil; einfache Zusammenhänge stehen in Worten („Gewinn ist Erlös minus Kosten“), Zwischenschritte und Varianten gar nicht.';
 const DOSIS_BALANCED = 'Formeln mittel dosiert: jede Formel, mit der man in Aufgaben rechnet, steht abgesetzt da, bis zu vier pro ###-Teil, dazu die eine Umstellung, die man am häufigsten braucht; ganz einfache Zusammenhänge bleiben in Worten, Herleitungen und Schreibvarianten entfallen.';
@@ -1936,10 +1936,10 @@ function rechner(s) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er ni
   return f;
 }
 const BILD_FARBEN = ['#2446c8', '#c2410c', '#15803d', '#7c3aed', '#b45309', '#0e7490'];
-const bZahl = x => (Math.abs(x) >= 100 ? Math.round(x) : +x.toPrecision(3)).toLocaleString('de-AT');
+const bZahl = x => Math.abs(x) >= 1e6 ? x.toLocaleString('de-AT', { notation: 'compact', maximumFractionDigits: 2 }) : (Math.abs(x) >= 100 ? Math.round(x) : +x.toPrecision(3)).toLocaleString('de-AT');
 let bildNr = 0;
 function bildSvg(d) {
-  const B = 380, H = 270, L = 40, R = 14, O = 24, U = 34, w = B - L - R, h = H - O - U, HALO = 'paint-order:stroke;stroke:var(--bg,#fff);stroke-width:3px;stroke-linejoin:round';
+  const B = 380, H = 270, R = 14, O = 24, U = 34, h = H - O - U, HALO = 'paint-order:stroke;stroke:var(--bg,#fff);stroke-width:3px;stroke-linejoin:round';
   const num = (v, sonst) => typeof v === 'number' && Number.isFinite(v) ? v : sonst;
   const liste = (v, n) => (Array.isArray(v) ? v : []).filter(x => x && typeof x === 'object').slice(0, n);
   const txt = t => escHtml(String(t ?? '').slice(0, 70));
@@ -1965,10 +1965,11 @@ function bildSvg(d) {
     for (let v = Math.ceil(a / s - 1e-9) * s; v <= b + s * 1e-9; v += s) l.push(Math.abs(v) < s * 1e-9 ? 0 : v);
     return l;
   };
+  const yMarken = marken(y0, y1), L = Math.min(76, Math.max(40, 12 + 6.2 * Math.max(...yMarken.map(v => bZahl(v).length)))), w = B - L - R;  // Rand links so breit wie die längste Zahl
   const ax = Math.min(Math.max(0, x0), x1), ay = Math.min(Math.max(0, y0), y1), id = 'bild-' + ++bildNr, clip = `clip-path="url(#${id})"`;  // Achsen durch 0, sonst am Rand
   const svg = [`<defs><clipPath id="${id}"><rect x="${L}" y="${O}" width="${w}" height="${h}"/></clipPath></defs>`];
   for (const v of marken(x0, x1)) svg.push(`<line x1="${X(v)}" y1="${O}" x2="${X(v)}" y2="${O + h}" stroke="currentColor" opacity=".1"/><text x="${X(v)}" y="${O + h + 15}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">${bZahl(v)}</text>`);
-  for (const v of marken(y0, y1)) svg.push(`<line x1="${L}" y1="${Y(v)}" x2="${L + w}" y2="${Y(v)}" stroke="currentColor" opacity=".1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="currentColor" opacity=".75">${bZahl(v)}</text>`);
+  for (const v of yMarken) svg.push(`<line x1="${L}" y1="${Y(v)}" x2="${L + w}" y2="${Y(v)}" stroke="currentColor" opacity=".1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="currentColor" opacity=".75">${bZahl(v)}</text>`);
   svg.push(`<path d="M${X(ax)} ${O}V${O + h}M${L} ${Y(ay)}H${L + w}" stroke="currentColor" stroke-width="1.3" opacity=".6" fill="none"/>`);
   if (d.x) svg.push(`<text x="${L + w}" y="${H - 3}" text-anchor="end" font-size="12" font-weight="600" fill="currentColor">${txt(d.x)}</text>`);
   if (d.y) svg.push(`<text x="4" y="13" font-size="12" font-weight="600" fill="currentColor">${txt(d.y)}</text>`);
