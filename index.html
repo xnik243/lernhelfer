@@ -1023,6 +1023,27 @@
   .fw-fuss { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--linie); }
   .fw-fuss .meta { margin: 0; }
   @media (prefers-reduced-motion: reduce) { .fw-pop, .fw-pop:not(:popover-open), .fw-option:active { transform: none; } .fw-knopf .fw-ikon .ic { transition: none; } }
+  /* Schaubilder aus ```bild und Lerneinheiten: jeder ###-Teil der Zusammenfassung zum Aufklappen und Abhaken */
+  .bild { max-width: 460px; margin: 1.2em 0; padding: 12px 14px; border: 1px solid var(--linie); border-radius: var(--r-l); }
+  .bild svg { display: block; width: 100%; height: auto; font-family: var(--sans); }
+  .bild figcaption { margin-bottom: 6px; font: 650 0.9375rem/1.3 var(--sans); }
+  .bild .bild-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; padding: 0; list-style: none; font: 500 0.8125rem/1.4 var(--sans); color: var(--text-2); }
+  .text .lern-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 12px; font: 500 0.875rem/1.4 var(--sans); color: var(--text-2); }
+  .text .lern-stand progress { width: 120px; accent-color: var(--akzent); }
+  .text .lern-stand button { margin-left: auto; padding: 8px 0; border: 0; background: none; color: var(--akzent-text); font: inherit; cursor: pointer; }
+  .text .lernteil { margin: 0 0 10px; border: 1px solid var(--linie); border-radius: var(--r-l); }
+  .text .lernteil > summary { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; list-style: none; }
+  .text .lernteil > summary::-webkit-details-marker { display: none; }
+  .text .lernteil > summary::after { content: ""; flex: none; width: 8px; height: 8px; margin: -4px 4px 0; border: solid var(--text-3); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .text .lernteil[open] > summary::after { margin-top: 4px; transform: rotate(-135deg); }
+  .text .lernteil[open] > summary { margin-bottom: 14px; border-bottom: 1px solid var(--linie); }
+  .text .lernteil > summary h3 { flex: 1; margin: 0; padding: 0; border: 0; }
+  .text .lernteil > :not(summary) { margin-inline: 16px; }
+  .text .lernteil .fw-frage > :not(summary) { margin-inline: 14px; }
+  .lern-nr { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--bg-2); color: var(--text-2); font: 650 0.8125rem/1 var(--sans); }
+  .lernteil.fertig .lern-nr { background: var(--akzent); color: #fff; }
+  .text .lern-fuss { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px; }
+  @media (max-width: 560px) { .text .lernteil > .bild { margin-inline: 6px; padding: 8px 6px; } }
   /* Zusammenfassung: „Das Wichtigste“ als Kasten, Fragen zum Aufdecken, Formelsammlung mit Trennlinien je Thema */
   .text .wichtig { margin: 0 0 1.5em; padding: 14px 18px; border-radius: var(--r-l); background: var(--gelb-hauch); }
   .text .wichtig > p { margin: 0 0 6px; }
@@ -1738,6 +1759,10 @@ Hat die Einheit keine Formeln (etwa in Englisch oder in rein begrifflichen Einhe
 
 Erklär wie eine geduldige Tutorin oder ein geduldiger Tutor, weiterhin ohne Ich-Form. Die Regeln zu laufenden Onlinetests und zu den Stammdaten gelten unverändert.`;
 // Fassung je Fach (PROFIL.fassung): Niveau und Form betreffen nur, wie die Zusammenfassung geschrieben ist; Abschnitte und JSON bleiben gleich
+const BILD_REGEL = `Schaubilder: Wo ein Bild mehr erklärt als ein Absatz (Verlauf einer Funktion, Steigung und Ableitung, Angebot und Nachfrage, Verschiebung einer Kurve, Flächen wie Konsumenten- und Produzentenrente, Budgetgerade, Kosten- und Erlösverläufe, Gleichgewicht, Break-even), setzt du eines als Codeblock \`\`\`bild mit genau einem JSON-Objekt, direkt nach dem Absatz, den es zeigt. Beispiel:
+{"titel": "Angebot und Nachfrage", "x": "Menge", "y": "Preis", "von": 0, "bis": 10, "kurven": [{"f": "10 - x", "name": "Nachfrage"}, {"f": "2 + 0.6*x", "name": "Angebot"}], "punkte": [{"x": 5, "y": 5, "name": "Gleichgewicht"}], "flaechen": [{"oben": "10 - x", "unten": "5", "von": 0, "bis": 5, "name": "Konsumentenrente"}], "linien": [{"y": 7, "name": "Mindestpreis"}]}
+"f", "oben" und "unten" sind Funktionen von x in einfacher Schreibweise: Zahlen mit Punkt, + - * / ^, Klammern, sqrt(), ln(), log(), exp(), sin(), cos(), abs(), e und pi. Kein LaTeX und keine anderen Buchstaben: Die Größe auf der waagrechten Achse heißt im Bild immer x, auch wenn sie im Text Q oder t heißt. "kurven" ist Pflicht; "punkte", "flaechen", "linien" (senkrecht mit "x", waagrecht mit "y"), "ymin", "ymax" und "strich": true für eine gestrichelte Kurve nur bei Bedarf. Eine verschobene Kurve zeichnest du als zweite Kurve, die alte gestrichelt. Die Zahlen stimmen mit dem Text überein: Schnittpunkte ausrechnen, nicht schätzen. Der Satz davor sagt, worauf man im Bild achten soll. Nur Bilder, die beim Verstehen helfen, nie zur Zierde.`;
+const CHECK = 'Jeder ###-Teil endet mit einer Verständnisfrage als Überschrift „#### Check: Frage?“ und darunter der Antwort in ein bis drei Sätzen. Die Frage prüft, ob man den Teil verstanden hat (anwenden, begründen, einen typischen Fehler finden), und fragt nicht bloß eine Definition ab.';
 const DOSIS = 'Formeln dosiert: nur die, mit denen man rechnet oder die man kennen muss, höchstens zwei abgesetzte Formeln pro ###-Teil; einfache Zusammenhänge stehen in Worten („Gewinn ist Erlös minus Kosten“), Zwischenschritte und Varianten gar nicht.';
 const DOSIS_BALANCED = 'Formeln mittel dosiert: jede Formel, mit der man in Aufgaben rechnet, steht abgesetzt da, bis zu vier pro ###-Teil, dazu die eine Umstellung, die man am häufigsten braucht; ganz einfache Zusammenhänge bleiben in Worten, Herleitungen und Schreibvarianten entfallen.';
 const NIVEAUS = {
@@ -1750,7 +1775,7 @@ const NIVEAUS = {
 };
 const FORMEN = {
   text: { name: 'Fließtext', kurz: 'Zusammenhängend erklärt, wenige Formeln', icon: 'M4 7h16M4 11h16M4 15h11M4 19h7',
-    auftrag: 'Zusammenhängender Text in kurzen Absätzen unter den ###-Überschriften.' },
+    auftrag: 'Zusammenhängender Text in kurzen Absätzen unter den ###-Überschriften. Der erste Satz jedes Teils ist der Kernsatz in **fett**: das, was man sich aus dem Teil merken muss.' },
   balanced: { name: 'Balanced', kurz: 'Kurz erklärt, dann die Formeln dazu', icon: 'M4 6h16M4 10h7M4 14h7M4 18h16M19 9h-6l3 3-3 3h6',
     auftrag: 'Jeder ###-Teil hat zwei Hälften: erst 2–4 Sätze, worum es geht und wie die Größen zusammenhängen, dann die Formeln dieses Teils. Jede Formel steht abgesetzt, darunter in einer Zeile, was die Zeichen bedeuten, ein Satz, wann man sie braucht, und ein kurzes Zahlenbeispiel. Mehr Formeln als im Fließtext, aber keine Formelsammlung: Der Text erklärt das Warum, die Formeln zeigen, wie man rechnet.' },
   stichpunkte: { name: 'Stichpunkte', kurz: 'Gegliedert, schnell zu überfliegen', icon: 'M5 7h.01M5 12h.01M5 17h.01M9 7h10M9 12h8M9 17h9',
@@ -1765,7 +1790,7 @@ const FORMEN = {
 const fassungAuftrag = w => `FASSUNG DIESER AUSGABE. Sie betrifft nur, wie der Abschnitt „Zusammenfassung der letzten Einheit“ geschrieben ist; Abschnitte, Reihenfolge und der JSON-Block bleiben wie oben.
 Niveau ${NIVEAUS[w.niveau].name}: ${NIVEAUS[w.niveau].auftrag}
 Form ${FORMEN[w.form].name}: ${FORMEN[w.form].auftrag}${w.form === 'formeln' ? (w.niveau === 'ultra' ? ' Der Abschnitt „Formeln Schritt für Schritt“ entfällt; andere Schreibweisen und das Umstellen stehen knapp direkt bei jeder Formel.' : '')
-  : ' ' + (w.form === 'balanced' ? DOSIS_BALANCED : DOSIS) + (w.niveau === 'ultra' ? ' Alle weiteren Formeln gehören in „Formeln Schritt für Schritt“.' : '')}`;
+  : ' ' + (w.form === 'balanced' ? DOSIS_BALANCED : DOSIS) + (w.niveau === 'ultra' ? ' Alle weiteren Formeln gehören in „Formeln Schritt für Schritt“.' : '')}${w.form === 'fragen' || w.form === 'formeln' ? '' : '\n' + CHECK}`;
 const fassung = f => {  // gespeicherte Wahl; Ultra nur mit dem Recht dazu, sonst wie bisher: Ultra, wer darf, sonst Normal
   const w = PROFIL.fassung?.[f] || {}, n = NIVEAUS[w.niveau] && (!NIVEAUS[w.niveau].recht || darf(NIVEAUS[w.niveau].recht)) ? w.niveau : null;
   return { niveau: n || (darf('ausgabe-ultra') ? 'ultra' : 'normal'), form: FORMEN[w.form] ? w.form : 'text' };
@@ -1794,6 +1819,9 @@ Nur der Stoff aus den Folien und PS-Unterlagen der letzten Einheit, gegliedert m
 So schreibst du sie:
 - Relevanz: Gewichte nach dem, was in Prüfung, PS-Test und Onlinetests verlangt wird (Leistungsbeurteilung, bisherige Tests, PS-Aufgaben, was die Folien betonen). Wichtiges ausführlich, Nebensächliches in einem Satz, Folien-Füllstoff (Gliederung, Lernziele, Wiederholungen, Anekdoten, Literatur) gar nicht.
 - Einfach in der Sprache, genau in der Sache: kurze Sätze, ein Gedanke pro Absatz, jeder Fachbegriff beim ersten Auftreten in einem Halbsatz erklärt. Vereinfache nie den Inhalt: Voraussetzungen, Ausnahmen, Vorzeichen, Einheiten und Fallunterscheidungen bleiben drin. Brauchst du ein vereinfachtes Bild, sag dazu, was es weglässt („genau genommen gilt das nur, wenn …“).
+- Lerneinheiten statt Textblock: Jeder ###-Teil behandelt genau einen Gedanken und ist in zwei Minuten gelesen; lieber sechs kurze Teile als drei lange. Ein Absatz hat höchstens drei Sätze. Nach der Erklärung kommt etwas zum Anfassen: ein Beispiel mit Zahlen, ein Schaubild oder eine Gegenüberstellung als Tabelle.
+- Kein Fülltext: keine Einleitungs-, Überleitungs- und Schlusssätze („In diesem Teil geht es um“, „Zusammenfassend lässt sich sagen“, „Es ist wichtig zu beachten“), nichts zweimal in anderen Worten, keine Aufzählung aus drei Eigenschaften als Stilmittel. Jeder Satz bringt etwas Neues, das man für Prüfung oder Verständnis braucht.
+- Kommen in der Einheit Funktionen, Kurven, Märkte oder Verläufe vor, hat die Zusammenfassung mindestens ein Schaubild, meist zwei bis vier (Regeln dazu unten).
 
 ## Nächstes Proseminar
 Datum, Thema, was man dafür wissen und vorbereiten muss, Aufgaben und Abgaben dieser Einheit mit Frist.
@@ -1843,6 +1871,7 @@ Wichtig für dieses Fach: Am Ende jeder PS-Einheit wird ein kurzer PS-Test gesch
 ` : ''}
 Formeln setzt du in LaTeX: im Fließtext zwischen \\( und \\), abgesetzt zwischen \\[ und \\]. In den JSON-Feldern stehen keine LaTeX-Formeln, sondern einfache Schreibweise wie x², a/b oder √x.
 ${FORMEL_REGEL}
+${BILD_REGEL} Auch die Lösung einer Übungsaufgabe darf eines haben.
 
 Schreib sachlich wie eine Zeitung, ohne Ich-Form und ohne Bemerkungen über dich selbst. Stütze dich nur auf die Unterlagen. Steht etwas nicht darin oder ist der Terminplan unklar, schreib das ehrlich, statt zu raten.${wahl.niveau === 'ultra' ? '\n\n' + ULTRA : ''}
 
@@ -1870,8 +1899,122 @@ const markdown = (knoten, s, inline) => {
   });
   const html = (inline ? marked.parseInline : marked.parse)(s || '').replace(/(\d+)/g, (_, i) => formeln[i]);
   knoten.innerHTML = DOMPurify.sanitize(html);
+  bilder(knoten);
   return knoten;
 };
+/* ---------- Schaubilder: Codeblock ```bild mit JSON wird zu SVG (Kurven, Punkte, Flächen, Hilfslinien). Kein eval (CSP), darum ein eigener kleiner Rechner ---------- */
+const BILD_FN = { sqrt: Math.sqrt, ln: Math.log, log: Math.log10, exp: Math.exp, sin: Math.sin, cos: Math.cos, tan: Math.tan, abs: Math.abs };
+function rechner(s) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er nicht kennt
+  const roh = String(s).toLowerCase().replace(/\s+/g, '').replace(/(\d),(\d)/g, '$1.$2').replace(/[·×]/g, '*').replace(/[−–]/g, '-').replace(/²/g, '^2').replace(/³/g, '^3');
+  const t = roh.match(/\d+\.?\d*|[a-z]+|[-+*/^()]/g) || [];
+  if (!t.length || t.join('') !== roh) throw new Error('Formel');
+  let i = 0;
+  const summe = () => { let f = produkt(); while (t[i] === '+' || t[i] === '-') { const o = t[i++], a = f, g = produkt(); f = o === '+' ? x => a(x) + g(x) : x => a(x) - g(x); } return f; };
+  const produkt = () => {
+    let f = vorzeichen();
+    while (i < t.length && t[i] !== '+' && t[i] !== '-' && t[i] !== ')') {  // auch ohne Malzeichen: 2x, 3(x+1)
+      const o = t[i] === '*' || t[i] === '/' ? t[i++] : '*', a = f, g = vorzeichen();
+      f = o === '*' ? x => a(x) * g(x) : x => a(x) / g(x);
+    }
+    return f;
+  };
+  const vorzeichen = () => { if (t[i] === '-') { i++; const g = vorzeichen(); return x => -g(x); } if (t[i] === '+') i++; return potenz(); };
+  const potenz = () => { const b = atom(); if (t[i] !== '^') return b; i++; const e = vorzeichen(); return x => Math.pow(b(x), e(x)); };
+  const klammer = () => { const f = summe(); if (t[i++] !== ')') throw new Error('Klammer'); return f; };
+  const atom = () => {
+    const k = t[i++];
+    if (k === '(') return klammer();
+    if (/^\d/.test(k)) { const z = +k; return () => z; }
+    if (k === 'x') return x => x;
+    if (k === 'e') return () => Math.E;
+    if (k === 'pi') return () => Math.PI;
+    if (Object.hasOwn(BILD_FN, k ?? '') && t[i++] === '(') { const fn = BILD_FN[k], g = klammer(); return x => fn(g(x)); }
+    throw new Error('Formel');
+  };
+  const f = summe();
+  if (i < t.length) throw new Error('Formel');
+  return f;
+}
+const BILD_FARBEN = ['#2446c8', '#c2410c', '#15803d', '#7c3aed', '#b45309', '#0e7490'];
+const bZahl = x => (Math.abs(x) >= 100 ? Math.round(x) : +x.toPrecision(3)).toLocaleString('de-AT');
+let bildNr = 0;
+function bildSvg(d) {
+  const B = 380, H = 270, L = 40, R = 14, O = 24, U = 34, w = B - L - R, h = H - O - U, HALO = 'paint-order:stroke;stroke:var(--bg,#fff);stroke-width:3px;stroke-linejoin:round';
+  const num = (v, sonst) => typeof v === 'number' && Number.isFinite(v) ? v : sonst;
+  const liste = (v, n) => (Array.isArray(v) ? v : []).filter(x => x && typeof x === 'object').slice(0, n);
+  const txt = t => escHtml(String(t ?? '').slice(0, 70));
+  const kurven = liste(d.kurven, 6).map((k, i) => ({ name: k.name, strich: k.strich, fn: rechner(k.f), farbe: BILD_FARBEN[i % BILD_FARBEN.length] }));
+  const punkte = liste(d.punkte, 8).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+  const linien = liste(d.linien, 6).filter(l => Number.isFinite(l.x) || Number.isFinite(l.y));
+  if (!kurven.length && !punkte.length) throw new Error('leer');
+  const x0 = num(d.von, 0), x1 = num(d.bis, Math.max(10, ...punkte.map(p => p.x * 1.5)));
+  if (!(x1 > x0)) throw new Error('Bereich');
+  const flaechen = liste(d.flaechen, 4).map((f, i) => ({ name: f.name, o: rechner(f.oben), u: rechner(f.unten ?? 0), von: Math.max(x0, num(f.von, x0)), bis: Math.min(x1, num(f.bis, x1)), farbe: BILD_FARBEN[(kurven.length + i) % BILD_FARBEN.length] }));
+  const xs = Array.from({ length: 161 }, (_, i) => x0 + (x1 - x0) * i / 160);
+  const ys = kurven.flatMap(k => xs.map(k.fn)).filter(Number.isFinite).sort((a, b) => a - b), q = p => ys[Math.round(p * (ys.length - 1))];
+  let lo = ys[0] ?? 0, hi = ys.at(-1) ?? 1;
+  if (ys.length && hi - lo > 8 * ((q(0.9) - q(0.1)) || 1)) { lo = q(0.05); hi = q(0.95); }  // Polstellen: Ausreißer bestimmen den Ausschnitt nicht
+  for (const p of punkte) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); }
+  for (const l of linien) if (Number.isFinite(l.y)) { lo = Math.min(lo, l.y); hi = Math.max(hi, l.y); }
+  const y0 = num(d.ymin, Math.min(0, lo));
+  let y1 = num(d.ymax, hi + (hi - y0) * 0.08);
+  if (!(y1 > y0)) y1 = y0 + 1;
+  const r1 = n => Math.round(n * 10) / 10, X = x => r1(L + (x - x0) / (x1 - x0) * w), Y = y => r1(Math.max(-9999, Math.min(9999, O + h - (y - y0) / (y1 - y0) * h)));
+  const marken = (a, b) => {  // runde Schritte: 1, 2 oder 5 mal Zehnerpotenz
+    const r = (b - a) / 5, p = 10 ** Math.floor(Math.log10(r)), m = r / p, s = (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p, l = [];
+    for (let v = Math.ceil(a / s - 1e-9) * s; v <= b + s * 1e-9; v += s) l.push(Math.abs(v) < s * 1e-9 ? 0 : v);
+    return l;
+  };
+  const ax = Math.min(Math.max(0, x0), x1), ay = Math.min(Math.max(0, y0), y1), id = 'bild-' + ++bildNr, clip = `clip-path="url(#${id})"`;  // Achsen durch 0, sonst am Rand
+  const svg = [`<defs><clipPath id="${id}"><rect x="${L}" y="${O}" width="${w}" height="${h}"/></clipPath></defs>`];
+  for (const v of marken(x0, x1)) svg.push(`<line x1="${X(v)}" y1="${O}" x2="${X(v)}" y2="${O + h}" stroke="currentColor" opacity=".1"/><text x="${X(v)}" y="${O + h + 15}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">${bZahl(v)}</text>`);
+  for (const v of marken(y0, y1)) svg.push(`<line x1="${L}" y1="${Y(v)}" x2="${L + w}" y2="${Y(v)}" stroke="currentColor" opacity=".1"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="currentColor" opacity=".75">${bZahl(v)}</text>`);
+  svg.push(`<path d="M${X(ax)} ${O}V${O + h}M${L} ${Y(ay)}H${L + w}" stroke="currentColor" stroke-width="1.3" opacity=".6" fill="none"/>`);
+  if (d.x) svg.push(`<text x="${L + w}" y="${H - 3}" text-anchor="end" font-size="12" font-weight="600" fill="currentColor">${txt(d.x)}</text>`);
+  if (d.y) svg.push(`<text x="4" y="13" font-size="12" font-weight="600" fill="currentColor">${txt(d.y)}</text>`);
+  for (const f of flaechen) {
+    if (!(f.bis > f.von)) continue;
+    const px = Array.from({ length: 41 }, (_, i) => f.von + (f.bis - f.von) * i / 40);
+    const rand = [...px.map(x => [x, f.o(x)]), ...px.toReversed().map(x => [x, f.u(x)])].filter(p => Number.isFinite(p[1]));
+    svg.push(`<polygon points="${rand.map(p => `${X(p[0])},${Y(p[1])}`).join(' ')}" fill="${f.farbe}" opacity=".22" ${clip}/>`);
+  }
+  for (const k of kurven) {
+    let pfad = '', davor = null;
+    for (const x of xs) {
+      const y = k.fn(x), py = Number.isFinite(y) ? Y(y) : null;
+      if (py != null) pfad += `${davor == null || Math.abs(py - davor) > 2 * h ? 'M' : 'L'}${X(x)} ${py}`;  // Lücke oder Sprung: neu ansetzen
+      davor = py;
+    }
+    svg.push(`<path d="${pfad}" fill="none" stroke="${k.farbe}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"${k.strich ? ' stroke-dasharray="6 5"' : ''} ${clip}/>`);
+  }
+  for (const l of linien) {
+    const senk = Number.isFinite(l.x);
+    if (senk ? l.x < x0 || l.x > x1 : l.y < y0 || l.y > y1) continue;
+    const p = senk ? X(l.x) : Y(l.y);
+    svg.push(`<path d="${senk ? `M${p} ${O}V${O + h}` : `M${L} ${p}H${L + w}`}" stroke="currentColor" stroke-width="1.4" opacity=".7" stroke-dasharray="5 4" fill="none"/>`);
+    if (l.name) svg.push(`<text x="${senk ? p + 5 : L + w - 4}" y="${senk ? O + 12 : p - 5}" text-anchor="${senk ? 'start' : 'end'}" font-size="11.5" fill="currentColor" style="${HALO}">${txt(l.name)}</text>`);
+  }
+  for (const p of punkte) {
+    if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
+    const px = X(p.x), py = Y(p.y), links = px > L + w * 0.62, ort = `(${bZahl(p.x)} | ${bZahl(p.y)})`;
+    svg.push(`<path d="M${px} ${py}V${Y(ay)}M${px} ${py}H${X(ax)}" stroke="currentColor" opacity=".45" stroke-dasharray="3 4" fill="none"/><circle cx="${px}" cy="${py}" r="4.2" fill="currentColor" style="stroke:var(--bg,#fff);stroke-width:1.5px"/>`,
+      `<text x="${links ? px - 8 : px + 8}" y="${py < O + 20 ? py + 18 : py - 8}" text-anchor="${links ? 'end' : 'start'}" font-size="12" font-weight="600" fill="currentColor" style="${HALO}">${txt(p.name ? `${p.name} ${ort}` : ort)}</text>`);
+  }
+  const marke = (farbe, flaeche) => `<i style="display:inline-block;width:16px;height:${flaeche ? 10 : 3}px;margin-right:6px;vertical-align:middle;background:${farbe};opacity:${flaeche ? 0.35 : 1}"></i>`;
+  const legende = [...kurven.filter(k => k.name).map(k => marke(k.farbe) + txt(k.name)), ...flaechen.filter(f => f.name).map(f => marke(f.farbe, true) + txt(f.name))];
+  const fig = el('figure', { class: 'bild' });
+  fig.innerHTML = (d.titel ? `<figcaption>${txt(d.titel)}</figcaption>` : '')
+    + `<svg viewBox="0 0 ${B} ${H}" role="img" aria-label="${txt('Schaubild' + (d.titel ? ': ' + d.titel : ''))}">${svg.join('')}</svg>`
+    + (legende.length ? `<ul class="bild-legende">${legende.map(l => `<li>${l}</li>`).join('')}</ul>` : '');
+  return fig;
+}
+function bilder(knoten) {  // was sich nicht zeichnen lässt (kaputtes JSON, unbekannte Formel), verschwindet, statt als Code dazustehen
+  for (const c of knoten.querySelectorAll('pre > code.language-bild')) {
+    let b = null;
+    try { b = bildSvg(JSON.parse(c.textContent)); } catch { /* kein Bild */ }
+    if (b) c.parentNode.replaceWith(b); else c.parentNode.remove();
+  }
+}
 // Eine JSON-Datei im Speicher (Noten, Karteikarten): einmal laden, nacheinander schreiben, immer mit der neuesten sha
 function datei(pfad, leer) {
   const d = { daten: null, sha: null, p: null };
@@ -1892,7 +2035,7 @@ const escHtml = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 // Druckfassung als eigene Seite: der Browser macht daraus ein PDF („Als PDF sichern“, am iPad über Teilen → Drucken)
 function drucken(titel, inhalt) {
   if (SERVER && ICH) api('nutzung', { was: 'export' }).catch(() => {});
-  const css = WP_DOC_CSS + 'h1{font-size:1.8em;line-height:1.2;margin:0 0 .3em}h4{margin:1.2em 0 .3em}math{font-size:1.05em}math[display=block]{margin:.8em 0}'
+  const css = WP_DOC_CSS + 'h1{font-size:1.8em;line-height:1.2;margin:0 0 .3em}h4{margin:1.2em 0 .3em}math{font-size:1.05em}math[display=block]{margin:.8em 0}.bild{margin:1em 0;max-width:480px;break-inside:avoid}.bild svg{width:100%;height:auto}.bild figcaption{font-weight:bold}'
     + '.meta{color:#6b6458;font-size:.9em}@media print{html{background:none}body{padding:0}h2,h3{break-after:avoid}}';
   const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escHtml(titel)}</title><style>${css}</style></head><body>${inhalt}</body></html>`;
   const w = open(URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' })));
@@ -2381,6 +2524,7 @@ const fragen = (f, a) => chat(`chat:${f}:${a.datum}`, async () => {
   return `Du beantwortest Fragen von Studierenden zum Fach ${f} (${studium()}). Heute ist ${TAG}.
 Stütze dich nur auf die Wochenausgabe und die OLAT-Unterlagen unten. Steht etwas nicht darin, sag das ehrlich.
 Antworte knapp und verständlich auf Deutsch. Formeln in LaTeX zwischen \\( und \\), abgesetzt zwischen \\[ und \\].
+${BILD_REGEL}
 Aufgaben eines noch laufenden bewerteten Onlinetests rechnest du nicht mit den Originalzahlen vor, sondern erklärst den Weg an einem Beispiel mit anderen Zahlen.
 
 === WOCHENAUSGABE vom ${a.datum} ===
@@ -2441,15 +2585,53 @@ const fassungHinweis = f => {  // nach einer neuen Wahl: welche Fassung die ange
   return el('p', { class: 'meta', id: 'fassung-hinweis' }, a && !R[f].druckt && (alt.niveau !== neu.niveau || alt.form !== neu.form)
     ? `Diese Ausgabe ist ${fassungName(alt) || 'Normal'}. „Neu erstellen“ schreibt sie als ${fassungName(neu) || 'Normal'}.` : '');
 };
-// „Das Wichtigste“ als Kasten; in der Form Fragen jede Antwort zum Aufdecken
-function aufbereiten(text, form) {
+// „Das Wichtigste“ als Kasten; Fragen zum Aufdecken (Form Fragen und „Check:“ am Ende eines Teils); mit schluessel jeder ###-Teil als Lerneinheit zum Abhaken
+function aufbereiten(text, form, schluessel) {
   const p = [...text.children].find(x => x.matches('p') && /^Das Wichtigste/.test(x.textContent)), liste = p?.nextElementSibling;
   if (liste?.matches('ul, ol')) { const k = el('div', { class: 'wichtig' }); p.before(k); k.append(p, liste); }
-  if (form === 'fragen') for (const h of [...text.querySelectorAll('h4')]) {
+  for (const h of [...text.querySelectorAll('h4')]) {
+    if (form !== 'fragen' && !/^Check:/.test(h.textContent)) continue;
     const d = el('details', { class: 'fw-frage' }, el('summary', {}, ...h.childNodes));
     h.replaceWith(d);
     while (d.nextElementSibling && !d.nextElementSibling.matches('h2, h3, h4, details')) d.append(d.nextElementSibling);
   }
+  const hs = schluessel ? [...text.children].filter(x => x.matches('h3')) : [];
+  if (hs.length < 2) return text;
+  // Ein Teil ist offen, die anderen zeigen nur ihre Überschrift: so steht kein Textblock da. Der Stand bleibt auf dem Gerät.
+  const fertig = new Set(liesJson(schluessel) || []), stand = el('p', { class: 'lern-stand' });
+  const teile = hs.map((h, i) => {
+    const nr = el('span', { class: 'lern-nr', 'aria-hidden': 'true' }), titel = h.textContent, d = el('details', { class: 'lernteil' });
+    h.before(d);
+    d.append(el('summary', {}, nr, h));
+    while (d.nextElementSibling && !d.nextElementSibling.matches('h2, h3')) d.append(d.nextElementSibling);
+    const knopf = el('button', { class: 'knopf voll', type: 'button', onclick: () => {
+      if (!fertig.delete(i)) fertig.add(i);
+      merk(schluessel, JSON.stringify([...fertig]));
+      zeige();
+      if (!fertig.has(i)) return;
+      d.open = false;
+      const n = teile.find((t, j) => j > i && !fertig.has(j));
+      if (n) { n.d.open = true; n.d.scrollIntoView({ block: 'nearest' }); }
+    } });
+    d.append(el('div', { class: 'lern-fuss' }, knopf, darf('chat') && el('button', { class: 'knopf', type: 'button', onclick: () => {
+      const feld = document.querySelector('#teil-fragen textarea');
+      if (!feld) return;
+      feld.value = `Erklär mir „${titel}“ noch einmal anders, mit einem einfachen Beispiel.`;
+      feld.dispatchEvent(new Event('input'));
+      feld.scrollIntoView({ block: 'center' });
+      feld.focus();
+    } }, 'Noch unklar? Nachfragen')));
+    return { d, nr, knopf };
+  });
+  const alle = el('button', { type: 'button', onclick: () => { const auf = teile.some(t => !t.d.open); for (const t of teile) t.d.open = auf; } }, 'Alle auf- oder zuklappen');
+  const zeige = () => {
+    teile.forEach((t, j) => { const ok = fertig.has(j); t.d.classList.toggle('fertig', ok); t.nr.textContent = ok ? '✓' : j + 1; t.knopf.textContent = ok ? 'Doch noch offen' : 'Verstanden'; });
+    stand.replaceChildren(el('progress', { max: teile.length, value: fertig.size, 'aria-label': 'Lernstand' }), `${fertig.size} von ${teile.length} Teilen verstanden`, alle);
+  };
+  zeige();
+  teile[0].d.before(stand);
+  const erster = teile.find((t, j) => !fertig.has(j));
+  if (erster) erster.d.open = true;
   return text;
 }
 let SPION = null;  // markiert beim Scrollen den sichtbaren Teil in der Sprungleiste
@@ -2504,7 +2686,7 @@ async function ausgabeZeigen(f, tag) {
     leiste,
     el('div', { class: 'raster', id: 'teil-ueberblick' },
       el('article', { class: 'artikel' }, el('h2', {}, FORMEN[fa.form].titel || 'Zusammenfassung der letzten Einheit'),
-        aufbereiten(markdown(el('div', { class: 'text', 'data-form': fa.form }), abschnitt(a, 'zusammenfassung') || 'Keine Zusammenfassung in dieser Ausgabe.'), fa.form),
+        aufbereiten(markdown(el('div', { class: 'text', 'data-form': fa.form }), abschnitt(a, 'zusammenfassung') || 'Keine Zusammenfassung in dieser Ausgabe.'), fa.form, `gelernt:${f}:${a.datum}`),
         SERVER && ICH && TARIFE?.verkauf && !darf('ausgabe-ultra') && ultraWerbung(a)),
       kasten('blick', 'Auf einen Blick', 'auf einen blick'),
       kasten('', 'Nächstes Proseminar', 'nächstes proseminar'),

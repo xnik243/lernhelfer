@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { crc32, inflateRawSync } from 'node:zlib';
 import { createServer } from 'node:http';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -603,6 +603,7 @@ try {
   assert.equal((await max('GET', '/api/ich')).status, 401);
   assert.ok(!(await chef('GET', '/api/admin')).j.konten.some(x => x.id === maxId));
   assert.equal((await chef('POST', '/api/admin/konto-loeschen', { konto: maxId })).status, 404);
+  assert.match(readdirSync(join(ordner, 'sicherung')).join(), /^lernhelfer-\d{4}-\d\d-\d\d\.db$/, 'tägliche Sicherung beim Start');
   console.log('Server: alles in Ordnung.');
 } catch (e) {
   console.error(log);

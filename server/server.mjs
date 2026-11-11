@@ -4,7 +4,7 @@
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateRawSync } from 'node:zlib';
@@ -1174,8 +1174,18 @@ function statisch(req, res, url) {
 }
 
 /* ---------- Stündlich: Abgelaufenes aufräumen, Ultra+-Schlüssel abgleichen, an das Ende des Tarifs erinnern ---------- */
+// Einmal am Tag eine Kopie der Datenbank nach DATEN/sicherung, die letzten sieben bleiben.
+// ponytail: liegt auf derselben Platte; gegen einen Ausfall des Servers hilft erst eine Kopie außerhalb (rsync, Snapshot beim Anbieter)
+function sichern() {
+  const ordner = join(DATEN, 'sicherung'), ziel = join(ordner, `lernhelfer-${new Date().toISOString().slice(0, 10)}.db`);
+  if (existsSync(ziel)) return;
+  mkdirSync(ordner, { recursive: true });
+  db.exec(`vacuum into '${ziel.replace(/'/g, "''")}'`);
+  for (const alt of readdirSync(ordner).filter(n => /^lernhelfer-[\d-]+\.db$/.test(n)).sort().slice(0, -7)) rmSync(join(ordner, alt));
+}
 async function aufraeumen() {
   const t = jetzt();
+  try { sichern(); } catch (e) { console.error('Sicherung:', e.message); }
   db.prepare('delete from marken where bis < ?').run(t);
   db.prepare("update bestellungen set status = 'verfallen' where status = 'offen' and erstellt < ?").run(t - 14 * TAG);
   db.prepare('delete from nutzung where tag < ?').run(new Date(t - 400 * TAG).toISOString().slice(0, 10));
@@ -1190,6 +1200,7 @@ async function aufraeumen() {
   }
   for (const [a, l] of VERSUCHE) if (!l.some(x => t - x < 15 * 60e3)) VERSUCHE.delete(a);
 }
+try { sichern(); } catch (e) { console.error('Sicherung:', e.message); }
 setInterval(() => aufraeumen().catch(e => console.error(e)), 3600e3);
 
 createServer(async (req, res) => {
