@@ -631,7 +631,7 @@ try {
   await hofA('POST', '/api/spiel/stand', { pflanzen: [{ id: 1, fach: 'BWL', platz: 2, stufe: 3, karte: 'BWL|geheim' }], muenzen: 7, offen: true, felder: ['BWL'], lager: { honig: 2 } });
   const besuch = (await hofB('POST', '/api/spiel/hof', { id: nachbar.id })).j;
   assert.deepEqual(besuch.stand.pflanzen, [{ id: 1, fach: 'BWL', platz: 2, stufe: 3, karte: null, geerntetFuer: null }]);
-  assert.deepEqual(Object.keys(besuch.stand).sort(), ['deko', 'felder', 'pflanzen'], 'Besuch sieht weder Karten noch Münzen noch Lager');
+  assert.deepEqual(Object.keys(besuch.stand).sort(), ['deko', 'felder', 'pflanzen', 'tiere'], 'Besuch sieht weder Karten noch Münzen noch Lager');
   assert.equal((await hofB('POST', '/api/spiel/hof', { id: 9999 })).status, 404);
   assert.equal((await fetch(BASIS + '/game', { redirect: 'manual' })).status, 302);
   assert.equal((await fetch(BASIS + '/game/')).headers.get('content-type'), 'text/html; charset=utf-8');

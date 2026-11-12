@@ -821,7 +821,7 @@ const ROUTEN = {
     return { andere };
   },
   // Den Hof eines Mitspielers ansehen: nur, wer gerade spielt und Besuch im Spiel erlaubt hat. Heraus gehen nur Pflanzen (Fach, Beet, Stufe),
-  // Dekoration, Ausbau und die Namen der Felder; nie Karteikarten, Münzen oder Lager.
+  // Dekoration, Tiere, Ausbau und die Namen der Felder; nie Karteikarten, Münzen oder Lager.
   'POST /api/spiel/hof': ({ k, b }) => {
     muss(k);
     const [id, o] = [...SPIEL_ORTE].find(([, o]) => o.nr === b.id && jetzt() - o.t <= 5000) ?? [];
@@ -829,7 +829,7 @@ const ROUTEN = {
     let st = null; try { st = JSON.parse(Buffer.from(db.prepare("select inhalt from dateien where konto = ? and pfad = 'lernhof.json'").get(id).inhalt).toString('utf8')); } catch {}
     if (!st?.offen) nein(403, `${o.name} hat den Hof nicht für Besuch geöffnet.`);
     return { name: o.name, stand: { pflanzen: (st.pflanzen || []).map(p => ({ id: p.id, fach: p.fach, platz: p.platz, stufe: p.stufe, karte: null, geerntetFuer: null })),
-      deko: st.deko || [], ausbau: st.ausbau, felder: st.felder || [] } };
+      deko: st.deko || [], ausbau: st.ausbau, felder: st.felder || [], tiere: st.tiere || [] } };
   },
 
   'POST /api/registrieren': async ({ req, res, b }) => {
