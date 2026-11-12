@@ -1172,6 +1172,8 @@
   .fuss-links { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; }
   .fuss-links a { color: var(--text-3); }
   @media (hover: hover) { .fuss-links a:hover { color: var(--text); } }
+/* Finger: kleine Textlinks bekommen eine greifbare Höhe, ohne dass sich das Layout verschiebt */
+@media (pointer: coarse), (max-width: 760px) { .fuss-links { gap: 14px 20px; } .fuss-links a, .block-kopf a, #noten summary { padding-block: 10px; } }
 </style>
 <link rel="stylesheet" href="skizze.css" id="skizze-css">
 <script>
