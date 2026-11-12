@@ -313,8 +313,8 @@
   .raster { display: grid; gap: 20px; }
   .raster > * { min-width: 0; }
   .abschnitt.blick { order: -1; }
-  @media (min-width: 1100px) {
-    .raster { grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: auto auto 1fr; gap: 16px 48px; }
+  @media (min-width: 1360px) {  /* erst wenn die Lernspalte daneben breit genug bleibt (Seitenleiste 250 px) */
+    .raster { grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: auto auto 1fr; gap: 16px 48px; }
     .artikel { grid-column: 1; grid-row: 1 / span 3; }
     .abschnitt { grid-column: 2; }
     .abschnitt.blick { order: 0; }
@@ -1823,7 +1823,7 @@ So schreibst du sie:
 - Einfach in der Sprache, genau in der Sache: kurze Sätze, ein Gedanke pro Absatz, jeder Fachbegriff beim ersten Auftreten in einem Halbsatz erklärt. Vereinfache nie den Inhalt: Voraussetzungen, Ausnahmen, Vorzeichen, Einheiten und Fallunterscheidungen bleiben drin. Brauchst du ein vereinfachtes Bild, sag dazu, was es weglässt („genau genommen gilt das nur, wenn …“).
 - Lerneinheiten statt Textblock: Jeder ###-Teil behandelt genau einen Gedanken und ist in zwei Minuten gelesen; lieber sechs kurze Teile als drei lange. Ein Absatz hat höchstens drei Sätze. Nach der Erklärung kommt etwas zum Anfassen: ein Beispiel mit Zahlen, ein Schaubild oder eine Gegenüberstellung als Tabelle.
 - Kein Fülltext: keine Einleitungs-, Überleitungs- und Schlusssätze („In diesem Teil geht es um“, „Zusammenfassend lässt sich sagen“, „Es ist wichtig zu beachten“), nichts zweimal in anderen Worten, keine Aufzählung aus drei Eigenschaften als Stilmittel. Jeder Satz bringt etwas Neues, das man für Prüfung oder Verständnis braucht.
-- Kommen in der Einheit Funktionen, Kurven, Märkte oder Verläufe vor, hat die Zusammenfassung mindestens ein Schaubild, meist zwei bis vier (Regeln dazu unten).
+- Kommen in der Einheit Funktionen, Kurven, Märkte oder Verläufe vor, hat die Zusammenfassung mindestens ein Schaubild, meist zwei bis vier (Regeln dazu unten): Jeder ###-Teil, der eine Kurve, eine Verschiebung, eine Fläche oder den Vergleich zweier Verläufe beschreibt, zeigt sie auch.
 
 ## Nächstes Proseminar
 Datum, Thema, was man dafür wissen und vorbereiten muss, Aufgaben und Abgaben dieser Einheit mit Frist.
@@ -2298,12 +2298,13 @@ const fristPille = (t, naechste) => el('span', { class: `pille${tageBis(t.datum)
 function fachZeile(f) {
   const r = R[f], a = aktuell(f);
   const blick = a && abschnitt(a, 'auf einen blick').split('\n').find(z => /^\s*[-*]\s/.test(z));
+  const teile = a ? (abschnitt(a, 'zusammenfassung').match(/^### /gm) || []).length : 0;  // Lerneinheiten der Zusammenfassung; der Stand liegt auf dem Gerät
   return el('article', { class: 'fach', 'data-fach': f, 'aria-busy': r.druckt ? 'true' : null },
     el('div', { class: 'fach-kopf' }, glyph(f), el('h3', {}, el('a', { href: `#/${encodeURIComponent(f)}` }, f)), el('span', { class: 'pfeil', 'aria-hidden': 'true' })),
     el('div', { class: 'fach-text' }, a ? [el('p', { class: 'schlagzeile' }, a.schlagzeile || 'Ausgabe ohne Schlagzeile'),
       blick && el('p', { class: 'anriss' }, blick.replace(/^\s*[-*]\s+/, '').replace(/[*_`]/g, '').replace(/\\\(|\\\)/g, ''))]
       : el('p', { class: 'anriss' }, 'Noch keine Ausgabe. Antippen und erstellen.')),
-    a && el('p', { class: 'meta' }, `Ausgabe vom ${kurz(a.datum)}, ${a.begriffe.length} Begriffe`),
+    a && el('p', { class: 'meta' }, `Ausgabe vom ${kurz(a.datum)}, ${teile > 1 ? `${(liesJson(`gelernt:${f}:${a.datum}`) || []).length} von ${teile} Teilen verstanden` : `${a.begriffe.length} Begriffe`}`),
     r.druckt && presse(f),
     r.fehler && el('p', { class: 'fehlertext' }, r.fehler));
 }
@@ -3194,7 +3195,7 @@ function pkErgebnis() {
       return el('li', { class: `aufgabe ${leer ? 'pk-leer' : ok ? 'pk-ok' : 'pk-falsch'}` },
         el('p', { class: 'pk-urteil' }, leer ? 'Nicht beantwortet' : ok ? `Richtig, +${dez(je[i])}` : `Falsch${je[i] ? `, −${dez(-je[i])}` : ''}`),
         markdown(el('div', { class: 'text' }), q.frage),
-        el('p', { class: 'klein' }, !leer && !ok && ['Deine Antwort: ', markdown(el('span'), q.typ === 'zahl' ? String(a) : String(q.optionen[a]), true), '. '], 'Richtig: ', markdown(el('span'), richtig, true)),
+        el('p', { class: 'klein' }, !leer && !ok && ['Deine Antwort: ', markdown(el('span'), q.typ === 'zahl' ? String(a) : String(q.optionen[a]), true), el('br')], 'Richtig: ', markdown(el('span'), richtig, true)),
         q.erklaerung && el('details', { class: 'loesung' }, el('summary', { class: 'knopf' }, el('span', { class: 'zu' }, 'Lösungsweg zeigen'), el('span', { class: 'auf' }, 'Lösungsweg verbergen')),
           markdown(el('div', { class: 'text' }), q.erklaerung)));
     })),
