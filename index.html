@@ -362,9 +362,9 @@
   .lexikon > * { min-width: 0; }
   .lexikon .fortschritt { margin: -4px 0 14px; color: var(--text-2); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
   .karte { position: relative; display: block; width: 100%; min-height: 15rem; padding: 0; border: 0; background: none; cursor: pointer; perspective: 1400px; text-align: center; -webkit-user-select: none; user-select: none; }
-  .karte .innen { position: relative; display: block; min-height: 15rem; transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); transform-style: preserve-3d; }
+  .karte .innen { position: relative; display: grid; min-height: 15rem; transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); transform-style: preserve-3d; }
   .karte.um .innen { transform: rotateY(180deg); }
-  .karte .seite-v, .karte .seite-h { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 28px;
+  .karte .seite-v, .karte .seite-h { position: relative; grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 28px;
     border: 1px solid var(--linie); border-radius: 18px; background: var(--bg); box-shadow: var(--schatten); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
   .karte .seite-h { transform: rotateY(180deg); background: var(--bg-2); }
   .karte .begriff { font: 700 1.625rem/1.15 var(--sans); letter-spacing: -0.015em; text-wrap: balance; }
@@ -1174,6 +1174,24 @@
   @media (hover: hover) { .fuss-links a:hover { color: var(--text); } }
 /* Finger: kleine Textlinks bekommen eine greifbare Höhe, ohne dass sich das Layout verschiebt */
 @media (pointer: coarse), (max-width: 760px) { .fuss-links { gap: 14px 20px; } .fuss-links a, .block-kopf a, #noten summary { padding-block: 10px; } }
+  .text .teil-quelle { margin: -2px 0 14px; color: var(--text-3); font: 500 0.8125rem/1.45 var(--sans); }
+  .text .teil-quelle em { font-style: normal; }
+  .text .frage-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-block: 14px 4px; }
+  .text .frage-fuss .meta { flex-basis: 100%; margin: 0; }
+  .text .lern-hinweis { flex-basis: 100%; margin: 0; color: var(--text-3); font: 400 0.875rem/1.45 var(--sans); }
+  .weiter { display: grid; gap: 10px; }
+  .weiter-ziel { display: grid; gap: 3px; padding: 14px 16px; border: 1px solid var(--linie); border-left: 4px solid var(--fach, var(--akzent)); border-radius: var(--r-l); background: var(--bg); color: inherit; text-decoration: none; }
+  .weiter-ziel b { font-size: 1.0625rem; line-height: 1.35; }
+  @media (hover: hover) { .weiter-ziel:hover { background: var(--bg-2); text-decoration: none; } }
+  .karte .begriff.frage { font: 600 1.0625rem/1.5 var(--sans); letter-spacing: 0; text-align: left; align-self: stretch; }
+  .karte .definition.lang { align-self: stretch; text-align: left; }
+  .karte :is(.frage, .lang) > :first-child { margin-top: 0; } .karte :is(.frage, .lang) > :last-child { margin-bottom: 0; }
+  .vid-seite > .vid-player { position: sticky; top: 0; z-index: 4; max-height: 45dvh; }
+  @media (min-width: 1100px) {
+    .vid-seite { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 42%); gap: 0 32px; align-items: start; }
+    .vid-seite > .vid-player { grid-column: 2; grid-row: 1; top: 24px; max-height: none; }
+    .vid-seite > .vid-text { grid-column: 1; grid-row: 1; min-width: 0; }
+  }
 </style>
 <link rel="stylesheet" href="skizze.css" id="skizze-css">
 <script>
@@ -1243,6 +1261,10 @@ aussehen();
       </header>
       <div class="heute-raster">
         <div class="heute-spalte">
+          <section aria-labelledby="w-kopf" class="h-weiter" id="weiter" hidden>
+            <div class="block-kopf"><h2 id="w-kopf">Weiterlernen</h2></div>
+            <div class="weiter" id="weiter-inhalt"></div>
+          </section>
           <section aria-labelledby="f-kopf" class="h-faecher">
             <div class="block-kopf"><h2 id="f-kopf">Fächer</h2><a href="#/unterlagen" class="meta">Unterlagen und Fächer</a></div>
             <div id="ressorts"></div>
@@ -1739,7 +1761,7 @@ const UHR = heute.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digi
 
 // Ultra-Fassung: hängt am Auftrag und geht weiter (gemessen mit Luna: gut doppelt so lang, 4–5½ Minuten, rund 3 Cent)
 // Gegen Formelwüsten: jede Formel kommt mit Text davor und danach (gilt für Ausgabe, Training und Lernskript)
-const FORMEL_REGEL = 'Formeln nie allein: Vor jeder abgesetzten Formel steht in ganzen Sätzen, wozu sie dient und wann man sie braucht; danach erklärst du jedes neue Zeichen in Worten und zeigst, wo es passt, ein kurzes Zahlenbeispiel. Auf jede Formel kommen mindestens zwei bis drei Sätze Erklärung. Mehrere Formeln hintereinander ohne Text dazwischen sind ein Fehler, ebenso Stichpunkte, die nur aus Formeln bestehen. Schreib so, dass jemand, der die Vorlesung verpasst hat, jeden Schritt versteht.';
+const FORMEL_REGEL = 'Brüche schreibst du als \\frac{Zähler}{Nenner}, nie mit Schrägstrich (nur Einheiten wie km/h behalten ihn). Formeln nie allein: Vor jeder abgesetzten Formel steht in ganzen Sätzen, wozu sie dient und wann man sie braucht; danach erklärst du jedes neue Zeichen in Worten und zeigst, wo es passt, ein kurzes Zahlenbeispiel. Auf jede Formel kommen mindestens zwei bis drei Sätze Erklärung. Mehrere Formeln hintereinander ohne Text dazwischen sind ein Fehler, ebenso Stichpunkte, die nur aus Formeln bestehen. Schreib so, dass jemand, der die Vorlesung verpasst hat, jeden Schritt versteht.';
 const ULTRA = `ULTRA-FASSUNG. Diese Ausgabe ist die ausführliche Ultra-Fassung für Studierende, die den Stoff von Grund auf verstehen wollen. Sie geht deutlich weiter als die normale Fassung. Abweichend von oben gilt:
 
 1. Zusammenfassung der letzten Einheit: mindestens doppelt so ausführlich. Jeder Gedanke der Folien wird erklärt, nicht nur genannt: was er bedeutet, warum er gilt, wie er mit dem Vorigen zusammenhängt, dazu ein Zahlen- oder Alltagsbeispiel. Jeder ###-Teil endet mit **Typische Fehler:** und **Merke:** in je 1–3 Stichpunkten. Wo Stoff früherer Einheiten gebraucht wird, wiederhole ihn kurz.
@@ -1823,7 +1845,8 @@ So schreibst du sie:
 - Einfach in der Sprache, genau in der Sache: kurze Sätze, ein Gedanke pro Absatz, jeder Fachbegriff beim ersten Auftreten in einem Halbsatz erklärt. Vereinfache nie den Inhalt: Voraussetzungen, Ausnahmen, Vorzeichen, Einheiten und Fallunterscheidungen bleiben drin. Brauchst du ein vereinfachtes Bild, sag dazu, was es weglässt („genau genommen gilt das nur, wenn …“).
 - Lerneinheiten statt Textblock: Jeder ###-Teil behandelt genau einen Gedanken und ist in zwei Minuten gelesen; lieber sechs kurze Teile als drei lange. Ein Absatz hat höchstens drei Sätze. Nach der Erklärung kommt etwas zum Anfassen: ein Beispiel mit Zahlen, ein Schaubild oder eine Gegenüberstellung als Tabelle.
 - Kein Fülltext: keine Einleitungs-, Überleitungs- und Schlusssätze („In diesem Teil geht es um“, „Zusammenfassend lässt sich sagen“, „Es ist wichtig zu beachten“), nichts zweimal in anderen Worten, keine Aufzählung aus drei Eigenschaften als Stilmittel. Jeder Satz bringt etwas Neues, das man für Prüfung oder Verständnis braucht.
-- Kommen in der Einheit Funktionen, Kurven, Märkte oder Verläufe vor, hat die Zusammenfassung mindestens ein Schaubild, meist zwei bis vier (Regeln dazu unten): Jeder ###-Teil, der eine Kurve, eine Verschiebung, eine Fläche oder den Vergleich zweier Verläufe beschreibt, zeigt sie auch.
+- Schaubilder gehören dazu wie die Beispiele: Jeder ###-Teil, der eine Kurve, einen Verlauf, eine Verschiebung, eine Fläche, ein Gleichgewicht oder den Vergleich zweier Verläufe beschreibt, zeigt das als Schaubild (Regeln dazu unten). In Mathematik, VWL und BWL hat fast jede Einheit mehrere, eine Zusammenfassung ohne Schaubild ist dort die Ausnahme.
+- Quelle: Direkt unter jeder ###-Überschrift steht in einer eigenen Zeile *Quelle: Dateiname, S. 4–7*, also der Dateiname ohne Ordner und die Seiten, auf denen der Teil beruht, laut den Marken [Seite N] in den Unterlagen (bei Marken [Folie N] schreibst du „Folie 4–7“). Haben die Unterlagen keine solchen Marken, steht nur der Dateiname da.
 
 ## Nächstes Proseminar
 Datum, Thema, was man dafür wissen und vorbereiten muss, Aufgaben und Abgaben dieser Einheit mit Frist.
@@ -1895,15 +1918,115 @@ const markdown = (knoten, s, inline) => {
   if (!window.marked || !window.DOMPurify) { knoten.textContent = s || ''; return knoten; }
   const formeln = [];
   if (window.katex) s = (s || '').replace(/\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)/g, (_, block, imText) => {
-    formeln.push(`<span class="formel" data-tex="${escHtml(block ?? imText)}">${katex.renderToString(block ?? imText, { displayMode: block != null, output: 'mathml', throwOnError: false })
+    formeln.push(`<span class="formel" data-tex="${escHtml(block ?? imText)}">${katex.renderToString(texBruch(block ?? imText), { displayMode: block != null, output: 'mathml', throwOnError: false })
       .replace(/<annotation[\s\S]*?<\/annotation>/, '')}</span>`);  // data-tex: für „Formel erklären“ beim Antippen
     return `${formeln.length - 1}`;
   });
   const html = (inline ? marked.parseInline : marked.parse)(s || '').replace(/(\d+)/g, (_, i) => formeln[i]);
   knoten.innerHTML = DOMPurify.sanitize(html);
   bilder(knoten);
+  bruechen(knoten);
   return knoten;
 };
+// a/b in Formeln als echter Bruch, wo beide Seiten eindeutig ein Stück sind: Zahl, Zeichen mit Index oder Hochzahl, (…), {…}, \Befehl{…}.
+// In \text{} und \mathrm{} bleibt der Schrägstrich (km/h). Gegen Ausgaben, in denen die KI doch \(\Delta Q/Q\) schreibt.
+const TEX_VOR = /^\\(Delta|delta|partial|nabla|bar|hat|tilde|overline|sqrt|frac|dfrac|tfrac)\s?$/;
+const texPassend = (t, j) => {  // t[j] ist eine öffnende Klammer → Index hinter der passenden schließenden, sonst -1
+  const auf = t[j], zu = { '(': ')', '{': '}', '[': ']' }[auf];
+  for (let tiefe = 0; j < t.length; j++) {
+    if (t[j] === '\\' && t[j + 1] !== '(' && t[j + 1] !== ')') { j++; continue; }
+    if (t[j] === auf) tiefe++; else if (t[j] === zu && !--tiefe) return j + 1;
+  }
+  return -1;
+};
+function texLinks(t, i) {  // Anfang des Stücks, das direkt vor i endet, sonst -1
+  let j = i;
+  while (t[j - 1] === ' ') j--;
+  const ende = j;
+  for (;;) {
+    const c = t[j - 1], auf = { ')': '(', '}': '{', ']': '[' }[c];
+    if (auf) {
+      let tiefe = 0;
+      do { j--; if (t[j] === c) tiefe++; else if (t[j] === auf) tiefe--; } while (j > 0 && tiefe);
+      if (tiefe) return -1;
+      if (auf === '(' && t.slice(0, j).endsWith('\\left')) j -= 5;
+    } else {
+      const m = t.slice(0, j).match(/(?:\\[A-Za-z]+|[A-Za-z]+|\d+(?:(?:\.|\{,\})\d+)?)$/);
+      if (!m) break;
+      j -= m[0].length;
+    }
+    if (t[j - 1] === '^' || t[j - 1] === '_') { j--; continue; }  // x^2, x_{t+1}: die Basis gehört dazu
+    if (t[j - 1] === '}' && t[j] === '{') continue;  // zweite Gruppe von \frac{a}{b}
+    const v = t.slice(0, j).match(/\\[A-Za-z]+\s?$/);  // \Delta Q; \text{…} und andere Befehle mit ihrer Klammer
+    if (v && (TEX_VOR.test(v[0]) || t[j] === '{' && !/\s$/.test(v[0]))) j -= v[0].length;
+    break;
+  }
+  return j < ende ? j : -1;
+}
+function texRechts(t, i) {  // Ende des Stücks, das bei i beginnt, sonst -1
+  let j = i, m;
+  while (t[j] === ' ') j++;
+  if (t.startsWith('\\left(', j)) j = texPassend(t, j + 5);
+  else if ('({['.includes(t[j] || 'x')) j = texPassend(t, j);
+  else if ((m = t.slice(j).match(/^(?:\\[A-Za-z]+\s?|[A-Za-z]+|\d+(?:(?:\.|\{,\})\d+)?)/))) {
+    j += m[0].length;
+    if (m[0][0] === '\\') {  // \frac{…}{…}, \sqrt{…}, \text{…}, \Delta P; Zeichen wie \cdot sind kein Stück
+      if ('{['.includes(t[j] || 'x') && !/\s$/.test(m[0])) while (j > 0 && '{['.includes(t[j] || 'x')) j = texPassend(t, j);
+      else if (TEX_VOR.test(m[0])) { const n = t.slice(j).match(/^(?:\\[A-Za-z]+|[A-Za-z]+)/); if (n) j += n[0].length; }
+      else if (/^\\(cdot|times|quad|qquad|left|right|cdots|ldots|mid|to|le|ge|leq|geq|neq|approx|Rightarrow|rightarrow|Leftrightarrow)\s?$/.test(m[0])) return -1;
+    }
+  } else return -1;
+  while (j > 0 && (t[j] === '_' || t[j] === '^')) j = t[j + 1] === '{' ? texPassend(t, j + 1) : j + 2;
+  return j;
+}
+const texNackt = x => { x = x.trim(); const k = x.match(/^\\left\(([\s\S]*)\\right\)$/); if (k) return k[1]; return '({'.includes(x[0]) && texPassend(x, 0) === x.length ? x.slice(1, -1) : x; };
+function texBruch(t) {
+  const imText = i => [...t.matchAll(/\\(?:text\w*|mathrm|mbox|operatorname)\{/g)].some(m => i > m.index && i < texPassend(t, m.index + m[0].length - 1));
+  for (let i = t.indexOf('/'); i >= 0; i = t.indexOf('/', i + 1)) {
+    if (t[i - 1] === '\\' || t[i + 1] === '/' || imText(i)) continue;
+    const l = texLinks(t, i), r = texRechts(t, i + 1);
+    if (l < 0 || r < 0) continue;
+    const neu = `\\frac{${texNackt(t.slice(l, i))}}{${texNackt(t.slice(i + 1, r))}}`;
+    t = t.slice(0, l) + neu + t.slice(r);
+    i = l - 1;  // von vorn im neuen Bruch: Schrägstriche in Zähler und Nenner kommen auch dran
+  }
+  return t;
+}
+// Schrägstrich-Brüche im Klartext (JSON-Felder wie Begriffe und Beispielaufgabe): (a+b)/c, ΔQ/Q, 1/2 → Bruch.
+// Nur eindeutige Stücke: Zahl, ein Buchstabe mit Index, Klammer. VO/PS, km/h, und/oder und 2025/26 bleiben, wie sie sind.
+const BRUCH_STUECK = String.raw`(\((?:[^()]|\([^()]*\))+\)[²³]?|Δ?[A-Za-zα-ωΑ-Ω](?:[₀-₉]+|_\w+)?[²³]?|\d+(?:[.,]\d+)?[²³]?)`;
+const bruchRe = () => new RegExp(String.raw`(?<![\p{L}\d/.,_)-])${BRUCH_STUECK} ?\/ ?${BRUCH_STUECK}(?![\p{L}\d/_(²³])`, 'gu');
+const bruchOk = (a, b) => ![a, b].some(x => /^\d{4,}$/.test(x)) && !/^(w\/o|s\/w|i\/o|n\/a)$/i.test(`${a}/${b}`);
+function klarTex(s) {  // ein Stück Klartext → TeX
+  s = s.replace(/^\(([\s\S]*)\)$/, '$1');
+  const fertig = [];
+  s = s.replace(bruchRe(), (m, a, b) => bruchOk(a, b) ? `\u0001${fertig.push(`\\frac{${klarTex(a)}}{${klarTex(b)}}`) - 1}\u0001` : m)
+    .replace(/[\\{}#$%&~]/g, c => c === '%' ? '\\%' : '')
+    .replace(/√\(([^()]*)\)/g, '\\sqrt{$1}').replace(/√(\w+)/g, '\\sqrt{$1}')
+    .replace(/[²³]/g, c => `^{${'²³'.indexOf(c) + 2}}`).replace(/[₀-₉]+/g, c => `_{${[...c].map(z => z.charCodeAt(0) - 0x2080).join('')}}`)
+    .replace(/[·×*]/g, '\\cdot ').replace(/\b(ln|log|exp|max|min|sin|cos|tan|lim)\b/g, '\\$1 ')
+    .replace(/(?<![\\A-Za-z])[A-Za-zÄÖÜäöüß€]{2,}/g, w => `\\text{${w}}`);
+  return s.replace(/\u0001(\d+)\u0001/g, (_, i) => fertig[i]);
+}
+const formelSpan = tex => { const x = el('span', { class: 'formel', 'data-tex': tex });
+  x.innerHTML = DOMPurify.sanitize(katex.renderToString(tex, { output: 'mathml', throwOnError: false }).replace(/<annotation[\s\S]*?<\/annotation>/, '')); return x; };
+function bruechen(knoten) {
+  if (!window.katex || !window.DOMPurify) return knoten;
+  const w = document.createTreeWalker(knoten, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement?.closest('a, code, pre, .formel, math, svg, figure') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const treffer = [];
+  for (let n; (n = w.nextNode());) if (n.nodeValue.includes('/')) treffer.push(n);
+  for (const n of treffer) {
+    const t = n.nodeValue, teile = [];
+    let pos = 0;
+    for (const m of t.matchAll(bruchRe())) {
+      if (!bruchOk(m[1], m[2])) continue;
+      teile.push(t.slice(pos, m.index), formelSpan(`\\frac{${klarTex(m[1])}}{${klarTex(m[2])}}`));
+      pos = m.index + m[0].length;
+    }
+    if (teile.length) n.replaceWith(...teile, t.slice(pos));
+  }
+  return knoten;
+}
 /* ---------- Schaubilder: Codeblock ```bild mit JSON wird zu SVG (Kurven, Punkte, Flächen, Hilfslinien). Kein eval (CSP), darum ein eigener kleiner Rechner ---------- */
 const BILD_FN = { sqrt: Math.sqrt, ln: Math.log, log: Math.log10, exp: Math.exp, sin: Math.sin, cos: Math.cos, tan: Math.tan, abs: Math.abs };
 function rechner(s) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er nicht kennt
@@ -2000,8 +2123,9 @@ function bildSvg(d) {
   for (const p of punkte) {
     if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
     const px = X(p.x), py = Y(p.y), links = px > L + w * 0.62, ort = `(${bZahl(p.x)} | ${bZahl(p.y)})`;
+    const unten = py < O + 20 || linien.some(l => l.name && Number.isFinite(l.y) && Math.abs(Y(l.y) - py) < 16);  // über dem Punkt steht schon die Linienbeschriftung
     svg.push(`<path d="M${px} ${py}V${Y(ay)}M${px} ${py}H${X(ax)}" stroke="currentColor" opacity=".45" stroke-dasharray="3 4" fill="none"/><circle cx="${px}" cy="${py}" r="4.2" fill="currentColor" style="stroke:var(--bg,#fff);stroke-width:1.5px"/>`,
-      `<text x="${links ? px - 8 : px + 8}" y="${py < O + 20 ? py + 18 : py - 8}" text-anchor="${links ? 'end' : 'start'}" font-size="12" font-weight="600" fill="currentColor" style="${HALO}">${txt(p.name ? `${p.name} ${ort}` : ort)}</text>`);
+      `<text x="${links ? px - 8 : px + 8}" y="${unten ? py + 18 : py - 8}" text-anchor="${links ? 'end' : 'start'}" font-size="12" font-weight="600" fill="currentColor" style="${HALO}">${txt(p.name ? `${p.name} ${ort}` : ort)}</text>`);
   }
   const marke = (farbe, flaeche) => `<i style="display:inline-block;width:16px;height:${flaeche ? 10 : 3}px;margin-right:6px;vertical-align:middle;background:${farbe};opacity:${flaeche ? 0.35 : 1}"></i>`;
   const legende = [...kurven.filter(k => k.name).map(k => marke(k.farbe) + txt(k.name)), ...flaechen.filter(f => f.name).map(f => marke(f.farbe, true) + txt(f.name))];
@@ -2244,6 +2368,57 @@ async function quelle(f) {  // die eigene Datei ohne weggegebene Teile, dazu die
   return q;
 }
 
+// Schaubilder als eigener Schritt: Ausgaben zeichnen oft zu wenige (DeepSeek eines statt vier). Ein kurzer zweiter Auftrag zeichnet nach,
+// eins je Teil mit Kurve, Fläche oder Verlauf, vor die Check-Frage des Teils. Ältere Ausgaben bekommen das beim ersten Öffnen (einmal je Gerät).
+const BILD_THEMEN = /Kurve|Funktion|Nachfrage|Angebot|Gleichgewicht|Steigung|Ableitung|Elastizit|Kosten|Erlös|Gewinn|Rente|Budget|Indifferenz|Wachstum|Zins|Grenz|Verlauf|Graph|Integral|Parabel|Gerade|Extrem|Monoton|Krümmung/i;
+async function bilderNach(roh, modell) {  // → { text, preis, neu: [{ i, bild }] } oder null
+  const z = roh.split('\n'), von = z.findIndex(l => /^## Zusammenfassung/.test(l));
+  if (von < 0) return null;
+  let bis = z.findIndex((l, i) => i > von && /^## |^```json/.test(l));
+  if (bis < 0) bis = z.length;
+  const block = z.slice(von + 1, bis).join('\n'), k = block.search(/^### /m);
+  if (k < 0) return null;
+  const teile = block.slice(k).split(/^(?=### )/m), schon = (block.match(/^```bild/gm) || []).length;
+  if (teile.length < 2 || schon >= 4 || !BILD_THEMEN.test(block)) return null;
+  const prompt = `Unten steht die Zusammenfassung einer Vorlesungseinheit, ihre ###-Teile sind nummeriert. Such die Teile, die eine Kurve, einen Verlauf, eine Verschiebung, eine Fläche, ein Gleichgewicht oder den Vergleich zweier Verläufe beschreiben und noch kein Schaubild haben, und zeichne für jeden genau eines, höchstens ${Math.max(2, 5 - schon)} insgesamt. Zahlen und Funktionen passen zu denen im Text; nennt der Text keine, nimm einfache, typische. Teile ohne solchen Inhalt (Definitionen, Aufzählungen, Organisatorisches) bekommen keines.
+
+${BILD_REGEL}
+
+Antworte nur mit einem Codeblock \`\`\`json, darin eine Liste [{"teil": Nummer, "bild": {…}}], oder [], wenn kein Teil ein Bild braucht.
+
+${teile.map((t, i) => `[${i + 1}] ${t.trim()}`).join('\n\n')}`;
+  const m = MODELLE[modell] || {};
+  const r = await strom({ ...m, ...m.reasoning && { reasoning: { effort: 'low' } }, feature: 'ausgabe', messages: [{ role: 'user', content: prompt }] }, () => {}, () => {});
+  let liste;
+  try { liste = JSON.parse((r.text.match(/```(?:json)?\s*([\s\S]*?)```/) || [, r.text])[1]); } catch { return null; }
+  const neu = (Array.isArray(liste) ? liste : []).map(x => ({ i: Number(x?.teil) - 1, bild: x?.bild })).filter((x, j, a) => {
+    if (!teile[x.i] || !x.bild || /^```bild/m.test(teile[x.i]) || a.findIndex(y => y.i === x.i) !== j) return false;
+    try { return !!bildSvg(x.bild); } catch { return false; }
+  });
+  for (const { i, bild } of neu) {
+    const b = '```bild\n' + JSON.stringify(bild) + '\n```\n\n', c = teile[i].search(/^#### Check:/m);
+    teile[i] = c >= 0 ? teile[i].slice(0, c) + b + teile[i].slice(c) : teile[i].replace(/\s*$/, '\n\n' + b);
+  }
+  return { text: [...z.slice(0, von + 1), block.slice(0, k) + teile.join(''), ...z.slice(bis)].join('\n'), preis: r.preis || 0, neu };
+}
+async function bilderSpaeter(f, tag) {
+  merk(`bilder-nach:${f}:${tag}`, '1');  // auch wenn es scheitert: lieber ohne Bild als bei jedem Öffnen bezahlen
+  try {
+    const roh = await gh(`lernseiten/${f}/${tag}.md`), nach = roh && await bilderNach(roh, $('modell').value);
+    if (!nach?.neu.length) return;
+    const alt = R[f].ausgaben.find(a => a.datum === tag);
+    const antwort = await nacheinander(() => gh(`lernseiten/${f}/${tag}.md`, { method: 'PUT', roh: false, body: { message: `Schaubilder ${f} ${tag}`, content: base64(nach.text), sha: alt?.sha } }));
+    if (alt) alt.sha = antwort.content.sha;
+    R[f].cache[tag] = zerlege(nach.text, tag);
+    kosten();
+    const teile = document.querySelector(`[data-lern="${CSS.escape(`${f}/${tag}`)}"]`)?.querySelectorAll(':scope > .lernteil');  // gleich zeigen, ohne die Seite neu zu bauen
+    for (const { i, bild } of nach.neu) {
+      const d = teile?.[i], b = d && bildSvg(bild), vor = d?.querySelector(':scope > .fw-frage, :scope > .lern-fuss');
+      if (b) vor ? vor.before(b) : d.append(b);
+    }
+    status(`${nach.neu.length} ${nach.neu.length === 1 ? 'Schaubild' : 'Schaubilder'} ergänzt.`);
+  } catch { /* ohne Schaubild geht es auch */ }
+}
 async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausgaben früherer Einheiten
   const r = R[f];
   if (r.druckt) return;
@@ -2259,8 +2434,11 @@ async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausga
       const teile = x.match(/^## .+/gm) || [];
       r.hinweis = /```json/.test(x) ? 'Schreibt Termine und Begriffe …' : teile.length ? `Schreibt „${teile.at(-1).slice(3).trim()}“ (${teile.length} von ${tief && wahl.form !== 'formeln' ? 7 : 6}) …` : 'Schreibt …';
     }, () => { r.hinweis = 'Denkt nach …'; });
+    r.hinweis = 'Zeichnet Schaubilder …';
+    const nach = await bilderNach(antwortKI.text, modell).catch(() => null);
+    merk(`bilder-nach:${f}:${d}`, '1');
     r.hinweis = 'Speichert …';
-    const text = `*${modell}${tief ? ' · Ultra-Fassung' : ''} · Fassung ${wahl.niveau}/${wahl.form} · ${datum(d, { day: '2-digit', month: '2-digit', year: 'numeric' })} · Kosten ${antwortKI.preis} $*\n\n` + antwortKI.text;
+    const text = `*${modell}${tief ? ' · Ultra-Fassung' : ''} · Fassung ${wahl.niveau}/${wahl.form} · ${datum(d, { day: '2-digit', month: '2-digit', year: 'numeric' })} · Kosten ${+(antwortKI.preis + (nach?.preis || 0)).toFixed(4)} $*\n\n` + (nach?.text || antwortKI.text);
     const alt = r.ausgaben.find(a => a.datum === d);
     const antwort = await nacheinander(() => gh(`lernseiten/${f}/${d}.md`, { method: 'PUT', roh: false, body: { message: `Ausgabe ${f} ${d}`, content: base64(text), sha: alt?.sha } }));
     r.ausgaben = [{ datum: d, sha: antwort.content.sha }, ...r.ausgaben.filter(a => a.datum !== d)].sort((a, b) => b.datum.localeCompare(a.datum));
@@ -2304,7 +2482,7 @@ function fachZeile(f) {
     el('div', { class: 'fach-text' }, a ? [el('p', { class: 'schlagzeile' }, a.schlagzeile || 'Ausgabe ohne Schlagzeile'),
       blick && el('p', { class: 'anriss' }, blick.replace(/^\s*[-*]\s+/, '').replace(/[*_`]/g, '').replace(/\\\(|\\\)/g, ''))]
       : el('p', { class: 'anriss' }, 'Noch keine Ausgabe. Antippen und erstellen.')),
-    a && el('p', { class: 'meta' }, `Ausgabe vom ${kurz(a.datum)}, ${teile > 1 ? `${(liesJson(`gelernt:${f}:${a.datum}`) || []).length} von ${teile} Teilen verstanden` : `${a.begriffe.length} Begriffe`}`),
+    a && el('p', { class: 'meta' }, `Ausgabe vom ${kurz(a.datum)}, ${teile > 1 ? `${lernStand(f, a.datum).filter(i => i < teile).length} von ${teile} Teilen verstanden` : `${a.begriffe.length} Begriffe`}`),
     r.druckt && presse(f),
     r.fehler && el('p', { class: 'fehlertext' }, r.fehler));
 }
@@ -2335,17 +2513,18 @@ function titelblatt() {
     onchange: e => { merk(fristSchluessel(t), e.target.checked ? '1' : null); titelblatt(); } }));
   const fristen = termine.filter(t => FRISTEN.has(t.art)), sichtbar = ALLE_FRISTEN ? fristen : offen.slice(0, 3);
   $('naechstes').hidden = !fristen.length;
-  $('fristen').replaceChildren(...sichtbar.map(t => el('li', { class: `frist${merk(fristSchluessel(t)) ? ' erledigt' : ''}` },
+  $('fristen').replaceChildren(...[...sichtbar.map(t => el('li', { class: `frist${merk(fristSchluessel(t)) ? ' erledigt' : ''}` },
     abhaken(t),
     el('button', { class: 'was', type: 'button', onclick: () => meldung(t, t === naechste) },
       el('span', { class: 'titel' }, t.titel || t.art),
       el('span', { class: 'meta' }, `${t.fach} ${t.code || t.art}, ${kurz(t.datum)}${t.zeit ? ', ' + t.zeit : ''}`)),
     merk(fristSchluessel(t)) ? el('span', { class: 'pille' }, 'erledigt') : fristPille(t, t === naechste))),
     (ALLE_FRISTEN || fristen.length > sichtbar.length) && el('li', {}, el('button', { class: 'mehr', type: 'button', 'aria-expanded': String(ALLE_FRISTEN),
-      onclick: () => { ALLE_FRISTEN = !ALLE_FRISTEN; titelblatt(); } }, ALLE_FRISTEN ? 'Nur die nächsten offenen zeigen' : `Alle ${fristen.length} Fristen zeigen, auch erledigte`)));
+      onclick: () => { ALLE_FRISTEN = !ALLE_FRISTEN; titelblatt(); } }, ALLE_FRISTEN ? 'Nur die nächsten offenen zeigen' : `Alle ${fristen.length} Fristen zeigen, auch erledigte`))].filter(Boolean));
   wocheZeigen();
   lernenKurz();
   arenaKurz();
+  weiterZeigen();
   $('assistent').replaceChildren(assistent());
 }
 let WAHL = null;  // in „Diese Woche“ gewählter Tag
@@ -2436,13 +2615,13 @@ function lexikon(f, begriffe) {
   const zeige = () => {
     const gewusst = begriffe.filter(b => merk(schluessel(b))).length;
     fortschritt.textContent = `${gewusst} von ${begriffe.length} gewusst`;
-    liste.replaceChildren(...begriffe.flatMap(b => [el('dt', { class: merk(schluessel(b)) ? 'gewusst' : null }, b.begriff), el('dd', {}, b.definition)]));
+    liste.replaceChildren(...begriffe.flatMap(b => [el('dt', { class: merk(schluessel(b)) ? 'gewusst' : null }, b.begriff), bruechen(el('dd', {}, b.definition))]));
     const b = stapel[0];
     karte.classList.remove('um');
     karte.setAttribute('aria-label', `Karteikarte ${b.begriff}. Tippen zum Umdrehen.`);
     karte.replaceChildren(el('span', { class: 'innen' },
       el('span', { class: 'seite-v' }, el('span', { class: 'begriff' }, b.begriff), el('span', { class: 'hinweis' }, 'Tippen zum Umdrehen')),
-      el('span', { class: 'seite-h', 'aria-hidden': 'true' }, el('span', { class: 'definition' }, b.definition))));
+      el('span', { class: 'seite-h', 'aria-hidden': 'true' }, bruechen(el('span', { class: 'definition' }, b.definition)))));
   };
   karte.onclick = () => { const um = karte.classList.toggle('um'); karte.querySelector('.seite-h').setAttribute('aria-hidden', String(!um)); };
   const weiter = gewusst => {
@@ -2590,34 +2769,41 @@ const fassungHinweis = f => {  // nach einer neuen Wahl: welche Fassung die ange
     ? `Diese Ausgabe ist ${fassungName(alt) || 'Normal'}. „Neu erstellen“ schreibt sie als ${fassungName(neu) || 'Normal'}.` : '');
 };
 // „Das Wichtigste“ als Kasten; Fragen zum Aufdecken (Form Fragen und „Check:“ am Ende eines Teils); mit schluessel jeder ###-Teil als Lerneinheit zum Abhaken
-function aufbereiten(text, form, schluessel) {
+// DOM einer Antwort zurück in Markdown, für eine Karteikarte: Formeln aus data-tex, Absätze und Listen; Bilder und Knöpfe fallen weg
+function alsText(k) {
+  return [...k.childNodes].map(n => n.nodeType === 3 ? n.nodeValue : n.nodeType !== 1 ? ''
+    : n.matches('.formel') ? (n.querySelector('math[display="block"]') ? `\n\\[${n.dataset.tex}\\]\n` : `\\(${n.dataset.tex}\\)`)
+    : n.matches('figure, .bild, .frage-fuss, summary, button') ? ''
+    : n.matches('strong, b') ? `**${alsText(n)}**` : n.matches('em, i') ? `*${alsText(n)}*`
+    : n.matches('li') ? `- ${alsText(n).trim()}\n` : n.matches('p, ul, ol, table, div, h3, h4') ? `${alsText(n).trim()}\n\n` : alsText(n)).join('');
+}
+function aufbereiten(text, form, lern) {
   const p = [...text.children].find(x => x.matches('p') && /^Das Wichtigste/.test(x.textContent)), liste = p?.nextElementSibling;
   if (liste?.matches('ul, ol')) { const k = el('div', { class: 'wichtig' }); p.before(k); k.append(p, liste); }
+  for (const q of text.querySelectorAll('h3 + p')) if (/^Quelle:/.test(q.textContent.trim())) q.classList.add('teil-quelle');
+  const fragen = [];
   for (const h of [...text.querySelectorAll('h4')]) {
-    if (form !== 'fragen' && !/^Check:/.test(h.textContent)) continue;
+    const check = /^Check:/.test(h.textContent);
+    if (form !== 'fragen' && !check) continue;
     const d = el('details', { class: 'fw-frage' }, el('summary', {}, ...h.childNodes));
     h.replaceWith(d);
     while (d.nextElementSibling && !d.nextElementSibling.matches('h2, h3, h4, details')) d.append(d.nextElementSibling);
+    fragen.push({ d, check });
   }
-  const hs = schluessel ? [...text.children].filter(x => x.matches('h3')) : [];
-  if (hs.length < 2) return text;
-  // Ein Teil ist offen, die anderen zeigen nur ihre Überschrift: so steht kein Textblock da. Der Stand bleibt auf dem Gerät.
-  const fertig = new Set(liesJson(schluessel) || []), stand = el('p', { class: 'lern-stand' });
-  const teile = hs.map((h, i) => {
+  if (!lern) return text;
+  // Ein Teil ist offen, die anderen zeigen nur ihre Überschrift: so steht kein Textblock da. Verstanden ist ein Teil erst,
+  // wenn man seine Check-Frage gewusst hat; Teile ohne Check-Frage hakt man selbst ab. Der Stand gilt auf allen Geräten.
+  const key = `${lern.f}/${lern.datum}`, fertig = new Set(lernStand(lern.f, lern.datum));
+  const hs = [...text.children].filter(x => x.matches('h3'));
+  const teile = hs.length < 2 ? [] : hs.map((h, i) => {
     const nr = el('span', { class: 'lern-nr', 'aria-hidden': 'true' }), titel = h.textContent, d = el('details', { class: 'lernteil' });
     h.before(d);
     d.append(el('summary', {}, nr, h));
     while (d.nextElementSibling && !d.nextElementSibling.matches('h2, h3')) d.append(d.nextElementSibling);
-    const knopf = el('button', { class: 'knopf voll', type: 'button', onclick: () => {
-      if (!fertig.delete(i)) fertig.add(i);
-      merk(schluessel, JSON.stringify([...fertig]));
-      zeige();
-      if (!fertig.has(i)) return;
-      d.open = false;
-      const n = teile.find((t, j) => j > i && !fertig.has(j));
-      if (n) { n.d.open = true; n.d.scrollIntoView({ block: 'nearest' }); }
-    } });
-    d.append(el('div', { class: 'lern-fuss' }, knopf, darf('chat') && el('button', { class: 'knopf', type: 'button', onclick: () => {
+    const check = fragen.some(q => q.check && d.contains(q.d));
+    const knopf = el('button', { class: `knopf${check ? '' : ' voll'}`, type: 'button', onclick: () => setze(i, !fertig.has(i)) });
+    const hinweis = check && el('p', { class: 'lern-hinweis' }, 'Zählt als verstanden, sobald du die Check-Frage gewusst hast.');
+    d.append(el('div', { class: 'lern-fuss' }, hinweis, knopf, darf('chat') && el('button', { class: 'knopf', type: 'button', onclick: () => {
       const feld = document.querySelector('#teil-fragen textarea');
       if (!feld) return;
       feld.value = `Erklär mir „${titel}“ noch einmal anders, mit einem einfachen Beispiel.`;
@@ -2625,17 +2811,53 @@ function aufbereiten(text, form, schluessel) {
       feld.scrollIntoView({ block: 'center' });
       feld.focus();
     } }, 'Noch unklar? Nachfragen')));
-    return { d, nr, knopf };
+    return { d, nr, knopf, check, hinweis };
   });
+  const setze = (i, an) => {
+    if (an) fertig.add(i); else fertig.delete(i);
+    lernMerken(lern.f, lern.datum, [...fertig]);
+    zeige();
+    if (!an) return;
+    teile[i].d.open = false;
+    const n = teile.find((t, j) => j > i && !fertig.has(j));
+    if (n) { n.d.open = true; n.d.scrollIntoView({ block: 'nearest' }); }
+  };
+  // Jede Frage, gewusst oder nicht, kommt als Karte in den Karteikasten: nicht gewusst heute noch einmal, gewusst in drei Tagen
+  for (const q of fragen) {
+    const fuss = el('div', { class: 'frage-fuss' }), t = teile.findIndex(x => x.d.contains(q.d));
+    const frage = alsText(q.d.querySelector('summary')).replace(/^\s*Check:\s*/, '').trim();
+    const antworten = gewusst => {
+      kartenDazu([{ f: lern.f, datum: lern.datum, frage, antwort: alsText(q.d).trim(), gewusst }]);
+      fuss.replaceChildren(el('p', { class: 'meta' }, gewusst ? 'Gewusst.' : 'Kein Problem, genau dafür ist die Frage da.',
+        darf('karten') ? (gewusst ? ' Sie kommt in drei Tagen zur Wiederholung.' : ' Sie liegt jetzt in deinem Karteikasten, heute noch einmal.') : ''));
+      if (q.check && t >= 0) setze(t, gewusst);
+      if (gewusst && q.check && darf('karten')) status('Gewusst. Die Frage kommt in drei Tagen wieder.');
+    };
+    fuss.append(el('span', { class: 'meta' }, 'Hattest du das gewusst?'),
+      el('button', { class: 'knopf', type: 'button', onclick: () => antworten(false) }, 'Nicht gewusst'),
+      el('button', { class: 'knopf voll', type: 'button', onclick: () => antworten(true) }, 'Gewusst'));
+    q.d.append(fuss);
+  }
+  if (!teile.length) return text;
+  const stand = el('p', { class: 'lern-stand' });
   const alle = el('button', { type: 'button', onclick: () => { const auf = teile.some(t => !t.d.open); for (const t of teile) t.d.open = auf; } }, 'Alle auf- oder zuklappen');
   const zeige = () => {
-    teile.forEach((t, j) => { const ok = fertig.has(j); t.d.classList.toggle('fertig', ok); t.nr.textContent = ok ? '✓' : j + 1; t.knopf.textContent = ok ? 'Doch noch offen' : 'Verstanden'; });
-    stand.replaceChildren(el('progress', { max: teile.length, value: fertig.size, 'aria-label': 'Lernstand' }), `${fertig.size} von ${teile.length} Teilen verstanden`, alle);
+    teile.forEach((t, j) => {
+      const ok = fertig.has(j);
+      t.d.classList.toggle('fertig', ok); t.nr.textContent = ok ? '✓' : j + 1;
+      t.knopf.textContent = ok ? 'Doch noch offen' : 'Verstanden'; t.knopf.hidden = t.check && !ok;
+      if (t.hinweis) t.hinweis.hidden = ok;
+    });
+    const n = teile.filter((t, j) => fertig.has(j)).length;
+    stand.replaceChildren(el('progress', { max: teile.length, value: n, 'aria-label': 'Lernstand' }), `${n} von ${teile.length} Teilen verstanden`, alle);
   };
   zeige();
   teile[0].d.before(stand);
-  const erster = teile.find((t, j) => !fertig.has(j));
+  const ziel = LERN_ZIEL?.key === key ? teile[LERN_ZIEL.i] : null;
+  LERN_ZIEL = null;
+  const erster = ziel || teile.find((t, j) => !fertig.has(j));
   if (erster) erster.d.open = true;
+  if (ziel) setTimeout(() => ziel.d.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 80);
   return text;
 }
 let SPION = null;  // markiert beim Scrollen den sichtbaren Teil in der Sprungleiste
@@ -2655,6 +2877,9 @@ async function ausgabeZeigen(f, tag) {
   }
   tag = tag && r.ausgaben.some(x => x.datum === tag) ? tag : r.ausgaben[0].datum;
   const a = await ausgabe(f, tag);
+  await lernLaden();
+  const zf = abschnitt(a, 'zusammenfassung');  // neueste Ausgabe ohne genug Schaubilder: einmal nachzeichnen lassen
+  if (tag === r.ausgaben[0].datum && !r.druckt && !merk(`bilder-nach:${f}:${tag}`) && (zf.match(/^```bild/gm) || []).length < 4 && BILD_THEMEN.test(zf)) bilderSpaeter(f, tag);
   const stamm = abschnitt(a, 'stammdaten'), ueb = abschnitt(a, 'übungsaufgaben'), formeln = abschnitt(a, 'formeln'), fa = fassungVon(a);
   const kasten = (klasse, titel, anfang) => el('section', { class: `abschnitt ${klasse}` }, el('h2', {}, titel), markdown(el('div', { class: 'text' }), abschnitt(a, anfang) || 'Nicht in dieser Ausgabe.'));
   const teil = (id, titel, zusatz, inhalt) => el('section', { class: 'teil', id, 'aria-labelledby': id + '-k' },
@@ -2690,7 +2915,7 @@ async function ausgabeZeigen(f, tag) {
     leiste,
     el('div', { class: 'raster', id: 'teil-ueberblick' },
       el('article', { class: 'artikel' }, el('h2', {}, FORMEN[fa.form].titel || 'Zusammenfassung der letzten Einheit'),
-        aufbereiten(markdown(el('div', { class: 'text', 'data-form': fa.form }), abschnitt(a, 'zusammenfassung') || 'Keine Zusammenfassung in dieser Ausgabe.'), fa.form, `gelernt:${f}:${a.datum}`),
+        aufbereiten(markdown(el('div', { class: 'text', 'data-form': fa.form, 'data-lern': `${f}/${a.datum}` }), abschnitt(a, 'zusammenfassung') || 'Keine Zusammenfassung in dieser Ausgabe.'), fa.form, { f, datum: a.datum }),
         SERVER && ICH && TARIFE?.verkauf && !darf('ausgabe-ultra') && ultraWerbung(a)),
       kasten('blick', 'Auf einen Blick', 'auf einen blick'),
       kasten('', 'Nächstes Proseminar', 'nächstes proseminar'),
@@ -2726,7 +2951,7 @@ function klarTeil(f, tag, a) {
       el('p', {}, el('b', {}, e.was), e.datum && ` · ${kurz(e.datum)}${tageBis(e.datum) >= 0 ? `, ${faellig(tageBis(e.datum))}` : ''}`),
       e.stoff.length > 0 && [el('h3', {}, 'Stoff'), el('ul', {}, e.stoff.map(x => el('li', {}, x)))],
       e.aufgaben.length > 0 && [el('h3', {}, 'Aufgabentypen'), el('ul', {}, e.aufgaben.map(x => el('li', {}, x)))],
-      e.beispiel && el('details', { class: 'quellen' }, el('summary', {}, 'Beispielaufgabe'), el('p', {}, e.beispiel))));
+      e.beispiel && el('details', { class: 'quellen' }, el('summary', {}, 'Beispielaufgabe'), bruechen(el('p', {}, e.beispiel)))));
 }
 // Unter Ultra, am Ende der Zusammenfassung: was die Ultra-Fassung genau dieser Ausgabe dazu hätte, mit ihren eigenen Formeln
 function ultraWerbung(a) {
@@ -3006,6 +3231,55 @@ function kartenStapel(fach = KARTEN_FACH) {  // heute dran: fällige Wiederholun
     ...alle.filter(([, k]) => !k.box).sort(([, a], [, b]) => a.datum.localeCompare(b.datum)).slice(0, Math.max(0, NEU_PRO_TAG - schon))].map(([id]) => id);
 }
 const kartenSichern = () => { clearTimeout(KARTEN_UHR); KARTEN_UHR = null; return KARTEN_D.speichern().catch(e => status(e.message, true)); };
+async function kartenDazu(liste) {  // Check-Fragen und falsche Klausuraufgaben als Frage-Karten: nicht gewusst heute noch einmal, gewusst in drei Tagen
+  if (!darf('karten') || !liste.length) return;
+  try {
+    await kartenLaden(false);
+    for (const x of liste) {
+      const id = `${x.f}|?${x.frage.trim().toLowerCase().slice(0, 200)}`, k = KARTEN.karten[id] ??= { f: x.f, art: 'frage', box: 0 };
+      const box = x.gewusst ? Math.max(k.box, 2) : 1;
+      Object.assign(k, { b: x.frage.trim(), d: x.antwort.trim(), datum: x.datum, box, faellig: plusTage(x.gewusst ? ABSTAND[box] : 0) });
+    }
+    STAPEL = null;
+    await kartenSichern();
+  } catch (e) { status(e.message, true); }
+}
+/* ---------- Lernstand: welche Teile einer Ausgabe verstanden sind, auf allen Geräten (lernstand.json) ---------- */
+// { "Fach/Datum": [Nummern der Teile] }. Früher nur im Gerät (gelernt:Fach:Datum); das gilt weiter, bis der Stand einmal gespeichert ist.
+const LERN_D = datei('lernstand.json', () => ({}));
+let LERN = null, LERN_ZIEL = null;  // LERN_ZIEL: welcher Teil nach „Weiterlernen“ auf Heute aufgeht
+const lernLaden = () => LERN_D.laden().then(d => LERN = d, () => LERN ??= {});
+const lernStand = (f, datum) => LERN?.[`${f}/${datum}`] || liesJson(`gelernt:${f}:${datum}`) || [];
+async function lernMerken(f, datum, liste) {
+  const key = `${f}/${datum}`;
+  merk(`gelernt:${f}:${datum}`, JSON.stringify(liste));
+  try {
+    (LERN = await LERN_D.laden())[key] = liste;
+    await LERN_D.speichern().catch(async () => {  // ein anderes Gerät war schneller: neu laden, diesen Teil darüberlegen
+      LERN_D.vergessen(); (LERN = await LERN_D.laden())[key] = liste; await LERN_D.speichern();
+    });
+  } catch (e) { status(e.message, true); }
+}
+async function weiterZeigen() {  // Heute: der eine nächste Schritt. Nächster offener Teil, das Fach mit der nächsten Leistung zuerst; fällige Karten
+  await Promise.all([lernLaden(), darf('karten') && kartenLaden(false).catch(() => {})]);
+  if (document.body.dataset.ansicht !== 'titelblatt') return;
+  const faecher = Object.keys(R);
+  if (faecher.length) $('ressorts').replaceChildren(...faecher.map(fachZeile));
+  const offen = faecher.map(f => {
+    const a = aktuell(f);
+    if (!a) return null;
+    const titel = (abschnitt(a, 'zusammenfassung').match(/^### .+/gm) || []).map(t => t.slice(4).replace(/[*_`]|\\\(|\\\)/g, '').trim());
+    const fertig = new Set(lernStand(f, a.datum)), i = titel.findIndex((t, j) => !fertig.has(j)), bis = a.erwartung?.datum ? tageBis(a.erwartung.datum) : -1;
+    const was = (a.erwartung?.was || '').split(/[;,(]/)[0].trim();  // die KI schreibt hier manchmal ganze Sätze
+    return titel.length > 1 && i >= 0 ? { f, a, i, n: titel.length, titel: titel[i], bis: bis >= 0 ? bis : 999, was: was && was.length <= 36 ? was : 'Nächste Leistung' } : null;
+  }).filter(Boolean).sort((x, y) => x.bis - y.bis);
+  const w = offen[0], dran = darf('karten') && KARTEN ? kartenStapel('').length : 0;
+  $('weiter').hidden = !w && !dran;
+  $('weiter-inhalt').replaceChildren(...[
+    w && el('a', { class: 'weiter-ziel', 'data-fach': w.f, href: `#/${encodeURIComponent(w.f)}`, onclick: () => { LERN_ZIEL = { key: `${w.f}/${w.a.datum}`, i: w.i }; } },
+      el('span', { class: 'meta' }, `${w.f} · Teil ${w.i + 1} von ${w.n}${w.bis < 999 ? ` · ${w.was} ${faellig(w.bis)}` : ''}`), el('b', {}, w.titel)),
+    dran > 0 && el('a', { class: 'weiter-ziel', href: '#/karten' }, el('span', { class: 'meta' }, 'Karteikarten'), el('b', {}, `${dran} ${dran === 1 ? 'Karte' : 'Karten'} heute dran`))].filter(Boolean));
+}
 function kartenAntwort(gewusst) {
   const id = STAPEL.shift(), k = KARTEN.karten[id];
   if (!k.box) KARTEN.neu = { datum: HEUTE, n: (KARTEN.neu?.datum === HEUTE ? KARTEN.neu.n : 0) + 1 };
@@ -3034,14 +3308,14 @@ async function kartenZeigen() {
   }
   const id = STAPEL[0], k = id && KARTEN.karten[id], alle = Object.values(KARTEN.karten).filter(x => !KARTEN_FACH || x.f === KARTEN_FACH);
   const anzahl = f => alle.filter(x => f(x.box)).length, morgen = alle.filter(x => x.box > 0 && x.faellig === plusTage(1)).length;
-  const karte = k && el('button', { class: 'karte', type: 'button', 'aria-label': `Karteikarte ${k.b}. Tippen zum Umdrehen.`,
+  const karte = k && el('button', { class: 'karte', type: 'button', 'aria-label': `Karteikarte ${k.b.slice(0, 160)}. Tippen zum Umdrehen.`,
     onclick: e => { const um = e.currentTarget.classList.toggle('um'); e.currentTarget.querySelector('.seite-h').setAttribute('aria-hidden', String(!um)); } },
     el('span', { class: 'innen' },
-      el('span', { class: 'seite-v' }, el('span', { class: 'pille', 'data-fach': k.f }, k.f), el('span', { class: 'begriff' }, k.b), el('span', { class: 'hinweis' }, k.box ? 'Tippen zum Umdrehen' : 'Neu · Tippen zum Umdrehen')),
-      el('span', { class: 'seite-h', 'aria-hidden': 'true' }, el('span', { class: 'definition' }, k.d))));
+      el('span', { class: 'seite-v' }, el('span', { class: 'pille', 'data-fach': k.f }, k.f), k.art === 'frage' ? markdown(el('span', { class: 'begriff frage' }), k.b) : el('span', { class: 'begriff' }, k.b), el('span', { class: 'hinweis' }, k.box ? 'Tippen zum Umdrehen' : 'Neu · Tippen zum Umdrehen')),
+      el('span', { class: 'seite-h', 'aria-hidden': 'true' }, k.art === 'frage' ? markdown(el('span', { class: 'definition lang' }), k.d) : bruechen(el('span', { class: 'definition' }, k.d)))));
   s.replaceChildren(...[
     kopf(el('p', { class: 'schlagzeile' }, STAPEL.length ? `Heute ${STAPEL.length === 1 ? 'ist eine Karte' : `sind ${STAPEL.length} Karten`} dran` : 'Für heute alles gelernt'),
-      el('p', { class: 'meta' }, 'Alle Begriffe aus deinen Wochenausgaben. Was du weißt, kommt nach 1, 3, 7, 14 und 30 Tagen wieder, was nicht, gleich nochmal. Neu kommen höchstens 20 am Tag.')),
+      el('p', { class: 'meta' }, 'Die Begriffe aus deinen Wochenausgaben, dazu Check-Fragen und Klausuraufgaben, die du beantwortet hast. Was du weißt, kommt nach 1, 3, 7, 14 und 30 Tagen wieder, was nicht, gleich nochmal. Neu kommen höchstens 20 am Tag.')),
     el('div', { class: 'karten-seite' },
       el('label', { class: 'feld' }, 'Fach', el('select', { onchange: e => { KARTEN_FACH = e.target.value; STAPEL = kartenStapel(); kartenZeigen(); } },
         ['', ...new Set(Object.values(KARTEN.karten).map(x => x.f))].map(f => el('option', { value: f, selected: f === KARTEN_FACH }, f || 'Alle Fächer')))),
@@ -3169,6 +3443,9 @@ async function pkAbgeben() {
     await notenSpeichern();
   } catch (e) { status(e.message, true); }
   pruefungNeu();
+  kartenDazu(PK.aufgaben.filter((q, i) => je[i] <= 0).map(q => ({ f: PK.fach, datum: HEUTE, gewusst: false,  // falsch oder leer: in den Karteikasten
+    frage: q.frage + (q.typ !== 'zahl' && Array.isArray(q.optionen) ? '\n\n' + q.optionen.map(o => `- ${o}`).join('\n') : ''),
+    antwort: `**Richtig:** ${q.typ === 'zahl' ? String(q.richtig).replace('.', ',') : String(q.optionen?.[q.richtig] ?? '')}${q.erklaerung ? '\n\n' + q.erklaerung : ''}` })));
 }
 function pkLaufend() {
   return [
@@ -3189,6 +3466,7 @@ function pkErgebnis() {
   return [
     el('div', { class: 'kacheln' }, kachel('Punkte', `${dez(punkte)} von ${dez(max)}`, PK.titel), kachel('Prozent', `${dez(pz, 0)} %`),
       kachel('Note', String(n), `${NOTEN_NAMEN[n]}, ${eigen ? 'Schlüssel der VO' : 'Standardschlüssel'}`)),
+    darf('karten') && je.some(x => x <= 0) && el('p', { class: 'meta' }, 'Falsche und leere Aufgaben liegen jetzt als Karteikarten in deinem Karteikasten.'),
     el('ol', { class: 'pk-aufgaben' }, PK.aufgaben.map((q, i) => {
       const a = PK.antworten[i], leer = a == null || a === '', ok = je[i] > 0;
       const richtig = q.typ === 'zahl' ? String(q.richtig).replace('.', ',') : String(q.optionen[q.richtig]);
@@ -5464,7 +5742,7 @@ async function pdfText(daten, melde) {
     for (let i = 1; i <= pdf.numPages; i++) {
       melde(`Seite ${i} von ${pdf.numPages}`);
       const t = await (await pdf.getPage(i)).getTextContent();
-      seiten.push(t.items.map(x => (x.str ?? '') + (x.hasEOL ? '\n' : ' ')).join('').replace(/[ \t]+/g, ' ').replace(/ ?\n ?/g, '\n').trim());
+      seiten.push(`[Seite ${i}]\n` + t.items.map(x => (x.str ?? '') + (x.hasEOL ? '\n' : ' ')).join('').replace(/[ \t]+/g, ' ').replace(/ ?\n ?/g, '\n').trim());
     }
   } finally { pdf.destroy(); }
   return seiten.join('\n\n');
@@ -6824,15 +7102,15 @@ async function videoZeigen(id) {
         v.zeilen.length > 0 && el('span', {}, `${mmss(v.zeilen.at(-1).t)} min`), !SERVER && v.kosten > 0 && el('span', {}, `Kosten ${geld(v.kosten)}`))),
       el('div', { class: 'kopf-aktionen' }, el('a', { class: 'knopf', href: v.url, target: '_blank', rel: 'noopener' }, 'Auf YouTube'),
         el('button', { class: 'knopf', type: 'button', onclick: () => vidLoeschen(v) }, 'Löschen'))),
-    el('div', { class: 'vid-player' }, el('iframe', { id: 'vid-player', src: `https://www.youtube-nocookie.com/embed/${v.vid}?rel=0`, title: v.titel, loading: 'lazy',
+    el('div', { class: 'vid-seite' }, el('div', { class: 'vid-player' }, el('iframe', { id: 'vid-player', src: `https://www.youtube-nocookie.com/embed/${v.vid}?rel=0`, title: v.titel, loading: 'lazy',
       allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen', allowfullscreen: true, referrerpolicy: 'strict-origin-when-cross-origin' })),
-    el('p', { class: 'meta' }, 'Jeder Zeitstempel springt im Video an die Stelle.'),
+    el('div', { class: 'vid-text' }, el('p', { class: 'meta' }, 'Jeder Zeitstempel springt im Video an die Stelle.'),
     el('section', { class: 'block' }, markdown(el('div', { class: 'text' }), zeitLinks(v.zusammenfassung))),
     el('section', { class: 'block' }, el('h2', {}, 'Rückfragen zum Video'),
       chat(`video-chat:${v.id}`, () => vidKontext(v), { feature: 'video', umformen: zeitLinks, platzhalter: 'z. B. Warum ist die Ableitung im Maximum null?',
         vorschlaege: ['Erklär mir das schwierigste Konzept noch einmal einfacher.', 'Gib mir eine Übungsaufgabe dazu, mit Lösung.', 'Was davon ist für die Prüfung wichtig?'] })),
     el('details', { class: 'quellen' }, el('summary', {}, `Transkript (${v.zeilen.length} Zeilen)`),
-      el('ol', { class: 'vt-transkript' }, v.zeilen.map(l => el('li', {}, el('a', { class: 'vt-zeit', href: `#t=${l.t}` }, mmss(l.t)), el('p', {}, l.s)))))]);
+      el('ol', { class: 'vt-transkript' }, v.zeilen.map(l => el('li', {}, el('a', { class: 'vt-zeit', href: `#t=${l.t}` }, mmss(l.t)), el('p', {}, l.s)))))))]);
   const liste = Object.values(VID.alle).sort((a, b) => b.id.localeCompare(a.id));
   s.replaceChildren(...[
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Videos'),
@@ -7212,7 +7490,7 @@ async function arenaZeigen() {
         : 'Nach jeder Runde 5 Minuten Pause, nach jeder vierten 15. Jede Minute gibt 1 XP; wer abbricht, behält die Minuten.')];
   const speed = sr && !sr.ergebnis ? [
       el('div', { class: 'block-kopf' }, el('p', { class: 'arena-gross', 'data-sr-uhr': '' }, sekunden(Date.now() - sr.start + sr.strafe)), el('p', { class: 'meta' }, `${sr.i + 1} von ${sr.fragen.length} · ${sr.fehler} Fehler`)),
-      el('p', { class: 'arena-def' }, sr.fragen[sr.i].b.definition),
+      bruechen(el('p', { class: 'arena-def' }, sr.fragen[sr.i].b.definition)),
       el('div', { class: 'arena-optionen' }, sr.fragen[sr.i].optionen.map(o => el('button', { type: 'button', class: 'knopf', onclick: e => srAntwort(e.currentTarget, o) }, o.begriff))),
       el('button', { class: 'knopf', type: 'button', onclick: () => { clearInterval(AR.uhr); if (AR.sr.server) api('arena/speed', { abbruch: true }).catch(() => {}); AR.sr = null; arenaZeigen(); } }, 'Abbrechen')]
     : [
@@ -7314,6 +7592,7 @@ function modellWahl() {
 const WERKZEUGE = [...document.querySelectorAll('#nav-werkzeuge > a')];
 const BEREICHE = WERKZEUGE.map(a => a.dataset.ansicht).filter(v => v !== 'upgrade');  // was der Admin für Beta anhaken kann
 const ENGLISCH_VORN = ['wordpower', 'vortrag'];
+const GRUPPEN = [['Lernen', ['karten', 'pruefung', 'arena', 'video']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
 const ANSICHTEN = { start: 'Start', arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
 const betaWeg = v => SERVER && !!ICH?.beta && !ICH.ecke && BEREICHE.includes(v) && !ICH.beta.includes(v);  // Beta: diesen Bereich nicht zeigen
@@ -7321,7 +7600,12 @@ function leisteOrdnen() {
   const englisch = SERVER && ICH?.tarif === 'englisch' && !ICH.ecke;
   const zu = v => englisch && BEREICHE.includes(v) && !ENGLISCH_VORN.includes(v);  // eingeklappt
   const vorn = a => englisch ? ENGLISCH_VORN.indexOf(a.dataset.ansicht) : 0;
-  $('nav-werkzeuge').replaceChildren(...WERKZEUGE.filter(a => !betaWeg(a.dataset.ansicht) && !zu(a.dataset.ansicht)).sort((a, b) => vorn(a) - vorn(b)));
+  const sichtbar = WERKZEUGE.filter(a => !betaWeg(a.dataset.ansicht) && !zu(a.dataset.ansicht)).sort((a, b) => vorn(a) - vorn(b));
+  $('nav-werkzeuge').replaceChildren(...englisch ? sichtbar : [...GRUPPEN.flatMap(([name, teile]) => {  // drei Gruppen statt zehn Einträge untereinander
+    const a = teile.map(t => sichtbar.find(x => x.dataset.ansicht === t)).filter(Boolean);
+    return a.length ? [el('p', { class: 'gruppe mit-daten' }, name), ...a] : [];
+  }), ...sichtbar.filter(x => !GRUPPEN.some(([, t]) => t.includes(x.dataset.ansicht)))]);
+  $('nav-werkzeuge-kopf').hidden = !englisch;
   $('nav-mehr-liste').replaceChildren(...WERKZEUGE.filter(a => !betaWeg(a.dataset.ansicht) && zu(a.dataset.ansicht)));
   if (englisch) $('nav-mehr-liste').before($('nav-faecher-kopf'), $('nav-faecher'));  // die Fächer klappen mit ein
   else $('nav-werkzeuge-kopf').before($('nav-faecher-kopf'), $('nav-faecher'));

@@ -69,11 +69,11 @@ def text(f):
     endung = f.suffix.lower()
     if endung == ".pdf":
         from pypdf import PdfReader
-        return "\n".join(p.extract_text() or "" for p in PdfReader(f).pages)
+        return "\n".join(f"[Seite {i}]\n{p.extract_text() or ''}" for i, p in enumerate(PdfReader(f).pages, 1))  # Marken: die Ausgabe nennt ihre Quelle
     if endung in (".docx", ".pptx"):
         z = zipfile.ZipFile(f)
         teile = sorted((n for n in z.namelist() if re.fullmatch(r"word/document\.xml|ppt/slides/slide\d+\.xml", n)), key=natur)
-        xml = "\n".join(z.read(n).decode("utf-8") for n in teile)
+        xml = "\n".join((f"[Folie {i}]\n" if n.startswith("ppt/") else "") + z.read(n).decode("utf-8") for i, n in enumerate(teile, 1))
         return html.unescape(re.sub(r"<[^>]+>", "", re.sub(r"</[aw]:p>", "\n", xml)))
     if endung in (".html", ".htm", ".txt"):
         roh = re.sub(r"(?s)<(script|style)\b.*?</\1>", "", f.read_text("utf-8", errors="ignore"))
