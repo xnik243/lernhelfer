@@ -623,7 +623,16 @@ try {
   assert.deepEqual((await hofA('POST', '/api/spiel/ort', { karte: 'dorf', x: 40, y: 50, blick: 'l', laeuft: true })).j.andere, []);
   assert.deepEqual((await hofB('POST', '/api/spiel/ort', { karte: 'wald', x: 1, y: 1 })).j.andere, [], 'andere Karte: niemand zu sehen');
   const gesehen = (await hofB('POST', '/api/spiel/ort', { karte: 'dorf', x: 1, y: 1 })).j.andere;
-  assert.equal(gesehen.length, 1); assert.deepEqual({ ...gesehen[0], id: 0 }, { id: 0, name: 'Gast', x: 40, y: 50, blick: 'l', laeuft: true });
+  assert.equal(gesehen.length, 1); assert.deepEqual({ ...gesehen[0], id: 0 }, { id: 0, name: 'Gast', x: 40, y: 50, blick: 'l', laeuft: true, farbe: 0, spruch: -1 });
+  assert.equal((await hofA('POST', '/api/spiel/ort', { karte: 'dorf', x: 1, y: 1, farbe: 3, spruch: 99 })).status, 200);
+  const nachbar = (await hofB('POST', '/api/spiel/ort', { karte: 'dorf', x: 1, y: 1, spruch: 2 })).j.andere[0];
+  assert.deepEqual([nachbar.farbe, nachbar.spruch], [3, -1], 'Sprüche nur als bekannte Nummer');
+  assert.equal((await hofB('POST', '/api/spiel/hof', { id: nachbar.id })).status, 403, 'Besuch nur, wenn erlaubt');
+  await hofA('POST', '/api/spiel/stand', { pflanzen: [{ id: 1, fach: 'BWL', platz: 2, stufe: 3, karte: 'BWL|geheim' }], muenzen: 7, offen: true, felder: ['BWL'], lager: { honig: 2 } });
+  const besuch = (await hofB('POST', '/api/spiel/hof', { id: nachbar.id })).j;
+  assert.deepEqual(besuch.stand.pflanzen, [{ id: 1, fach: 'BWL', platz: 2, stufe: 3, karte: null, geerntetFuer: null }]);
+  assert.deepEqual(Object.keys(besuch.stand).sort(), ['deko', 'felder', 'pflanzen'], 'Besuch sieht weder Karten noch Münzen noch Lager');
+  assert.equal((await hofB('POST', '/api/spiel/hof', { id: 9999 })).status, 404);
   assert.equal((await fetch(BASIS + '/game', { redirect: 'manual' })).status, 302);
   assert.equal((await fetch(BASIS + '/game/')).headers.get('content-type'), 'text/html; charset=utf-8');
   assert.equal((await fetch(BASIS + '/game/..%2fserver/server.mjs')).status, 404);

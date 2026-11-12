@@ -811,13 +811,25 @@ const ROUTEN = {
     if (!['dorf', 'wald', 'see', 'bibliothek'].includes(b.karte)) nein(400, 'Unbekannter Ort.');
     const t = jetzt(), px = x => Math.max(0, Math.min(2000, Math.round(Number(x)) || 0));
     SPIEL_ORTE.set(k.id, { nr: SPIEL_ORTE.get(k.id)?.nr ?? ++spielNr, name: db.prepare('select name from arena where konto = ? and aus = 0').get(k.id)?.name || 'Gast',
-      karte: b.karte, x: px(b.x), y: px(b.y), blick: ['u', 'o', 'l', 'r'].includes(b.blick) ? b.blick : 'u', laeuft: !!b.laeuft, t });
+      karte: b.karte, x: px(b.x), y: px(b.y), blick: ['u', 'o', 'l', 'r'].includes(b.blick) ? b.blick : 'u', laeuft: !!b.laeuft,
+      farbe: Math.min(5, px(b.farbe)), spruch: Number.isInteger(b.spruch) && b.spruch >= 0 && b.spruch < 8 ? b.spruch : -1, t });  // Sprüche sind feste Nummern, kein freier Text
     const andere = [];
     for (const [id, o] of SPIEL_ORTE) {
       if (t - o.t > 5000) SPIEL_ORTE.delete(id);
-      else if (id !== k.id && o.karte === b.karte) andere.push({ id: o.nr, name: o.name, x: o.x, y: o.y, blick: o.blick, laeuft: o.laeuft });
+      else if (id !== k.id && o.karte === b.karte) andere.push({ id: o.nr, name: o.name, x: o.x, y: o.y, blick: o.blick, laeuft: o.laeuft, farbe: o.farbe, spruch: o.spruch });
     }
     return { andere };
+  },
+  // Den Hof eines Mitspielers ansehen: nur, wer gerade spielt und Besuch im Spiel erlaubt hat. Heraus gehen nur Pflanzen (Fach, Beet, Stufe),
+  // Dekoration, Ausbau und die Namen der Felder; nie Karteikarten, Münzen oder Lager.
+  'POST /api/spiel/hof': ({ k, b }) => {
+    muss(k);
+    const [id, o] = [...SPIEL_ORTE].find(([, o]) => o.nr === b.id && jetzt() - o.t <= 5000) ?? [];
+    if (!id) nein(404, 'Die Person ist gerade nicht da.');
+    let st = null; try { st = JSON.parse(Buffer.from(db.prepare("select inhalt from dateien where konto = ? and pfad = 'lernhof.json'").get(id).inhalt).toString('utf8')); } catch {}
+    if (!st?.offen) nein(403, `${o.name} hat den Hof nicht für Besuch geöffnet.`);
+    return { name: o.name, stand: { pflanzen: (st.pflanzen || []).map(p => ({ id: p.id, fach: p.fach, platz: p.platz, stufe: p.stufe, karte: null, geerntetFuer: null })),
+      deko: st.deko || [], ausbau: st.ausbau, felder: st.felder || [] } };
   },
 
   'POST /api/registrieren': async ({ req, res, b }) => {
