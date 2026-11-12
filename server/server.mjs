@@ -775,12 +775,50 @@ function bestellMail(k, T, monate, betrag, zweck) {
 }
 
 /* ---------- Routen ---------- */
+const SPIEL_ORTE = new Map();  // Lernhof: Konto → letzter gemeldeter Ort
+let spielNr = 0;
 const ROUTEN = {
   'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olat: !wert('olat-aus', 0), ankuendigung: ankuendigung(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
     modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '' },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
   'GET /api/ich': ({ k }) => ich(muss(k)),
+
+  // Lernhof (/game): Das Spiel liest den Lernstand nur. Sein Spielstand liegt als lernhof.json im Speicher des Kontos,
+  // so kommt er von selbst in den Export und wird mit dem Konto gelöscht.
+  'GET /api/spiel': ({ k }) => {
+    muss(k);
+    const dateien = {};
+    for (const d of db.prepare("select pfad, inhalt from dateien where konto = ? and (pfad in ('karten.json', 'lernstand.json', 'noten.json', 'wordpower.json', 'profil.json', 'lernhof.json') or pfad like 'lernseiten/%.md')").all(k.id)) dateien[d.pfad] = Buffer.from(d.inhalt).toString('utf8');
+    for (const d of db.prepare("select pfad from dateien where konto = ? and pfad like 'faecher/%.json'").all(k.id)) dateien[d.pfad] = '';  // nur die Namen der Fächer
+    dateien['konto.json'] = JSON.stringify({ arena: { teilnahme: db.prepare('select name, aus from arena where konto = ?').get(k.id) ?? null,
+      serie: db.prepare('select serie, bester, letzter, joker from arena_serie where konto = ?').get(k.id) ?? null,
+      xp: db.prepare('select tag, art, xp, wert from arena_xp where konto = ? order by id').all(k.id) } });
+    let stand = null; try { stand = JSON.parse(dateien['lernhof.json']); } catch {}
+    delete dateien['lernhof.json'];
+    return { heute: wienTag(), dateien, stand };
+  },
+  'POST /api/spiel/stand': ({ k, b }) => {
+    muss(k);
+    const inhalt = Buffer.from(JSON.stringify(b));
+    if (!b.pflanzen || inhalt.length > 3e5) nein(400, 'Kein gültiger Spielstand.');
+    db.prepare('insert into dateien (konto, pfad, inhalt, sha) values (?, ?, ?, ?) on conflict (konto, pfad) do update set inhalt = excluded.inhalt, sha = excluded.sha').run(k.id, 'lernhof.json', inhalt, blobSha(inhalt));
+  },
+  // Mehrspieler: wer gerade im Dorf, im Wald, am See oder in der Bibliothek steht. Nur im Arbeitsspeicher, nach 5 Sekunden ohne Meldung weg.
+  // Zu sehen ist der Arena-Name, ohne Arena „Gast“; Hof und Haus meldet das Spiel nicht.
+  'POST /api/spiel/ort': ({ k, b }) => {
+    muss(k);
+    if (!['dorf', 'wald', 'see', 'bibliothek'].includes(b.karte)) nein(400, 'Unbekannter Ort.');
+    const t = jetzt(), px = x => Math.max(0, Math.min(2000, Math.round(Number(x)) || 0));
+    SPIEL_ORTE.set(k.id, { nr: SPIEL_ORTE.get(k.id)?.nr ?? ++spielNr, name: db.prepare('select name from arena where konto = ? and aus = 0').get(k.id)?.name || 'Gast',
+      karte: b.karte, x: px(b.x), y: px(b.y), blick: ['u', 'o', 'l', 'r'].includes(b.blick) ? b.blick : 'u', laeuft: !!b.laeuft, t });
+    const andere = [];
+    for (const [id, o] of SPIEL_ORTE) {
+      if (t - o.t > 5000) SPIEL_ORTE.delete(id);
+      else if (id !== k.id && o.karte === b.karte) andere.push({ id: o.nr, name: o.name, x: o.x, y: o.y, blick: o.blick, laeuft: o.laeuft });
+    }
+    return { andere };
+  },
 
   'POST /api/registrieren': async ({ req, res, b }) => {
     bremse(req, 60);
@@ -1165,6 +1203,14 @@ function statisch(req, res, url) {
   const pfad = url.pathname;
   // Alle starten auf der Startseite (angemeldet führt „Anmelden“ ohne Login aufs Dashboard); Einladungen (?ref=) gehen gleich in die App
   if (pfad === '/' && url.search) { res.writeHead(302, { Location: '/app' + url.search }); return res.end(); }
+  // Lernhof: das gebaute Spiel und seine Erklärseite, nur aus dem Ordner game/
+  if (pfad === '/game') { res.writeHead(302, { Location: '/game/' }); return res.end(); }
+  const g = pfad === '/game/' ? [, 'index.html', 'html'] : pfad === '/game/info' ? [, 'info.html', 'html'] : /^\/game\/((?:assets\/|bilder\/)?[\w-]+(?:\.[\w-]+)*\.(js|css|png))$/.exec(pfad);
+  if (g && ['GET', 'HEAD'].includes(req.method) && existsSync(join(APP, 'game', g[1]))) {
+    res.writeHead(200, { 'Content-Type': { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', png: 'image/png' }[g[2]],
+      'Cache-Control': /^(assets|bilder)\//.test(g[1]) ? 'public, max-age=604800' : 'no-cache' });
+    return res.end(req.method === 'HEAD' ? undefined : readFileSync(join(APP, 'game', g[1])));
+  }
   const d = DATEIEN[pfad];
   if (!d || !['GET', 'HEAD'].includes(req.method)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Nicht gefunden'); }
   let inhalt = readFileSync(join(APP, d[0]));

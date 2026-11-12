@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lernhof: das Spiel zum Lernhelfer</title>
+<meta name="description" content="Lernhof ist ein kleines Farm-Spiel. Dein Hof wächst nur, wenn du im Lernhelfer lernst.">
+<link rel="icon" href="data:,">
+<style>
+  @font-face { font-family: "Archivo"; src: url("/fonts/Archivo.woff2") format("woff2"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
+  :root { --papier: #fbfbf9; --tinte: #121212; --tinte-2: #4f535a; --blau: #2446c8; --gelb: #ffe93a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--papier) radial-gradient(circle at 1px 1px, rgb(24 32 56 / .17) 1.1px, transparent 1.4px) 0 0 / 22px 22px;
+    color: var(--tinte); font: 450 1.05rem/1.55 "Archivo", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 860px; margin: 0 auto; padding: clamp(28px, 6vh, 72px) clamp(18px, 5vw, 48px) 64px; }
+  h1 { font-size: clamp(2.6rem, 9vw, 4.6rem); font-weight: 850; letter-spacing: -.02em; line-height: 1; margin: 0 0 .3em; }
+  h2 { font-size: 1.6rem; font-weight: 800; margin: 2.4em 0 .5em; }
+  h2 span { background: linear-gradient(transparent 55%, var(--gelb) 55%); }
+  p { margin: 0 0 1em; max-width: 62ch; }
+  .gross { font-size: 1.25rem; color: var(--tinte-2); }
+  a { color: var(--blau); }
+  :focus-visible { outline: 2px solid var(--blau); outline-offset: 4px; border-radius: 4px; }
+  .los { display: inline-block; margin: .4em 0 0; padding: .75em 1.4em; background: var(--blau); color: #fff; font-weight: 750; text-decoration: none; border: 2.5px solid var(--tinte); border-radius: 12px; box-shadow: 4px 4px 0 var(--tinte); }
+  .los:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--tinte); }
+  figure { margin: 1.4em 0; }
+  img { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 2.5px solid var(--tinte); border-radius: 10px; background: #2b1d1a; }
+  figcaption { font-size: .92rem; color: var(--tinte-2); margin-top: .5em; }
+  .zwei { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+  .zwei figure { margin: 0; }
+  table { border-collapse: collapse; width: 100%; margin: .6em 0 1em; background: #fff; border: 2.5px solid var(--tinte); border-radius: 10px; overflow: hidden; display: block; }
+  tbody { display: table; width: 100%; }
+  th, td { text-align: left; padding: .55em .8em; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th { width: 44%; font-weight: 700; }
+  tr:last-child th, tr:last-child td { border-bottom: 0; }
+  kbd { font: 700 .9em "Archivo", system-ui, sans-serif; border: 2px solid var(--tinte); border-bottom-width: 3px; border-radius: 6px; padding: .05em .4em; background: #fff; white-space: nowrap; }
+  ul { padding-left: 1.2em; max-width: 62ch; }
+  li { margin-bottom: .4em; }
+  footer { margin-top: 3em; font-size: .92rem; color: var(--tinte-2); }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="/app">← zurück zum Lernhelfer</a></p>
+  <h1>Lernhof</h1>
+  <p class="gross">Ein kleines Farm-Spiel zum Lernhelfer. Dein Hof wächst nur, wenn du wirklich lernst.</p>
+  <p><a class="los" href="/game/">Jetzt spielen</a></p>
+
+  <figure>
+    <img src="/game/bilder/hof.png" width="960" height="540" alt="Der Hof mit drei Feldern: BWL, Mathematik und VWL. Über manchen Pflanzen schweben Tropfen und Sterne.">
+    <figcaption>Dein Hof. Jedes Fach hat ein Feld, jede Pflanze ist eine deiner Karteikarten.</figcaption>
+  </figure>
+
+  <h2><span>Worum es geht</span></h2>
+  <p>Du übernimmst einen verwilderten Hof am Rand einer Universitätsstadt. Im Spiel selbst beantwortest du keine Karten. Gelernt wird im Lernhelfer, der Hof zeigt dir danach, was daraus geworden ist.</p>
+  <p>Wer heute nichts gelernt hat, hat im Spiel keine Energie und kann nur spazieren gehen. Wer lernt, pflanzt, gießt, erntet und baut aus.</p>
+
+  <h2><span>So hängt beides zusammen</span></h2>
+  <table>
+    <tr><th>Im Lernhelfer</th><th>Im Lernhof</th></tr>
+    <tr><td>Fach</td><td>ein Feld mit eigener Pflanzenart</td></tr>
+    <tr><td>Lernteil gelesen und verstanden</td><td>ein Saatkorn, das keimt</td></tr>
+    <tr><td>Karteikarte gewusst</td><td>blauer Tropfen: Gießen lässt die Pflanze wachsen</td></tr>
+    <tr><td>Karteikarte fällig</td><td>grauer Tropfen: Die Pflanze hat Durst</td></tr>
+    <tr><td>Karte in Box 5</td><td>Stern: Die Pflanze ist reif für die Ernte</td></tr>
+    <tr><td>Karte nicht gewusst</td><td>die Pflanze welkt eine Stufe, stirbt aber nie</td></tr>
+    <tr><td>heute gewusste Karten</td><td>Energie für den Tag</td></tr>
+    <tr><td>Probeklausur</td><td>Erntefest am Markt, die Note bestimmt den Preis</td></tr>
+    <tr><td>Prüfungstermin</td><td>Fest im Dorf mit Countdown am Anschlagbrett</td></tr>
+    <tr><td>Lernserie</td><td>das Wetter: Regen, Wolken, Sonne, Regenbogen</td></tr>
+    <tr><td>Word Power</td><td>Bienen, je zehn ein Glas Honig am Tag</td></tr>
+    <tr><td>Noten</td><td>Pokale im Regal in deinem Haus</td></tr>
+  </table>
+
+  <h2><span>Was du tun kannst</span></h2>
+  <ul>
+    <li><strong>Pflanzen, gießen, ernten.</strong> Die Ernte verkaufst du im Hofladen oder am Markt im Dorf.</li>
+    <li><strong>Ausbauen.</strong> Besseres Werkzeug spart Energie, die Scheune gibt mehr Beete, das Haus mehr Energie an Lerntagen.</li>
+    <li><strong>Wünsche erfüllen.</strong> Sechs Dorfbewohner haben je einen Wunsch. Erfüllte Wünsche öffnen den Wald, den See und die Bibliothek.</li>
+    <li><strong>Sammeln und einrichten.</strong> Beeren im Wald, Muscheln am See, Honig vom Bienenstock, Dekoration für Hof und Haus.</li>
+  </ul>
+  <div class="zwei">
+    <figure><img src="/game/bilder/dorf.png" width="960" height="540" alt="Der Marktplatz im Dorf mit Ständen, Brunnen und zwei Bewohnern."><figcaption>Das Dorf mit Markt, Anschlagbrett und Rangliste.</figcaption></figure>
+    <figure><img src="/game/bilder/wald.png" width="960" height="540" alt="Der Wald mit Tannen, Pilzen und dem Förster."><figcaption>Der Wald öffnet sich mit dem ersten erfüllten Wunsch.</figcaption></figure>
+    <figure><img src="/game/bilder/see.png" width="960" height="540" alt="Der See mit Steg und der Fischerin."><figcaption>Am See liegt jeden Tag eine Muschel.</figcaption></figure>
+    <figure><img src="/game/bilder/markt.png" width="960" height="540" alt="Das Verkaufsfenster am Markt mit Preisen."><figcaption>Am Tag einer Probeklausur zahlt der Markt mehr.</figcaption></figure>
+  </div>
+
+  <h2><span>Zusammen spielen</span></h2>
+  <p>Im Dorf, im Wald, am See und in der Bibliothek siehst du alle, die gerade auch spielen. Über der Figur steht der Arena-Name, ohne Arena-Namen steht dort „Gast“. Dein Hof und dein Haus bleiben privat.</p>
+  <figure>
+    <img src="/game/bilder/mehrspieler.png" width="960" height="540" alt="Zwei Spielfiguren stehen nebeneinander auf dem Marktplatz, über einer steht der Name Anni.">
+    <figcaption>Zwei Spielerinnen treffen sich am Marktplatz.</figcaption>
+  </figure>
+
+  <h2><span>Ziele</span></h2>
+  <p>Kurz: jeden Tag ein paar Karten, dann gießen und ernten. Mittel: alle drei Gebiete öffnen und Haus, Scheune und Werkzeug ausbauen. Lang: Karten bis in Box 5 bringen. Eine frische Karte braucht dafür rund 25 Tage, erst dann trägt ihre Pflanze.</p>
+
+  <h2><span>Steuerung</span></h2>
+  <p>Am Computer (Windows und Mac): <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> oder die Pfeiltasten zum Laufen, <kbd>E</kbd> zum Handeln und Reden, <kbd>Tab</kbd> für die Tasche, <kbd>Esc</kbd> für das Menü.</p>
+  <p>Am iPad und Handy: links ein Steuerkreuz, rechts die Knöpfe E, Tasche und Menü. Am besten im Querformat.</p>
+  <figure>
+    <img src="/game/bilder/ipad.png" width="1180" height="820" alt="Das Spiel auf einem Tablet mit Steuerkreuz links unten und drei Knöpfen rechts unten.">
+    <figcaption>Bedienung mit dem Finger.</figcaption>
+  </figure>
+
+  <h2><span>Dein Spielstand</span></h2>
+  <p>Jedes Konto hat seinen eigenen Hof. Der Spielstand liegt in deinem Lernhelfer-Speicher, ist in „Deine Daten“ enthalten und wird mit dem Konto gelöscht. Das Spiel liest deinen Lernstand nur und ändert daran nichts.</p>
+
+  <p><a class="los" href="/game/">Jetzt spielen</a></p>
+  <footer>Lernhof gehört zum Lernhelfer. Figuren, Karten und Texte sind eigens dafür gemacht.</footer>
+</main>
+</body>
+</html>

@@ -605,6 +605,29 @@ try {
   assert.equal((await chef('POST', '/api/admin/konto-loeschen', { konto: maxId })).status, 404);
   assert.match(readdirSync(join(ordner, 'sicherung')).join(), /^lernhelfer-\d{4}-\d\d-\d\d\.db$/, 'tägliche Sicherung beim Start');
   console.log('Server: alles in Ordnung.');
+
+  // Lernhof: Spielstand je Konto, Lernstand nur lesend, Mitspieler nur an gemeinsamen Orten
+  const hofA = person(), hofB = person();
+  for (const [p, mail] of [[hofA, 'hof-a@student.uibk.ac.at'], [hofB, 'hof-b@student.uibk.ac.at']]) {
+    assert.equal((await p('POST', '/api/registrieren', { email: mail, passwort: 'hof-passwort-1', agb: true })).status, 200);
+    assert.equal((await p('POST', '/api/bestaetigen', { token: await link(mail, 'bestaetigen') })).status, 200);
+  }
+  assert.equal((await person()('GET', '/api/spiel')).status, 401, 'Lernhof nur angemeldet');
+  let hof = (await hofA('GET', '/api/spiel')).j;
+  assert.equal(hof.stand, null); assert.match(hof.heute, /^\d{4}-\d\d-\d\d$/); assert.ok(JSON.parse(hof.dateien['konto.json']).arena);
+  assert.equal((await hofA('POST', '/api/spiel/stand', { quatsch: 1 })).status, 400);
+  assert.equal((await hofA('POST', '/api/spiel/stand', { pflanzen: [], muenzen: 7 })).status, 200);
+  assert.equal((await hofA('GET', '/api/spiel')).j.stand.muenzen, 7);
+  assert.equal((await hofB('GET', '/api/spiel')).j.stand, null, 'jedes Konto hat seinen eigenen Hof');
+  assert.equal((await hofA('POST', '/api/spiel/ort', { karte: 'hof', x: 1, y: 1 })).status, 400, 'der Hof bleibt privat');
+  assert.deepEqual((await hofA('POST', '/api/spiel/ort', { karte: 'dorf', x: 40, y: 50, blick: 'l', laeuft: true })).j.andere, []);
+  assert.deepEqual((await hofB('POST', '/api/spiel/ort', { karte: 'wald', x: 1, y: 1 })).j.andere, [], 'andere Karte: niemand zu sehen');
+  const gesehen = (await hofB('POST', '/api/spiel/ort', { karte: 'dorf', x: 1, y: 1 })).j.andere;
+  assert.equal(gesehen.length, 1); assert.deepEqual({ ...gesehen[0], id: 0 }, { id: 0, name: 'Gast', x: 40, y: 50, blick: 'l', laeuft: true });
+  assert.equal((await fetch(BASIS + '/game', { redirect: 'manual' })).status, 302);
+  assert.equal((await fetch(BASIS + '/game/')).headers.get('content-type'), 'text/html; charset=utf-8');
+  assert.equal((await fetch(BASIS + '/game/..%2fserver/server.mjs')).status, 404);
+  console.log('Lernhof: ok');
 } catch (e) {
   console.error(log);
   throw e;
