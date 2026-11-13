@@ -6846,7 +6846,7 @@ async function adminZeigen() {
     el('h2', {}, 'KI-Modelle'),
     el('p', { class: 'klein' }, 'Gilt sofort für alle Konten. Wer selbst ein anderes Modell ausgewählt hat, behält es; neue und Base-Konten nehmen den Standard.'),
     modellKarte(modelle(), async neu => {
-      await api('admin/schluessel', { LH_MODELL: neu.model, LH_MODELL_DENKEN: neu.denken, LH_MODELL_TRANSKRIPT: neu.transkript, weg: neu.transkript ? [] : ['LH_MODELL_TRANSKRIPT'] });
+      await api('admin/schluessel', { LH_MODELL: neu.model, LH_MODELL_DENKEN: neu.denken, LH_MODELL_TRANSKRIPT: neu.transkript, LH_MODELL_CHECK: neu.check, weg: [!neu.transkript && 'LH_MODELL_TRANSKRIPT', !neu.check && 'LH_MODELL_CHECK'].filter(Boolean) });
       TARIFE = await api('tarife');
     }),
     el('h2', {}, 'Volle Werkzeuge'),
@@ -6995,7 +6995,7 @@ const MAIL_ARTEN = { requests: 'abgeschickt', delivered: 'zugestellt', opened: '
   blocked: 'blockiert', spam: 'als Spam gemeldet', invalid: 'ungültige Adresse', deferred: 'verzögert', error: 'Fehler', unsubscribed: 'abgemeldet' };
 // Standard- und Transkript-Modell als OpenRouter-ID: in der Server-Version stellt sie der Admin für alle ein, in der eigenen Version du unter Einrichten.
 // Der Standard steht in der Auswahl ganz vorn und ist das einzige Modell für Base; transkript leer = wie bisher (Word Power Gemini Flash, Vortrag Argon).
-const STANDARD = SERVER ? { model: 'deepseek/deepseek-v4.1-flash', denken: 'max', transkript: '' } : { model: 'openai/gpt-6-luna', denken: 'xhigh', transkript: '' };
+const STANDARD = SERVER ? { model: 'deepseek/deepseek-v4.1-flash', denken: 'max', transkript: '', check: '' } : { model: 'openai/gpt-6-luna', denken: 'xhigh', transkript: '' };
 const modelle = () => ({ ...STANDARD, ...(SERVER ? TARIFE?.modelle : liesJson('modelle')) });
 const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/;
 const DENKSTUFEN = [['max', 'max (DeepSeek)'], ['xhigh', 'xhigh'], ['high', 'high'], ['medium', 'medium'], ['low', 'low'], ['none', 'aus']];
@@ -7014,8 +7014,8 @@ function modellKarte(m, speichern) {
   const id = (name, wert, platz) => el('input', { name, value: wert, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: platz });
   return el('form', { class: 'modell-form', onsubmit: async e => {
     e.preventDefault();
-    const f = e.target.elements, neu = { model: f.model.value.trim(), denken: f.denken.value, transkript: f.transkript.value.trim() };
-    if (!MODELL_ID.test(neu.model) || neu.transkript && !MODELL_ID.test(neu.transkript)) { hinweis.textContent = 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.'; return; }
+    const f = e.target.elements, neu = { model: f.model.value.trim(), denken: f.denken.value, transkript: f.transkript.value.trim(), check: f.check?.value.trim() || '' };
+    if (!MODELL_ID.test(neu.model) || [neu.transkript, neu.check].some(x => x && !MODELL_ID.test(x))) { hinweis.textContent = 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.'; return; }
     hinweis.textContent = 'Speichere …';
     try { await speichern(neu); standardModell(); modellWahl(); hinweis.textContent = `Gespeichert. ${neu.model} ist ab der nächsten Anfrage der Standard.`; }
     catch (err) { hinweis.textContent = err.message; }
@@ -7027,6 +7027,9 @@ function modellKarte(m, speichern) {
     el('label', { class: 'feld' }, el('span', {}, 'Transkript-Modell ', el('span', { class: 'opt' }, 'leer: Gemini wie bisher')),
       id('transkript', m.transkript, 'google/gemini-3.8-flash'),
       el('span', { class: 'meta' }, 'Für Word Power, Vortrag und YouTube-Videos. YouTube-Links und Tonspuren versteht nur Gemini (google/…), andere Modelle scheitern daran.')),
+    SERVER && el('label', { class: 'feld' }, el('span', {}, 'Prüf-Modell ', el('span', { class: 'opt' }, 'leer: Standard-Modell')),
+      id('check', m.check || '', m.model),
+      el('span', { class: 'meta' }, 'Prüft die Antworten auf Check-Fragen, für alle Tarife, mit wenig Nachdenken.')),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, 'Als Standard setzen'),
       el('a', { class: 'knopf', href: 'https://openrouter.ai/models', target: '_blank', rel: 'noopener' }, 'Modelle auf OpenRouter')), hinweis);
 }

@@ -45,7 +45,8 @@ const BASIS_KI = { model: 'deepseek/deepseek-v4.1-flash', reasoning: { effort: '
   provider: { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 } } };
 // Test-Fotos (iPad ohne PC-Programm): Fragen von Bildschirmfotos abschreiben. In jedem Tarif, darum fest ein günstiges Modell, das Bilder liest.
 const FOTO_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000 };
-const CHECK_KI = { model: 'google/gemini-3.8-flash', max_tokens: 600 };  // Antwort auf eine Check-Frage prüfen: kurz, für alle
+// Antwort auf eine Check-Frage prüfen, für alle: Prüf-Modell aus der Admin-Ecke, sonst das Standard-Modell; wenig Nachdenken, damit es schnell geht
+const checkKi = () => ({ model: E.LH_MODELL_CHECK || E.LH_MODELL || BASIS_KI.model, max_tokens: 8000, reasoning: { effort: 'low' } });
 const FORMEL_KI = { model: 'google/gemini-3.8-flash', max_tokens: 3000 };  // Tipp auf eine Formel: was jedes Zeichen bedeutet, für alle, schnell und günstig
 const LAUFEND = 8, LAEUFT = new Map();  // gleichzeitige KI-Anfragen pro Konto; ein Vortrag schickt seine Teile parallel
 const TEST = { stunden: 24, budget: 0.5 };  // einmal 24 Stunden Ultra, höchstens 0,50 $ KI
@@ -198,7 +199,7 @@ const entschluesseln = s => {
 // GEHEIM (LH_GEHEIM) und LH_ECKE bleiben in der Datei, sonst könnte man sich aussperren.
 const SCHLUESSEL = { LH_OR_KEY: 1, LH_OR_VERWALTUNG: 1, LH_BREVO: 1, LH_PASS_WORDPOWER: 1, LH_PASS_ONLINETEST: 1,  // 1 = geheim, wird nie zurückgegeben
   LH_ABSENDER: 0, LH_EMPFAENGER: 0, LH_IBAN: 0, LH_BIC: 0, LH_PAYPAL: 0,
-  LH_MODELL: 0, LH_MODELL_DENKEN: 0, LH_MODELL_TRANSKRIPT: 0 };  // Standard- und Transkript-Modell (OpenRouter-ID), Admin-Ecke „KI-Modelle“
+  LH_MODELL: 0, LH_MODELL_DENKEN: 0, LH_MODELL_TRANSKRIPT: 0, LH_MODELL_CHECK: 0 };  // Standard- und Transkript-Modell (OpenRouter-ID), Admin-Ecke „KI-Modelle“
 const AUS_DATEI = Object.fromEntries(Object.keys(SCHLUESSEL).map(n => [n, E[n]]));  // Löschen in der Ecke führt hierher zurück
 for (const { name, wert } of db.prepare('select name, wert from schluessel').all())
   try { if (name in SCHLUESSEL) E[name] = entschluesseln(wert); } catch { console.error(`Gespeicherter Wert ${name} lässt sich nicht entschlüsseln (LH_GEHEIM geändert?).`); }
@@ -457,7 +458,8 @@ async function ki(req, res, k) {
   if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
   if (b.feature === 'reflexion' && !wert('reflexion', 0) && !k.ecke) nein(403, 'Das Reflection-Feedback ist gerade nicht freigeschaltet.');  // Admin-Ecke: Schalter
   if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
-  if (['test-foto', 'formel', 'check'].includes(b.feature)) { Object.assign(b, { formel: FORMEL_KI, check: CHECK_KI }[b.feature] || FOTO_KI); delete b.reasoning; delete b.provider; }
+  if (b.feature === 'check') { Object.assign(b, checkKi()); delete b.provider; }
+  else if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
   b.provider = { ...b.provider, data_collection: 'deny' };  // jedes Modell nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren
   const stil = b.stil !== false && stilVon(k, s);  // Reihenfolge: REGEL, Stil, dann was die App schickt
@@ -780,7 +782,7 @@ const SPIEL_ORTE = new Map();  // Lernhof: Konto → letzter gemeldeter Ort
 let spielNr = 0;
 const ROUTEN = {
   'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olat: !wert('olat-aus', 0), ankuendigung: ankuendigung(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
-    modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '' },
+    modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '', check: E.LH_MODELL_CHECK || '' },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
   'GET /api/ich': ({ k }) => ich(muss(k)),
@@ -1100,7 +1102,7 @@ const ROUTEN = {
     for (const [n, v] of Object.entries(b)) {
       if (!(n in SCHLUESSEL) || typeof v !== 'string' || !v.trim()) continue;
       if (v.length > 500 || /[\r\n]/.test(v)) nein(400, `${n}: zu lang oder mit Zeilenumbruch.`);
-      if (/^LH_MODELL(_TRANSKRIPT)?$/.test(n) && !MODELL_ID.test(v.trim())) nein(400, 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.');
+      if (/^LH_MODELL(_TRANSKRIPT|_CHECK)?$/.test(n) && !MODELL_ID.test(v.trim())) nein(400, 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.');
       if (n === 'LH_MODELL_DENKEN' && !DENKSTUFEN.includes(v.trim())) nein(400, 'Unbekannte Stufe fürs Nachdenken.');
       db.prepare('insert into schluessel (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(n, verschluesseln(v.trim()));
       E[n] = v.trim();
