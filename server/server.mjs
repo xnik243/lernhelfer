@@ -45,6 +45,7 @@ const BASIS_KI = { model: 'deepseek/deepseek-v4.1-flash', reasoning: { effort: '
   provider: { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 } } };
 // Test-Fotos (iPad ohne PC-Programm): Fragen von Bildschirmfotos abschreiben. In jedem Tarif, darum fest ein günstiges Modell, das Bilder liest.
 const FOTO_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000 };
+const CHECK_KI = { model: 'google/gemini-3.8-flash', max_tokens: 600 };  // Antwort auf eine Check-Frage prüfen: kurz, für alle
 const FORMEL_KI = { model: 'google/gemini-3.8-flash', max_tokens: 3000 };  // Tipp auf eine Formel: was jedes Zeichen bedeutet, für alle, schnell und günstig
 const LAUFEND = 8, LAEUFT = new Map();  // gleichzeitige KI-Anfragen pro Konto; ein Vortrag schickt seine Teile parallel
 const TEST = { stunden: 24, budget: 0.5 };  // einmal 24 Stunden Ultra, höchstens 0,50 $ KI
@@ -53,9 +54,9 @@ const MONATE = [1, 3, 6];
 // 9 = nur in der Admin-Ecke: Den Hausaufgaben-Entwurf gibt es nicht zu kaufen, er bleibt privat
 // 8 = auf Eis (rechtlich heikel: Lösen von Testfragen): nur Admin-Ecke und Zusatz Manual Access
 // ausgabe-ultra: die ausführliche Fassung der Wochenausgabe; noten, karten, export: ohne KI; hoeren: Ausgabe als Podcast
-const FUNKTIONEN = { ausgabe: 0, 'test-foto': 8, formel: 0, kalender: 1, video: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1, reflexion: 1,
+const FUNKTIONEN = { ausgabe: 0, 'test-foto': 8, formel: 0, check: 0, kalender: 1, video: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1, reflexion: 1,
   'ausgabe-ultra': 2, hoeren: 2, probeklausur: 2, training: 2, lernskript: 2, stil: 2, chat: 2, loeser: 8, 'wp-text': 9 };
-const NAMEN = { ausgabe: 'Die Wochenausgabe', 'test-foto': 'Das Auslesen von Test-Fotos', formel: 'Das Erklären von Formeln', video: 'Die Video-Erklärung', kalender: 'Der Kalender', noten: 'Der Notentracker', karten: 'Der Karteikasten', export: 'Der Export',
+const NAMEN = { ausgabe: 'Die Wochenausgabe', 'test-foto': 'Das Auslesen von Test-Fotos', formel: 'Das Erklären von Formeln', check: 'Das Prüfen der Check-Fragen', video: 'Die Video-Erklärung', kalender: 'Der Kalender', noten: 'Der Notentracker', karten: 'Der Karteikasten', export: 'Der Export',
   'wp-transkript': 'Das Word-Power-Transkript', vortrag: 'Die Vortragsanalyse', reflexion: 'Das Reflection-Feedback', 'ausgabe-ultra': 'Die Ultra-Fassung der Wochenausgabe', hoeren: 'Die Ausgabe zum Anhören',
   probeklausur: 'Die Probeklausur', training: 'Das Schwächen-Training', lernskript: 'Das Lernskript', stil: 'Der eigene Stil für die KI',
   chat: 'Der KI-Chat', loeser: 'Der Lösungsweg zu jeder Frage', 'wp-text': 'Der Hausaufgaben-Entwurf' };
@@ -456,7 +457,7 @@ async function ki(req, res, k) {
   if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
   if (b.feature === 'reflexion' && !wert('reflexion', 0) && !k.ecke) nein(403, 'Das Reflection-Feedback ist gerade nicht freigeschaltet.');  // Admin-Ecke: Schalter
   if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
-  if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
+  if (['test-foto', 'formel', 'check'].includes(b.feature)) { Object.assign(b, { formel: FORMEL_KI, check: CHECK_KI }[b.feature] || FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
   b.provider = { ...b.provider, data_collection: 'deny' };  // jedes Modell nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren
   const stil = b.stil !== false && stilVon(k, s);  // Reihenfolge: REGEL, Stil, dann was die App schickt
