@@ -161,6 +161,8 @@
   .pille { display: inline-flex; align-items: center; min-height: 22px; padding: 1px 8px; border-radius: 999px; background: var(--bg-3); color: var(--text-2); font: 600 0.75rem/1.3 var(--sans); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .pille.akzent { background: var(--akzent-flaeche); color: var(--akzent-text); }
   .pille.warn { background: var(--warn-flaeche); color: var(--warn); }
+  #zahltag { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 18px; padding: 10px 14px; border-radius: var(--r); background: var(--bg-2); font-size: 0.875rem; font-weight: 550; }
+  #zahltag[hidden] { display: none; }
   #status { margin: 0 0 18px; padding: 10px 14px; border-radius: var(--r); background: var(--bg-2); color: var(--text-2); font-size: 0.875rem; font-weight: 550; }
   #status:empty { display: none; }
   #status.fehler { background: var(--fehler-flaeche); color: var(--fehler); }
@@ -1242,6 +1244,7 @@ aussehen();
       <details class="mehr-funktionen" id="nav-mehr" hidden><summary><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg><span id="nav-mehr-titel">Pro und Ultra</span></summary><div class="navi" id="nav-mehr-liste"></div></details>
       <p class="gruppe nur-server">Spiel</p>
       <a href="/game/info" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 12c0-4 3-6 7-6 0 4-3 6-7 6zM12 15c0-3-2.500-5-6-5 0 3 2.500 5 6 5z"/></svg>Lernhof</a>
+      <a href="/campus/" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.500v9L12 21l-8-4.500v-9zM4 7.500l8 4.500 8-4.500M12 12v9"/></svg>Campus</a>
       <hr>
       <a href="#/unterlagen" data-ansicht="unterlagen" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 16.5v-6M9.5 13l2.5-2.5 2.5 2.5"/></svg>Unterlagen</a>
       <a href="#/anleitung" data-ansicht="anleitung"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.5 5 8.3 4.5 4 4.5v14c4.3 0 6.5.5 8 2 1.5-1.5 3.7-2 8-2v-14c-4.3 0-6.5.5-8 2zM12 6.5v14"/></svg>Anleitung</a>
@@ -1255,6 +1258,7 @@ aussehen();
 
   <main id="inhalt" tabindex="-1">
     <p id="status" role="status" aria-live="polite"></p>
+    <div id="zahltag" role="status" hidden></div>
     <div id="ankuendigung"></div>
     <div id="h-mail"></div>
     <section id="titelblatt" hidden>
@@ -2862,11 +2866,16 @@ function aufbereiten(text, form, lern) {
         if (text.length < 15) return sage('', 'Schreib ein, zwei Sätze: Was ist die Antwort, und warum?');
         pruefen.disabled = true; pruefen.textContent = 'Prüft …';
         try {
-          const j = await anfrage({ ...FX_KI, max_tokens: 600, feature: 'check', stil: false, response_format: { type: 'json_object' } },
-            [{ role: 'system', content: CHECK_PRUEFEN }, { role: 'user', content: `Frage: ${frage}\n\nMusterlösung: ${muster}\n\n<<<ANTWORT\n${text.replace(/<<<|>>>/g, '')}\nANTWORT>>>` }]);
-          const t = j.choices?.[0]?.message?.content || '';
           let d;
-          try { d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch { throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.'); }
+          if (SERVER) {  // der Server kennt Frage und Musterlösung aus der Ausgabe und prüft selbst (zählt für Campus, nicht fälschbar)
+            d = await api('check', { fach: lern.f, datum: lern.datum, nr: fragen.filter(x => x.check).indexOf(q), antwort: text });
+            if (d.erst) zahltag();
+          } else {
+            const j = await anfrage({ ...FX_KI, max_tokens: 600, feature: 'check', stil: false, response_format: { type: 'json_object' } },
+              [{ role: 'system', content: CHECK_PRUEFEN }, { role: 'user', content: `Frage: ${frage}\n\nMusterlösung: ${muster}\n\n<<<ANTWORT\n${text.replace(/<<<|>>>/g, '')}\nANTWORT>>>` }]);
+            const t = j.choices?.[0]?.message?.content || '';
+            try { d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch { throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.'); }
+          }
           const ja = d.bestanden === true;
           sage(ja ? 'ja' : 'nein', el('b', {}, ja ? 'Passt. ' : 'Noch nicht. '), String(d.grund || ''));
           if (ja) ende(true);
@@ -3327,6 +3336,7 @@ async function weiterZeigen() {  // Heute: der eine nächste Schritt. Nächster 
 }
 function kartenAntwort(gewusst) {
   const id = STAPEL.shift(), k = KARTEN.karten[id];
+  if (gewusst && SERVER) api('campus/karte', { id }).then(r => { if (r.gezaehlt) zahltag(); }, () => {});  // Campus: der Server prüft selbst, ob die Karte fällig war
   if (!k.box) KARTEN.neu = { datum: HEUTE, n: (KARTEN.neu?.datum === HEUTE ? KARTEN.neu.n : 0) + 1 };
   k.box = gewusst ? Math.min(5, k.box + 1) : 1;
   k.faellig = plusTage(gewusst ? ABSTAND[k.box] : 0);
@@ -3484,8 +3494,10 @@ async function pkAbgeben() {
   pkMerken(); pruefungNeu();
   try {  // für den Verlauf und das Schwächen-Training
     await notenLaden();
-    NOTEN.proben.push({ id: crypto.randomUUID(), fach: PK.fach, datum: HEUTE, punkte: PK.ergebnis.punkte, max, falsch: PK.aufgaben.filter((q, i) => je[i] <= 0).map(q => q.frage.slice(0, 400)) });
+    const probe = crypto.randomUUID();
+    NOTEN.proben.push({ id: probe, fach: PK.fach, datum: HEUTE, punkte: PK.ergebnis.punkte, max, falsch: PK.aufgaben.filter((q, i) => je[i] <= 0).map(q => q.frage.slice(0, 400)) });
     await notenSpeichern();
+    if (SERVER) api('campus/klausur', { id: probe }).then(r => { if (r.gezaehlt) zahltag(); }, () => {});  // Campus: bestandene Probeklausur
   } catch (e) { status(e.message, true); }
   pruefungNeu();
   kartenDazu(PK.aufgaben.filter((q, i) => je[i] <= 0).map(q => ({ f: PK.fach, datum: HEUTE, gewusst: false,  // falsch oder leer: in den Karteikasten
@@ -7400,6 +7412,22 @@ function arenaMeldung(xp, was, e) {  // Server: was die Runde oder der Speedrun 
   const neu = ABZEICHEN.filter(a => ARENA.abzeichen[a[0]] && !AR.hatte?.[a[0]]);
   AR.hatte = { ...ARENA.abzeichen };
   status(`+${xp} XP · ${was}${e?.gedeckelt ? ' (Tagesgrenze erreicht, zählt nicht mehr für XP)' : ''}${e?.neu?.length ? ' · Challenge geschafft: ' + e.neu.join(', ') + ' (+25 XP)' : ''}${neu.length ? ' · Neues Abzeichen: ' + neu.map(a => a[1]).join(', ') : ''}`);
+  zahltag();
+}
+// Campus (/campus): Nach dem Lernen zeigen, was im Spiel wartet. Der Spielserver rechnet nur vor; gutgeschrieben wird erst dort.
+let ZAHLTAG_UHR;
+function zahltag() {
+  if (!SERVER) return;
+  clearTimeout(ZAHLTAG_UHR);
+  ZAHLTAG_UHR = setTimeout(async () => {
+    try {
+      const r = await fetch('/campus/api/zahltag', { cache: 'no-store' }), j = r.ok ? await r.json() : null;
+      if (!j || !(j.taler > 0 || j.funde > 0)) return;
+      $('zahltag').replaceChildren(el('span', {}, `Du hast ${j.taler} Taler verdient${j.funde ? `, ${j.funde} ${j.funde === 1 ? 'Fund wartet' : 'Funde warten'}` : ''}.`),
+        el('a', { class: 'knopf voll', href: '/campus/' }, 'Zum Campus'));
+      $('zahltag').hidden = false;
+    } catch {}  // Campus nicht erreichbar: kein Hinweis, der Lernhelfer läuft weiter
+  }, 2000);
 }
 function rundeTicken() {
   const titel = document.title.replace(/^(\d+:\d\d|Pause \d+:\d\d) · /, '');

@@ -39,6 +39,8 @@ const attrappe = createServer((req, res) => {
         return res.end();
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
+      if (String(j.messages?.[0]?.content).startsWith('Du prüfst'))  // Check-Frage: bestanden, wenn in der Antwort „richtig“ steht
+        return res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ bestanden: /<<<ANTWORT[\s\S]*richtig/.test(j.messages[1].content), grund: 'Begründung.' }) } }], usage: { cost: 0.01 } }));
       return res.end(JSON.stringify({ choices: [{ message: { content: 'Antwort' } }], usage: { cost: 0.3 } }));
     }
     if (req.url === '/audio/speech') {  // 4 Sekunden Stille
@@ -53,12 +55,20 @@ const attrappe = createServer((req, res) => {
   });
 }).listen(0);
 await new Promise(ok => attrappe.on('listening', ok));
+// Campus-Attrappe: der Spielserver, den der Lernhelfer beim Export und beim Löschen ruft (nie der echte auf Port 8090)
+const campusRufe = [];
+const campus = createServer((req, res) => {
+  campusRufe.push(`${req.method} ${req.url}`);
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(req.method === 'GET' ? { name: 'Spielstand', taler: 7 } : { ok: true }));
+}).listen(0);
+await new Promise(ok => campus.on('listening', ok));
 
 let log = '';
 const server = spawn(process.execPath, ['--no-warnings', join(import.meta.dirname, 'server.mjs')], { env: { ...process.env,
   LH_DATEN: ordner, LH_PORT: String(PORT), LH_URL: BASIS, LH_OR_URL: `http://127.0.0.1:${attrappe.address().port}`, LH_OR_KEY: 'sk-or-server',
   LH_OR_VERWALTUNG: 'verwaltung', LH_ADMIN: 'chef@example.com', LH_IBAN: 'AT00 TEST', LH_BREVO: '',
-  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1' } });
+  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_CAMPUS: `http://127.0.0.1:${campus.address().port}`, LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1' } });
 server.stdout.on('data', t => log += t); server.stderr.on('data', t => log += t);
 const warte = async (bis, was) => { for (let i = 0; i < 100; i++) { const x = await bis(); if (x) return x; await new Promise(ok => setTimeout(ok, 50)); } throw new Error('Zeit um: ' + was + '\n' + log); };
 await warte(() => fetch(BASIS + '/api/tarife').then(r => r.ok, () => false), 'Server startet');
@@ -637,11 +647,75 @@ try {
   assert.equal((await fetch(BASIS + '/game/')).headers.get('content-type'), 'text/html; charset=utf-8');
   assert.equal((await fetch(BASIS + '/game/..%2fserver/server.mjs')).status, 404);
   console.log('Lernhof: ok');
+
+  // Campus: Der Lernhelfer zählt nur, der Spielserver holt ab. Check-Fragen prüft der Server; je Frage zählt nur das erste Bestehen.
+  const stud = person(), smail = 'campus-a@student.uibk.ac.at';
+  assert.equal((await stud('POST', '/api/registrieren', { email: smail, passwort: 'campus-passwort-1', agb: true })).status, 200);
+  assert.equal((await stud('POST', '/api/bestaetigen', { token: await link(smail, 'bestaetigen') })).status, 200);
+  const sid = (await stud('GET', '/api/ich')).j.id;
+  assert.ok(sid > 0, '/api/ich nennt die Konto-Nummer');
+  assert.equal((await stud('GET', '/api/ich')).j.spielname, null);
+  assert.equal((await stud('POST', '/api/arena', { name: 'Campusheld' })).status, 200);
+  assert.equal((await stud('GET', '/api/ich')).j.spielname, 'Campusheld', 'Arena-Name als Spielname');
+  const verdienst = async (seit = 0, kopf = {}) => { const r = await fetch(`${BASIS}/api/campus/verdienst?konto=${sid}&seit=${seit}`, { headers: kopf }); return { status: r.status, j: await r.json() }; };
+  assert.equal((await verdienst(0, { 'X-Forwarded-For': '203.0.113.5' })).status, 404, 'über Caddy (von außen) nicht erreichbar');
+  assert.equal((await fetch(`${BASIS}/api/campus/verdienst?konto=999999`)).status, 404);
+  assert.deepEqual((await verdienst()).j.ereignisse, []);
+  const ausgabe = '## Thema\n\n### Teil 1\n\nText.\n\n#### Check: Warum sinkt die Nachfrage?\n\nWeil der Preis steigt.\n\n### Teil 2\n\n#### **Check:** Was ist ein Gleichgewicht?\n\nAngebot gleich Nachfrage.\n\n```json\n{"schlagzeile":"x"}\n```\n';
+  assert.equal((await stud('PUT', gh('lernseiten/VWL/2026-11-09.md'), { message: 'x', content: b64(ausgabe) })).status, 201);
+  const check = (nr, antwort) => stud('POST', '/api/check', { fach: 'VWL', datum: '2026-11-09', nr, antwort });
+  assert.equal((await check(0, 'kurz')).status, 400);
+  assert.equal((await check(5, 'Das ist eine lange genug Antwort.')).status, 404);
+  assert.equal((await stud('POST', '/api/check', { fach: 'BWL', datum: '2026-11-09', nr: 0, antwort: 'Das ist eine lange genug Antwort.' })).status, 404, 'Ausgabe fehlt');
+  r = await check(0, 'Ich glaube, das ist irgendwie anders gemeint.');
+  assert.deepEqual(r.j, { bestanden: false, grund: 'Begründung.', erst: false });
+  const anPruefer = or.anfragen.at(-1);
+  assert.match(anPruefer.messages[1].content, /^Frage: Warum sinkt die Nachfrage\?\n\nMusterlösung: Weil der Preis steigt\.\n\n<<<ANTWORT/, 'Frage und Musterlösung kommen vom Server');
+  assert.equal(anPruefer.provider.data_collection, 'deny');
+  assert.deepEqual((await verdienst()).j.ereignisse, [], 'nicht bestanden: nichts');
+  r = await check(0, 'Die Antwort ist richtig, weil der Preis steigt.');
+  assert.deepEqual(r.j, { bestanden: true, grund: 'Begründung.', erst: true });
+  assert.equal((await check(0, 'Die Antwort ist richtig, weil der Preis steigt.')).j.erst, false, 'zweites Bestehen zählt nicht');
+  assert.equal((await check(1, 'Auch das ist richtig: Angebot gleich Nachfrage.')).j.erst, true, 'zweite Frage, fett gesetzt');
+  assert.match(or.anfragen.at(-1).messages[1].content, /^Frage: Was ist ein Gleichgewicht\?\n\nMusterlösung: Angebot gleich Nachfrage\.\n\n<<<ANTWORT/, 'ohne den JSON-Block am Ende');
+  let v = (await verdienst()).j;
+  assert.deepEqual(v.ereignisse.map(e => [e.art, e.menge, e.fach, e.pruefung_in]), [['check', 1, 'VWL', null], ['check', 1, 'VWL', null]]);
+  assert.deepEqual(v.checks, { VWL: 2 });
+  assert.equal(v.ereignisse[0].tag.length, 10);
+  assert.equal(typeof v.xp, 'number');
+  // abholen: was der Spielserver schon hat (seit), kommt nicht wieder; ohne „seit“ geht nichts verloren
+  assert.equal((await verdienst(v.ereignisse[0].id)).j.ereignisse.length, 1);
+  assert.equal((await verdienst(v.ereignisse[1].id)).j.ereignisse.length, 0);
+  // Karteikarten und Probeklausur (ab Pro): zählen nur, wenn sie im Speicher liegen und dran sind; Prüfung in 5 Tagen wird mitgemeldet
+  await chef('POST', '/api/admin/tarif', { konto: sid, tarif: 'pro', tage: 30 });
+  const heuteW = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }), in5 = new Date(Date.parse(heuteW + 'T12:00Z') + 5 * 86400e3).toISOString().slice(0, 10);
+  assert.equal((await stud('PUT', gh('karten.json'), { message: 'x', content: b64(JSON.stringify({ karten: { 'VWL|Markt': { f: 'Markt', b: 'x', box: 1, faellig: heuteW }, 'VWL|Preis': { f: 'Preis', b: 'x', box: 3, faellig: in5 } } })) })).status, 201);
+  assert.equal((await stud('PUT', gh('noten.json'), { message: 'x', content: b64(JSON.stringify({ pruefungen: [{ fach: 'VWL', datum: in5 }], proben: [{ id: 'p1', fach: 'VWL', datum: heuteW, punkte: 9, max: 10 }, { id: 'p2', fach: 'VWL', datum: heuteW, punkte: 4, max: 10 }, { id: 'p3', fach: 'VWL', datum: heuteW, punkte: 10, max: 10 }] })) })).status, 201);
+  assert.deepEqual((await stud('POST', '/api/campus/karte', { id: 'VWL|Markt' })).j, { gezaehlt: true });
+  assert.deepEqual((await stud('POST', '/api/campus/karte', { id: 'VWL|Markt' })).j, { gezaehlt: false }, 'erst wieder, wenn der Wiederholplan es erlaubt');
+  assert.deepEqual((await stud('POST', '/api/campus/karte', { id: 'VWL|Preis' })).j, { gezaehlt: false }, 'noch nicht fällig');
+  assert.deepEqual((await stud('POST', '/api/campus/karte', { id: 'VWL|Gibtsnicht' })).j, { gezaehlt: false });
+  assert.deepEqual((await stud('POST', '/api/campus/klausur', { id: 'p2' })).j, { gezaehlt: false }, 'nicht bestanden');
+  assert.deepEqual((await stud('POST', '/api/campus/klausur', { id: 'p1' })).j, { gezaehlt: true });
+  assert.deepEqual((await stud('POST', '/api/campus/klausur', { id: 'p3' })).j, { gezaehlt: false }, 'höchstens eine am Tag');
+  v = (await verdienst(v.ereignisse[1].id)).j;
+  assert.deepEqual(v.ereignisse.map(e => [e.art, e.fach, e.pruefung_in, e.note]), [['karte', 'VWL', 5, null], ['klausur', 'VWL', 5, 1]]);
+  assert.equal((await person()('POST', '/api/check', { fach: 'VWL', datum: '2026-11-09', nr: 0, antwort: 'x'.repeat(20) })).status, 401);
+  // Export holt den Spielstand dazu, Löschen ruft den Spielserver
+  const keksS = (await fetch(BASIS + '/api/anmelden', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BASIS }, body: JSON.stringify({ email: smail, passwort: 'campus-passwort-1' }) })).headers.getSetCookie()[0].split(';')[0];
+  const zipS = entpacken(Buffer.from(await (await fetch(BASIS + '/api/export', { headers: { Cookie: keksS } })).arrayBuffer()));
+  assert.deepEqual(JSON.parse(zipS['campus.json']), { name: 'Spielstand', taler: 7 });
+  assert.equal(JSON.parse(zipS['konto.json']).campus_verdienst.length, 4);
+  assert.ok(campusRufe.includes(`GET /internal/campus/export/${sid}`));
+  assert.equal((await stud('POST', '/api/konto-loeschen', { passwort: 'campus-passwort-1' })).status, 200);
+  assert.ok(campusRufe.includes(`DELETE /internal/campus/user/${sid}`), 'Spielstand wird mitgelöscht');
+  assert.equal((await fetch(`${BASIS}/api/campus/verdienst?konto=${sid}`)).status, 404);
+  console.log('Campus-Anbindung: ok');
 } catch (e) {
   console.error(log);
   throw e;
 } finally {
-  server.kill(); attrappe.close();
+  server.kill(); attrappe.close(); campus.close();
   await new Promise(ok => server.on('exit', ok));
   rmSync(ordner, { recursive: true, force: true });
 }
