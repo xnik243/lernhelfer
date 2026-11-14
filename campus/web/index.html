@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#242428">
+<title>Campus</title>
+<link rel="stylesheet" href="hud.css?v=__V__">
+<link rel="stylesheet" href="inventar.css?v=__V__">
+</head>
+<body>
+<canvas id="c" aria-label="Campus, die gemeinsame Lernwelt"></canvas>
+<div id="plates" aria-hidden="true"></div>
+<div id="zahlen" aria-hidden="true"></div>
+
+<div id="hud" hidden>
+  <div id="oben">
+    <button id="b-menu" class="chip" type="button" aria-label="Menü öffnen (Esc)"><kbd>[ESC]</kbd> Menü</button>
+    <button id="b-chat" class="chip" type="button" aria-label="Chat öffnen (T)"><kbd>[T]</kbd> Chat</button>
+    <button id="b-kamera" class="chip" type="button" aria-label="Kamera wechseln (F5)"><kbd>[F5]</kbd> Kamera</button>
+    <button id="b-sky" class="chip" type="button" aria-label="SkyBlock-Menü öffnen (M)"><kbd>[M]</kbd> SkyBlock-Menü</button>
+    <button id="b-fund" class="chip" type="button" hidden>1 Fund</button>
+    <button id="stash-abzeichen" class="chip" type="button" hidden></button>
+    <span class="chip leise" id="technik"></span>
+  </div>
+  <div id="zahltag" role="status" hidden></div>
+  <div id="toasts" role="status" aria-live="polite"></div>
+  <div id="log" aria-live="polite"></div>
+  <div id="kreuz" aria-hidden="true"></div>
+  <div id="ring" aria-hidden="true" hidden></div>
+  <div id="hinweis" aria-live="polite" hidden></div>
+  <aside id="tafel" aria-label="Anzeigetafel"></aside>
+  <div id="boss" class="leiste-balken" role="status" hidden><i></i><span></span></div>
+  <div id="tod" role="alert" hidden><b>Besiegt!</b><span>Du wirst wiederbelebt – nichts geht verloren. Kurz schützt dich ein Schild.</span></div>
+  <div id="unten">
+    <div id="aktion" class="weg" aria-live="polite"></div>
+    <div id="xp" class="leiste-balken" aria-hidden="true"><i></i><span></span></div>
+    <div id="lebenmana">
+      <div id="hp" class="leiste-balken" aria-hidden="true" hidden><i></i><span></span></div>
+      <div id="mana" class="leiste-balken" aria-hidden="true"><i></i><span></span></div>
+    </div>
+    <div id="leiste" role="listbox" aria-label="Schnellleiste"></div>
+  </div>
+  <div id="dialog" class="karte" role="dialog" aria-label="Gespräch" hidden></div>
+  <div id="chat" class="karte" role="dialog" aria-label="Chat" hidden>
+    <button class="zu" type="button" aria-label="Chat schließen">X</button>
+    <div id="chat-reiter" role="tablist"></div>
+    <div id="chat-log" class="tief" aria-live="polite"></div>
+    <div class="reihe"><input id="chat-text" type="text" maxlength="160" autocomplete="off" enterkeyhint="send" aria-label="Nachricht oder /Befehl"><button id="chat-senden" class="knopf klein" type="button">Senden</button></div>
+  </div>
+  <div id="touch" hidden>
+    <div class="stick" id="s-links"><i></i></div>
+    <div class="stick" id="s-rechts"><i></i></div>
+    <div id="tasten">
+      <button type="button" id="t-abbau">Abbauen</button>
+      <button type="button" id="t-setzen">Setzen</button>
+      <button type="button" id="t-e">[E]</button>
+      <button type="button" id="t-sprung">Springen</button>
+      <button type="button" id="t-spruch">Chat</button>
+      <button type="button" id="t-menue">Menü</button>
+      <button type="button" id="t-inv">Inventar</button>
+    </div>
+  </div>
+  <div id="sprueche" class="karte" hidden></div>
+</div>
+
+<div id="menu" class="karte" role="dialog" aria-label="SkyBlock-Menü" hidden>
+  <div class="kopfzeile">
+    <button id="menu-zurueck" class="knopf klein" type="button">◀ Übersicht</button>
+    <h2 id="menu-titel">SkyBlock-Menü</h2>
+  </div>
+  <button id="menu-zu" class="zu" type="button" aria-label="Menü schließen">X</button>
+  <div id="inhalt" class="tief"></div>
+</div>
+
+<div id="inventar" class="karte" role="dialog" aria-label="Inventar" hidden></div>
+
+<div id="uebergang" aria-hidden="true"></div>
+<div id="rand" aria-hidden="true"></div>
+<div id="drehen" aria-live="polite">Bitte dreh dein Gerät quer.</div>
+
+<div id="start">
+  <div class="karte">
+    <h1>Campus</h1>
+    <p id="start-text">Die Welt wird geladen …</p>
+    <p id="start-hilfe" hidden>
+      <b>Am Computer:</b> W A S D laufen, Leertaste springen, Maus umsehen, linke Maustaste halten = abbauen, rechte = setzen, E sprechen/öffnen (ohne Ziel: Inventar), I Inventar, J Questbuch, 1–9 Leiste, M oder Tab SkyBlock-Menü, T Chat, F5 Kamera, Esc Menü (Tasten frei belegbar).<br>
+      <b>Am iPad:</b> linker Daumen läuft, rechter Daumen schaut, „Abbauen“ halten (schlägt auch zu), [E] spricht mit Personen, „Inventar“ öffnet Rucksack und Ausrüstung.
+    </p>
+    <button id="los" class="knopf voll" type="button" hidden>Spielen</button>
+    <p><a href="hilfe">So funktioniert Campus</a> · <a href="/">Zurück zum Lernhelfer</a></p>
+  </div>
+</div>
+<script type="module" src="hud.js?v=__V__"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+//! Campus: geteilte Regeln, Welt-Mathematik und Protokoll für Server und Browser.
+pub mod blueprints;
+pub mod combat;
+pub mod content;
+pub mod economy;
+pub mod enchanting;
+pub mod enchants_data;
+pub mod equipment_data;
+pub mod farming;
+pub mod farming_data;
+pub mod inventory;
+pub mod items;
+pub mod mobs_data;
+pub mod questline_data;
+pub mod rpg;
+pub mod stats;
+pub mod mesh;
+pub mod proto;
+pub mod skyblock;
+pub mod time;
+pub mod world;

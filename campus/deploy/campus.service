@@ -1,0 +1,23 @@
+[Unit]
+Description=Campus (3D-Lernwelt zum Lernhelfer)
+After=network.target lernhelfer.service
+
+[Service]
+User=campus
+Environment=CAMPUS_PORT=8090
+Environment=CAMPUS_DB=/var/lib/campus/campus.db
+Environment=CAMPUS_WEB=/opt/campus/web
+Environment=CAMPUS_LH=127.0.0.1:8080
+ExecStart=/opt/campus/bin/campus-server
+Restart=always
+RestartSec=2
+MemoryMax=400M
+Nice=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/campus
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,63 @@
+/* Campus – Inventar, Truhen, Ständer, Handel, Verzaubern. Gleiche Voxel-Sprache wie hud.css (eckig, Fasen, Monospace). */
+#inventar { position: fixed; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 20px)); max-height: calc(100dvh - 20px);
+  overflow-y: auto; padding: 12px; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+#inventar.handel { width: min(640px, calc(100vw - 20px)); }
+.inv-kopf { margin: 0 44px 10px 0; font-size: 1.05rem; color: var(--gold); }
+.inv-titel { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 4px; color: var(--gold); font-size: .9rem; }
+.inv-gitter { display: grid; grid-template-columns: repeat(9, minmax(0, 52px)); gap: 2px; margin-bottom: 6px; }
+.inv-gitter.leiste { margin-top: 0; }
+.inv-gitter .feld, .handel-gitter .feld, .inv-gear .feld { width: 100%; }
+.feld.weg > * { opacity: .3; }
+.feld.gehalten { outline: 2px solid var(--gold); outline-offset: -2px; }
+.inv-leer { font-style: normal; color: #4a4a54; font-size: .8rem; text-shadow: none; }
+
+/* Ausrüstung links, Figur in der Mitte, Talismane und Werte rechts */
+.inv-oben { display: grid; grid-template-columns: 52px minmax(120px, 180px) 52px 1fr; gap: 8px; align-items: start; margin-bottom: 6px; }
+.inv-gear { display: grid; gap: 2px; }
+.inv-figur canvas { position: static; display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; background: radial-gradient(#3a3a44, #18181c);
+  border: 3px solid; border-color: var(--fase-innen); cursor: grab; touch-action: none; }
+.inv-werte { display: grid; gap: 2px; align-content: start; font-size: .8rem; color: var(--leise); font-weight: 500; }
+.inv-werte b { color: var(--text); }
+.inv-set { margin: 4px 0; padding: 4px 6px; color: var(--text); background: #3a3214; border: 2px solid; border-color: #ffe27a #6a4c0a #6a4c0a #ffe27a; }
+.inv-set b { color: var(--gold); }
+.inv-fuss { margin: 8px 0 0; }
+@media (max-width: 520px) {
+  .inv-oben { grid-template-columns: 44px 1fr 44px; }
+  .inv-werte { grid-column: 1 / -1; grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Stapel am Zeiger und Tooltip */
+#inv-zeiger { position: fixed; left: 0; top: 0; z-index: 40; width: 44px; height: 44px; display: grid; place-items: center; pointer-events: none; }
+#inv-zeiger > b { position: absolute; right: 0; bottom: 0; font-size: .75rem; color: #fff; }
+#inv-tip { position: fixed; left: 0; top: 0; z-index: 41; pointer-events: none; max-width: min(280px, 90vw); }
+.tip { display: grid; gap: 2px; padding: 8px 10px; background: rgba(22, 10, 32, .96); border: 3px solid; border-color: #6a3aa8 #2a1040 #2a1040 #6a3aa8; font-size: .82rem; font-weight: 500; }
+.tip-name { font-size: .95rem; font-weight: 800; }
+.tip-art { font-size: .75rem; letter-spacing: .04em; }
+.tip .r0 { color: #fff; } .tip .r1 { color: #6ea8ff; } .tip .r2 { color: #c38bff; } .tip .r3 { color: #ffbb55; }
+.tip-bonus { color: #7dff8a; }
+.tip-ench { color: #8fc0ff; }
+.tip-set { color: var(--gold); }
+.tip-lore { color: var(--leise); }
+.tip-wert { color: var(--gold); margin-top: 2px; }
+
+/* Beutel-Abzeichen */
+#stash-abzeichen { position: fixed; left: 50%; top: max(96px, calc(env(safe-area-inset-top) + 88px)); transform: translateX(-50%); z-index: 6; max-width: min(92vw, 460px);
+  color: var(--gold); border-color: #ffe27a #6a4c0a #6a4c0a #ffe27a; background: #3a3214; animation: stash 1.2s steps(4) infinite alternate; }
+@keyframes stash { to { box-shadow: 0 0 10px #ffd34d; } }
+
+/* Handel: zwei Seiten 4×3 */
+.handel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.handel-gitter { display: grid; grid-template-columns: repeat(4, minmax(0, 52px)); gap: 2px; margin-bottom: 6px; }
+.handel-gitter span.feld { cursor: default; }
+.handel-bereit { color: var(--gruen); font-weight: 800; }
+#handel-uhr { color: var(--gold); }
+@media (max-width: 480px) { .handel { grid-template-columns: 1fr; } }
+
+/* Verzaubern */
+.verzaubern .verz-wahl { margin: 8px 0; max-width: 320px; }
+.verzaubern .verz-wahl .tip { background: none; border: 0; padding: 0; }
+.stufen { display: flex; gap: 3px; }
+.stufen i { font-style: normal; min-width: 26px; padding: 0 3px; text-align: center; font-size: .72rem; color: #55555f; background: var(--tief); border: 2px solid; border-color: var(--fase-innen); }
+.stufen i.an { color: #fff; background: #4a2c7a; border-color: #c38bff #2a1040 #2a1040 #c38bff; }
+
+@media (prefers-reduced-motion: reduce) { #stash-abzeichen { animation: none; } }
