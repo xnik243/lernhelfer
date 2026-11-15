@@ -457,6 +457,11 @@ impl Game {
         let max = if p.stats.max_hp > 0.0 { p.stats.max_hp } else { campus_shared::stats::BASE_HP };
         p.hp = max;
         p.shield_until = now + cb::SHIELD_MS;
+        if p.inst.is_some() {
+            // Arena/Katakomben: eigene Wiederbelebung (Tode zählen für die Note), kein Sprung zur Zitadelle
+            self.send(id, &S2C::Health { hp: max, max, shield_ms: cb::SHIELD_MS as u32 });
+            return self.inst_died(id, now);
+        }
         let s = world::SPOTS[4];
         self.spawn_at(id, s.1, s.2);
         self.hud(id, json!({ "t": "tod" }));
@@ -582,7 +587,7 @@ impl Game {
         }
     }
     /// Beute für einen Empfänger: Drops (Promille), Taler, Gesellschaft-EP, Questziel.
-    fn loot(&mut self, uid: u32, kind: u8, at: [f32; 3]) {
+    pub(crate) fn loot(&mut self, uid: u32, kind: u8, at: [f32; 3]) {
         let Some(def) = rpg::mob(kind) else { return };
         let mut items: Vec<u16> = Vec::new();
         for &(item, n, chance) in def.drops {
@@ -594,7 +599,7 @@ impl Game {
             }
         }
         let st = self.players.get(&uid).map(|p| p.stats).filter(|s| s.max_hp > 0.0).unwrap_or_else(|| self.stats(uid));
-        let taler = (def.taler as f32 * (1.0 + st.taler_bonus / 100.0)).round().max(0.0) as i64;
+        let taler = (def.taler as f32 * (1.0 + st.taler_bonus / 100.0)).round().max(0.0) as i64 * self.taler_mult();
         let _ = self.pay(uid, taler, "kampf");
         let _ = self.add_xp(uid, SK_KAMPF, def.xp);
         self.hud(uid, json!({ "t": "aktion", "text": format!("{} besiegt! +{taler} Taler | +{} Gesellschaft-EP", def.name, def.xp) }));

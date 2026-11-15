@@ -38,6 +38,9 @@ pub enum C2S {
     Attack { mob: u32 },
     /// Fernkampf mit gehaltenem Bogen/Stab in Blickrichtung (Stab kostet Fokus-Mana).
     Shoot { dir: [f32; 3] },
+    // ---------- Phasen 21–25 (angehängt) ----------
+    /// Architekten-Stab (nur Verwaltung, der Server prüft): op 1 = Pos1 (Linksklick), 2 = Pos2 (Rechtsklick) auf diesen Block.
+    Arch { op: u8, x: i16, y: i16, z: i16 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -111,6 +114,19 @@ pub enum S2C {
     Shot { from: [f32; 3], to: [f32; 3], kind: u8 },
     /// Beute fliegt sichtbar zur Figur (Magnet); die Gegenstände sind schon gutgeschrieben.
     Drops { at: [f32; 3], items: Vec<u16> },
+    // ---------- Phasen 21–25 (angehängt) ----------
+    /// Alle frei gesetzten NPCs der Verwaltung (bei Anmeldung und nach jeder Änderung; leere Liste = keine).
+    Npcs(Vec<NpcState>),
+}
+
+/// Frei gesetzter NPC: `id` = npc::CUSTOM_NPC_BASE + Nummer (C2S::Talk(id)), `look` = Index in npc::NPC_PRESETS.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NpcState {
+    pub id: u8,
+    pub p: [f32; 3],
+    pub yaw: f32,
+    pub look: u8,
+    pub name: String,
 }
 
 /// Ein Wesen: Lebens-Anteil in Promille, `fl` Bits: 1 getroffen (rot aufblitzen), 2 holt aus (Ansturm), 4 Stoßwelle lädt, 8 besiegt.
@@ -183,5 +199,7 @@ mod tests {
         let m = S2C::Mobs(vec![MobState { id: 1, kind: 2, p: [1.0, 2.0, 3.0], yaw: 0.0, hp: 500, fl: MOB_HURT }; 30]);
         assert!(enc(&m).len() < 1100, "30 Wesen bleiben klein");
         assert!(matches!(dec::<C2S>(&enc(&C2S::Attack { mob: 9 })), Some(C2S::Attack { mob: 9 })));
+        assert_eq!(enc(&C2S::Arch { op: 1, x: 2, y: 3, z: 4 })[0..4], [14, 0, 0, 0]);
+        assert_eq!(enc(&S2C::Npcs(Vec::new()))[0..4], [24, 0, 0, 0]);
     }
 }

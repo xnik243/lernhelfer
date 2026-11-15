@@ -1,0 +1,193 @@
+/* Phasen 21–25: Ereignis-Banner, Architekt, Duell, Katakomben, Foto, Kino. Farben und Kanten aus hud.css. */
+
+/* ---------- Ereignis-Banner (oben Mitte) ---------- */
+#event-banner {
+  position: fixed; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  z-index: 6; padding: 6px 14px; max-width: calc(100vw - 16px); text-align: center;
+  background: var(--flaeche); color: var(--gold); font-weight: 800; pointer-events: none;
+  border: 3px solid; border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold);
+  animation: event-puls 1.6s steps(2, end) infinite;
+}
+#event-banner[hidden] { display: none; }
+@keyframes event-puls { 50% { box-shadow: 0 0 0 3px rgba(255, 211, 77, .35); } }
+
+/* ---------- Architekt-Leiste (oben links unter #oben) ---------- */
+#arch-leiste {
+  position: fixed; top: 52px; left: max(8px, env(safe-area-inset-left)); z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: min(92vw, 540px);
+  padding: 6px 8px; font-size: .85rem; background: var(--flaeche); color: var(--text);
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+#arch-leiste[hidden] { display: none; }
+.arch-pos, .arch-mass { font-weight: 700; white-space: nowrap; color: var(--leise); }
+.arch-pos b, .arch-mass b { color: var(--text); font-weight: 800; }
+.arch-knopf {
+  min-height: 32px; padding: 4px 8px; font-size: .82rem; font-weight: 700; color: var(--text);
+  background: var(--tief); border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+.arch-knopf:active { border-color: var(--dunkel) var(--hell) var(--hell) var(--dunkel); }
+.arch-knopf[disabled] { opacity: .45; cursor: default; }
+.arch-export {
+  box-sizing: border-box; width: min(60ch, 88vw); min-height: 180px; padding: 8px; resize: vertical;
+  font: .8rem/1.35 ui-monospace, Consolas, "Courier New", monospace; white-space: pre; overflow: auto;
+  color: var(--text); background: var(--tief); border: 3px solid; border-color: var(--fase-innen);
+}
+.npc-form { display: grid; gap: 6px; grid-template-columns: 1fr; }
+.npc-form label { display: grid; gap: 2px; font-size: .85rem; color: var(--leise); font-weight: 600; }
+.npc-form input, .npc-form textarea, .npc-form select {
+  box-sizing: border-box; width: 100%; padding: 6px 8px; font: inherit; color: var(--text);
+  background: var(--tief); border: 3px solid; border-color: var(--fase-innen);
+}
+.npc-form textarea { min-height: 70px; resize: vertical; }
+
+/* ---------- Duell-HUD (oben Mitte, nicht modal) ---------- */
+#duell-hud {
+  position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 5;
+  box-sizing: border-box; width: min(94vw, 460px); padding: 10px; color: var(--text);
+  background: var(--flaeche); border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+#duell-hud[hidden] { display: none; }
+.duell-frage { margin: 0 0 8px; font-size: 1.02rem; font-weight: 800; line-height: 1.3; }
+.duell-antworten { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.duell-feld {
+  position: relative; min-height: 52px; padding: 6px 8px; font-weight: 700; font-size: .92rem;
+  text-align: left; color: #fff; text-shadow: 1px 1px 0 rgba(0, 0, 0, .6);
+  border: 3px solid; border-color: rgba(255, 255, 255, .45) rgba(0, 0, 0, .5) rgba(0, 0, 0, .5) rgba(255, 255, 255, .45);
+}
+.duell-feld.a { background: var(--blau); }
+.duell-feld.b { background: var(--gold); color: #1a1408; text-shadow: none; }
+.duell-feld.c { background: var(--gruen); }
+.duell-feld.d { background: var(--lila); }
+.duell-feld.gewaehlt { outline: 3px solid #fff; outline-offset: 1px; }
+.duell-feld.richtig { box-shadow: 0 0 0 3px var(--gruen), 0 0 12px var(--gruen); filter: brightness(1.15); }
+.duell-feld.falsch { background: var(--rot); opacity: .55; text-shadow: none; }
+.duell-zeit { height: 10px; margin: 0 0 8px; background: var(--tief); border: 2px solid; border-color: var(--fase-innen); overflow: hidden; }
+.duell-zeit > i { display: block; height: 100%; width: 100%; background: var(--gold); transform-origin: left center; transition: transform .1s linear; }
+.duell-punkte { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .84rem; color: var(--leise); }
+.duell-spieler { font-weight: 600; white-space: nowrap; }
+.duell-spieler.ich { color: var(--gold); font-weight: 800; }
+.duell-spieler .bot { color: var(--leise); font-weight: 500; }
+.duell-erklaerung { margin: 8px 0 0; font-size: .88rem; color: var(--leise); line-height: 1.35; }
+
+/* Wahl-Fenster (im #dialog) */
+.duell-wahl { display: grid; gap: 10px; }
+.duell-auto {
+  padding: 8px 10px; background: var(--tief); border: 3px solid; border-color: var(--gruen) var(--dunkel) var(--dunkel) var(--gruen);
+}
+.duell-auto b { display: block; color: var(--gruen); }
+.duell-faecher { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.duell-faecher button {
+  min-height: 46px; padding: 6px; font-weight: 800; color: var(--text); background: var(--tief);
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+.duell-faecher button[aria-pressed="true"] { border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold); color: var(--gold); }
+.duell-stufen { display: flex; flex-wrap: wrap; gap: 6px; }
+.duell-stufen button {
+  min-height: 38px; padding: 4px 10px; font-weight: 700; color: var(--text); background: var(--tief);
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+.duell-stufen button[aria-pressed="true"] { color: var(--gold); border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold); }
+.duell-frei { display: grid; gap: 6px; }
+.duell-frei input {
+  box-sizing: border-box; width: 100%; min-height: 38px; padding: 6px 8px; font: inherit; color: var(--text);
+  background: var(--tief); border: 3px solid; border-color: var(--fase-innen);
+}
+.duell-roulette { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.duell-roulette li { padding: 4px 8px; color: var(--leise); background: var(--tief); border-left: 4px solid transparent; }
+.duell-roulette li.aktiv { color: var(--gold); border-left-color: var(--gold); font-weight: 800; background: var(--flaeche); }
+
+/* ---------- Katakomben-HUD (rechts) ---------- */
+#kata-hud {
+  position: fixed; top: 110px; right: max(8px, env(safe-area-inset-right)); z-index: 5;
+  box-sizing: border-box; width: min(40vw, 250px); padding: 8px 10px; color: var(--text); font-size: .85rem;
+  background: var(--flaeche); border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+#kata-hud[hidden] { display: none; }
+.kata-zeile { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin: 2px 0; }
+.kata-zeile span:first-child { color: var(--leise); font-weight: 600; }
+.kata-zeile span:last-child { font-weight: 800; text-align: right; }
+.kata-note {
+  display: block; margin: 4px 0 6px; font-size: 3rem; font-weight: 900; line-height: 1; text-align: center;
+  color: #8a8a92; text-shadow: 2px 2px 0 #000;
+}
+.kata-note.note-c { color: #8a8a92; }
+.kata-note.note-b { color: var(--blau); }
+.kata-note.note-a { color: var(--gruen); }
+.kata-note.note-s { color: var(--gold); }
+.kata-note.note-sp { color: var(--gold); animation: kata-glanz 1.2s ease-in-out infinite alternate; }
+@keyframes kata-glanz {
+  from { text-shadow: 2px 2px 0 #000, 0 0 4px var(--gold); }
+  to { text-shadow: 2px 2px 0 #000, 0 0 14px var(--gold), 0 0 24px #fff3b0; }
+}
+.kata-balken { height: 10px; margin: 4px 0; background: var(--tief); border: 2px solid; border-color: var(--fase-innen); overflow: hidden; }
+.kata-balken > i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .4s steps(4, end); }
+.kata-portal { display: grid; gap: 6px; }
+.kata-stufe {
+  min-height: 44px; padding: 6px 10px; font-weight: 800; text-align: left; color: var(--text); background: var(--tief);
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+.kata-stufe small { display: block; font-weight: 500; color: var(--leise); }
+.kata-stufe[disabled] { opacity: .5; cursor: default; }
+
+/* ---------- Foto-Leiste (unten Mitte) ---------- */
+#foto-leiste {
+  position: fixed; bottom: max(8px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 6;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center;
+  box-sizing: border-box; width: max-content; max-width: calc(100vw - 16px); padding: 6px 8px;
+  background: var(--flaeche); color: var(--text); font-size: .85rem;
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+#foto-leiste[hidden] { display: none; }
+.foto-filter, .foto-knopf {
+  min-height: 36px; padding: 4px 10px; font-weight: 700; color: var(--text); background: var(--tief);
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+}
+.foto-filter[aria-pressed="true"] { color: #1a1408; background: var(--gold); border-color: #fff3b0 #6b5410 #6b5410 #fff3b0; }
+.foto-fokus { width: min(36vw, 150px); accent-color: var(--gold); }
+
+/* ---------- Kino-Balken und Hinweis ---------- */
+#kino { position: fixed; inset: 0; z-index: 7; pointer-events: auto; }   /* fängt Tippen ab: Überspringen per Touch */
+#kino[hidden] { display: none; }
+#kino .kino-balken {
+  position: absolute; left: 0; right: 0; height: 11%; background: #000;
+  animation: kino-ein .9s cubic-bezier(.2, .7, .2, 1) both;
+}
+#kino .kino-balken.oben { top: 0; transform-origin: top center; --von: -100%; }
+#kino .kino-balken.unten { bottom: 0; transform-origin: bottom center; --von: 100%; }
+@keyframes kino-ein { from { transform: translateY(var(--von)); } to { transform: translateY(0); } }
+.kino-hinweis {
+  position: absolute; left: 50%; bottom: calc(11% + 10px); transform: translateX(-50%);
+  padding: 4px 10px; white-space: nowrap; font-size: .85rem; color: var(--text);
+  background: rgba(18, 18, 20, .7); text-shadow: 1px 1px 0 #000;
+}
+
+/* Foto- und Kino-Modus: Oberfläche ausblenden, Foto-Leiste und Kino-Balken bleiben */
+body.foto #hud, body.foto #oben, body.foto #leiste, body.foto #touch, body.foto #plates,
+body.foto #zahlen, body.foto #toasts,
+body.kino #hud, body.kino #oben, body.kino #leiste, body.kino #touch, body.kino #plates,
+body.kino #zahlen, body.kino #toasts { display: none !important; }
+
+/* ---------- Eingabe-Fokus (Tastatur) ---------- */
+#event-banner:focus-visible, #duell-hud button:focus-visible, #kata-hud button:focus-visible,
+#foto-leiste button:focus-visible, #arch-leiste button:focus-visible, .duell-wahl button:focus-visible,
+.kata-portal button:focus-visible {
+  outline: 3px solid var(--gold); outline-offset: 2px;
+}
+
+/* ---------- Handy (Breite ≤ 480 px) ---------- */
+@media (max-width: 480px) {
+  #arch-leiste { top: 96px; left: 8px; right: 8px; max-width: none; }
+  #duell-hud { top: 96px; width: calc(100vw - 16px); }
+  .duell-antworten { gap: 4px; }
+  .duell-feld { min-height: 46px; font-size: .86rem; }
+  #kata-hud { top: auto; bottom: 72px; left: 8px; right: 8px; width: auto; max-width: none; }
+  .kata-note { font-size: 2.2rem; }
+  #foto-leiste { gap: 4px; font-size: .8rem; }
+}
+
+/* ---------- Reduzierte Bewegung ---------- */
+@media (prefers-reduced-motion: reduce) {
+  #event-banner, .kata-note.note-sp, #kino .kino-balken { animation: none; }
+  #kino .kino-balken { transform: none; }
+  .duell-zeit > i, .kata-balken > i { transition: none; }
+}

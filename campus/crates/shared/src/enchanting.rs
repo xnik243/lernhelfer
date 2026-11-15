@@ -17,6 +17,9 @@ pub const K_WEAPON: u8 = 2;
 pub const K_ARMOR: u8 = 4;
 pub const K_TALISMAN: u8 = 8;
 
+/// Stufe VI: nur über einen Folianten (rpg::FOLIANT_VI) aus den Katakomben, nie über `cost` (der Server schreibt sie direkt).
+pub const TIER6: u8 = 6;
+
 pub type Levels = [u8; N_ENCH];
 
 pub fn def(id: u8) -> Option<&'static EnchDef> {

@@ -1,6 +1,11 @@
 // Campus – Bedienoberfläche: Eingaben (Tastatur/Maus und Touch), Menüs, Namensschilder, Töne.
 // Das Spiel selbst (Welt, Grafik, Netz-Protokoll) läuft in Rust/WebAssembly; hier wird nur bedient und angezeigt.
 import * as inventar from './inventar.js?v=__V__';
+import * as musik from './musik.js?v=__V__';
+import * as foto from './foto.js?v=__V__';
+import * as duell from './duell.js?v=__V__';
+import * as katakomben from './katakomben.js?v=__V__';
+import * as architekt from './architekt.js?v=__V__';
 const V = '__V__';
 const $ = id => document.getElementById(id);
 function el(tag, attrs = {}, ...kids) {
@@ -27,7 +32,7 @@ const TOUCH = matchMedia('(pointer: coarse)').matches;
 /* ---------- Einstellungen (nur dieses Gerät, localStorage) ---------- */
 const AKTIONEN = { vor: 'Vorwärts', zurueck: 'Rückwärts', links: 'Links', rechts: 'Rechts', springen: 'Springen', sprinten: 'Sprinten', interagieren: 'Sprechen / Öffnen', menue: 'SkyBlock-Menü', chat: 'Chat öffnen', befehl: 'Befehl (/)', kamera: 'Kamera wechseln', faehigkeit: 'Werkzeug-Fähigkeit' };
 const STANDARD = {
-  v: 2, maus: 1, touch: 1, invertY: false, stuecke: TOUCH ? 6 : 8, fov: 75, fpsMax: 0, aufloesung: 1, grafik: 'auto', himmel: 0, ao: true, wolken: true, partikel: true, laut: 0.8, textur: 16,
+  v: 2, maus: 1, touch: 1, invertY: false, stuecke: TOUCH ? 6 : 8, fov: 75, fpsMax: 0, aufloesung: 1, grafik: 'auto', himmel: 0, ao: true, wolken: true, partikel: true, laut: 0.8, textur: 16, musik: 0.5, wetter: 0,
   tasten: { vor: 'KeyW', zurueck: 'KeyS', links: 'KeyA', rechts: 'KeyD', springen: 'Space', sprinten: 'ShiftLeft', interagieren: 'KeyE', menue: 'KeyM', chat: 'KeyT', befehl: 'Slash', kamera: 'F5', faehigkeit: 'KeyF' },
 };
 let opt = STANDARD;
@@ -42,11 +47,35 @@ function optAnwenden() {
   if (!game) return;
   game.set_options(opt.stuecke, opt.fov, opt.ao, opt.wolken, opt.partikel);
   if (autoStufe < 0) autoStufe = startStufe();
-  game.set_graphics(stufe(), opt.himmel);
+  game.set_graphics(foto.fotoAktiv() ? Math.max(1, stufe()) : stufe(), opt.himmel); // Foto-Modus braucht den Nachbearbeitungs-Durchgang
   ruckel = 0;
+  musik.setLaut(Number(opt.musik) || 0);
+  wetterAnwenden();
   // Eco rechnet mit 75 % der Pixel
   schaerfe = Math.min(devicePixelRatio || 1, TOUCH ? 1.5 : 2) * opt.aufloesung * (stufe() === 0 ? 0.75 : 1);
   groesse();
+}
+/** Wetter: eigene Wahl (1..4 = Klar, Sommerregen, Schneefall, Kirschblüten) oder „Auto“ = was der Server meldet. */
+let wetterServer = 0;
+function wetterAnwenden() {
+  // geschlossene Zonen: drinnen regnet und schneit es nicht
+  const w = (zone === 'Prüfungs-Katakomben' || zone === 'Kristallminen') ? 0 : (opt.wetter ? opt.wetter - 1 : wetterServer);
+  game?.set_weather?.(w);
+  musik.setRegen(w === 1);
+}
+/** 2×-Taler-Event: Banner oben mit Text und Restzeit, verschwindet von selbst. */
+let eventBis = 0, eventText = '', eventUhr = 0;
+function eventZeigen(j) {
+  clearInterval(eventUhr);
+  eventBis = j?.an ? Number(j.bis) || 0 : 0; eventText = String(j?.text || '2× Taler-Event');
+  const zeig = () => {
+    const rest = Math.ceil((eventBis - Date.now()) / 1000), b = $('event-banner');
+    b.hidden = !(rest > 0);
+    if (rest > 0) b.textContent = `${eventText} · noch ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, '0')}`;
+    else clearInterval(eventUhr);
+  };
+  if (eventBis) eventUhr = setInterval(zeig, 1000);
+  zeig();
 }
 /* Shader-Stufe: 0 Eco, 1 Hoch, 2 Ultra, 3 Extrem. „Auto“ wählt nach Gerät und geht bei Ruckeln eine Stufe zurück (nie von selbst hoch). */
 const STUFEN = ['Eco', 'Hoch', 'Ultra', 'Extrem'];
@@ -137,7 +166,11 @@ function ton(art, laut = 1, hoehe = 0, mat = 0) {
     case 'tod': [392, 330, 262].forEach((f, i) => osz('triangle', f, f * 0.98, 0.3, 0.12, i * 0.22)); break;
   }
 }
-const tonAn = () => { if (!ac) try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch {} else if (ac.state === 'suspended') ac.resume(); };
+const tonAn = () => {
+  if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+  try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
+  try { musik.start(ac); musik.setLaut(Number(opt.musik) || 0); musik.setStimmung(musik.stimmungVonZone(zone)); wetterAnwenden(); } catch (e) { console.warn('Musik', e); }
+};
 
 /* ---------- Meldungen ---------- */
 let letzteAbsage = 0;
@@ -208,12 +241,28 @@ function schildTexte(json) {
   });
 }
 
+/** Freie NPCs (Kern-Ereignis `npcs`: [[200+n, Name], …]): Namen an architekt.js, Plaketten NPC_BASE + id neu anlegen. */
+function npcsSetzen(json) {
+  let l = [];
+  try { l = JSON.parse(json || '[]'); } catch {}
+  if (!Array.isArray(l)) l = [];
+  architekt.npcsSetzen(l);
+  for (const [id, p] of schilder) if (id >= NPC_BASE + 200 && id < SIGN_BASE) { p.remove(); schilder.delete(id); spieler.delete(id); }
+  for (const e of l) {
+    const id = Number(e?.[0]);
+    if (!(id >= 200 && id < 256)) continue;
+    spieler.set(NPC_BASE + id, { name: String(architekt.npcName(id) ?? e[1] ?? ''), plate: 0 });
+    schild(NPC_BASE + id);
+  }
+}
+
 function schild(id) {
   const sp = spieler.get(id);
   let p = schilder.get(id);
   if (!p) { p = el('div', { class: 'plate', hidden: true }, el('em'), el('small'), el('b')); schilder.set(id, p); $('plates').append(p); }
   const c = C(sp.plate), [blase, titel, name] = p.children;
-  if (id >= NPC_BASE) { // Personen: erstes Wort goldener Titel, Rest weißer Name
+  if (id >= NPC_BASE + 200) { titel.textContent = ''; name.textContent = sp.name; } // freie NPCs (Architekt): Name unverändert
+  else if (id >= NPC_BASE) { // Personen: erstes Wort goldener Titel, Rest weißer Name
     const w = sp.name.split(' ');
     titel.textContent = w.length > 1 ? w[0] : ''; name.textContent = w.length > 1 ? w.slice(1).join(' ') : sp.name;
   } else {
@@ -264,12 +313,16 @@ function ereignis(k, a, b, s) {
     case 'portal': ton(9); uebergang(true); if (s) aktionsleiste(`Reise: ${s}`); break;
     case 'launch': ton(11); if (s) aktionsleiste(`Sprungpolster: ab zu ${s}!`); break;
     case 'void': ton(12); $('rand').classList.add('an'); setTimeout(() => $('rand').classList.remove('an'), 1400); break;
-    case 'zone': if (s && s !== zone) { zone = s; tafel(); aktionsleiste(`~ ${zoneName()} ~`); } break;
+    case 'zone': if (s && s !== zone) { zone = s; tafel(); aktionsleiste(`~ ${zoneName()} ~`); musik.setStimmung(musik.stimmungVonZone(s)); wetterAnwenden(); foto.kinoPruefen(s); } break;
+    case 'kino': foto.kino(!!a, b); if (a) { game?.mine?.(false); eingabe.reset(); } break;
+    case 'npcs': npcsSetzen(s); break;
     case 'werkbank': menu(true, 'Werkbank'); break;
     case 'questbrett': menu(true, 'Quests'); break;
     case 'trainer': menu(true, 'Fähigkeiten'); break;
     case 'hud': {
-      const j = JSON.parse(s);
+      let j = null;
+      try { j = JSON.parse(s); } catch {}
+      if (!j || typeof j !== 'object') break;
       if (j.t === 'nein') ereignis('nein', 0, 0, j.text);
       else if (j.t === 'toast') { toast(j.text, j.art || ''); if (j.art === 'gut') ton(6); ladeSky(); }
       else if (j.t === 'oeffne') { if (j.reiter === 'Inventar') inventar.oeffneInventar(); else menu(true, j.reiter); }
@@ -280,6 +333,11 @@ function ereignis(k, a, b, s) {
       else if (j.t === 'handel_anfrage') frageToast(`${j.name} möchte mit dir handeln.`, () => api('trade/accept', { von: j.von }).catch(fehler));
       else if (j.t === 'werte') { sky.werte = j.werte; werteAnwenden(); tafel(); }
       else if (j.t === 'boss') bossZeigen(j);
+      else if (j.t === 'wetter') { wetterServer = Math.min(3, Math.max(0, j.art | 0)); wetterAnwenden(); }
+      else if (j.t === 'event') eventZeigen(j);
+      else if (j.t === 'duell' || j.t === 'duell_einladung') duell.duellHud(j);
+      else if (j.t === 'katakomben' || j.t === 'weise') katakomben.katakombenHud(j);
+      else if (j.t === 'architekt' || j.t === 'architekt_export' || j.t === 'architekt_npc' || j.t === 'npc') architekt.architektHud(j);
       else if (j.t === 'tod') todZeigen();
       else if (j.t === 'tele') { ton('whoosh'); uebergang(true); uebergang(false); aktionsleiste('Teleportiert!'); }
       else if (j.t === 'kapitel') {
@@ -315,10 +373,13 @@ function ereignis(k, a, b, s) {
 /** Anzeigetafel rechts: Zone, Taler, Splitter, Treibstoff, aktuelles Ziel. */
 /** Hinweis am Fadenkreuz: „[E] Sprechen: Dekan Weber“ / „[E] Öffnen: Truhe“ (versteckt, solange ein Fenster offen ist). */
 let hinweisDaten = [0, 0, ''];
+// [E]-Texte der Blöcke 123–145 (world::USE_NEW)
+const HINWEIS_NEU = { 123: 'Katakomben betreten', 124: 'Lern-Duell starten', 131: 'Prisma drehen', 132: 'Prisma drehen', 139: 'Weisen befragen', 140: 'Truhe öffnen', 142: 'Truhe öffnen', 143: 'Truhe öffnen', 141: 'Beute nehmen', 145: 'Blut-Portal betreten' };
 function hinweisZeigen() {
   const [a, b, s] = hinweisDaten, h = $('hinweis');
   h.hidden = !a || !!offenesFenster();
-  if (!h.hidden) h.replaceChildren(el('kbd', {}, `[${TOUCH ? 'E' : tname(opt.tasten.interagieren)}]`), ` ${a === 1 ? 'Sprechen' : a === 3 ? 'Trainieren' : b === 77 ? 'Benutzen' : b === 103 || b === 107 ? 'Lesen' : b === 120 ? 'Ausrüsten' : b === 121 ? 'Verzaubern' : b === 122 ? 'Beschwören' : 'Öffnen'}: `, el('b', {}, s));
+  if (!h.hidden && a === 2 && HINWEIS_NEU[b]) h.replaceChildren(el('kbd', {}, `[${TOUCH ? 'E' : tname(opt.tasten.interagieren)}]`), ' ', el('b', {}, HINWEIS_NEU[b]));
+  else if (!h.hidden) h.replaceChildren(el('kbd', {}, `[${TOUCH ? 'E' : tname(opt.tasten.interagieren)}]`), ` ${a === 1 ? 'Sprechen' : a === 3 ? 'Trainieren' : b === 77 ? 'Benutzen' : b === 103 || b === 107 ? 'Lesen' : b === 120 ? 'Ausrüsten' : b === 121 ? 'Verzaubern' : b === 122 ? 'Beschwören' : 'Öffnen'}: `, el('b', {}, a === 1 && b >= 200 ? s || String(architekt.npcName(b) ?? '') : s));
 }
 const zoneName = () => zone === 'Privatinsel' && hier.id ? hier.name : zone || (hier.id ? hier.name : 'Campus-Hub');
 function tafel() {
@@ -350,7 +411,7 @@ function hpZeigen(hp, max, schildMs) {
 function bossZeigen(j) {
   const b = $('boss');
   clearTimeout(bossUhr);
-  if (j.aus) { b.hidden = true; toast('Der Große Prüfungs-Archon ist besiegt!', 'gut'); ton(14); return; }
+  if (j.aus) { b.hidden = true; if (j.weg) return; toast(`${j.name || 'Der Große Prüfungs-Archon'} ist besiegt!`, 'gut'); ton(14); return; }
   b.hidden = false;
   b.style.setProperty('--f', (j.max > 0 ? Math.max(0, j.hp / j.max) : 0).toFixed(3));
   b.lastChild.textContent = `${j.name} · Phase ${(j.phase | 0) + 1} · ${zahl(Math.ceil(j.hp))} / ${zahl(Math.round(j.max))}`;
@@ -580,6 +641,7 @@ const KACHELN = [
   ['Questbuch', 'Questbuch', '[J] · 12 Kapitel', 'stern'],
   ['Insel-Kompass', 'Insel-Besuche', 'Orte & Top-Inseln', 'kompass'],
   ['Verzaubern', 'Verzaubern', 'Am Altar der Bibliothek', [120, 80, 200]],
+  ['Duell-Arena', 'Duell-Arena', 'Lern-Duell & Rangliste', [70, 110, 220]],
   ['Lernhelfer', 'Lernhelfer-Belohnungen', 'Lern-Energie & Serie', [60, 100, 200]],
   ['Fähigkeiten', '7 Fach-Skills', 'Stufe 1–50 · Splitter', [130, 90, 190]],
   ['Sammlungen', 'Sammlungen', 'Stufen I–IX', [226, 140, 50]],
@@ -699,6 +761,10 @@ const SEITEN = {
     const r = await inventar.verzaubernSeite();
     return r instanceof Node ? [r] : [...(r || [])];
   },
+  async 'Duell-Arena'() {
+    const r = await duell.ranglisteSeite();
+    return r instanceof Node ? [r] : [...(r || [])];
+  },
   async Minions() {
     await ladeSky();
     const eigene = [...inv.keys()].filter(i => i >= 1200 && i < 1400);
@@ -780,6 +846,9 @@ const SEITEN = {
       regler('Bildrate', 'fpsMax', 0, 2, 1, v => ['Max', '60', '30'][v]), regler('Auflösung', 'aufloesung', 0.5, 1, 0.05, v => `${Math.round(v * 100)} %`),
       schalter('Weiche Eckenschatten', 'ao'), schalter('Wolken', 'wolken'), schalter('Partikel', 'partikel'),
       el('h2', {}, 'Ton'), regler('Lautstärke', 'laut', 0, 1, 0.05, v => `${Math.round(v * 100)} %`),
+      regler('Musik-Lautstärke', 'musik', 0, 1, 0.05, v => v > 0 ? `${Math.round(v * 100)} %` : 'Aus'),
+      el('h2', {}, 'Wetter'), wahl('Wetter', 'wetter', [[0, 'Auto'], [1, 'Klar'], [2, 'Sommerregen'], [3, 'Schneefall'], [4, 'Kirschblüten']]),
+      el('p', { class: 'meta' }, '„Auto“ zeigt das Wetter, das die Verwaltung für alle einstellt. F8 öffnet den Foto-Modus.'),
       el('button', { class: 'knopf klein', type: 'button', onclick: () => { opt = structuredClone(STANDARD); optSpeichern(); texturAnwenden(); zeige('Einstellungen'); } }, 'Alles zurücksetzen')];
   },
   Laden() {
@@ -1095,11 +1164,14 @@ function eingabeEinrichten() {
       if (e.code !== 'Escape') { for (const a in opt.tasten) if (opt.tasten[a] === e.code) opt.tasten[a] = opt.tasten[warteTaste]; opt.tasten[warteTaste] = e.code; optSpeichern(); }
       warteTaste = null; zeige('Einstellungen'); return;
     }
+    // Foto-Modus und Kamerafahrt zuerst (nicht, während jemand in ein Textfeld tippt)
+    if (!e.target.closest?.('textarea, select, input:not([type=range])') && foto.taste(e)) return;
+    if (e.code === 'F8') { e.preventDefault(); if (!$('hud').hidden) { if (offenesFenster()) modal.zu(); foto.fotoUmschalten(); } return; }
     if (e.target.id === 'chat-text') { if (e.code === 'Enter') { e.preventDefault(); chatSenden(); } else if (e.code === 'Escape') modal.zu(); return; }
     if (e.code === 'Escape') {
       e.preventDefault();
       if (performance.now() - menuDurchZeiger < 400) return; // dasselbe Esc hat schon über den Zeigerverlust das Menü geöffnet
-      if (offenesFenster()) modal.zu(); else menu(true, 'Einstellungen');
+      if (offenesFenster()) modal.zu(); else if (foto.fotoAktiv()) foto.fotoUmschalten(); else menu(true, 'Einstellungen');
       return;
     }
     if (e.target.closest?.('input, select, textarea')) return;
@@ -1134,6 +1206,7 @@ function eingabeEinrichten() {
     c.addEventListener('mousedown', e => {
       tonAn();
       if (document.pointerLockElement !== c) return zeigerFangen();
+      if (foto.fotoAktiv()) return; // Freikamera: nichts abbauen oder setzen
       if (e.button === 0) { if (game.mine) game.mine(true); else game.act(0); }
       else if (e.button === 2) game.act(1);
     });
@@ -1143,7 +1216,7 @@ function eingabeEinrichten() {
     document.addEventListener('pointerlockchange', () => {
       if (document.pointerLockElement === c) return;
       game?.mine?.(false); eingabe.reset();
-      if (!offenesFenster() && !$('hud').hidden) { menu(true, 'Einstellungen'); menuDurchZeiger = performance.now(); }
+      if (!offenesFenster() && !$('hud').hidden && !foto.fotoAktiv()) { menu(true, 'Einstellungen'); menuDurchZeiger = performance.now(); }
     });
     return;
   }
@@ -1197,6 +1270,7 @@ function bild(t) {
   zuletzt = t;
   eingabe.senden(dt);
   game.frame(t);
+  foto.nachBild();
   // läuft es dauerhaft unter 50 Bildern, wird die Auflösung schrittweise gesenkt (wichtig auf älteren iPads)
   const fps = game.info(0);
   // Auto: unter 42 Bildern für 4 s (Tab sichtbar) → eine Shader-Stufe tiefer
@@ -1240,6 +1314,8 @@ async function start() {
   $('start-text').textContent = `Angemeldet als ${me.name}. Die Welt wird geladen …`;
   inventar.initInventar({ api, el, $, ton, toast, fehler, nameVon, icon, reg: () => reg, me: () => me, game: () => game,
     modalAuf: id => modal.auf(id), modalZu: () => modal.zu(), ladeMich, TOUCH });
+  const ctx = { api, el, $, ton, toast, fehler, modal, zuKnopf, menu, TOUCH, game: () => game, me: () => me, reg: () => reg, opt: () => opt, optSpeichern, optAnwenden, stufe };
+  foto.initFoto(ctx); duell.initDuell(ctx); katakomben.initKatakomben(ctx); architekt.initArchitekt(ctx);
   try {
     const mod = await import(`./pkg/campus_client.js?v=${V}`);
     await mod.default({ module_or_path: `pkg/campus_client_bg.wasm?v=${V}` });
@@ -1256,6 +1332,8 @@ async function start() {
   $('b-menu').onclick = () => offenesFenster() ? modal.zu() : menu(true, 'Einstellungen');
   $('b-sky').onclick = () => menu(true);
   $('b-kamera').onclick = kameraWechsel;
+  $('b-foto').onclick = () => { tonAn(); if (offenesFenster()) modal.zu(); foto.fotoUmschalten(); };
+  document.addEventListener('visibilitychange', () => musik.pause(document.hidden));
   $('b-chat').onclick = () => chatAuf($('chat').hidden);
   $('chat-senden').onclick = chatSenden;
   $('chat').querySelector('.zu').onclick = () => modal.zu();

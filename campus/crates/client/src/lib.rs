@@ -4,13 +4,15 @@ mod avatar;
 mod deco;
 mod fx;
 mod gfx;
+mod kino;
 mod world;
 
 use avatar::{Particles, Pose};
 use campus_shared::combat as cb;
 use campus_shared::farming;
 use campus_shared::items::{self, Look};
-use campus_shared::proto::{self, CropState, PlotInfo, SignState, StandState, Warp, C2S, MOB_DEAD, MOB_HURT, S2C};
+use campus_shared::npc;
+use campus_shared::proto::{self, CropState, NpcState, PlotInfo, SignState, StandState, Warp, C2S, MOB_DEAD, MOB_HURT, S2C};
 use campus_shared::rpg;
 use campus_shared::skyblock as sb;
 use campus_shared::world as w;
@@ -168,6 +170,18 @@ pub struct Game {
     crops: Vec<CropState>,
     signs: Vec<SignState>,
     stands: Vec<StandState>,
+    // ---------- Phasen 21–25 ----------
+    wx_next: u8,  // gewünschtes Wetter
+    wx_kind: u8,  // gezeigtes Wetter (blendet über)
+    wx_k: f32,    // Stärke 0..1
+    filter: u8,   // Foto-Filter
+    focal: f32,   // Brennweite in Blöcken, 0 = aus
+    ride: Option<kino::Ride>,
+    free: Option<kino::Free>,
+    architect: bool,
+    selection: Option<([i32; 3], [i32; 3])>, // min, max (einschließlich)
+    speed: f32,
+    npcs: Vec<NpcState>,
 }
 
 fn emote_len(n: u8) -> f32 {
@@ -267,6 +281,17 @@ impl Game {
             crops: Vec::new(),
             signs: Vec::new(),
             stands: Vec::new(),
+            wx_next: 0,
+            wx_kind: 0,
+            wx_k: 0.0,
+            filter: 0,
+            focal: 0.0,
+            ride: None,
+            free: None,
+            architect: false,
+            selection: None,
+            speed: 1.0,
+            npcs: Vec::new(),
         })
     }
 
@@ -279,14 +304,88 @@ impl Game {
     }
     /// Bewegung: x seitwärts, z vorwärts, je -1..1.
     pub fn input(&mut self, x: f32, z: f32, jump: bool, sprint: bool) {
+        if self.ride.is_some() {
+            return; // während der Fahrt ruhen die Eingaben
+        }
+        if let Some(f) = self.free.as_mut() {
+            // Freikamera: die Figur bleibt stehen
+            f.mx = x.clamp(-1.0, 1.0);
+            f.mz = z.clamp(-1.0, 1.0);
+            f.up = jump;
+            f.fast = sprint;
+            return;
+        }
         self.mx = x.clamp(-1.0, 1.0);
         self.mz = z.clamp(-1.0, 1.0);
         self.jump = jump;
         self.sprint = sprint;
     }
     pub fn turn(&mut self, dx: f32, dy: f32) {
+        if self.ride.is_some() {
+            return;
+        }
+        if let Some(f) = self.free.as_mut() {
+            return f.turn(dx, dy);
+        }
         self.yaw -= dx;
         self.pitch = (self.pitch - dy).clamp(-1.55, 1.55);
+    }
+
+    // ---------- Phasen 21–25 ----------
+    /// 0 Klar, 1 Sommerregen, 2 Schneefall, 3 Kirschblüten; blendet je 1 s aus/ein.
+    pub fn set_weather(&mut self, kind: u8) {
+        self.wx_next = kind.min(3);
+    }
+    /// F8-Freikamera an/aus.
+    pub fn set_photo(&mut self, on: bool) {
+        if on && self.free.is_none() {
+            self.skip_cutscene();
+            self.free = Some(kino::Free::new(self.pos + Vec3::Y * EYE, self.yaw, self.pitch));
+            self.halt();
+        } else if !on {
+            self.free = None;
+        }
+    }
+    /// 0 Standard, 1 Retro-Pixel, 2 Goldene Stunde, 3 Kino-Kontrast; `focal` in Blöcken, 0 = aus.
+    pub fn set_filter(&mut self, filter: u8, focal: f32) {
+        self.filter = filter.min(3);
+        self.focal = if focal.is_finite() { focal.clamp(0.0, 64.0) } else { 0.0 };
+    }
+    /// Kamerafahrt 0 Hub-Marktplatz, 1 Zitadelle, 2 Katakomben, 3 Arena; false = gerade nicht möglich.
+    pub fn cutscene(&mut self, id: u8) -> bool {
+        if id > 3 || !self.ready || !self.settled || self.ride.is_some() || self.free.is_some() {
+            return false;
+        }
+        let (mut pts, target) = kino::route(id, self.pos, self.yaw);
+        for p in pts.iter_mut() {
+            *p = self.ride_point(*p);
+        }
+        self.ride = Some(kino::Ride { id, t: 0.0, pts, target });
+        self.halt();
+        js_event("kino", 1.0, id as f64, "");
+        true
+    }
+    pub fn skip_cutscene(&mut self) {
+        if let Some(r) = self.ride.take() {
+            js_event("kino", 0.0, r.id as f64, "");
+        }
+    }
+    /// Architekten-Stab aktiv: linke Taste setzt Pos1, rechte Pos2 (C2S::Arch).
+    pub fn set_architect(&mut self, on: bool) {
+        self.architect = on;
+        if on {
+            self.mining = false;
+            self.attacking = false;
+            self.dig_stop();
+        }
+    }
+    /// Auswahl-Quader (Ecken beliebig, einschließlich) mit leuchtenden Kanten.
+    pub fn set_selection(&mut self, on: bool, x0: i32, y0: i32, z0: i32, x1: i32, y1: i32, z1: i32) {
+        self.selection = on.then(|| ([x0.min(x1), y0.min(y1), z0.min(z1)], [x0.max(x1), y0.max(y1), z0.max(z1)]));
+    }
+    /// Lauf-Tempo-Faktor (Katakomben-Segen), 1.0..=1.5.
+    pub fn set_speed(&mut self, f: f32) {
+        self.speed = if f.is_finite() { f.clamp(1.0, 1.5) } else { 1.0 };
     }
     pub fn select(&mut self, block: u8) {
         self.sel = block;
@@ -437,6 +536,12 @@ impl Game {
     /// 0 = NPC ansprechen (Abbauen läuft über `mine`), 1 = setzen bzw. Werkzeug. Setzen wird sofort angezeigt;
     /// lehnt der Server ab, stellt seine Antwort den Block zurück.
     pub fn act(&mut self, kind: u8) {
+        if self.cam_busy() {
+            return;
+        }
+        if kind == 1 && self.architect {
+            return self.arch_click(2);
+        }
         // Personen ansprechen hat Vorrang vor Blöcken
         if let Some(n) = self.npc_in_sight() {
             return self.talk(n);
@@ -470,6 +575,14 @@ impl Game {
 
     /// Linke Taste bzw. Abbau-Knopf gedrückt (`true`) oder losgelassen (`false`, auch bei Fokusverlust).
     pub fn mine(&mut self, on: bool) {
+        if on && (self.cam_busy() || self.architect) {
+            if !self.cam_busy() {
+                self.arch_click(1);
+            }
+            self.attacking = false;
+            self.mining = false;
+            return self.dig_stop();
+        }
         if on {
             if let Some(n) = self.npc_in_sight() {
                 return self.talk(n);
@@ -492,10 +605,14 @@ impl Game {
 
     /// Taste E: NPC ansprechen, Truhe öffnen, Werkbank oder Questtafel benutzen.
     pub fn interact(&mut self) {
+        if self.cam_busy() {
+            return;
+        }
         match self.prompt_now() {
             (1, n, _) => self.talk(n as u8),
             (2, b, c) => match b as u8 {
                 w::TRUHE | w::SCHATZ | w::GROSSE_TRUHE | w::ALTAR | w::BOSS_ALTAR | w::STAENDER | w::SCHILD => js_send(&proto::enc(&C2S::Chest { x: c[0] as i16, y: c[1] as i16, z: c[2] as i16 })),
+                b if w::USE_NEW.contains(&b) => js_send(&proto::enc(&C2S::Chest { x: c[0] as i16, y: c[1] as i16, z: c[2] as i16 })),
                 w::WERKBANK => js_event("werkbank", 0.0, 0.0, ""),
                 _ => js_event("questbrett", 0.0, 0.0, ""),
             },
@@ -606,6 +723,20 @@ impl Game {
                 self.pitch = 0.0;
                 js_event("teleport", p[0] as f64, p[2] as f64, "");
             }
+            S2C::Npcs(v) => {
+                let mut j = String::from("[");
+                for (k, n) in v.iter().enumerate() {
+                    if k > 0 {
+                        j.push(',');
+                    }
+                    j.push_str(&format!("[{},", n.id));
+                    fx::json_str(&mut j, &n.name);
+                    j.push(']');
+                }
+                j.push(']');
+                js_event("npcs", v.len() as f64, 0.0, &j);
+                self.npcs = v;
+            }
             m => self.rpg_message(m),
         }
     }
@@ -633,7 +764,7 @@ impl Game {
         let below_b = self.world.get(bx, (self.pos.y - 0.05).floor() as i32, bz);
         let below = w::FLAGS[below_b as usize];
         let wet = w::FLAGS[self.world.get(bx, (self.pos.y + 0.4).floor() as i32, bz) as usize] & w::F_LIQUID != 0;
-        let mut speed = if self.sprint { 7.0 } else { 4.6 };
+        let mut speed = (if self.sprint { 7.0 } else { 4.6 }) * self.speed;
         if below & w::F_SPEED != 0 {
             speed *= 1.8;
         }
@@ -826,14 +957,32 @@ impl Game {
         self.parts.update(dt);
         self.fx_step(dt);
         self.world.remesh(&self.gfx, self.pos, 3);
+        (self.wx_kind, self.wx_k) = kino::fade(self.wx_kind, self.wx_next, self.wx_k, dt);
 
         // Kamera
         let (sy, cy) = self.yaw.sin_cos();
         let (sp, cp) = self.pitch.sin_cos();
         let dir = Vec3::new(-sy * cp, sp, -cy * cp);
         let head = self.pos + Vec3::Y * EYE;
+        // Kamerafahrt oder Freikamera übersteuern die normale Kamera
+        let mut cam = None;
+        if let Some(r) = self.ride.as_mut() {
+            let id = r.id;
+            match r.step(dt) {
+                Some(c) => cam = Some(c),
+                None => {
+                    self.ride = None;
+                    js_event("kino", 0.0, id as f64, "");
+                }
+            }
+        } else if let Some(f) = self.free.as_mut() {
+            cam = Some(f.step(dt, head));
+        }
+        let busy = cam.is_some();
         // F5: 0 erste Person, 1 von hinten, 2 von vorn; die Kamera rückt vor Wänden heran
-        let (eye, look) = if self.view == 0 {
+        let (eye, look) = if let Some(c) = cam {
+            c
+        } else if self.view == 0 {
             (head, dir)
         } else {
             let f = Vec3::new(-sy, 0.0, -cy);
@@ -896,13 +1045,13 @@ impl Game {
         }
 
         // Ziel-Feld
-        self.target = if self.ready { self.world.raycast(head, dir, REACH) } else { None };
+        self.target = if self.ready && !busy { self.world.raycast(head, dir, REACH) } else { None };
         self.mine_step(dt);
-        let (pk, pid, _) = self.prompt_now();
+        let (pk, pid, _) = if busy { (0, 0, [0; 3]) } else { self.prompt_now() };
         if (pk, pid) != self.prompt {
             self.prompt = (pk, pid);
             let name = match pk {
-                1 => sb::npc(pid as u8).map_or("", |n| n.name),
+                1 => self.npcs.iter().find(|n| n.id as u32 == pid).map(|n| n.name.as_str()).or_else(|| sb::npc(pid as u8).map(|n| n.name)).unwrap_or(""),
                 2 => w::block(pid as u8).map_or("", |d| d.name),
                 3 => "Fach-Trainer",
                 _ => "",
@@ -912,7 +1061,7 @@ impl Game {
 
         // Würfel-Instanzen: Figuren, Begleiter, Partikel, Rahmen
         self.insts.clear();
-        if self.view != 0 && self.ready {
+        if (self.view != 0 || busy) && self.ready {
             let held = if self.tool != 0 {
                 Some(sb::tool(self.tool).map_or(([150, 150, 160], false, true), |t| (t.rgb, t.mana > 0, true)))
             } else {
@@ -955,6 +1104,21 @@ impl Game {
                 }
             }
         }
+        // frei gesetzte NPCs der Verwaltung (Plakette NPC_BASE + 200 + n)
+        for n in &self.npcs {
+            let p = Vec3::from(n.p);
+            if p.distance_squared(eye) > view * view {
+                continue;
+            }
+            avatar::avatar(&mut self.insts, &npc::preset(n.look), &Pose { pos: p, yaw: n.yaw, walk: 0.0, moving: 0.0, emote: 255, emote_t: 0.0, time: self.time, pet: p, held: None, gear: [0; 8], hurt: 0.0 });
+            let c = vp * (p + Vec3::Y * 2.3).extend(1.0);
+            if c.w > 0.2 && self.plate_buf.len() < PLATES * 4 {
+                let (x, y) = (c.x / c.w, c.y / c.w);
+                if x.abs() < 1.05 && y.abs() < 1.05 {
+                    self.plate_buf.extend_from_slice(&[(NPC_BASE + n.id as u32) as f32, x * 0.5 + 0.5, 0.5 - y * 0.5, c.w]);
+                }
+            }
+        }
         // Marktbewohner: Deko-Figuren auf festen Runden um den Kristallbrunnen
         for k in 0..self.folk.len() {
             let dirn = if k % 2 == 0 { 1.0 } else { -1.0 };
@@ -985,8 +1149,21 @@ impl Game {
                 avatar::minion(&mut self.insts, p, sb::MINIONS[0].rgb, k + 1, self.time);
             }
         }
-        if self.view == 0 && self.ready {
+        if self.view == 0 && self.ready && !busy {
             self.hand(eye, dir);
+        }
+        // Architekten-Auswahl: 12 leuchtende Kanten um min..=max
+        if let Some((a, b)) = self.selection {
+            let lo = Vec3::new(a[0] as f32, a[1] as f32, a[2] as f32);
+            let hi = Vec3::new(b[0] as f32 + 1.0, b[1] as f32 + 1.0, b[2] as f32 + 1.0);
+            let (c, h) = ((lo + hi) * 0.5, (hi - lo) * 0.5);
+            const T: f32 = 0.06;
+            const CYAN: [u8; 3] = [80, 235, 255];
+            for (u, v) in [(-1.0f32, -1.0f32), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
+                avatar::world_box(&mut self.insts, c + Vec3::new(0.0, u * h.y, v * h.z), Vec3::new(2.0 * h.x + T, T, T), CYAN, true);
+                avatar::world_box(&mut self.insts, c + Vec3::new(u * h.x, 0.0, v * h.z), Vec3::new(T, 2.0 * h.y + T, T), CYAN, true);
+                avatar::world_box(&mut self.insts, c + Vec3::new(u * h.x, v * h.y, 0.0), Vec3::new(T, T, 2.0 * h.z + T), CYAN, true);
+            }
         }
         // Zielblock: schwarzer Drahtrahmen, beim Abbauen dazu der Pixel-Riss (beides im Shader, je eine Instanz)
         if let Some((hit, _)) = self.target {
@@ -1090,6 +1267,8 @@ impl Game {
         g.amb = [amb.x, amb.y, amb.z, dusk];
         g.gnd = [gnd.x, gnd.y, gnd.z, g.gnd[3]];
         g.par = [0.0, self.opts.ao as u8 as f32, under as u8 as f32, 0.0];
+        g.wx = [self.wx_kind as f32, if self.opts.particles { self.wx_k } else { 0.0 }, 0.0, 0.0];
+        g.post = [self.filter as f32, self.focal, 0.0, 0.0];
     }
 
     /// Farbige Punktlichter: leuchtende Blöcke in der Nähe, nahe beieinander zu einem Licht zusammengefasst.
@@ -1248,7 +1427,7 @@ impl Game {
         }
         if let Some((hit, _)) = self.target {
             let b = self.world.get(hit[0], hit[1], hit[2]);
-            if matches!(b, w::TRUHE | w::SCHATZ | w::WERKBANK | w::QUESTBRETT | w::GROSSE_TRUHE | w::ALTAR | w::BOSS_ALTAR | w::STAENDER | w::SCHILD) {
+            if matches!(b, w::TRUHE | w::SCHATZ | w::WERKBANK | w::QUESTBRETT | w::GROSSE_TRUHE | w::ALTAR | w::BOSS_ALTAR | w::STAENDER | w::SCHILD) || w::USE_NEW.contains(&b) {
                 return (2, b as u32, hit);
             }
             // Fach-Trainer im Bibliotheks-Turm: Sockel (oder der Block darauf) im Ring um die Turmmitte 393/240
@@ -1352,17 +1531,59 @@ impl Game {
         self.dig_stop();
     }
 
-    /// NPC im Fadenkreuz (bis TALK Blöcke, Abstand Strahl–Körperachse unter 0,7).
+    /// Kamerafahrt oder Freikamera läuft: Spiel-Eingaben ruhen.
+    fn cam_busy(&self) -> bool {
+        self.ride.is_some() || self.free.is_some()
+    }
+    /// Figur anhalten (Fahrt/Freikamera beginnt).
+    fn halt(&mut self) {
+        self.mx = 0.0;
+        self.mz = 0.0;
+        self.jump = false;
+        self.sprint = false;
+        self.mining = false;
+        self.attacking = false;
+        self.dig_stop();
+    }
+    /// Stützpunkt der Fahrt: nur über geladenen Stücken (sonst zur Figur heranziehen) und nicht in der Wand (sonst anheben).
+    fn ride_point(&self, p: Vec3) -> Vec3 {
+        let me = self.pos + Vec3::Y * EYE;
+        let mut q = p;
+        for k in 1..=4 {
+            if self.world.has(q.x.floor() as i32, q.z.floor() as i32) {
+                break;
+            }
+            q = p.lerp(me, k as f32 * 0.25);
+        }
+        for _ in 0..12 {
+            if !w::solid(self.world.get(q.x.floor() as i32, q.y.floor() as i32, q.z.floor() as i32)) {
+                break;
+            }
+            q.y += 1.0;
+        }
+        q
+    }
+    /// Architekten-Stab: angeklickten Block als Pos1 (op 1) bzw. Pos2 (op 2) melden.
+    fn arch_click(&mut self, op: u8) {
+        if let Some((hit, _)) = self.target {
+            self.swing = 0.0;
+            js_send(&proto::enc(&C2S::Arch { op, x: hit[0] as i16, y: hit[1] as i16, z: hit[2] as i16 }));
+        }
+    }
+
+    /// NPC im Fadenkreuz (bis TALK Blöcke, Abstand Strahl–Körperachse unter 0,7); feste und frei gesetzte (id ≥ 200).
     fn npc_in_sight(&self) -> Option<u8> {
         let (eye, d) = (self.pos + Vec3::Y * EYE, self.look_dir());
         let block = self.target.map_or(f32::MAX, |(h, _)| Vec3::new(h[0] as f32 + 0.5, h[1] as f32 + 0.5, h[2] as f32 + 0.5).distance(eye));
-        campus_shared::content::NPCS
-            .iter()
-            .filter_map(|n| {
-                let c = Vec3::from(sb::npc_pos(n)) + Vec3::Y;
+        let fixed = campus_shared::content::NPCS.iter().map(|n| (Vec3::from(sb::npc_pos(n)), n.id));
+        let free = self.npcs.iter().map(|n| (Vec3::from(n.p), n.id));
+        fixed
+            .chain(free)
+            .filter_map(|(p, id)| {
+                let c = p + Vec3::Y;
                 let t = (c - eye).dot(d);
                 let miss = (eye + d * t - c).length();
-                (t > 0.0 && t < TALK && t < block && miss < 0.7).then_some((t, n.id))
+                (t > 0.0 && t < TALK && t < block && miss < 0.7).then_some((t, id))
             })
             .min_by(|a, b| a.0.total_cmp(&b.0))
             .map(|x| x.1)
@@ -1522,7 +1743,7 @@ impl Game {
             }
             let Some(def) = rpg::mob(m.st.kind) else { continue };
             deco::mob(&mut self.insts, m.st.kind, m.pos, m.yaw, m.walk, m.hurt, m.st.fl, self.time);
-            let boss = def.ring == 2;
+            let boss = def.ring == 2 || m.st.kind == 7; // Archon und Namenloser Prüfer
             if !m.dead && (boss || m.st.hp < 1000) {
                 let top = m.pos + Vec3::Y * (1.9 * def.size + 0.35);
                 deco::health_bar(&mut self.insts, top, m.st.hp as f32 / 1000.0, 0.9 * def.size.max(1.0));

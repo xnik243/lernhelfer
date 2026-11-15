@@ -6,9 +6,9 @@ use crate::skyblock::Goal;
 /// Rüstung: ARMOR + Set·4 + Teil (0 Helm, 1 Brustpanzer, 2 Beinschutz, 3 Stiefel), Sets 0..6.
 pub const ARMOR: u16 = 2000;
 pub const ARMOR_SETS: u8 = 6;
-/// Talismane (Artefakte) 2040..2048.
+/// Talismane (Artefakte) 2040..2050 (die letzten zwei sind Katakomben-Artefakte, Phase 24).
 pub const ARTIFACT: u16 = 2040;
-pub const ARTIFACTS: u16 = 8;
+pub const ARTIFACTS: u16 = 10;
 pub const HOLZ_KLINGE: u16 = 2100;
 pub const SAPHIR_KLINGE: u16 = 2101;
 pub const ZITADELLEN_SCHWERT: u16 = 2102;
@@ -25,6 +25,13 @@ pub const ARCHON_KERN: u16 = 2402;
 pub const SCHLEIM: u16 = 2410;
 pub const TINTE: u16 = 2411;
 pub const WAECHTER_SIEGEL: u16 = 2412;
+// ---------- Phasen 21–25: Beute der Prüfungs-Katakomben ----------
+/// Katakomben-Artefakte (Talismane, nur aus der Smaragd-/Obsidian-Beutetruhe).
+pub const SCHATTEN_LATERNE: u16 = ARTIFACT + 8;
+pub const RUNEN_HERZ: u16 = ARTIFACT + 9;
+pub const MEISTER_KERN: u16 = 2420;
+/// Hebt am Verzauberungs-Altar eine Verzauberung der Stufe V auf Stufe VI (enchanting::TIER6).
+pub const FOLIANT_VI: u16 = 2421;
 
 pub const fn armor_item(set: u8, piece: u8) -> u16 {
     ARMOR + set as u16 * 4 + piece as u16
@@ -95,7 +102,7 @@ pub struct SetDef {
     pub bonus_text: &'static str,
     pub full: Bonus,
 }
-/// Gegner der Prüfungs-Zitadelle. `ring`: 0 Außenring, 1 Innenhalle, 2 Boss, 3 Diener des Bosses.
+/// Gegner der Prüfungs-Zitadelle. `ring`: 0 Außenring, 1 Innenhalle, 2 Boss, 3 Diener des Bosses, 4 = nur in den Katakomben (Arten 5..=7).
 pub struct MobDef {
     pub id: u8,
     pub name: &'static str,
@@ -172,7 +179,7 @@ pub fn rarity(item: u16) -> u8 {
     }
     match item {
         ZITADELLEN_FRAGMENT | VERZ_BUCH | WAECHTER_SIEGEL => 2,
-        ARCHON_KERN => 3,
+        ARCHON_KERN | MEISTER_KERN | FOLIANT_VI => 3,
         SEGEN_HACKE => 2,
         i if (crate::skyblock::SUPER..crate::skyblock::SUPER + 50).contains(&i) => 2,
         i if (crate::skyblock::VERDICHTET..crate::skyblock::VERDICHTET + 50).contains(&i) => 1,
@@ -193,7 +200,8 @@ pub fn sell_value(item: u16) -> u32 {
         WAECHTER_SIEGEL => 40,
         ZITADELLEN_FRAGMENT => 120,
         VERZ_BUCH => 200,
-        ARCHON_KERN => 1500,
+        ARCHON_KERN | FOLIANT_VI => 1500,
+        MEISTER_KERN => 2000,
         i => crate::items::item_value(i).min(u32::MAX as u64) as u32,
     }
 }
@@ -209,6 +217,8 @@ pub fn extra_names() -> Vec<(u16, &'static str)> {
         (SCHLEIM, "Chaos-Schleim"),
         (TINTE, "Tintenklumpen"),
         (WAECHTER_SIEGEL, "Wächter-Siegel"),
+        (MEISTER_KERN, "Meister-Rüstungskern"),
+        (FOLIANT_VI, "Foliant der Stufe VI"),
     ]);
     v
 }
@@ -224,6 +234,8 @@ pub fn lore(item: u16) -> &'static str {
         SCHLEIM => "Klebt. Riecht nach durchgelernter Nacht.",
         TINTE => "Tropft von Tinten-Golems. Gut für Bücher.",
         WAECHTER_SIEGEL => "Siegel eines Klausur-Wächters.",
+        MEISTER_KERN => "Kern einer Meisterrüstung aus der Obsidian-Beutetruhe. Sehr begehrt am Bazaar.",
+        FOLIANT_VI => "Hebt am Verzauberungs-Altar eine Verzauberung von Stufe V auf Stufe VI.",
         ERNTE_HACKE => "Rechtsklick auf Wiese/Erde: Ackerboden.",
         SEGEN_HACKE => "Ernte-Segen: pflanzt nach der Ernte automatisch neu.",
         _ => "",

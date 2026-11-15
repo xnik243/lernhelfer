@@ -40,8 +40,10 @@ pub fn mob(out: &mut Vec<Inst>, kind: u8, pos: Vec3, yaw: f32, walk: f32, hurt: 
     match kind {
         0 => slime(out, &root, d.rgb, d.rgb2, walk, time),
         1 => golem(out, &root, d.rgb, d.rgb2, sw, time),
-        2 => guard(out, &root, d.rgb, d.rgb2, sw, fl & MOB_WINDUP != 0, time),
-        3 => archon(out, &root, d.rgb, d.rgb2, fl & MOB_SLAM != 0, time),
+        // 5 Katakomben-Wächter, 7 Namenloser Prüfer: Gestalt der Zitadelle, Farben aus der eigenen Definition
+        2 | 5 => guard(out, &root, d.rgb, d.rgb2, sw, fl & MOB_WINDUP != 0, time),
+        3 | 7 => archon(out, &root, d.rgb, d.rgb2, fl & MOB_SLAM != 0, time),
+        6 => scholar(out, &root, d.rgb, d.rgb2, time),
         _ => servant(out, &root, d.rgb, d.rgb2, sw, time),
     }
     tint(out, start, hurt);
@@ -186,6 +188,33 @@ fn servant(out: &mut Vec<Inst>, r: &Mat4, c: [u8; 3], c2: [u8; 3], sw: f32, time
     cube(out, r, b + v(0.0, 1.65 + (time * 3.0).sin() * 0.05, 0.0), Vec3::splat(0.07), GOLD, true); // Funke über dem Kopf
 }
 
+/// Schatten-Gelehrter (Katakomben): schwebende, schmale Robe ohne Beine, Kapuze mit glühenden Augen, leuchtendes Buch.
+fn scholar(out: &mut Vec<Inst>, r: &Mat4, c: [u8; 3], c2: [u8; 3], time: f32) {
+    let dark = mix(c, [0, 0, 0], 0.35);
+    let fm = *r * t(0.0, 0.3 + (time * 2.0).sin() * 0.08, 0.0);
+    let f = &fm;
+    for k in 0..4 {
+        let w = 0.18 + k as f32 * 0.08; // Robe läuft nach unten spitz zu
+        cube(out, f, v(0.0, 0.1 + k as f32 * 0.22, 0.0), v(w, 0.24, w * 0.8), if k == 0 { dark } else { c }, false);
+    }
+    cube(out, f, v(0.0, 1.15, 0.0), v(0.42, 0.5, 0.28), c, false); // Brust
+    cube(out, f, v(0.0, 1.55, 0.02), v(0.4, 0.4, 0.4), dark, false); // Kapuze
+    part(out, f, v(0.0, 1.75, 0.1), Quat::from_rotation_x(0.6), v(0.0, 0.08, 0.0), v(0.16, 0.22, 0.16), dark, false); // Zipfel
+    cube(out, f, v(0.0, 1.52, -0.195), v(0.28, 0.26, 0.02), [12, 8, 20], false); // Gesicht im Schatten
+    for x in [-0.07f32, 0.07] {
+        cube(out, f, v(x, 1.55, -0.21), v(0.06, 0.04, 0.02), c2, true); // glühende Augen
+    }
+    for sg in [-1.0f32, 1.0] {
+        part(out, f, v(sg * 0.25, 1.3, 0.0), Quat::from_rotation_x(0.9), v(0.0, -0.22, 0.0), v(0.12, 0.4, 0.14), c, false);
+    }
+    cube(out, f, v(0.0, 1.05, -0.38), v(0.34, 0.06, 0.26), [60, 40, 90], false); // Buch
+    cube(out, f, v(0.0, 1.09, -0.38), v(0.3, 0.02, 0.22), mix(c2, [255, 255, 255], 0.5), true); // leuchtende Seiten
+    for k in 0..3 {
+        let ff = (time * 0.8 + k as f32 * 0.33).fract();
+        cube(out, f, v(-0.2 + k as f32 * 0.2, 0.1 - ff * 0.3, 0.1), Vec3::splat(0.08 * (1.0 - ff)), c2, true); // Schattenfetzen
+    }
+}
+
 /// Lebensbalken (in Welt-X ausgerichtet), Farbe von Grün über Gelb nach Rot.
 pub fn health_bar(out: &mut Vec<Inst>, top: Vec3, frac: f32, width: f32) {
     let f = frac.clamp(0.0, 1.0);
@@ -326,7 +355,7 @@ pub fn shock_ring(out: &mut Vec<Inst>, at: Vec3, r: f32) {
     }
 }
 
-/// Geschoss im Flug: `t` 0..1 von `from` nach `to`. kind 1 = Zauber (Stab), sonst Pfeil (Bogen).
+/// Geschoss im Flug: `t` 0..1 von `from` nach `to`. kind 1 = Zauber (Stab), 2 = Schneeball (Duell, harmlos), sonst Pfeil (Bogen).
 pub fn shot(out: &mut Vec<Inst>, from: Vec3, to: Vec3, t_: f32, kind: u8) {
     let d = to - from;
     let len = d.length();
@@ -340,6 +369,13 @@ pub fn shot(out: &mut Vec<Inst>, from: Vec3, to: Vec3, t_: f32, kind: u8) {
         push(out, m * Mat4::from_rotation_z(t_ * 20.0) * Mat4::from_scale(Vec3::splat(0.22)), [200, 120, 255], true);
         for k in 1..5 {
             push(out, Mat4::from_translation(p - dir * k as f32 * 0.25) * Mat4::from_scale(Vec3::splat(0.14 - k as f32 * 0.025)), [150, 80, 230], true);
+        }
+    } else if kind == 2 {
+        // leichter Bogen nach oben, damit er wie geworfen aussieht
+        let p = p + Vec3::Y * (t_.clamp(0.0, 1.0) * PI).sin() * len * 0.08;
+        push(out, Mat4::from_translation(p) * Mat4::from_rotation_y(t_ * 9.0) * Mat4::from_rotation_x(t_ * 7.0) * Mat4::from_scale(Vec3::splat(0.24)), [250, 252, 255], false);
+        for k in 1..4 {
+            push(out, Mat4::from_translation(p - dir * k as f32 * 0.22) * Mat4::from_scale(Vec3::splat(0.1 - k as f32 * 0.02)), [225, 235, 250], false);
         }
     } else {
         push(out, m * s(0.04, 0.04, 0.7), WOOD, false);
@@ -410,5 +446,22 @@ pub fn item_rgb(item: u16) -> [u8; 3] {
         rpg::VERZ_BUCH => [180, 120, 255],
         rpg::ARCHON_KERN => [255, 120, 200],
         _ => [200, 200, 210],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn katakomben_wesen_und_schneeball() {
+        for kind in 5..=7u8 {
+            let mut out = Vec::new();
+            mob(&mut out, kind, Vec3::new(5.0, 9.0, 5.0), 0.3, 1.0, 0.0, 0, 2.0);
+            assert!(out.len() > 10, "Wesen {kind}");
+        }
+        let mut out = Vec::new();
+        shot(&mut out, Vec3::ZERO, Vec3::new(10.0, 0.0, 0.0), 0.5, 2);
+        assert!(!out.is_empty() && out.iter().all(|i| i.col[0] > 200 && i.col[3] == 0), "weiß, leuchtet nicht");
     }
 }

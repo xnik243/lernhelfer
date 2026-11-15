@@ -141,8 +141,16 @@ fn god_rays(uv: vec2<f32>, steps: i32) -> vec3<f32> {
 @fragment
 fn fs_final(i: FO) -> @location(0) vec4<f32> {
   let tier = g.par.w;
-  let pix = vec2<i32>(i.pos.xy);
-  let uv = i.uv;
+  let filt = u32(clamp(g.post.x + 0.5, 0.0, 3.0));
+  var pix = vec2<i32>(i.pos.xy);
+  var uv = i.uv;
+  if filt == 1u {
+    // Retro-Pixel: grobes Raster, jede Zelle liest nur ihre Mitte
+    let cell = max(3.0, floor(g.scr.y / 220.0));
+    let fp = (floor(i.pos.xy / cell) + 0.5) * cell;
+    pix = min(vec2<i32>(fp), vec2<i32>(g.scr.xy) - vec2<i32>(1));
+    uv = (vec2<f32>(pix) + 0.5) * g.scr.zw;
+  }
   let d = depth_px(pix);
   var wp = world_from(uv, d);
   var dist = distance(wp, g.cam.xyz);
@@ -165,6 +173,20 @@ fn fs_final(i: FO) -> @location(0) vec4<f32> {
       col = mix(col, bl, smoothstep(48.0, 96.0, dist) * 0.85);
     }
   }
+  // Foto-Modus: Brennweite in Blöcken, davor und dahinter weich (8 Abgriffe im Kreis aus der halben Auflösung)
+  if g.post.y > 0.0 {
+    let focal = g.post.y;
+    let amt = smoothstep(0.0, 4.0 + 0.6 * focal, abs(dist - focal));
+    if amt > 0.01 {
+      let hp = 1.0 / vec2<f32>(textureDimensions(t_half)) * (1.5 + 3.0 * amt);
+      var bl = vec3<f32>(0.0);
+      for (var k = 0; k < 8; k = k + 1) {
+        let a = f32(k) * 0.7854 + 0.39;
+        bl = bl + dec(textureSampleLevel(t_half, smp, clamp(uv + vec2<f32>(cos(a), sin(a)) * hp, vec2<f32>(0.0), vec2<f32>(1.0)), 0.0).rgb);
+      }
+      col = mix(col, bl * 0.125, amt);
+    }
+  }
   if tier > 1.5 && g.par.z < 0.5 {
     var steps = 4;
     if tier > 2.5 { steps = 8; }
@@ -184,5 +206,19 @@ fn fs_final(i: FO) -> @location(0) vec4<f32> {
   o = mix(vec3<f32>(l), o, 1.0 + 0.22 * (1.0 - sat));
   let q = uv - 0.5;
   o = o * (1.0 - 0.32 * dot(q, q) * 2.0);
+  o = clamp(o, vec3<f32>(0.0), vec3<f32>(1.0));
+  if filt == 1u {
+    // 5 Farbstufen je Kanal
+    o = floor(o * 4.0 + 0.5) / 4.0;
+  } else if filt == 2u {
+    // Goldene Stunde: warm, Schatten leicht angehoben
+    o = o * vec3<f32>(1.08, 0.96, 0.78) + vec3<f32>(0.045, 0.025, 0.0);
+    o = mix(o, vec3<f32>(luma(o)) * vec3<f32>(1.18, 0.95, 0.68), 0.12);
+  } else if filt == 3u {
+    // Kino-Kontrast: S-Kurve, weniger Sättigung, stärkere Vignette
+    o = mix(o, o * o * (3.0 - 2.0 * o), 0.7);
+    o = mix(vec3<f32>(luma(o)), o, 0.75);
+    o = o * (1.0 - 0.9 * dot(q, q));
+  }
   return vec4<f32>(clamp(o, vec3<f32>(0.0), vec3<f32>(1.0)), 1.0);
 }

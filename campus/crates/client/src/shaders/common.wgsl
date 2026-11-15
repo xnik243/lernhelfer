@@ -14,6 +14,8 @@ struct Env {
   par: vec4<f32>,        // x Ziel ist sRGB, y Eckenschatten an, z unter Wasser, w Stufe 0 Eco .. 3 Extrem
   par2: vec4<f32>,       // x HDR in 8 Bit gepackt, y direkt aufs Bild (Eco), z 1/Schattenkartengröße, w Texturauflösung (negativ = eigenes Paket)
   scr: vec4<f32>,        // x Breite, y Höhe, z 1/Breite, w 1/Höhe (Pixel)
+  wx: vec4<f32>,         // x Wetter 0 Klar, 1 Sommerregen, 2 Schneefall, 3 Kirschblüten, y Stärke 0..1
+  post: vec4<f32>,       // x Filter 0 Standard, 1 Retro-Pixel, 2 Goldene Stunde, 3 Kino-Kontrast, y Brennweite in Blöcken (0 = aus)
   lpos: array<vec4<f32>, 32>, // xyz Ort, w Reichweite
   lcol: array<vec4<f32>, 32>, // rgb Farbe × Stärke, w frei
 };
@@ -77,6 +79,29 @@ fn sky(d: vec3<f32>, disc: bool) -> vec3<f32> {
       let hs = h3(cell);
       let star = step(0.9978, hs) * (0.55 + 0.45 * sin(g.cam.w * 2.5 + hs * 400.0));
       c = c + vec3<f32>(star * 3.0 * g.zen.w * smoothstep(0.0, 0.25, up));
+    }
+    // Sternschnuppen: alle 4 s ein Zeitfenster, in gut der Hälfte davon zieht 0,6 s lang ein heller Strich
+    if g.zen.w > 0.01 && up > 0.3 {
+      let slot = floor(g.cam.w * 0.25);
+      let ft = fract(g.cam.w * 0.25) * 4.0;
+      if ft < 0.6 && h2(vec2<f32>(slot, 9.1)) < 0.6 {
+        let az = h2(vec2<f32>(slot, 1.7)) * 6.2832;
+        let el = 0.5 + 0.4 * h2(vec2<f32>(slot, 4.3));
+        let er = sqrt(1.0 - el * el);
+        let a = vec3<f32>(cos(az) * er, el, sin(az) * er);
+        let wa = h2(vec2<f32>(slot, 6.9)) * 6.2832;
+        let side = vec3<f32>(-sin(az), 0.0, cos(az));
+        let fall = vec3<f32>(cos(az) * el, -er, sin(az) * el);
+        let b = (side * cos(wa) + fall * (0.6 + 0.4 * abs(sin(wa)))) * 0.28;
+        let prog = ft / 0.6;
+        let head = normalize(a + b * prog);
+        let tail = normalize(a + b * max(prog - 0.35, 0.0));
+        let ba = head - tail;
+        let along = clamp(dot(d - tail, ba) / max(dot(ba, ba), 0.000001), 0.0, 1.0);
+        let off = length(d - tail - ba * along);
+        let streak = (1.0 - smoothstep(0.0, 0.0035, off)) * along * along * sin(prog * PI);
+        c = c + vec3<f32>(0.9, 0.95, 1.0) * streak * 9.0 * g.zen.w;
+      }
     }
   }
   return c;

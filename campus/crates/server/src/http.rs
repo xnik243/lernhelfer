@@ -118,6 +118,17 @@ async fn api_post(State(app): State<App>, Path(op): Path<String>, h: HeaderMap, 
                 let v = verdienst(&app, &u).await?;
                 return app.game.lock().unwrap().claim(u.id, &v, true);
             }
+            if op == "admin/ki_test" {
+                // OpenRouter-Probe: Einstellungen unter der Sperre lesen, den Aufruf ohne Sperre abwarten (LAW 1), Ergebnis eintragen
+                if !u.admin {
+                    return no(403, "Nur für die Verwaltung.");
+                }
+                let thema = crate::duel_ai::normalize_topic(b.get("thema").and_then(Value::as_str).unwrap_or("Allgemeinwissen"));
+                let stufe = b.get("stufe").and_then(Value::as_u64).unwrap_or(1).min(2) as u8;
+                let cfg = app.game.lock().unwrap().ki_cfg();
+                let res = crate::duel_ai::fetch(cfg, thema.clone(), stufe).await;
+                return app.game.lock().unwrap().ki_test_done(&thema, stufe, res);
+            }
             let mut g = app.game.lock().unwrap();
             g.ensure_user(&u)?;
             g.post(&u, &op, &b)

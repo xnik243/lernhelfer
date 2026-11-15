@@ -26,7 +26,7 @@ const SIGN_LINES: usize = 4;
 const SIGN_CHARS: usize = 24;
 const COOP_MAX: i64 = 4;
 const STAMPS: usize = 6;
-const ROMAN: [&str; 6] = ["", "I", "II", "III", "IV", "V"];
+const ROMAN: [&str; 7] = ["", "I", "II", "III", "IV", "V", "VI"];
 
 fn sign_lines(d: &str) -> Vec<String> {
     serde_json::from_str(d).unwrap_or_default()
@@ -279,6 +279,8 @@ impl Game {
                 Ok(())
             }
             world::BOSS_ALTAR => self.boss_summon(id),
+            world::KATA_PORTAL => self.dungeon_portal(id),
+            world::ARENA_PORTAL => self.duel_cmd(id, ""),
             world::STAENDER => self.stand_open(id, x, y, z),
             world::SCHILD => {
                 let zeilen = self.sign_at(x, y, z);
@@ -364,6 +366,19 @@ impl Game {
             return no(403, "Geh näher an den Verzauberungs-Altar in der Bibliothek.");
         }
         let level = self.ench(uid, item)[e as usize].saturating_add(1);
+        // Stufe VI (Phase 24): nur mit einem Folianten aus den Katakomben, der alle anderen Kosten ersetzt
+        if level == en::TIER6 && en::def(e).is_some_and(|d| d.max == 5) {
+            self.tx(|g| {
+                g.give(uid, rpg::FOLIANT_VI, -1).map_err(|_| E(402, "Stufe VI braucht einen Folianten der Stufe VI aus den Prüfungs-Katakomben.".into()))?;
+                g.db.execute("insert into item_ench (user, item, ench, level) values (?, ?, ?, ?) on conflict (user, item, ench) do update set level = excluded.level", params![uid, item, e, level])?;
+                Ok(())
+            })?;
+            let n = self.inv(uid, rpg::FOLIANT_VI);
+            self.send(uid, &S2C::Inv { item: rpg::FOLIANT_VI, n });
+            self.refresh_stats(uid);
+            self.hud(uid, json!({ "t": "toast", "art": "gut", "text": format!("{} VI auf {}!", en::def(e).map_or("", |d| d.name), item_name(item)) }));
+            return Ok(json!({ "ok": true, "item": item, "stufen": self.ench(uid, item), "buch": false }));
+        }
         let (fach, splitter, kristalle) = en::cost(e, level).ok_or(E(409, "Diese Verzauberung hat schon die höchste Stufe.".into()))?;
         let shard = sb::SHARD + fach as u16;
         let book = self.inv(uid, rpg::VERZ_BUCH) > 0;

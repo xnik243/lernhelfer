@@ -49,3 +49,80 @@ stummKnopf.onclick = async () => {
   } catch (e) { $('stumm-status').textContent = e.message; }
   finally { stummKnopf.disabled = false; }
 };
+
+// OpenRouter KI: Schlüssel nur senden, nie anzeigen (der Server liefert bloß eine Maske).
+const QUELLE = { verwaltung: 'von der Verwaltung hinterlegt', umgebung: 'aus der Server-Umgebung', keine: 'keiner hinterlegt' };
+function kiZeigen(d) {
+  $('ki-info').textContent = `Schlüssel: ${d.key_gesetzt ? `${d.key_maske || '…'} (${QUELLE[d.quelle] ?? d.quelle})` : 'keiner – Duelle nutzen nur Cache und Fragenbank'} · Modell: ${d.modell}`;
+  $('ki-modelle').replaceChildren(...(d.modelle || []).map(m => el('option', { value: m })));
+  if (document.activeElement !== $('ki-modell')) $('ki-modell').value = d.modell || '';
+  $('ki-cache').textContent = `${d.cache ?? 0} Fragen im Cache`;
+}
+async function kiSenden(body, text) {
+  const s = $('ki-status');
+  try { kiZeigen(await api('admin/ki', body)); $('ki-key').value = ''; s.textContent = text; }
+  catch (e) { s.textContent = e.message; }
+}
+$('ki-speichern').onclick = () => {
+  const key = $('ki-key').value.trim(), body = { modell: $('ki-modell').value.trim() };
+  if (key) body.key = key;
+  kiSenden(body, 'Gespeichert.');
+};
+$('ki-loeschen').onclick = () => { if (confirm('Den hinterlegten OpenRouter-Schlüssel wirklich löschen?')) kiSenden({ key: '' }, 'Schlüssel gelöscht.'); };
+$('ki-test').onclick = async () => {
+  const b = $('ki-test'), s = $('ki-status');
+  b.disabled = true; s.textContent = 'Frage wird erzeugt …';
+  try {
+    const r = await api('admin/ki_test', { thema: $('ki-thema').value.trim() || 'Allgemeinwissen', stufe: +$('ki-stufe').value });
+    if (r.ok) {
+      const f = r.frage;
+      s.replaceChildren(`${r.anzahl} Fragen erhalten. Beispiel: `, el('b', {}, f.q), el('br'),
+        ...f.antworten.map((a, i) => el(i === f.richtig ? 'b' : 'span', {}, `${'ABCD'[i]}) ${a}${i === f.richtig ? ' ✓' : ''}  `)),
+        el('br'), f.erklaerung);
+    } else s.textContent = `Fehler: ${r.fehler}`;
+    $('ki-cache').textContent = `${r.cache ?? 0} Fragen im Cache`;
+  } catch (e) { s.textContent = e.message; }
+  finally { b.disabled = false; }
+};
+api('admin/ki').then(kiZeigen).catch(e => { $('ki-status').textContent = e.message; });
+
+// Events & Welt
+let eventAn = false, archAn = false;
+const welt = t => { $('welt-status').textContent = t; };
+async function weltLaden() {
+  const d = await api('admin/architekt');
+  eventAn = !!d.event?.an;
+  $('event-knopf').textContent = eventAn ? '2× Taler Event aus' : '2× Taler Event an';
+  $('event-info').textContent = eventAn && d.event.bis ? `läuft bis ${zeit(d.event.bis)}` : '';
+  $('wetter').value = d.wetter?.fest ? String(d.wetter.art) : '-1';
+  liste('bauplaene', (d.blueprints || []).map(p => el('div', { class: 'zeile' },
+    el('span', {}, el('b', {}, p.name), ` · ${p.w} × ${p.h} × ${p.d}${p.ts ? ` · ${zeit(p.ts)}` : ''}`),
+    el('button', { type: 'button', onclick: async () => {
+      try {
+        const r = await api('admin/blueprint/' + encodeURIComponent(p.name));
+        await navigator.clipboard.writeText(r.rust);
+        welt(`Rust-Blueprint „${p.name}“ kopiert.`);
+      } catch (e) { welt(e.message || 'Kopieren nicht möglich.'); }
+    } }, 'Als Rust-Blueprint kopieren'))), 'Noch keine Baupläne – mit //export <name> anlegen.');
+}
+$('event-knopf').onclick = async () => {
+  try {
+    const minuten = Math.min(1440, Math.max(1, +$('event-minuten').value | 0 || 60));
+    await api('admin/event', eventAn ? { an: false } : { an: true, minuten });
+    welt(eventAn ? 'Event beendet.' : `2× Taler Event für ${minuten} Minuten gestartet.`);
+    await weltLaden();
+  } catch (e) { welt(e.message); }
+};
+$('wetter').onchange = async () => {
+  try { await api('admin/wetter', { art: +$('wetter').value }); welt('Wetter gesetzt.'); } catch (e) { welt(e.message); }
+};
+$('arch-knopf').onclick = async () => {
+  try {
+    const r = await api('admin/architekt', { an: !archAn });
+    archAn = typeof r.an === 'boolean' ? r.an : !archAn;
+    $('arch-knopf').setAttribute('aria-pressed', String(archAn));
+    $('arch-knopf').textContent = archAn ? 'Architekten-Modus beenden' : 'Architekten-Modus';
+    welt(archAn ? 'Architekten-Modus an (im Spiel verbunden sein).' : 'Architekten-Modus aus.');
+  } catch (e) { welt(e.message); }
+};
+weltLaden().catch(e => welt(e.message));

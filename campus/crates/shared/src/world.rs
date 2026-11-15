@@ -95,6 +95,10 @@ pub fn slot_at(x: i32, z: i32) -> Option<(u8, u8)> {
 }
 /// Name der Zone für die Anzeigetafel.
 pub fn zone_name(x: i32, y: i32, z: i32) -> &'static str {
+    // Instanz-Felder (Katakomben, Arena) liegen in der Leere im Nordosten des Hub-Archipels
+    if let Some(k) = crate::instance::kind_at(x, z) {
+        return crate::instance::ZONE[k as usize];
+    }
     if !in_hub(x, z) {
         return if slot_at(x, z).is_some() { "Privatinsel" } else { "Leere" };
     }
@@ -190,12 +194,14 @@ pub struct BlockDef {
     pub pat: u8, // Muster im Shader
     pub price: u32, // 0 = nicht im Laden
     pub flags: u16,
+    /// Name der Konstante (für den Rust-Blueprint-Export von /architect)
+    pub key: &'static str,
 }
 
 macro_rules! blocks {
     ($($c:ident = $id:literal, $name:literal, [$r:literal, $g:literal, $b:literal], $pat:literal, $price:literal, $fl:expr;)*) => {
         $(pub const $c: u8 = $id;)*
-        pub const BLOCKS: &[BlockDef] = &[$(BlockDef { id: $id, name: $name, rgb: [$r, $g, $b], pat: $pat, price: $price, flags: $fl }),*];
+        pub const BLOCKS: &[BlockDef] = &[$(BlockDef { id: $id, name: $name, rgb: [$r, $g, $b], pat: $pat, price: $price, flags: $fl, key: stringify!($c) }),*];
     };
 }
 
@@ -317,10 +323,38 @@ blocks! {
     STAENDER = 120, "Rüstungsständer", [168, 132, 92], 5, 0, S;
     ALTAR = 121, "Verzauberungs-Altar", [110, 70, 200], 15, 0, F_SOLID | F_GLOW;
     BOSS_ALTAR = 122, "Prüfungs-Altar", [200, 40, 60], 10, 0, F_SOLID | F_GLOW;
+    // ---------- Phasen 21–25 (alle unzerstörbar, nie im Laden; stehen nur in Instanzen bzw. als feste Portale) ----------
+    KATA_PORTAL = 123, "Katakomben-Portal", [170, 30, 50], 10, 0, F_SOLID | F_GLOW;
+    ARENA_PORTAL = 124, "Arena-Portal", [60, 220, 255], 10, 0, F_SOLID | F_GLOW;
+    QUAD_A = 125, "Antwort-Feld A", [60, 110, 230], 6, 0, F_SOLID | F_GLOW;
+    QUAD_B = 126, "Antwort-Feld B", [240, 196, 60], 6, 0, F_SOLID | F_GLOW;
+    QUAD_C = 127, "Antwort-Feld C", [60, 200, 120], 6, 0, F_SOLID | F_GLOW;
+    QUAD_D = 128, "Antwort-Feld D", [150, 80, 220], 6, 0, F_SOLID | F_GLOW;
+    QUAD_FALSCH = 129, "Falsches Feld", [235, 50, 50], 6, 0, F_SOLID | F_GLOW;
+    QUAD_RICHTIG = 130, "Richtiges Feld", [90, 255, 120], 6, 0, F_SOLID | F_GLOW;
+    PRISMA_A = 131, "Spiegel-Prisma (steigend)", [150, 230, 255], 12, 0, F_SOLID | F_CLEAR | F_GLOW;
+    PRISMA_B = 132, "Spiegel-Prisma (fallend)", [255, 190, 240], 12, 0, F_SOLID | F_CLEAR | F_GLOW;
+    STRAHL = 133, "Lichtstrahl", [255, 70, 70], 6, 0, F_CLEAR | F_GLOW;
+    STRAHLER = 134, "Licht-Emitter", [255, 120, 60], 15, 0, F_SOLID | F_GLOW;
+    EMPFAENGER = 135, "Kristall-Empfänger", [90, 90, 120], 15, 0, F_SOLID;
+    EMPFAENGER_AN = 136, "Kristall-Empfänger (leuchtet)", [140, 255, 220], 15, 0, F_SOLID | F_GLOW;
+    RUNE = 137, "Runen-Platte", [70, 70, 96], 5, 0, F_SOLID;
+    RUNE_AN = 138, "Leuchtende Rune", [120, 220, 255], 6, 0, F_SOLID | F_GLOW;
+    STATUE = 139, "Weisen-Statue", [190, 186, 176], 14, 0, F_SOLID;
+    WEISEN_TRUHE = 140, "Truhe der Weisen", [150, 110, 60], 3, 0, F_SOLID;
+    BEUTE_ALTAR = 141, "Beute-Altar", [255, 215, 90], 10, 0, F_SOLID | F_GLOW;
+    SMARAGD_TRUHE = 142, "Smaragd-Beutetruhe", [50, 210, 130], 10, 0, F_SOLID | F_GLOW;
+    OBSIDIAN_TRUHE = 143, "Obsidian-Beutetruhe", [60, 40, 90], 10, 0, F_SOLID | F_GLOW;
+    KATA_TOR = 144, "Katakomben-Gitter", [80, 84, 96], 2, 0, F_SOLID;
+    BLUT_PORTAL = 145, "Blut-Portal", [200, 20, 40], 10, 0, F_SOLID | F_GLOW;
 }
 /// Saat-Blöcke (= Saat-Gegenstände) der Reihe nach, Index = Pflanze in farming_data::CROPS.
 pub const SAATEN: [u8; 5] = [SAAT_WEIZEN, SAAT_KAROTTE, SAAT_BEERE, SAAT_KUERBIS, SAAT_KRISTALL];
 pub const TELEPORTER: [u8; 4] = [TELE_ROT, TELE_BLAU, TELE_GRUEN, TELE_GOLD];
+/// Phasen 21–25: Blöcke, die man mit [E] benutzt (Browser: interact/prompt, Server: C2S::Chest → use_block bzw. inst_use).
+pub const USE_NEW: [u8; 10] = [KATA_PORTAL, ARENA_PORTAL, PRISMA_A, PRISMA_B, STATUE, WEISEN_TRUHE, BEUTE_ALTAR, SMARAGD_TRUHE, OBSIDIAN_TRUHE, BLUT_PORTAL];
+/// Antwort-Felder der Lern-Duell-Arena in der Reihenfolge A, B, C, D.
+pub const QUADS: [u8; 4] = [QUAD_A, QUAD_B, QUAD_C, QUAD_D];
 /// Prüfungs-Zitadelle: Kampfzone im Mauerhof (x0, z0, x1, z1), Füße auf CITADEL_Y. Innenhalle = Bergfried, Arena = Südhof.
 pub const CITADEL: [i32; 4] = [226, 70, 255, 95];
 pub const CITADEL_HALL: [i32; 4] = [235, 73, 246, 82];
@@ -329,6 +363,9 @@ pub const CITADEL_Y: f32 = 31.0;
 /// Prüfungs-Altar (Boss rufen) im Südhof, Verzauberungs-Altar im Erdgeschoss des Bibliotheks-Turms (blueprints setzt beide).
 pub const BOSS_ALTAR_AT: [i32; 3] = [240, 31, 92];
 pub const ALTAR_AT: [i32; 3] = [391, 31, 238];
+/// Phasen 23/24: Portal-Blöcke (2 hoch, [E]): Katakomben neben der Ankunft der Zitadelle, Arena neben dem Hub-Spawn.
+pub const KATA_PORTAL_AT: [i32; 3] = [245, 31, 104];
+pub const ARENA_PORTAL_AT: [i32; 3] = [249, 33, 296];
 pub fn in_citadel(x: f32, y: f32, z: f32) -> bool {
     let [x0, z0, x1, z1] = CITADEL;
     x >= x0 as f32 && z >= z0 as f32 && x < x1 as f32 && z < z1 as f32 && (28.0..50.0).contains(&y)
@@ -357,7 +394,8 @@ pub fn material(b: u8) -> u8 {
         | KNOTEN_EICHE | KNOTEN_BIRKE | GROSSE_TRUHE | STAENDER => M_HOLZ,
         TEPPICH_ROT | TEPPICH_BLAU | STOFF_ROT | STOFF_BLAU | STOFF_GRUEN | STOFF_GELB | STOFF_WEISS | BETT => M_STOFF,
         GLAS | KRISTALL | SAPHIR | SPRACHGOLD | SMARAGD | ADER_SAPHIR | ADER_GOLD | ADER_SMARAGD | SPLITTER_GEN | SPLITTER_ADER | NEON_CYAN
-        | NEON_PINK | GLUEH | AURORA | BERNSTEIN | PORTAL | TELE_ROT | TELE_BLAU | TELE_GRUEN | TELE_GOLD | SPRUNGPLATTE => M_KRISTALL,
+        | NEON_PINK | GLUEH | AURORA | BERNSTEIN | PORTAL | TELE_ROT | TELE_BLAU | TELE_GRUEN | TELE_GOLD | SPRUNGPLATTE | KATA_PORTAL..=EMPFAENGER_AN
+        | RUNE_AN | BEUTE_ALTAR | BLUT_PORTAL => M_KRISTALL,
         KUPFER | GOLD | GOLDZIER | EISEN | ROHGOLD | AMBOSS | LATERNE => M_METALL,
         WASSER | LAVA => M_FLUESSIG,
         _ => M_STEIN,
@@ -366,7 +404,7 @@ pub fn material(b: u8) -> u8 {
 /// Grund-Abbauzeit in Sekunden ohne Werkzeug; unendlich = nicht abbaubar.
 pub fn hardness(b: u8) -> f32 {
     match b {
-        0 | WASSER | LAVA | PORTAL | ABGEBAUT | SCHATZ | SPRUNGPAD | ALTAR | BOSS_ALTAR => f32::INFINITY,
+        0 | WASSER | LAVA | PORTAL | ABGEBAUT | SCHATZ | SPRUNGPAD | ALTAR | BOSS_ALTAR | KATA_PORTAL..=BLUT_PORTAL => f32::INFINITY,
         SAAT_WEIZEN | SAAT_KAROTTE | SAAT_BEERE | SAAT_KUERBIS | SAAT_KRISTALL => 0.1,
         GLAS => 0.3,
         ERZ_KOHLE | ERZ_EISEN | ERZ_GOLD => 1.4,

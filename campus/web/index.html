@@ -7,6 +7,7 @@
 <title>Campus</title>
 <link rel="stylesheet" href="hud.css?v=__V__">
 <link rel="stylesheet" href="inventar.css?v=__V__">
+<link rel="stylesheet" href="p21.css?v=__V__">
 </head>
 <body>
 <canvas id="c" aria-label="Campus, die gemeinsame Lernwelt"></canvas>
@@ -19,11 +20,16 @@
     <button id="b-chat" class="chip" type="button" aria-label="Chat öffnen (T)"><kbd>[T]</kbd> Chat</button>
     <button id="b-kamera" class="chip" type="button" aria-label="Kamera wechseln (F5)"><kbd>[F5]</kbd> Kamera</button>
     <button id="b-sky" class="chip" type="button" aria-label="SkyBlock-Menü öffnen (M)"><kbd>[M]</kbd> SkyBlock-Menü</button>
+    <button id="b-foto" class="chip" type="button" aria-label="Foto-Modus (F8)"><kbd>[F8]</kbd> Foto</button>
     <button id="b-fund" class="chip" type="button" hidden>1 Fund</button>
     <button id="stash-abzeichen" class="chip" type="button" hidden></button>
     <span class="chip leise" id="technik"></span>
   </div>
   <div id="zahltag" role="status" hidden></div>
+  <div id="event-banner" role="status" hidden></div>
+  <div id="arch-leiste" aria-label="Architekten-Modus" hidden></div>
+  <div id="duell-hud" role="region" aria-label="Lern-Duell" hidden></div>
+  <aside id="kata-hud" aria-label="Prüfungs-Katakomben" hidden></aside>
   <div id="toasts" role="status" aria-live="polite"></div>
   <div id="log" aria-live="polite"></div>
   <div id="kreuz" aria-hidden="true"></div>
@@ -75,6 +81,9 @@
 
 <div id="inventar" class="karte" role="dialog" aria-label="Inventar" hidden></div>
 
+<div id="foto-leiste" role="toolbar" aria-label="Foto-Modus" hidden></div>
+<div id="kino" hidden></div>
+
 <div id="uebergang" aria-hidden="true"></div>
 <div id="rand" aria-hidden="true"></div>
 <div id="drehen" aria-live="polite">Bitte dreh dein Gerät quer.</div>
@@ -84,7 +93,7 @@
     <h1>Campus</h1>
     <p id="start-text">Die Welt wird geladen …</p>
     <p id="start-hilfe" hidden>
-      <b>Am Computer:</b> W A S D laufen, Leertaste springen, Maus umsehen, linke Maustaste halten = abbauen, rechte = setzen, E sprechen/öffnen (ohne Ziel: Inventar), I Inventar, J Questbuch, 1–9 Leiste, M oder Tab SkyBlock-Menü, T Chat, F5 Kamera, Esc Menü (Tasten frei belegbar).<br>
+      <b>Am Computer:</b> W A S D laufen, Leertaste springen, Maus umsehen, linke Maustaste halten = abbauen, rechte = setzen, E sprechen/öffnen (ohne Ziel: Inventar), I Inventar, J Questbuch, 1–9 Leiste, M oder Tab SkyBlock-Menü, T Chat, F5 Kamera, F8 Foto-Modus, Esc Menü (Tasten frei belegbar).<br>
       <b>Am iPad:</b> linker Daumen läuft, rechter Daumen schaut, „Abbauen“ halten (schlägt auch zu), [E] spricht mit Personen, „Inventar“ öffnet Rucksack und Ausrüstung.
     </p>
     <button id="los" class="knopf voll" type="button" hidden>Spielen</button>

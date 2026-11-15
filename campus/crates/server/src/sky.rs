@@ -105,7 +105,9 @@ impl Game {
     pub fn say(&mut self, id: u32, ch: u8, text: &str) {
         let now = self.now();
         let Some(pl) = self.players.get_mut(&id) else { return };
-        if now - pl.last_chat < campus_shared::economy::CHAT_COOLDOWN_MS as i64 {
+        // „//“-Befehle der Verwaltung (Architekten-Modus) laufen ohne Chat-Abklingzeit
+        let arch = pl.admin && text.trim_start().starts_with("//");
+        if !arch && now - pl.last_chat < campus_shared::economy::CHAT_COOLDOWN_MS as i64 {
             return self.system(id, "Langsam – höchstens eine Nachricht alle 1,5 Sekunden.");
         }
         pl.last_chat = now;
@@ -140,8 +142,21 @@ impl Game {
         let (word, rest) = cmd.split_once(' ').map_or((cmd, ""), |(a, b)| (a, b.trim()));
         let r: R<()> = match word.to_lowercase().as_str() {
             "help" | "hilfe" => {
-                self.system(id, "Befehle: /is · /hub · /visit <Name> · /bazaar · /ah · /msg <Name> <Text> · /stash · /trade <Name> · /coop invite|remove <Name> · /like · /quests · /help");
+                self.system(id, "Befehle: /is · /hub · /visit <Name> · /bazaar · /ah · /msg <Name> <Text> · /stash · /trade <Name> · /coop invite|remove <Name> · /like · /quests · /duel [Name|solo] · /dungeon start [1-5] · /dungeon join <Name> · /leave · /help");
                 Ok(())
+            }
+            // ---------- Phasen 21–25 ----------
+            "architect" | "architekt" => self.admin_only(id).and_then(|_| self.arch_cmd(id, rest)),
+            w if w.starts_with('/') => self.admin_only(id).and_then(|_| self.arch_edit(id, &w[1..], rest)),
+            "duel" | "duell" => self.duel_cmd(id, rest),
+            "dungeon" | "katakomben" => self.dungeon_cmd(id, rest),
+            "leave" | "raus" => {
+                if self.players.get(&id).is_some_and(|p| p.inst.is_some()) {
+                    self.inst_leave(id);
+                    Ok(())
+                } else {
+                    no(409, "Du bist gerade weder in der Arena noch in den Katakomben.")
+                }
             }
             "stash" | "beutel" => self.stash_claim_cmd(id),
             "trade" | "handel" => self.trade_request(id, rest),
@@ -247,7 +262,7 @@ impl Game {
             self.hud(uid, json!({ "t": "quest" }));
             return;
         }
-        let _ = self.pay(uid, s.taler as i64, &format!("quest:{q}:{step}"));
+        let _ = self.pay(uid, s.taler as i64 * self.taler_mult(), &format!("quest:{q}:{step}"));
         let next = step + 1;
         if next >= quest.steps.len() {
             let _ = self.db.execute("insert or ignore into quests_done (user, quest) values (?, ?)", params![uid, q]);
@@ -630,6 +645,9 @@ impl Game {
         if d > campus_shared::economy::REACH * campus_shared::economy::REACH {
             return no(403, "Zu weit weg.");
         }
+        if self.players.get(&id).is_some_and(|p| p.inst.is_some()) {
+            return self.inst_use(id, x, y, z); // Prismen, Statuen, Truhen, Altar der Katakomben (Block aus dem Instanz-Gitter)
+        }
         match self.block(x, y, z) {
             world::TRUHE | world::GROSSE_TRUHE => self.chest_open_new(id, x, y, z),
             world::SCHATZ => {
@@ -807,7 +825,7 @@ impl Game {
             sb::HAKEN => {
                 // Flug macht der Browser; der Server erlaubt dafür kurz höheres Tempo
                 if let Some(p) = self.players.get_mut(&id) {
-                    p.boost_until = now + 2500;
+                    p.boost_until = p.boost_until.max(now + 2500);
                 }
             }
             sb::SPRUNGSTAB => {

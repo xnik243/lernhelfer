@@ -29,9 +29,17 @@ pub struct Env {
     pub par: [f32; 4],               // x sRGB-Ziel, y Eckenschatten, z unter Wasser, w Stufe (setzt Gfx)
     pub par2: [f32; 4],              // x HDR 8 Bit, y direkt, z 1/Schattengröße (setzt Gfx), w Texturauflösung, negativ = eigenes Paket (setzt Gfx)
     pub scr: [f32; 4],               // x Breite, y Höhe, z 1/Breite, w 1/Höhe (setzt Gfx)
+    pub wx: [f32; 4],                // x Wetter 0 Klar, 1 Regen, 2 Schnee, 3 Kirschblüten, y Stärke 0..1
+    pub post: [f32; 4],              // x Filter 0 Standard, 1 Retro-Pixel, 2 Goldene Stunde, 3 Kino-Kontrast, y Brennweite in Blöcken (0 = aus)
     pub lpos: [[f32; 4]; MAX_LIGHTS], // xyz Ort, w Reichweite
     pub lcol: [[f32; 4]; MAX_LIGHTS], // rgb Farbe × Stärke
 }
+
+// Belegung muss zu `struct Env` in shaders/common.wgsl passen: 3 Matrizen + 13 Vektoren + 2 × 32 Lichter
+const _: () = assert!(std::mem::size_of::<Env>() == 3 * 64 + 13 * 16 + 2 * MAX_LIGHTS * 16);
+
+/// Wetter-Partikel: Instanzen je Bild, ohne Vertex-Puffer (alles aus Indizes im Shader).
+pub const WX_PARTICLES: u32 = 2048;
 
 /// Eine Würfel-Instanz: 3×4-Matrix (zeilenweise) und Farbe; Alpha > 127 = leuchtet, 1..8 = Riss-Stufe, 9 = Drahtrahmen.
 #[repr(C)]
@@ -78,6 +86,7 @@ struct Pipes {
     solid: wgpu::RenderPipeline,
     inst: wgpu::RenderPipeline,
     clear: wgpu::RenderPipeline,
+    wx: wgpu::RenderPipeline,
 }
 
 pub struct Gfx {
@@ -244,6 +253,8 @@ impl Gfx {
             } else {
                 pipe(&m_scene, &l_clear, "vs", "fs_clear_hdr", &voxel, Some(fmt), Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING), None, back)
             },
+            // Wetter: kein Vertex-Puffer, Tiefentest ohne Schreiben, Alpha-Mischung, beide Seiten
+            wx: pipe(&m_scene, &l_main, "vs_wx", "fs_wx", &[], Some(fmt), Some(wgpu::BlendState::ALPHA_BLENDING), ds(false, less, nb), None),
         };
         let direct = scene_pipes(format, true);
         let hdr = scene_pipes(hdr_fmt, false);
@@ -425,6 +436,7 @@ impl Gfx {
         if n > 0 {
             self.queue.write_buffer(&self.inst, 0, bytemuck::cast_slice(&insts[..n]));
         }
+        let wx = wx_on(&e.wx);
         let mut quads = 0;
         let t = &self.t;
         let mut enc = self.device.create_command_encoder(&Default::default());
@@ -441,6 +453,10 @@ impl Gfx {
             draw_inst(&mut rp, &self.cube, &self.inst, n);
             rp.set_pipeline(&self.direct.clear);
             quads += draw_clear(&mut rp, chunks, visible);
+            if wx {
+                rp.set_pipeline(&self.direct.wx);
+                rp.draw(0..6, 0..WX_PARTICLES);
+            }
         } else {
             {
                 // Schattenkarte aus Sicht von Sonne/Mond
@@ -463,6 +479,10 @@ impl Gfx {
                 quads += draw_solid(&mut rp, chunks, visible);
                 rp.set_pipeline(&self.hdr.inst);
                 draw_inst(&mut rp, &self.cube, &self.inst, n);
+                if wx {
+                    rp.set_pipeline(&self.hdr.wx);
+                    rp.draw(0..6, 0..WX_PARTICLES);
+                }
             }
             {
                 // durchsichtige Schicht: liest Szene und Tiefe (Wasser: Brechung, Schaum, Spiegelung)
@@ -484,6 +504,11 @@ impl Gfx {
         frame.present();
         quads
     }
+}
+
+/// Wetter-Partikel nur zeichnen, wenn eine Art gewählt und die Stärke sichtbar ist (NaN = aus).
+fn wx_on(wx: &[f32; 4]) -> bool {
+    wx[0] > 0.5 && wx[1] > 0.01
 }
 
 fn begin<'e>(enc: &'e mut wgpu::CommandEncoder, color: Option<&wgpu::TextureView>, depth: Option<&wgpu::TextureView>) -> wgpu::RenderPass<'e> {
@@ -539,5 +564,33 @@ fn draw_inst(rp: &mut wgpu::RenderPass<'_>, cube: &wgpu::Buffer, inst: &wgpu::Bu
         rp.set_vertex_buffer(0, cube.slice(..));
         rp.set_vertex_buffer(1, inst.slice(..(n * std::mem::size_of::<Inst>()) as u64));
         rp.draw_indexed(0..36, 0, 0..n as u32);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn env_layout() {
+        // wx und post liegen direkt hinter scr und vor den Lichtern (wie in common.wgsl)
+        let e = Env::zeroed();
+        let base = &e as *const Env as usize;
+        let scr = &e.scr as *const _ as usize - base;
+        assert_eq!(scr, 3 * 64 + 10 * 16);
+        assert_eq!(&e.wx as *const _ as usize - base, scr + 16);
+        assert_eq!(&e.post as *const _ as usize - base, scr + 32);
+        assert_eq!(&e.lpos as *const _ as usize - base, scr + 48);
+        assert_eq!(std::mem::size_of::<Env>() % 16, 0);
+    }
+
+    #[test]
+    fn wetter_schalter() {
+        assert!(!wx_on(&[0.0; 4]));
+        assert!(!wx_on(&[0.0, 1.0, 0.0, 0.0]));
+        assert!(!wx_on(&[1.0, 0.005, 0.0, 0.0]));
+        assert!(!wx_on(&[f32::NAN, f32::NAN, 0.0, 0.0]));
+        assert!(wx_on(&[1.0, 0.5, 0.0, 0.0]));
+        assert!(wx_on(&[3.0, 1.0, 0.0, 0.0]));
     }
 }

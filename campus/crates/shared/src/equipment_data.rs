@@ -55,6 +55,9 @@ pub static EQUIP: &[EquipDef] = &[
     EquipDef { id: ARTIFACT + 5, name: "Fokus-Talisman", slot: SL_TALISMAN, set: 255, rarity: 1, rgb: [180, 120, 255], bonus: Bonus { mana: 40.0, regen: 1.0, ..B0 }, lore: "Ein Kristall, der die Gedanken sammelt.", value: 300 },
     EquipDef { id: ARTIFACT + 6, name: "Krit-Talisman", slot: SL_TALISMAN, set: 255, rarity: 2, rgb: [255, 90, 160], bonus: Bonus { crit: 5.0, ..B0 }, lore: "Der Funke vor dem Schlag.", value: 450 },
     EquipDef { id: ARTIFACT + 7, name: "Archon-Siegel", slot: SL_TALISMAN, set: 255, rarity: 3, rgb: [255, 215, 0], bonus: Bonus { hp: 50.0, def: 30.0, str_: 15.0, ..B0 }, lore: "Das Siegel des Archons, unbeugsam und rein.", value: 800 },
+    // ---------- Katakomben-Artefakte (Phase 24, nur als Beute) ----------
+    EquipDef { id: SCHATTEN_LATERNE, name: "Schatten-Laterne", slot: SL_TALISMAN, set: 255, rarity: 2, rgb: [150, 90, 230], bonus: Bonus { crit: 4.0, mana: 30.0, ..B0 }, lore: "Leuchtet nur dort, wo es wirklich dunkel ist.", value: 900 },
+    EquipDef { id: RUNEN_HERZ, name: "Runen-Herz", slot: SL_TALISMAN, set: 255, rarity: 3, rgb: [120, 220, 255], bonus: Bonus { hp: 60.0, str_: 20.0, hp_regen: 1.0, ..B0 }, lore: "Schlägt im Takt der fünf Runen.", value: 1600 },
     // ---------- Waffen ----------
     EquipDef { id: HOLZ_KLINGE, name: "Holz-Klinge", slot: SL_NAH, set: 255, rarity: 0, rgb: [150, 110, 70], bonus: Bonus { dmg: 20.0, ..B0 }, lore: "Eine Klinge aus Brettern. Besser als nichts.", value: 15 },
     EquipDef { id: SAPHIR_KLINGE, name: "Saphir-Klinge", slot: SL_NAH, set: 255, rarity: 1, rgb: [80, 140, 240], bonus: Bonus { dmg: 45.0, str_: 10.0, ..B0 }, lore: "Blau geschliffen, scharf wie eine Formel.", value: 150 },
@@ -98,6 +101,9 @@ pub static EQUIP_RECIPES: &[Recipe] = &[
     Recipe { out: ARTIFACT + 5, n: 1, ins: &[(FOKUS_KRISTALL, 2), (SHARD + 4, 16)], unlock: None },
     Recipe { out: ARTIFACT + 6, n: 1, ins: &[(FOKUS_KRISTALL, 2), (SHARD + 3, 24)], unlock: None },
     Recipe { out: ARTIFACT + 7, n: 1, ins: &[(ARCHON_KERN, 1), (WAECHTER_SIEGEL, 8)], unlock: None },
+    // Katakomben-Artefakte: Beute der Beutetruhen oder aus Meister-Kernen geschmiedet
+    Recipe { out: SCHATTEN_LATERNE, n: 1, ins: &[(MEISTER_KERN, 1), (SHARD + 4, 32)], unlock: None },
+    Recipe { out: RUNEN_HERZ, n: 1, ins: &[(MEISTER_KERN, 3), (ARCHON_KERN, 1)], unlock: None },
     // ---------- Waffen ----------
     Recipe { out: HOLZ_KLINGE, n: 1, ins: &[(STAMM as u16, 6), (BRETTER as u16, 4)], unlock: None },
     Recipe { out: SAPHIR_KLINGE, n: 1, ins: &[(HOLZ_KLINGE, 1), (SAPHIR as u16, 8), (EISEN as u16, 4)], unlock: None },

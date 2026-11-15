@@ -1,13 +1,23 @@
 //! Campus-Spielserver: eigener Dienst neben dem Lernhelfer, eigene SQLite-Datenbank.
+pub mod architect;
+pub mod catacombs;
+pub mod catacombs_gen;
+pub mod duel;
+pub mod duel_ai;
+pub mod duel_fallback_data;
+pub mod dungeon_rooms_data;
 pub mod econ;
 pub mod game;
 pub mod http;
+pub mod instance;
 pub mod inv;
 pub mod island;
 pub mod lh;
 pub mod mobs;
 pub mod rpg;
 pub mod sky;
+#[cfg(test)]
+pub mod testkit;
 
 use game::{Game, User};
 use std::collections::HashMap;
@@ -70,6 +80,7 @@ pub async fn start(cfg: Config) -> Result<(App, SocketAddr), String> {
             if let Err(e) = g.auction_tick().and_then(|_| g.rollover()) {
                 eprintln!("Hintergrundarbeit: {}", e.1);
             }
+            g.weather_tick(); // Wetterwechsel und Ende des 2×-Taler-Events (architect.rs), nie im 100-ms-Takt
             if n % 6 == 0 {
                 if let Err(e) = g.save() {
                     eprintln!("Speichern: {}", e.1);

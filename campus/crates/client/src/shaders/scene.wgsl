@@ -339,7 +339,7 @@ fn block_color(i: VO) -> vec4<f32> {
       }
     }
   }
-  let m = block_mat(i.b, uv, i.wp, fc.side);
+  var m = block_mat(i.b, uv, i.wp, fc.side);
   var nn = fc.n;
   if tier > 1.5 && has_relief(pat) && dist < 40.0 {
     let e = 0.5 / tex_res();
@@ -348,7 +348,25 @@ fn block_color(i: VO) -> vec4<f32> {
     let k = RELIEF / (2.0 * e) * (1.0 - smoothstep(25.0, 40.0, dist));
     nn = normalize(fc.n - (fc.t * hu + fc.bt * hv) * k);
   }
-  let alb = to_lin(m.col);
+  var alb = to_lin(m.col);
+  // Wetter auf Oberseiten: Regen macht nass (glatter, dunkler, Tropfen-Ringe), Schnee legt Frost-Schimmer
+  if g.wx.y > 0.01 && fc.n.y > 0.5 {
+    if abs(g.wx.x - 1.0) < 0.5 {
+      m.rough = m.rough * mix(1.0, 0.25, g.wx.y);
+      alb = alb * mix(1.0, 0.72, g.wx.y);
+      let cell = floor(i.wp.xz * 2.0);
+      let rh = h2(cell + vec2<f32>(13.0, 7.0));
+      let ph = fract(g.cam.w * 0.9 + rh);
+      let ctr = (cell + vec2<f32>(0.25) + vec2<f32>(rh, fract(rh * 7.3)) * 0.5) * 0.5;
+      let dv = i.wp.xz - ctr;
+      let r = length(dv);
+      let ring = (1.0 - smoothstep(0.0, 0.03, abs(r - ph * 0.22))) * (1.0 - ph);
+      let dir = dv / max(r, 0.001);
+      nn = normalize(nn + vec3<f32>(dir.x, 0.0, dir.y) * ring * 0.35 * g.wx.y);
+    } else if abs(g.wx.x - 2.0) < 0.5 {
+      alb = mix(alb, vec3<f32>(0.86, 0.92, 1.0), 0.35 * g.wx.y);
+    }
+  }
   let ao = mix(1.0, 0.35 + 0.65 * i.ao, g.par.y);
   var c = light_surface(alb, nn, fc.n, i.wp, ao, m.rough, m.metal, pshadow);
   // Kristall-Glitzern: einzelne Pixel blitzen im Blickwinkel auf
@@ -582,4 +600,99 @@ fn fsi(i: IO) -> @location(0) vec4<f32> {
   var c = light_surface(alb, nn, nn, i.wp, 1.0, 0.8, 0.0, 1.0);
   if i.col.w > 0.5 { c = c * 0.4 + alb * 1.4; }
   return vec4<f32>(out_scene(fog_mix(c, i.wp)), 1.0);
+}
+
+// ---------- Wetter-Partikel: ohne Vertex-Puffer, alles aus Ecke (vertex_index) + Instanz + Hash ----------
+
+struct WO {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) col: vec4<f32>,                  // rgb beleuchtet (linear), a Deckkraft
+  @location(1) q: vec2<f32>,                    // Ecke -1..1
+  @location(2) wp: vec3<f32>,
+  @location(3) @interpolate(flat) kind: u32,    // 1 Regen, 2 Schnee, 3 Kirschblüten
+};
+
+@vertex
+fn vs_wx(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> WO {
+  var o: WO;
+  o.pos = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+  let kind = u32(clamp(g.wx.x + 0.5, 0.0, 3.0));
+  let fi = f32(ii);
+  // Instanzen über dem Stärke-Anteil (von 2048 = WX_PARTICLES) fallen auf Fläche 0 zusammen
+  if kind == 0u || fi >= g.wx.y * 2048.0 { return o; }
+  var cs = array<vec2<f32>, 6>(vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, 1.0));
+  let c = cs[vi % 6u];
+  let t = g.cam.w;
+  let h = vec3<f32>(h2(vec2<f32>(fi, 1.37)), h2(vec2<f32>(fi, 7.11)), h2(vec2<f32>(fi, 3.73)));
+  let hk = h2(vec2<f32>(fi, 5.29));
+  let bx = vec3<f32>(32.0, 24.0, 32.0);
+  var seed = h * bx;
+  var ax = vec3<f32>(0.0, -1.0, 0.0);
+  var hs = vec2<f32>(0.05, 0.05); // halbe Breite, halbe Länge
+  var alb = vec3<f32>(1.0);
+  var alpha = 0.95;
+  if kind == 1u {
+    // Sommerregen: schräge Striche, gut 22 Blöcke/s
+    let vel = vec3<f32>(3.0, -22.0, 1.5) * (0.85 + 0.3 * hk);
+    seed = seed + vel * t;
+    ax = normalize(vel);
+    hs = vec2<f32>(0.018, 0.4);
+    alb = vec3<f32>(0.62, 0.70, 0.82);
+    alpha = 0.45;
+  } else if kind == 2u {
+    // Schnee: kleine Würfelchen, die schaukelnd sinken
+    seed = seed + vec3<f32>(sin(t * 1.3 + hk * 6.28) * 0.5 + t * 0.4, -t * (1.2 + 0.6 * hk), cos(t * 1.1 + hk * 9.0) * 0.4);
+    hs = vec2<f32>(0.045, 0.045);
+    alb = vec3<f32>(0.95, 0.97, 1.0);
+  } else {
+    // Kirschblüten: rosa Plättchen im Sinus-Wind
+    seed = seed + vec3<f32>(sin(t * 0.7 + h.y * 0.25 + hk * 6.28) * 1.6 + t * 1.4, -t * (0.9 + 0.4 * hk), cos(t * 0.5 + hk * 4.0) * 0.8);
+    hs = vec2<f32>(0.07, 0.05);
+    alb = to_lin(vec3<f32>(1.0, 0.72, 0.82));
+  }
+  // Kasten 32×24×32 um die Kamera, die Welt-Lage bleibt beim Gehen stehen
+  let rel = fract((seed - g.cam.xyz) / bx) * bx;
+  let p = g.cam.xyz - bx * 0.5 + rel;
+  let e = min(rel, bx - rel);
+  let fade = smoothstep(0.0, 3.0, min(e.x, min(e.y, e.z)));
+  let tc = g.cam.xyz - p;
+  let dist = length(tc);
+  let vdir = tc / max(dist, 0.001);
+  var right = cross(vec3<f32>(0.0, 1.0, 0.0), vdir);
+  if dot(right, right) < 0.0001 { right = vec3<f32>(1.0, 0.0, 0.0); }
+  right = normalize(right);
+  var up = cross(vdir, right);
+  if kind == 1u {
+    right = cross(ax, vdir);
+    if dot(right, right) < 0.0001 { right = vec3<f32>(1.0, 0.0, 0.0); }
+    right = normalize(right);
+    up = ax;
+  } else {
+    // drehen; Blüten flattern zusätzlich (eine Achse schrumpft)
+    let a = t * (1.5 + hk) + hk * 6.28;
+    let r2 = right * cos(a) + up * sin(a);
+    up = up * cos(a) - right * sin(a);
+    if kind == 3u { up = up * (0.35 + 0.65 * abs(sin(t * 2.3 + hk * 5.0))); }
+    right = r2;
+  }
+  let wp = p + right * (c.x * hs.x) + up * (c.y * hs.y);
+  let lit = g.amb.xyz * 1.2 + g.gnd.xyz * 0.3 + g.sun_col.xyz * max(g.sun.y, 0.0) * 0.6 + point_lights(p, vdir) * 0.5;
+  o.pos = g.vp * vec4<f32>(wp, 1.0);
+  o.col = vec4<f32>(alb * lit, alpha * fade * smoothstep(0.3, 1.5, dist));
+  o.q = c;
+  o.wp = wp;
+  o.kind = kind;
+  return o;
+}
+
+@fragment
+fn fs_wx(i: WO) -> @location(0) vec4<f32> {
+  var a = i.col.a;
+  if i.kind == 1u {
+    a = a * (1.0 - abs(i.q.x)) * (1.0 - i.q.y * i.q.y * 0.6);
+  } else if i.kind == 3u {
+    if dot(i.q, i.q) > 1.0 { discard; }
+  }
+  if a < 0.003 { discard; }
+  return vec4<f32>(out_scene(fog_mix(i.col.rgb, i.wp)), a);
 }

@@ -203,7 +203,8 @@ impl Game {
             let mut used = DayUse { focus, cards };
             let p = eco::payout(&Earn { kind, amount: e.menge, streak: e.serie, exam_in: e.pruefung_in, grade: e.note }, &mut used);
             self.db.execute("insert into daily (user, day, focus, cards) values (?, ?, ?, ?) on conflict (user, day) do update set focus = excluded.focus, cards = excluded.cards", params![uid, e.tag, used.focus, used.cards])?;
-            self.pay(uid, p.taler as i64, &format!("lernen:{}", e.art))?;
+            let lohn = p.taler as i64 * self.taler_mult(); // 2×-Taler-Event der Verwaltung
+            self.pay(uid, lohn, &format!("lernen:{}", e.art))?;
             gewinn.push(self.learn(uid, e, kind)?);
             if p.blueprints > 0 {
                 self.give(uid, BLUEPRINT, p.blueprints as i64)?;
@@ -212,7 +213,7 @@ impl Game {
                 self.give(uid, items::PLATE_GOLD, 1)?;
                 neu.push(items::PLATE_GOLD);
             }
-            taler += p.taler as i64;
+            taler += lohn;
             funde += p.funde;
             plaene += p.blueprints;
         }
@@ -856,7 +857,7 @@ impl Game {
             g.db.execute("update auctions set bid = null, bidder = null where bidder = ? and state = 0", [uid])?;
             g.db.execute("update auctions set bidder = 0 where bidder = ?", [uid])?;
             g.db.execute("insert into project_gifts (key, user, amount) select key, 0, amount from project_gifts where user = ?1 on conflict (key, user) do update set amount = amount + excluded.amount", [uid])?;
-            for t in ["inv", "timed", "daily", "ledger", "stats", "earn_week", "plot_acl"] {
+            for t in ["inv", "timed", "daily", "ledger", "stats", "earn_week", "plot_acl", "duel_elo", "dungeon_best", "npc_rewards"] {
                 g.db.execute(&format!("delete from {t} where user = ?"), [uid])?;
             }
             g.db.execute("delete from project_gifts where user = ?", [uid])?;
@@ -878,6 +879,9 @@ impl Game {
 
     // ---------- Verteiler ----------
     pub fn get(&mut self, u: &User, op: &str) -> R<Value> {
+        if let Some(r) = self.p21_get(u, op) {
+            return r; // Phasen 21–25 (instance.rs): Duell, Katakomben, Verwaltung mit 403 für alle anderen
+        }
         if let Some(r) = self.sky_get(u.id, op) {
             return r;
         }
@@ -895,6 +899,9 @@ impl Game {
     }
     pub fn post(&mut self, u: &User, op: &str, b: &Value) -> R<Value> {
         let id = u.id;
+        if let Some(r) = self.p21_post(u, op, b) {
+            return r;
+        }
         if let Some(r) = self.sky_post(id, u.admin, op, b) {
             return r;
         }

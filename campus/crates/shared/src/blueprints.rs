@@ -680,6 +680,8 @@ fn spawn(p: &mut Put) {
         lantern(p, x, 33, z);
     }
     arch(p, 231, 296, 32, true);
+    let [ax, ay, az] = ARENA_PORTAL_AT;
+    p.fill(ax, ay, az, ax, ay + 1, az, ARENA_PORTAL);
     p.fill(243, 33, 292, 243, 34, 292, QUESTBRETT);
     p.set(243, 35, 292, LATERNE);
     for (cx, cz) in [(233, 288), (247, 288)] {
@@ -1503,6 +1505,8 @@ fn zitadelle(p: &mut Put, st: WorldState) {
     let [bx, by, bz] = BOSS_ALTAR_AT;
     p.set(bx, by, bz, BOSS_ALTAR);
     arch(p, 235, 106, 30, true);
+    let [kx, ky, kz] = KATA_PORTAL_AT;
+    p.fill(kx, ky, kz, kx, ky + 1, kz, KATA_PORTAL);
     fall(p, st, 238, 52, 241, 63, 30, 6);
 }
 

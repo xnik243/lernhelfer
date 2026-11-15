@@ -43,11 +43,11 @@ pub struct Player {
     pub anim: u8,
     pub group: u32,
     tx: Sender<Bytes>,
-    sent: Vec<u64>,
+    pub(crate) sent: Vec<u64>,
     pub session: u64,
     last_block: i64,
     pub(crate) last_chat: i64,
-    last_move: i64,
+    pub(crate) last_move: i64,
     view: i32,
     pub(crate) tool_at: [i64; 16], // je Werkzeug (Index in skyblock::TOOLS)
     pub boost_until: i64,
@@ -70,6 +70,12 @@ pub struct Player {
     pub island_sent: Option<(u8, u8)>,
     /// zuletzt gerechnete Werte (rpg::Game::refresh_stats)
     pub stats: campus_shared::stats::Stats,
+    // ---------- Phasen 21–25 ----------
+    /// Verwaltung (aus dem Lernhelfer bei der Anmeldung; gilt bis zur nächsten Anmeldung). Einzige Quelle für /architect.
+    pub admin: bool,
+    /// Instanz (Katakomben/Arena), in der die Figur gerade steht (instance.rs), und die Stelle davor für die Rückkehr.
+    pub inst: Option<u32>,
+    pub inst_back: [f32; 3],
 }
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -115,6 +121,20 @@ pub struct Game {
     pub trades: crate::inv::Trades,
     /// Konten, deren Beutel (/stash) sich gerade gefüllt hat; give() ist &self, darum hier gesammelt, im Takt gemeldet
     pub stash_notes: std::cell::RefCell<Vec<u32>>,
+    // ---------- Phasen 21–25 ----------
+    /// Laufende Instanzen (Block-Gitter nur im Speicher, nie in der Datenbank; instance.rs).
+    pub instances: crate::instance::Instances,
+    /// Lern-Duelle je Instanz-Nummer (duel.rs). Leer = kein Takt-Aufwand.
+    pub duels: HashMap<u32, crate::duel::Duel>,
+    /// Katakomben-Läufe je Instanz-Nummer (catacombs.rs). Leer = kein Takt-Aufwand, kein Speicher (LAW 2).
+    pub active_dungeons: HashMap<u32, crate::catacombs::Dungeon>,
+    /// Architekten-Modus je Verwalter: Auswahl, Zwischenablage, Rückgängig-Ring (architect.rs).
+    pub arch: crate::architect::Arch,
+    /// 2×-Taler-Event läuft bis zu diesem Zeitpunkt (ms; 0 = aus). Gespiegelt in kv `event_2x_until`.
+    pub event_until: i64,
+    /// Ergebnisse der OpenRouter-Aufträge: der Hintergrund-Task schickt, der Takt holt ab (LAW 1, duel_ai.rs).
+    pub jobs_tx: std::sync::mpsc::Sender<crate::duel_ai::Job>,
+    jobs_rx: std::sync::mpsc::Receiver<crate::duel_ai::Job>,
 }
 
 const SCHEMA: &str = "
@@ -162,11 +182,24 @@ create index if not exists fblocks_plot on island_functional_blocks (plot);
 create index if not exists chests_plot on island_chests (plot);
 ";
 /// Spätere Spalten; schlagen sie fehl, gibt es sie schon.
+/// Phasen 21–25. Besitz: architect.rs (custom_blueprints, custom_npcs, npc_rewards), duel_ai.rs (server_config,
+/// duel_question_cache), duel.rs (duel_elo), catacombs.rs (dungeon_best). Instanzen selbst stehen in keiner Tabelle.
+const P21_SCHEMA: &str = "
+create table if not exists server_config (k text primary key, v text not null);
+create table if not exists custom_blueprints (name text primary key, w integer not null, h integer not null, d integer not null, data blob not null, by_user integer not null, ts integer not null);
+create table if not exists custom_npcs (id integer primary key, x real not null, y real not null, z real not null, yaw real not null default 0, name text not null, look integer not null default 0, text text not null default '', action text not null default '');
+create table if not exists npc_rewards (npc integer not null, user integer not null, day integer not null, primary key (npc, user)) without rowid;
+create table if not exists duel_question_cache (id integer primary key, topic text not null, stufe integer not null, q text not null, o0 text not null, o1 text not null, o2 text not null, o3 text not null,
+  correct integer not null check (correct between 0 and 3), explanation text not null default '', used integer not null default 0, ts integer not null, unique (topic, stufe, q));
+create index if not exists duel_cache_topic on duel_question_cache (topic, stufe, used);
+create table if not exists duel_elo (user integer primary key, elo integer not null default 1000, siege integer not null default 0, spiele integer not null default 0);
+create table if not exists dungeon_best (user integer not null, stufe integer not null, note integer not null, ms integer not null, ts integer not null, primary key (user, stufe)) without rowid;
+";
 const ALTER: &[&str] = &["alter table plots add column visit integer not null default 0"];
 /// Weltfassung: steigt sie, sind gespeicherte Stücke einer alten Grundwelt wertlos und werden verworfen.
 const WORLD_VERSION: &str = "3-archipel";
 
-fn ci(cx: i32, cz: i32) -> usize {
+pub(crate) fn ci(cx: i32, cz: i32) -> usize {
     (cz * WC + cx) as usize
 }
 
@@ -176,6 +209,7 @@ impl Game {
         db.execute_batch(SCHEMA)?;
         db.execute_batch(crate::sky::SCHEMA)?;
         db.execute_batch(RPG_SCHEMA)?;
+        db.execute_batch(P21_SCHEMA)?;
         for a in ALTER {
             let _ = db.execute(a, []);
         }
@@ -185,6 +219,7 @@ impl Game {
         }
         let mut ring: Vec<(i32, i32)> = (-eco::MAX_VIEW_CHUNKS..=eco::MAX_VIEW_CHUNKS).flat_map(|z| (-eco::MAX_VIEW_CHUNKS..=eco::MAX_VIEW_CHUNKS).map(move |x| (x, z))).filter(|(x, z)| x * x + z * z <= eco::MAX_VIEW_CHUNKS * eco::MAX_VIEW_CHUNKS).collect();
         ring.sort_by_key(|(x, z)| x * x + z * z);
+        let (jobs_tx, jobs_rx) = std::sync::mpsc::channel();
         let mut g = Game {
             db,
             st: WorldState::default(),
@@ -207,7 +242,15 @@ impl Game {
             mobs: Default::default(),
             trades: Default::default(),
             stash_notes: Default::default(),
+            instances: Default::default(),
+            duels: HashMap::new(),
+            active_dungeons: HashMap::new(),
+            arch: Default::default(),
+            event_until: 0,
+            jobs_tx,
+            jobs_rx,
         };
+        g.event_until = g.kv("event_2x_until").and_then(|v| v.parse().ok()).unwrap_or(0);
         g.st = WorldState { regions: g.kv("regions").and_then(|v| v.parse().ok()).unwrap_or(0), projects: g.kv("projects").and_then(|v| v.parse().ok()).unwrap_or(0) };
         for cz in 0..WC {
             for cx in 0..WC {
@@ -233,6 +276,14 @@ impl Game {
                     if *v == world::ABGEBAUT {
                         *v = base.get(k).copied().unwrap_or(0);
                     }
+                }
+            }
+        }
+        // Portal-Blöcke der Phasen 23/24 stehen immer, auch wenn ihr Stück schon vor der Erweiterung gespeichert wurde
+        for (at, b) in [(world::KATA_PORTAL_AT, world::KATA_PORTAL), (world::ARENA_PORTAL_AT, world::ARENA_PORTAL)] {
+            for dy in 0..2 {
+                if g.block(at[0], at[1] + dy, at[2]) != b {
+                    g.set_raw(at[0], at[1] + dy, at[2], b);
                 }
             }
         }
@@ -302,7 +353,7 @@ impl Game {
         Bytes::copy_from_slice(&self.scratch)
     }
     /// Wichtige Nachricht; wer nicht hinterherkommt, fliegt raus und meldet sich neu an.
-    fn push(&mut self, id: u32, b: Bytes) {
+    pub(crate) fn push(&mut self, id: u32, b: Bytes) {
         if let Some(p) = self.players.get(&id) {
             if p.tx.try_send(b).is_err() {
                 self.kick.push(id);
@@ -355,7 +406,8 @@ impl Game {
             c.b[world::idx(x & 15, y, z & 15)]
         }
     }
-    fn set_raw(&mut self, x: i32, y: i32, z: i32, b: u8) {
+    /// Roh setzen ohne Meldung (Massen-Änderungen des Architekten-Modus; danach `resend` je Stück).
+    pub(crate) fn set_raw(&mut self, x: i32, y: i32, z: i32, b: u8) {
         let c = &mut self.chunks[ci(x >> 4, z >> 4)];
         if c.b.is_empty() {
             if b == 0 {
@@ -377,13 +429,22 @@ impl Game {
             self.push(id, m.clone());
         }
     }
+    /// Fertige S2C::Chunk-Nachricht des echten Welt-Stücks `i` (gemerkt, bis sich das Stück ändert).
+    pub(crate) fn chunk_msg(&mut self, i: usize) -> Bytes {
+        if self.chunks[i].msg.is_none() {
+            let b = &self.chunks[i].b;
+            let m = S2C::Chunk { cx: (i as i32 % WC) as u8, cz: (i as i32 / WC) as u8, rle: if b.is_empty() { world::rle_air() } else { world::rle(b) } };
+            self.chunks[i].msg = Some(Bytes::from(proto::enc(&m)));
+        }
+        self.chunks[i].msg.clone().unwrap_or_default()
+    }
     /// Hat der Spieler das Stück an dieser Stelle schon bekommen?
     pub fn has_chunk(&self, id: u32, x: i32, z: i32) -> bool {
         let i = ci(x >> 4, z >> 4);
         self.players.get(&id).is_some_and(|p| p.sent[i / 64] >> (i % 64) & 1 == 1)
     }
     /// Stück neu an alle schicken, die es schon haben (nach Rücksetzen oder Weltwandel).
-    fn resend(&mut self, i: usize) {
+    pub(crate) fn resend(&mut self, i: usize) {
         self.chunks[i].msg = None;
         self.chunks[i].dirty = true;
         for p in self.players.values_mut() {
@@ -492,6 +553,11 @@ impl Game {
 
     // ---------- Spieler ----------
     pub fn join(&mut self, u: &User, tx: Sender<Bytes>) -> R<u64> {
+        // Neu verbunden, bevor die alte Verbindung als getrennt bemerkt wurde: alten Eintrag sauber aufräumen
+        // (Handel, Instanz, Architekt, Stelle speichern) – sonst bliebe ein Geist in Inst.members (LAW 2)
+        if self.players.contains_key(&u.id) {
+            self.drop_player(u.id);
+        }
         self.ensure_user(u)?;
         self.assign_plot(u.id)?;
         let (look, grp, pos): (Option<Vec<u8>>, u32, Option<[f32; 3]>) = self.db.query_row("select look, grp, x, y, z from users where id = ?", [u.id], |r| {
@@ -506,7 +572,7 @@ impl Game {
         let old: Vec<(u32, String, Look)> = self.players.values().filter(|p| p.id != u.id).map(|p| (p.id, p.name.clone(), p.look)).collect();
         let sent = vec![0u64; ((WC * WC + 63) / 64) as usize];
         self.players.insert(u.id, Player { id: u.id, name: u.name.clone(), look, p: pos, yaw: 0.0, anim: 0, group: grp, tx, sent, session, last_block: 0, last_chat: 0, last_move: self.now(), view: eco::VIEW_CHUNKS, tool_at: [0; 16], boost_until: 0, dig: None, void_at: 0,
-            held: 0, hp: campus_shared::stats::BASE_HP, shield_until: 0, swing_at: 0, shot_at: 0, hurt_at: 0, pad_at: 0, island_sent: None, stats: Default::default() });
+            held: 0, hp: campus_shared::stats::BASE_HP, shield_until: 0, swing_at: 0, shot_at: 0, hurt_at: 0, pad_at: 0, island_sent: None, stats: Default::default(), admin: u.admin, inst: None, inst_back: pos });
         self.sky_row(u.id)?;
         self.send(u.id, &S2C::Welcome { id: u.id, pos, state: self.st });
         // gleich danach immer die Ankunft: gespeicherte Stelle, wenn Füße und Kopf frei sind und höchstens 2 darunter Boden ist;
@@ -533,6 +599,8 @@ impl Game {
         self.inv_join(u.id);
         self.combat_join(u.id);
         self.island_join(u.id);
+        // Phasen 21–25: Wetter, Event-Banner, freie NPCs, ggf. Architekten-Leiste (architect.rs)
+        self.arch_join(u.id);
         Ok(session)
     }
 
@@ -543,6 +611,9 @@ impl Game {
     }
     pub fn drop_player(&mut self, id: u32) {
         self.trade_abort(id, "Die andere Person hat den Campus verlassen.");
+        // Instanz verlassen (stellt die Figur an die Stelle davor zurück; die letzte Person löst die Instanz auf), Architekten-Zustand weg
+        self.inst_leave(id);
+        self.arch_left(id);
         if let Some(p) = self.players.remove(&id) {
             let _ = self.db.execute("update users set x = ?, y = ?, z = ? where id = ?", params![p.p[0], p.p[1], p.p[2], id]);
             self.broadcast(&S2C::Leave(id));
@@ -577,7 +648,12 @@ impl Game {
                     pl.anim = anim;
                     pl.last_move = now;
                 }
-                if ok && p[1] < world::VOID_Y && now - pl.void_at > 2000 {
+                if pl.inst.is_some() {
+                    // in einer Instanz gelten weder Leere-Verlust noch Insel-Regeln; Arena/Katakomben prüfen Absturz selbst
+                    if accepted {
+                        self.inst_move(id, now);
+                    }
+                } else if ok && p[1] < world::VOID_Y && now - pl.void_at > 2000 {
                     pl.void_at = now;
                     self.void_fall(id);
                 } else if accepted {
@@ -586,12 +662,14 @@ impl Game {
             }
             C2S::Held(i) => self.set_held(id, i),
             C2S::Attack { mob } => {
-                if let Err(E(_, why)) = self.attack(id, mob, now) {
+                let r = if self.in_dungeon(id) { self.dungeon_attack(id, mob, now) } else { self.attack(id, mob, now) };
+                if let Err(E(_, why)) = r {
                     self.hud(id, json!({ "t": "nein", "text": why }));
                 }
             }
             C2S::Shoot { dir } => {
-                if let Err(E(_, why)) = self.shoot(id, dir, now) {
+                let r = if self.in_dungeon(id) { self.dungeon_shoot(id, dir, now) } else { self.shoot(id, dir, now) };
+                if let Err(E(_, why)) = r {
                     self.hud(id, json!({ "t": "nein", "text": why }));
                 }
             }
@@ -627,7 +705,8 @@ impl Game {
             }
             C2S::Say { ch, text } => self.say(id, ch, &text),
             C2S::Talk(n) => {
-                if let Err(E(_, why)) = self.talk(id, n) {
+                let r = if n >= campus_shared::npc::CUSTOM_NPC_BASE { self.npc_talk(id, n) } else { self.talk(id, n) };
+                if let Err(E(_, why)) = r {
                     self.hud(id, serde_json::json!({ "t": "nein", "text": why }));
                 }
             }
@@ -650,6 +729,12 @@ impl Game {
                 let item = campus_shared::items::EMOTE_WINKEN + n as u16;
                 if n == 0 || self.owns(id, item) {
                     self.broadcast(&S2C::Emote { id, n });
+                }
+            }
+            // Architekten-Stab: nur Verwaltung (LAW 5), sonst 403
+            C2S::Arch { op, x, y, z } => {
+                if let Err(E(_, why)) = self.admin_only(id).and_then(|_| self.arch_click(id, op, x as i32, y as i32, z as i32)) {
+                    self.hud(id, json!({ "t": "nein", "text": why }));
                 }
             }
         }
@@ -698,6 +783,7 @@ impl Game {
         self.send(id, &S2C::Teleport(p));
     }
     pub fn warp(&mut self, id: u32, w: Warp) -> R<()> {
+        self.inst_leave(id); // /hub, /is, Kompass: erst raus aus Arena/Katakomben
         let (to, yaw) = match w {
             Warp::Spot(i) => world::SPOTS.get(i as usize).map(|s| (s.1, s.2)).ok_or(E(404, "Diesen Ort gibt es nicht.".into()))?,
             Warp::Home => self.plots.iter().find(|p| p.owner == id).map(|p| (world::plot_spawn(p.slot), world::PLOT_YAW)).ok_or(E(404, "Du hast noch keine Insel.".into()))?,
@@ -826,6 +912,16 @@ impl Game {
         }
         // Prüfungs-Zitadelle: steigt sofort aus, wenn niemand dort ist (mobs.rs, LAW 2)
         self.mob_tick(now);
+        // Phasen 23/24: KI-Antworten abholen; Arena und Katakomben kosten nichts, solange keine läuft (LAW 1/2)
+        while let Ok(j) = self.jobs_rx.try_recv() {
+            self.job_done(j);
+        }
+        if !self.duels.is_empty() {
+            self.duel_tick(now);
+        }
+        if !self.active_dungeons.is_empty() {
+            self.dungeon_tick(now);
+        }
         self.flush_notes();
         const CELL: f32 = eco::PLAYER_VIEW;
         for v in self.grid.values_mut() {
@@ -883,12 +979,11 @@ impl Game {
                 if self.players[&id].sent[i / 64] >> (i % 64) & 1 == 1 {
                     continue;
                 }
-                if self.chunks[i].msg.is_none() {
-                    let b = &self.chunks[i].b;
-                    let m = S2C::Chunk { cx: cx as u8, cz: cz as u8, rle: if b.is_empty() { world::rle_air() } else { world::rle(b) } };
-                    self.chunks[i].msg = Some(Bytes::from(proto::enc(&m)));
-                }
-                let Some(m) = self.chunks[i].msg.clone() else { continue };
+                // Mitglieder einer Instanz bekommen in deren Feld das Instanz-Gitter statt der (leeren) Welt
+                let m = match self.inst_chunk(id, cx, cz) {
+                    Some(m) => m,
+                    None => self.chunk_msg(i),
+                };
                 if tx.try_send(m).is_err() {
                     break;
                 }

@@ -23,6 +23,38 @@
   <button id="stumm-knopf" class="knopf" type="button">Anwenden</button>
 </p>
 <p id="stumm-status" class="meta" role="status"></p>
+
+<h2>OpenRouter KI-Konfiguration</h2>
+<p id="ki-info" class="meta"></p>
+<p>
+  <label>API-Schlüssel <input id="ki-key" type="password" autocomplete="off" spellcheck="false" placeholder="leer lassen = unverändert"></label>
+  <label>Modell <input id="ki-modell" list="ki-modelle" autocomplete="off" spellcheck="false" maxlength="80"></label>
+  <datalist id="ki-modelle"></datalist>
+  <button id="ki-speichern" class="knopf" type="button">Speichern</button>
+  <button id="ki-loeschen" type="button">Schlüssel löschen</button>
+</p>
+<p>
+  <label>Thema <input id="ki-thema" maxlength="60" placeholder="z. B. Bruchrechnung"></label>
+  <label>Stufe <select id="ki-stufe"><option value="0">Klasse 5–7</option><option value="1" selected>Klasse 8–10</option><option value="2">Oberstufe / Uni</option></select></label>
+  <button id="ki-test" class="knopf" type="button">Test-Frage generieren</button>
+</p>
+<p id="ki-status" role="status"></p>
+<p id="ki-cache" class="meta"></p>
+
+<h2>Events &amp; Welt</h2>
+<p>
+  <button id="event-knopf" class="knopf" type="button">2× Taler Event an</button>
+  <label>Minuten <input id="event-minuten" type="number" min="1" max="1440" value="60" inputmode="numeric"></label>
+  <span id="event-info" class="meta"></span>
+</p>
+<p>
+  <label>Wetter <select id="wetter">
+    <option value="-1">Automatisch</option><option value="0">Klar</option><option value="1">Sommerregen</option><option value="2">Schneefall</option><option value="3">Kirschblüten</option>
+  </select></label>
+  <button id="arch-knopf" type="button" aria-pressed="false">Architekten-Modus</button>
+</p>
+<p id="welt-status" class="meta" role="status"></p>
+<h3>Baupläne</h3><div id="bauplaene"></div>
 </main>
 <script type="module" src="admin.js?v=__V__"></script>
 </body>

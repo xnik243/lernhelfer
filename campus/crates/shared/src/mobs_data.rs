@@ -1,7 +1,7 @@
-//! Gegner der Prüfungs-Zitadelle (Phase 18). Reine Daten.
+//! Gegner der Prüfungs-Zitadelle (Phase 18) und der Prüfungs-Katakomben (Phase 24: 5 Wächter, 6 Schatten-Gelehrter, 7 Endboss). Reine Daten.
 use crate::rpg::*;
 
-pub static MOBS: [MobDef; 5] = [
+pub static MOBS: [MobDef; 8] = [
     MobDef {
         id: 0,
         name: "Chaos-Schleim",
@@ -91,5 +91,54 @@ pub static MOBS: [MobDef; 5] = [
         taler: 3,
         drops: &[(SCHLEIM, 1, 400)],
         ring: 3,
+    },
+    // ---------- Prüfungs-Katakomben (Phase 24, ring 4: erscheinen nie in der Zitadelle) ----------
+    MobDef {
+        id: 5,
+        name: "Katakomben-Wächter",
+        level: 12,
+        hp: 260.0,
+        dmg: 22.0,
+        speed: 2.4,
+        reach: 1.8,
+        size: 1.2,
+        rgb: [70, 80, 100],
+        rgb2: [170, 30, 50],
+        xp: 30,
+        taler: 10,
+        drops: &[(WAECHTER_SIEGEL, 1, 250), (crate::skyblock::SHARD + 4, 1, 300)],
+        ring: 4,
+    },
+    MobDef {
+        id: 6,
+        name: "Schatten-Gelehrter",
+        level: 14,
+        hp: 180.0,
+        dmg: 28.0,
+        speed: 3.0,
+        reach: 1.6,
+        size: 1.0,
+        rgb: [40, 30, 60],
+        rgb2: [150, 90, 230],
+        xp: 34,
+        taler: 12,
+        drops: &[(TINTE, 2, 500), (crate::skyblock::FOKUS_KRISTALL, 1, 150)],
+        ring: 4,
+    },
+    MobDef {
+        id: 7,
+        name: "Der Namenlose Prüfer",
+        level: 35,
+        hp: 4200.0,
+        dmg: 40.0,
+        speed: 2.2,
+        reach: 3.2,
+        size: 2.4,
+        rgb: [60, 20, 30],
+        rgb2: [255, 80, 60],
+        xp: 500,
+        taler: 200,
+        drops: &[(ZITADELLEN_FRAGMENT, 3, 1000), (VERZ_BUCH, 1, 400)],
+        ring: 4,
     },
 ];

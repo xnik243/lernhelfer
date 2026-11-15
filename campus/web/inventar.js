@@ -2,7 +2,7 @@
 // Jeder Zug ist genau ein POST `inv/move`; der Stapel am Zeiger ist nur Anzeige (CONTRACT-16-20 §4 W-INV).
 let C = null;                       // ctx aus hud.js
 const SHARD = 1100, FOKUS_KRISTALL = 1110, VERZ_BUCH = 2401; // wie crates/shared (skyblock.rs, rpg.rs)
-const ROEM = ['', 'I', 'II', 'III', 'IV', 'V'];
+const ROEM = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'], FOLIANT_VI = 2421;
 const SELTEN = ['', ' gut', ' selten', ' legende'];  // Rahmenklassen aus hud.css: weiß, blau, lila, gold
 const st = { slots: Array(36).fill(null), gear: Array(7).fill(0), held: 0, stash: [], stashN: 0, werte: null };
 const ench = new Map();             // Gegenstand → [6] Stufen (aus GET enchants)
@@ -386,7 +386,16 @@ export async function verzaubernSeite() {
               await C.ladeMich?.();
             } catch (x) { C.fehler(x); }
             zeig();
-          } }, 'Verzaubern') : null);
+          } }, 'Verzaubern') : null,
+          // Stufe VI (Phase 24): nur mit einem Folianten aus den Katakomben, der alle anderen Kosten ersetzt
+          l === 5 && e.max === 5 && (habe.get(FOLIANT_VI) || 0) > 0 ? C.el('button', { class: 'knopf klein', type: 'button', 'aria-label': `${e.name} VI auf ${name(wahl)} verzaubern, verbraucht einen Folianten der Stufe VI`, onclick: async () => {
+            try {
+              await C.api('enchant', { item: wahl, ench: e.id });
+              C.ton(14);
+              await C.ladeMich?.();
+            } catch (x) { C.fehler(x); }
+            zeig();
+          } }, 'Stufe VI (Foliant)') : null);
       })),
       C.el('p', { class: 'meta' }, 'Verzaubern geht nur in der Nähe des Altars im Bibliotheks-Turm.'));
   };
