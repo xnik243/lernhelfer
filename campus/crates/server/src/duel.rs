@@ -20,8 +20,9 @@ pub const FACH_NAMEN: [&str; 4] = ["Mathematik & Logik", "Sprachen & Vokabeln", 
 pub const BOT_ID: u32 = u32::MAX;
 pub const BOT_NAME: &str = "Professor Kalkulus";
 
-const LOBBY_MS: i64 = 10_000;
-const LOBBY_MIN_MS: i64 = 6_000;
+/// Themenwahl: genug Zeit, um in Ruhe aus den Lernhelfer-Vorschlägen zu wählen.
+const LOBBY_MS: i64 = 40_000;
+const LOBBY_MIN_MS: i64 = 15_000;
 const ROULETTE_MS: i64 = 1_500;
 const FRAGE_MS: i64 = 12_000;
 const DROP_MS: i64 = 600;
@@ -46,8 +47,8 @@ pub struct Topic {
     /// 0..3, 255 = freies Thema
     pub fach: u8,
     pub thema: String,
-    /// 0..2
-    pub stufe: u8,
+    /// Lernhelfer-Inhalte (Themen/Unterthemen) für die KI; leer = nur das Thema
+    pub kontext: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -170,7 +171,7 @@ impl Duel {
             Phase::Lobby => {
                 v["rest_ms"] = json!(rest);
                 v["auto"] = json!({ "fach": self.auto, "name": FACH_NAMEN[self.auto.min(3) as usize] });
-                v["stimmen"] = Value::Array(self.votes.iter().map(|x| json!({ "id": x.id, "art": x.art, "fach": x.topic.fach, "thema": x.topic.thema, "stufe": x.topic.stufe })).collect());
+                v["stimmen"] = Value::Array(self.votes.iter().map(|x| json!({ "id": x.id, "art": x.art, "fach": x.topic.fach, "thema": x.topic.thema })).collect());
             }
             Phase::Roulette => {
                 v["rest_ms"] = json!(rest);
@@ -179,7 +180,6 @@ impl Duel {
             }
             Phase::Laden => {
                 v["thema"] = json!(thema);
-                v["stufe"] = json!(self.topic.as_ref().map_or(1, |t| t.stufe));
                 v["rest_ms"] = json!(rest);
             }
             Phase::Frage => {
@@ -205,17 +205,17 @@ impl Duel {
     }
 }
 
-fn fach_topic(fach: u8, stufe: u8) -> Topic {
+fn fach_topic(fach: u8) -> Topic {
     let f = fach.min(3);
-    Topic { fach: f, thema: FACH_NAMEN[f as usize].into(), stufe: stufe.min(2) }
+    Topic { fach: f, thema: FACH_NAMEN[f as usize].into(), kontext: String::new() }
 }
 
 /// Themenwahl: meiste Stimmen je (fach, thema) gewinnt; Gleichstand → Kandidaten sortiert, Sieger = `kandidaten[seed % n]`;
-/// keine Stimme → Auto-Fach, Stufe 1. Stufe = häufigste Stufe der Sieger-Stimmen (Gleichstand: kleinere).
+/// keine Stimme → Auto-Fach. Der Kontext kommt von der ersten Stimme für das Sieger-Thema.
 /// Liefert (Sieger, Stichwahl-Kandidaten; leer = klare Mehrheit).
 pub fn resolve_votes(votes: &[Topic], auto: u8, seed: u64) -> (Topic, Vec<Topic>) {
     if votes.is_empty() {
-        return (fach_topic(auto, 1), Vec::new());
+        return (fach_topic(auto), Vec::new());
     }
     let mut keys: Vec<(u8, &str, usize)> = Vec::new();
     for v in votes {
@@ -227,18 +227,11 @@ pub fn resolve_votes(votes: &[Topic], auto: u8, seed: u64) -> (Topic, Vec<Topic>
     let max = keys.iter().map(|k| k.2).max().unwrap_or(0);
     let mut cand: Vec<(u8, &str)> = keys.iter().filter(|k| k.2 == max).map(|k| (k.0, k.1)).collect();
     cand.sort();
-    let with_stufe = |(f, t): (u8, &str)| {
-        let mut n = [0usize; 3];
-        for v in votes.iter().filter(|v| v.fach == f && v.thema == t) {
-            n[v.stufe.min(2) as usize] += 1;
-        }
-        let s = (0..3usize).max_by_key(|&i| (n[i], Reverse(i))).unwrap_or(1);
-        Topic { fach: f, thema: t.to_string(), stufe: s as u8 }
-    };
+    let pick = |(f, t): (u8, &str)| votes.iter().find(|v| v.fach == f && v.thema == t).cloned().unwrap_or_else(|| fach_topic(f));
     if cand.len() == 1 {
-        return (with_stufe(cand[0]), Vec::new());
+        return (pick(cand[0]), Vec::new());
     }
-    let all: Vec<Topic> = cand.into_iter().map(with_stufe).collect();
+    let all: Vec<Topic> = cand.into_iter().map(pick).collect();
     let w = all[(seed % all.len() as u64) as usize].clone();
     (w, all)
 }
@@ -438,7 +431,7 @@ impl Game {
         if let Some(d) = self.duels.get_mut(&inst) {
             d.auto = auto;
             for v in d.votes.iter_mut().filter(|v| v.art == "auto") {
-                v.topic = fach_topic(auto, v.topic.stufe);
+                v.topic = fach_topic(auto);
             }
         }
     }
@@ -500,8 +493,8 @@ impl Game {
             }
             Phase::Laden => {
                 if d.waiting || d.qs.len() < ROUNDS {
-                    let (thema, fach, stufe) = d.topic.as_ref().map_or((FACH_NAMEN[0].to_string(), 0, 1), |t| (t.thema.clone(), t.fach, t.stufe));
-                    let more = self.questions_now(&thema, fach, stufe);
+                    let (thema, fach) = d.topic.as_ref().map_or((FACH_NAMEN[0].to_string(), 0), |t| (t.thema.clone(), t.fach));
+                    let more = self.questions_now(&thema, fach);
                     fill_up(&mut d.qs, more);
                     d.waiting = false;
                 }
@@ -538,9 +531,9 @@ impl Game {
         let votes: Vec<Topic> = d.votes.iter().map(|v| v.topic.clone()).collect();
         let (t, kand) = resolve_votes(&votes, d.auto, (now as u64) ^ (d.inst as u64).wrapping_mul(0x9E37_79B9));
         d.sperre = now;
-        d.waiting = self.questions_request(d.inst, &t.thema, t.stufe);
+        d.waiting = self.questions_request(d.inst, &t.thema, &t.kontext);
         if !d.waiting {
-            d.qs = self.questions_now(&t.thema, t.fach, t.stufe);
+            d.qs = self.questions_now(&t.thema, t.fach);
         }
         d.topic = Some(t);
         if kand.is_empty() {
@@ -569,14 +562,13 @@ impl Game {
         d.until = now + FRAGE_MS;
         d.schnellster = 0;
         d.dropped = false;
-        let stufe = d.topic.as_ref().map_or(1, |t| t.stufe.min(2)) as usize;
         let correct = d.qs.get(d.runde).map_or(0, |q| q.correct.min(3));
         for s in d.seats.iter_mut() {
             s.stand = None;
             s.klick = None;
             s.feet = None;
             if s.bot {
-                let hit = self.rng.below(100) < [70, 60, 50][stufe];
+                let hit = self.rng.below(100) < 60;
                 let a = if hit { correct } else { (correct + 1 + self.rng.below(3) as u8) % 4 };
                 s.klick = Some((a, now + 2000 + self.rng.below(8000) as i64));
             } else if let (Some(p), Some(it)) = (self.players.get(&s.id), self.instances.list.get(&inst)) {
@@ -808,24 +800,17 @@ impl Game {
         let farbe = self.duels.get(&inst).and_then(|d| d.seats.iter().find(|s| s.id == id)).map_or(0, |s| s.farbe);
         self.inst_goto(id, spawn(o, farbe), 0.0);
     }
-    /// POST duell/wahl {art: "auto"|"fach"|"frei", fach?, thema?, stufe}
+    /// POST duell/wahl {art: "auto"|"fach"|"frei", fach?, thema?, kontext?}
     pub fn duel_vote(&mut self, id: u32, b: &Value) -> R<Value> {
         let Some((inst, ins::KIND_ARENA)) = self.inst_of(id) else { return no(409, "Du bist in keinem Duell.") };
-        let stufe = match b.get("stufe") {
-            None | Some(Value::Null) => 1,
-            Some(v) => match v.as_u64() {
-                Some(s) if s <= 2 => s as u8,
-                _ => return no(400, "Die Stufe muss 0, 1 oder 2 sein."),
-            },
-        };
         let Some(d) = self.duels.get(&inst) else { return no(404, "Diese Runde gibt es nicht mehr.") };
         if d.phase != Phase::Lobby {
             return no(409, "Die Themenwahl ist schon vorbei.");
         }
         let (art, topic) = match b.get("art").and_then(Value::as_str).unwrap_or("") {
-            "auto" => ("auto", fach_topic(d.auto, stufe)),
+            "auto" => ("auto", fach_topic(d.auto)),
             "fach" => match b.get("fach").and_then(Value::as_u64) {
-                Some(f) if f <= 3 => ("fach", fach_topic(f as u8, stufe)),
+                Some(f) if f <= 3 => ("fach", fach_topic(f as u8)),
                 _ => return no(400, "Das Fach muss 0 bis 3 sein."),
             },
             "frei" => {
@@ -833,7 +818,8 @@ impl Game {
                 if t.is_empty() {
                     return no(400, "Bitte ein Wunsch-Thema eingeben.");
                 }
-                ("frei", Topic { fach: 255, thema: t, stufe })
+                let kontext: String = crate::sky::clean(b.get("kontext").and_then(Value::as_str).unwrap_or("")).chars().take(400).collect();
+                ("frei", Topic { fach: 255, thema: t, kontext })
             }
             _ => return no(400, "Unbekannte Wahl (auto, fach oder frei)."),
         };
@@ -844,7 +830,7 @@ impl Game {
         }
         let now = self.now();
         self.duel_hud(inst, now);
-        Ok(json!({ "ok": true, "thema": thema, "stufe": stufe }))
+        Ok(json!({ "ok": true, "thema": thema }))
     }
     /// POST duell/antwort {feld: 0..3} – zählt wie Draufstehen.
     pub fn duel_answer(&mut self, id: u32, b: &Value) -> R<Value> {
@@ -878,10 +864,10 @@ impl Game {
         if !d.waiting {
             return;
         }
-        let (thema, fach, stufe) = d.topic.as_ref().map_or((FACH_NAMEN[0].to_string(), 0, 1), |t| (t.thema.clone(), t.fach, t.stufe));
+        let (thema, fach) = d.topic.as_ref().map_or((FACH_NAMEN[0].to_string(), 0), |t| (t.thema.clone(), t.fach));
         let mut qs = qs;
         if qs.len() < ROUNDS {
-            let more = self.questions_now(&thema, fach, stufe);
+            let more = self.questions_now(&thema, fach);
             fill_up(&mut qs, more);
         }
         qs.truncate(ROUNDS);
@@ -901,8 +887,8 @@ mod tests {
     use super::*;
     use crate::testkit::*;
 
-    fn t(fach: u8, thema: &str, stufe: u8) -> Topic {
-        Topic { fach, thema: thema.into(), stufe }
+    fn t(fach: u8, thema: &str) -> Topic {
+        Topic { fach, thema: thema.into(), kontext: String::new() }
     }
     fn seat(g: &crate::game::Game, inst: u32, id: u32) -> (u8, u32) {
         let s = g.duels[&inst].seats.iter().find(|s| s.id == id).unwrap();
@@ -916,17 +902,18 @@ mod tests {
 
     #[test]
     fn themenwahl_mehrheit_und_stichwahl() {
-        let m = fach_topic(0, 1);
-        let f = t(255, "photosynthese", 2);
-        // Mehrheit sofort, Stufe = häufigste der Sieger-Stimmen
-        let (w, k) = resolve_votes(&[fach_topic(0, 2), fach_topic(0, 2), fach_topic(0, 0), f.clone()], 3, 9);
-        assert_eq!((w.fach, w.stufe, k.len()), (0, 2, 0));
-        let (w, _) = resolve_votes(&[fach_topic(1, 0), fach_topic(1, 2)], 0, 1);
-        assert_eq!((w.fach, w.stufe), (1, 0), "Gleichstand der Stufen: kleinere");
-        // keine Stimme: Auto-Fach, Stufe 1
-        assert_eq!(resolve_votes(&[], 2, 5), (fach_topic(2, 1), vec![]));
+        let m = fach_topic(0);
+        let mut f = t(255, "photosynthese");
+        f.kontext = "Lichtreaktion, Calvin-Zyklus".into();
+        // Mehrheit sofort; Kontext der Sieger-Stimme bleibt erhalten
+        let (w, k) = resolve_votes(&[fach_topic(0), fach_topic(0), f.clone()], 3, 9);
+        assert_eq!((w.fach, k.len()), (0, 0));
+        let (w, _) = resolve_votes(&[f.clone(), f.clone(), m.clone()], 0, 1);
+        assert_eq!(w.kontext, f.kontext);
+        // keine Stimme: Auto-Fach
+        assert_eq!(resolve_votes(&[], 2, 5), (fach_topic(2), vec![]));
         // Gleichstand: gleicher Seed → gleiches Ergebnis, jeder Kandidat erreichbar
-        let votes = [f.clone(), m.clone(), fach_topic(3, 0)];
+        let votes = [f.clone(), m.clone(), fach_topic(3)];
         assert_eq!(resolve_votes(&votes, 0, 42), resolve_votes(&votes, 0, 42));
         let (_, k) = resolve_votes(&votes, 0, 0);
         assert_eq!(k.len(), 3);
@@ -964,7 +951,7 @@ mod tests {
         assert!(huds(&mut rx).iter().any(|h| h["t"] == "duell" && h["phase"] == "lobby"));
         assert!(g.duel_vote(1, &json!({ "art": "frei", "thema": "   " })).is_err());
         assert!(g.duel_vote(1, &json!({ "art": "fach", "fach": 7 })).is_err());
-        g.duel_vote(1, &json!({ "art": "fach", "fach": 0, "stufe": 0 })).unwrap();
+        g.duel_vote(1, &json!({ "art": "fach", "fach": 0 })).unwrap();
         // Absturz kostet keine Taler
         put(&mut g, 1, [p[0], 20.0, p[2]]);
         let now = g.now();
@@ -1087,7 +1074,7 @@ mod tests {
         let thema = d.topic.as_ref().map_or(String::new(), |t| t.thema.clone());
         // zu spät angekommene KI-Fragen werden verworfen
         let spaet = (0..ROUNDS).map(|i| Question { q: format!("Spät {i}?"), options: ["a", "b", "c", "d"].map(String::from), correct: 0, explanation: String::new() }).collect();
-        g.job_done(crate::duel_ai::Job::Fragen { duel: inst, thema, stufe: 1, res: Ok(spaet) });
+        g.job_done(crate::duel_ai::Job::Fragen { duel: inst, thema, kontext: String::new(), res: Ok(spaet) });
         let d = &g.duels[&inst];
         assert_eq!(d.qs.iter().map(|q| q.q.clone()).collect::<Vec<_>>(), vorher);
         assert_eq!(d.phase, Phase::Frage);

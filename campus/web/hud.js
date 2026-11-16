@@ -32,7 +32,7 @@ const TOUCH = matchMedia('(pointer: coarse)').matches;
 /* ---------- Einstellungen (nur dieses Gerät, localStorage) ---------- */
 const AKTIONEN = { vor: 'Vorwärts', zurueck: 'Rückwärts', links: 'Links', rechts: 'Rechts', springen: 'Springen', sprinten: 'Sprinten', interagieren: 'Sprechen / Öffnen', menue: 'SkyBlock-Menü', chat: 'Chat öffnen', befehl: 'Befehl (/)', kamera: 'Kamera wechseln', faehigkeit: 'Werkzeug-Fähigkeit' };
 const STANDARD = {
-  v: 2, maus: 1, touch: 1, invertY: false, stuecke: TOUCH ? 6 : 8, fov: 75, fpsMax: 0, aufloesung: 1, grafik: 'auto', himmel: 0, ao: true, wolken: true, partikel: true, laut: 0.8, textur: 16, musik: 0.5, wetter: 0,
+  v: 2, maus: 1, touch: 1, invertY: false, stuecke: TOUCH ? 6 : 8, fov: 75, fpsMax: 0, aufloesung: 1, grafik: 'auto', himmel: 0, ao: true, wolken: true, partikel: true, laut: 0.8, textur: 16, musik: 0.5, wetterLaut: 0.25, wetter: 0,
   tasten: { vor: 'KeyW', zurueck: 'KeyS', links: 'KeyA', rechts: 'KeyD', springen: 'Space', sprinten: 'ShiftLeft', interagieren: 'KeyE', menue: 'KeyM', chat: 'KeyT', befehl: 'Slash', kamera: 'F5', faehigkeit: 'KeyF' },
 };
 let opt = STANDARD;
@@ -50,6 +50,7 @@ function optAnwenden() {
   game.set_graphics(foto.fotoAktiv() ? Math.max(1, stufe()) : stufe(), opt.himmel); // Foto-Modus braucht den Nachbearbeitungs-Durchgang
   ruckel = 0;
   musik.setLaut(Number(opt.musik) || 0);
+  musik.setWetterLaut(opt.wetterLaut ?? 0.25);
   wetterAnwenden();
   // Eco rechnet mit 75 % der Pixel
   schaerfe = Math.min(devicePixelRatio || 1, TOUCH ? 1.5 : 2) * opt.aufloesung * (stufe() === 0 ? 0.75 : 1);
@@ -169,7 +170,7 @@ function ton(art, laut = 1, hoehe = 0, mat = 0) {
 const tonAn = () => {
   if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
   try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return; }
-  try { musik.start(ac); musik.setLaut(Number(opt.musik) || 0); musik.setStimmung(musik.stimmungVonZone(zone)); wetterAnwenden(); } catch (e) { console.warn('Musik', e); }
+  try { musik.start(ac); musik.setLaut(Number(opt.musik) || 0); musik.setWetterLaut(opt.wetterLaut ?? 0.25); musik.setStimmung(musik.stimmungVonZone(zone)); wetterAnwenden(); } catch (e) { console.warn('Musik', e); }
 };
 
 /* ---------- Meldungen ---------- */
@@ -633,33 +634,47 @@ function seltenheit(item) {
 
 /* ---------- SkyBlock-Menü: Dashboard mit Kacheln, jede Kachel öffnet eine Seite ---------- */
 let reiter = '';
-// [Seite oder @Reise, Titel, Untertitel, Bild (Farbe = Würfel, Text = Pixel-Symbol)]
-const KACHELN = [
-  ['@insel', 'Meine Insel', '/is · zur eigenen Insel', [90, 170, 90]],
-  ['@hub', 'Marktplatz-Hub', '/hub · zum Spawn-Tempel', [238, 200, 70]],
-  ['@inventar', 'Inventar', '[I] · Rucksack & Ausrüstung', [150, 105, 60]],
-  ['Questbuch', 'Questbuch', '[J] · 12 Kapitel', 'stern'],
-  ['Insel-Kompass', 'Insel-Besuche', 'Orte & Top-Inseln', 'kompass'],
-  ['Verzaubern', 'Verzaubern', 'Am Altar der Bibliothek', [120, 80, 200]],
-  ['Duell-Arena', 'Duell-Arena', 'Lern-Duell & Rangliste', [70, 110, 220]],
-  ['Lernhelfer', 'Lernhelfer-Belohnungen', 'Lern-Energie & Serie', [60, 100, 200]],
-  ['Fähigkeiten', '7 Fach-Skills', 'Stufe 1–50 · Splitter', [130, 90, 190]],
-  ['Sammlungen', 'Sammlungen', 'Stufen I–IX', [226, 140, 50]],
-  ['Werkbank', 'Werkbank', 'Herstellen & 160× verdichten', [130, 96, 66]],
-  ['Minions', 'Lern-Minions', 'Status & Ausbau', [120, 128, 140]],
-  ['Figur', 'Charakter & Kosmetik', 'Figur mit Vorschau', [220, 120, 170]],
-  ['Einstellungen', 'Einstellungen', 'Steuerung · Grafik · Ton', 'hammer'],
-  ['Quests', 'Quests', 'Aktuelles Ziel', 'stern'],
-  ['Bazaar', 'Bazaar', 'Aufträge & Sofort-Handel', [50, 150, 160]],
-  ['Auktionshaus', 'Auktionshaus', 'Seltenes ersteigern', [190, 60, 60]],
-  ['Laden', 'Laden', 'Blöcke & Cosmetics', [236, 236, 230]],
-  ['Vorrat', 'Vorrat', 'Alles, was du hast', [40, 44, 56]],
-  ['Grundstück', 'Grundstück', 'Ausbau & Mitbauer', [90, 140, 70]],
-  ['Lerngruppe', 'Lerngruppe', 'Kasse & Wochenwertung', [220, 120, 170]],
-  ['Projekte', 'Großprojekte', 'Gemeinsam bauen', [150, 150, 160]],
-  ['Welt', 'Welt', 'Wochenziel & Gebiete', [110, 170, 230]],
-  ['Melden', 'Melden', 'Störung melden', [200, 80, 60]],
+// Gruppen: [Überschrift, [[Seite oder @Reise, Titel, Untertitel, Bild (Farbe = Würfel, Text = Pixel-Symbol)], …]]
+const GRUPPEN = [
+  ['Lernen & Kämpfen', [
+    ['Duell-Arena', 'Lern-Duell-Arena', 'Duell starten & Rangliste', [70, 110, 220]],
+    ['Katakomben', 'Prüfungs-Katakomben', 'Dungeon · Stufe 1–5', [70, 60, 80]],
+    ['Lernhelfer', 'Lernhelfer-Belohnungen', 'Lern-Energie & Serie', [60, 100, 200]],
+    ['Fähigkeiten', '7 Fach-Skills', 'Stufe 1–50 · Splitter', [130, 90, 190]],
+    ['Minions', 'Lern-Minions', 'Status & Ausbau', [120, 128, 140]],
+  ]],
+  ['Reisen', [
+    ['@insel', 'Meine Insel', '/is · zur eigenen Insel', [90, 170, 90]],
+    ['@hub', 'Marktplatz-Hub', '/hub · zum Spawn-Tempel', [238, 200, 70]],
+    ['Insel-Kompass', 'Insel-Besuche', 'Orte & Top-Inseln', 'kompass'],
+    ['Welt', 'Welt', 'Wochenziel & Gebiete', [110, 170, 230]],
+  ]],
+  ['Ich & Fortschritt', [
+    ['@inventar', 'Inventar', '[I] · Rucksack & Ausrüstung', [150, 105, 60]],
+    ['Questbuch', 'Questbuch', '[J] · 12 Kapitel', 'stern'],
+    ['Quests', 'Quests', 'Aktuelles Ziel', 'stern'],
+    ['Sammlungen', 'Sammlungen', 'Stufen I–IX', [226, 140, 50]],
+    ['Vorrat', 'Vorrat', 'Alles, was du hast', [40, 44, 56]],
+    ['Figur', 'Charakter & Kosmetik', 'Figur mit Vorschau', [220, 120, 170]],
+  ]],
+  ['Handel', [
+    ['Bazaar', 'Bazaar', 'Aufträge & Sofort-Handel', [50, 150, 160]],
+    ['Auktionshaus', 'Auktionshaus', 'Seltenes ersteigern', [190, 60, 60]],
+    ['Laden', 'Laden', 'Blöcke & Cosmetics', [236, 236, 230]],
+  ]],
+  ['Bauen & Gemeinschaft', [
+    ['Werkbank', 'Werkbank', 'Herstellen & 160× verdichten', [130, 96, 66]],
+    ['Verzaubern', 'Verzaubern', 'Am Altar der Bibliothek', [120, 80, 200]],
+    ['Grundstück', 'Grundstück', 'Ausbau & Mitbauer', [90, 140, 70]],
+    ['Lerngruppe', 'Lerngruppe', 'Kasse & Wochenwertung', [220, 120, 170]],
+    ['Projekte', 'Großprojekte', 'Gemeinsam bauen', [150, 150, 160]],
+  ]],
+  ['System', [
+    ['Einstellungen', 'Einstellungen', 'Steuerung · Grafik · Ton', 'hammer'],
+    ['Melden', 'Melden', 'Störung melden', [200, 80, 60]],
+  ]],
 ];
+const KACHELN = GRUPPEN.flatMap(g => g[1]);
 function menu(an, wahl) {
   if (!an) return modal.zu();
   modal.auf('menu');
@@ -698,10 +713,18 @@ function icon(item) {
 const ROEMISCH = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
 const SEITEN = {
   'Übersicht'() {
-    return [el('div', { class: 'kacheln' }, KACHELN.map(([z, t, u, b]) => el('button', { class: 'kachel gross', type: 'button', onclick: () => z === '@insel' ? reisen(0, 0) : z === '@hub' ? reisen(2, 0) : z === '@inventar' ? inventar.oeffneInventar() : zeige(z) },
-        typeof b === 'string' ? pixelBild(BILD[b], [230, 200, 90]) : isoBlock(b), el('span', {}, el('b', {}, t), el('small', {}, u))))),
+    const kachel = ([z, t, u, b]) => el('button', { class: 'kachel gross', type: 'button', onclick: () => z === '@insel' ? reisen(0, 0) : z === '@hub' ? reisen(2, 0) : z === '@inventar' ? inventar.oeffneInventar() : zeige(z) },
+      typeof b === 'string' ? pixelBild(BILD[b], [230, 200, 90]) : isoBlock(b), el('span', {}, el('b', {}, t), el('small', {}, u)));
+    return [GRUPPEN.map(([name, k], i) => el('section', { class: 'menue-gruppe' + (i ? '' : ' haupt'), 'aria-label': name }, el('h2', {}, name), el('div', { class: 'kacheln' }, k.map(kachel)))),
       el('div', { class: 'reihe', style: 'margin:14px 0 0' }, el('a', { class: 'knopf klein', href: 'hilfe', target: '_blank', rel: 'noopener' }, 'Hilfe'),
         el('a', { class: 'knopf klein', href: '/' }, 'Zum Lernhelfer'), me.admin ? el('a', { class: 'knopf klein', href: 'admin', target: '_blank', rel: 'noopener' }, 'Verwaltung') : null)];
+  },
+  Katakomben() {
+    const los = befehl => () => { modal.zu(); game?.say(0, befehl); };
+    return [el('p', {}, 'Prüfungs-Katakomben: zu viert durch Räume voller Rätsel, Kämpfe und Prüfungsfragen bis zum Boss.'),
+      el('h2', {}, 'Lauf starten'), el('div', { class: 'reihe' }, [1, 2, 3, 4, 5].map(n => el('button', { class: n === 1 ? 'knopf voll' : 'knopf', type: 'button', onclick: los(`/dungeon start ${n}`) }, `Stufe ${n}`))),
+      el('button', { class: 'knopf klein', type: 'button', onclick: los('/dungeon') }, 'Offene Gruppen anzeigen'),
+      el('p', { class: 'meta' }, 'Einer Gruppe folgst du mit /dungeon join <Name>.')];
   },
   async 'Fähigkeiten'() {
     await ladeSky();
@@ -846,7 +869,8 @@ const SEITEN = {
       regler('Bildrate', 'fpsMax', 0, 2, 1, v => ['Max', '60', '30'][v]), regler('Auflösung', 'aufloesung', 0.5, 1, 0.05, v => `${Math.round(v * 100)} %`),
       schalter('Weiche Eckenschatten', 'ao'), schalter('Wolken', 'wolken'), schalter('Partikel', 'partikel'),
       el('h2', {}, 'Ton'), regler('Lautstärke', 'laut', 0, 1, 0.05, v => `${Math.round(v * 100)} %`),
-      regler('Musik-Lautstärke', 'musik', 0, 1, 0.05, v => v > 0 ? `${Math.round(v * 100)} %` : 'Aus'),
+      regler('Musik', 'musik', 0, 1, 0.05, v => v > 0 ? `${Math.round(v * 100)} %` : 'Aus'),
+      regler('Wetter', 'wetterLaut', 0, 1, 0.05, v => v > 0 ? `${Math.round(v * 100)} %` : 'Aus'),
       el('h2', {}, 'Wetter'), wahl('Wetter', 'wetter', [[0, 'Auto'], [1, 'Klar'], [2, 'Sommerregen'], [3, 'Schneefall'], [4, 'Kirschblüten']]),
       el('p', { class: 'meta' }, '„Auto“ zeigt das Wetter, das die Verwaltung für alle einstellt. F8 öffnet den Foto-Modus.'),
       el('button', { class: 'knopf klein', type: 'button', onclick: () => { opt = structuredClone(STANDARD); optSpeichern(); texturAnwenden(); zeige('Einstellungen'); } }, 'Alles zurücksetzen')];

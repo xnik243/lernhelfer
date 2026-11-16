@@ -17,7 +17,6 @@ pub const ROUNDS: usize = 8;
 
 /// Vorschläge für die Verwaltung (DEFAULT_MODEL zuerst).
 const MODELLE: [&str; 5] = [DEFAULT_MODEL, "openai/gpt-4o-mini", "google/gemini-2.5-flash-lite", "anthropic/claude-haiku-4.5", "mistralai/mistral-small-3.2-24b-instruct"];
-const STUFEN: [&str; 3] = ["Klasse 5–7", "Klasse 8–10", "Oberstufe / Uni"];
 
 /// Eine Quizfrage. `options` ohne „A) “-Vorsatz, `correct` 0..=3.
 #[derive(Clone, Debug, PartialEq)]
@@ -38,7 +37,7 @@ pub struct KiCfg {
 
 /// Ergebnis eines Hintergrund-Auftrags; kommt über Game.jobs_tx zurück und wird im Takt abgeholt (job_done).
 pub enum Job {
-    Fragen { duel: u32, thema: String, stufe: u8, res: Result<Vec<Question>, String> },
+    Fragen { duel: u32, thema: String, kontext: String, res: Result<Vec<Question>, String> },
 }
 
 /// Thema vereinheitlichen (Cache-Schlüssel): säubern (sky::clean), Kleinbuchstaben, Leerraum zusammenfassen, höchstens 60 Zeichen.
@@ -94,15 +93,15 @@ fn rng(s: &mut u64) -> u64 {
     z ^ (z >> 31)
 }
 /// `n` Fragen aus der festen Bank (duel_fallback_data); fach 255 = gemischt. Deterministisch je `seed`.
-/// Reihenfolge: passendes Fach + Stufe, dann gleiches Fach, dann gleiche Stufe, dann der Rest; Wiederholung erst, wenn die Bank leer ist.
-pub fn fallback(fach: u8, stufe: u8, n: usize, seed: u64) -> Vec<Question> {
+/// Reihenfolge: passendes Fach zuerst, dann der Rest; Wiederholung erst, wenn die Bank leer ist.
+pub fn fallback(fach: u8, n: usize, seed: u64) -> Vec<Question> {
     let mut s = seed;
     let mut idx: Vec<usize> = (0..FALLBACK.len()).collect();
     for i in (1..idx.len()).rev() {
         let j = (rng(&mut s) % (i as u64 + 1)) as usize;
         idx.swap(i, j);
     }
-    idx.sort_by_key(|&i| (fach != 255 && FALLBACK[i].fach != fach) as u8 * 2 + (FALLBACK[i].stufe != stufe) as u8);
+    idx.sort_by_key(|&i| fach != 255 && FALLBACK[i].fach != fach);
     idx.iter()
         .cycle()
         .take(n)
@@ -121,7 +120,7 @@ fn model_ok(m: &str) -> bool {
     (1..=80).contains(&m.len()) && m.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '/' | ':' | '-'))
 }
 /// curl-Konfiguration für `curl -K -` (geht über stdin). Reine Funktion; nur hier steht der Schlüssel.
-fn curl_config(cfg: &KiCfg, thema: &str, stufe: u8) -> Result<String, String> {
+fn curl_config(cfg: &KiCfg, thema: &str, kontext: &str) -> Result<String, String> {
     if cfg.key.is_empty() {
         return Err("Kein OpenRouter-Schlüssel hinterlegt.".into());
     }
@@ -132,13 +131,15 @@ fn curl_config(cfg: &KiCfg, thema: &str, stufe: u8) -> Result<String, String> {
         return Err("Die OpenRouter-Adresse ist ungültig.".into());
     }
     let thema = if thema.trim().is_empty() { "Allgemeinwissen" } else { thema.trim() };
+    let kontext = cut(kontext, 400);
+    let zusatz = if kontext.is_empty() { String::new() } else { format!(" Halte dich an diese Inhalte aus dem Lernhelfer: „{kontext}“.") };
     let auftrag = format!(
-        "Erstelle genau {ROUNDS} Multiple-Choice-Quizfragen auf Deutsch zum Thema „{thema}“ für die Stufe „{}“. \
+        "Erstelle genau {ROUNDS} Multiple-Choice-Quizfragen auf Deutsch zum Thema „{thema}“ auf Universitätsniveau.{zusatz} \
          Antworte ausschließlich mit JSON in genau dieser Form: \
          {{\"questions\":[{{\"q\":\"Fragetext (höchstens 110 Zeichen)\",\"options\":[\"A) ...\",\"B) ...\",\"C) ...\",\"D) ...\"],\"correct\":0,\"explanation\":\"Ein kurzer Satz (höchstens 90 Zeichen)\"}}]}}. \
          Je Frage genau 4 Optionen (je höchstens 40 Zeichen), genau eine ist richtig; \"correct\" ist ihr Index 0 bis 3 als Zahl. \
-         Verteile die richtige Stelle gleichmäßig, keine doppelten Fragen, fachlich korrekt und jugendfrei.",
-        STUFEN[stufe.min(2) as usize]
+         Verteile die richtige Stelle gleichmäßig, keine doppelten Fragen, fachlich korrekt und jugendfrei. \
+         Formeln schreibst du als LaTeX zwischen $…$."
     );
     let body = json!({
         "model": cfg.model,
@@ -186,8 +187,8 @@ fn parse_answer(body: &str) -> Result<Vec<Question>, String> {
     }
 }
 /// Ein OpenRouter-Aufruf über curl (Schlüssel nur über stdin), höchstens TIMEOUT_MS. Hält nie die Spiel-Sperre.
-pub async fn fetch(cfg: KiCfg, thema: String, stufe: u8) -> Result<Vec<Question>, String> {
-    let conf = curl_config(&cfg, &thema, stufe)?;
+pub async fn fetch(cfg: KiCfg, thema: String, kontext: String) -> Result<Vec<Question>, String> {
+    let conf = curl_config(&cfg, &thema, &kontext)?;
     let job = tokio::task::spawn_blocking(move || run_curl(&conf));
     let res = match tokio::time::timeout(std::time::Duration::from_millis(TIMEOUT_MS), job).await {
         Err(_) => Err("OpenRouter hat nicht rechtzeitig geantwortet.".to_string()),
@@ -215,55 +216,55 @@ impl Game {
         let model = nz(self.cfg("openrouter_model")).or_else(|| nz(std::env::var("OPENROUTER_MODEL").ok())).filter(|m| model_ok(m)).unwrap_or_else(|| DEFAULT_MODEL.to_string());
         KiCfg { key: self.ki_key().0, model, url: nz(self.cfg("openrouter_url")).unwrap_or_else(|| DEFAULT_URL.to_string()) }
     }
-    /// Legt Fragen ab (Doppelte je Thema/Stufe/Frage fallen weg); liefert die Zahl der neuen Zeilen.
-    pub fn cache_put(&self, thema: &str, stufe: u8, qs: &[Question]) -> R<usize> {
+    /// Legt Fragen ab (Doppelte je Thema/Frage fallen weg; die alte Spalte `stufe` bleibt immer 0); liefert die Zahl der neuen Zeilen.
+    pub fn cache_put(&self, thema: &str, qs: &[Question]) -> R<usize> {
         let (t, now) = (normalize_topic(thema), self.now());
-        let mut st = self.db.prepare_cached("insert or ignore into duel_question_cache (topic, stufe, q, o0, o1, o2, o3, correct, explanation, used, ts) values (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)")?;
+        let mut st = self.db.prepare_cached("insert or ignore into duel_question_cache (topic, stufe, q, o0, o1, o2, o3, correct, explanation, used, ts) values (?, 0, ?, ?, ?, ?, ?, ?, ?, 0, ?)")?;
         let mut n = 0;
         for q in qs.iter().filter(|q| q.correct <= 3) {
-            n += st.execute(params![t, stufe, q.q, q.options[0], q.options[1], q.options[2], q.options[3], q.correct, q.explanation, now])?;
+            n += st.execute(params![t, q.q, q.options[0], q.options[1], q.options[2], q.options[3], q.correct, q.explanation, now])?;
         }
         Ok(n)
     }
     /// Bis zu `n` Fragen, die am seltensten benutzten zuerst; erhöht deren Zähler.
-    pub fn cache_take(&self, thema: &str, stufe: u8, n: usize) -> R<Vec<Question>> {
+    pub fn cache_take(&self, thema: &str, n: usize) -> R<Vec<Question>> {
         let (t, n) = (normalize_topic(thema), n as i64);
         let qs = self
             .db
-            .prepare_cached("select q, o0, o1, o2, o3, correct, explanation from duel_question_cache where topic = ?1 and stufe = ?2 order by used, id limit ?3")?
-            .query_map(params![t, stufe, n], |r| Ok(Question { q: r.get(0)?, options: [r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?], correct: r.get(5)?, explanation: r.get(6)? }))?
+            .prepare_cached("select q, o0, o1, o2, o3, correct, explanation from duel_question_cache where topic = ?1 order by used, id limit ?2")?
+            .query_map(params![t, n], |r| Ok(Question { q: r.get(0)?, options: [r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?], correct: r.get(5)?, explanation: r.get(6)? }))?
             .collect::<Result<Vec<_>, _>>()?;
         self.db
-            .prepare_cached("update duel_question_cache set used = used + 1 where id in (select id from duel_question_cache where topic = ?1 and stufe = ?2 order by used, id limit ?3)")?
-            .execute(params![t, stufe, n])?;
+            .prepare_cached("update duel_question_cache set used = used + 1 where id in (select id from duel_question_cache where topic = ?1 order by used, id limit ?2)")?
+            .execute(params![t, n])?;
         Ok(qs)
     }
-    fn cache_unused(&self, thema: &str, stufe: u8) -> usize {
-        self.db.query_row("select count(*) from duel_question_cache where topic = ? and stufe = ? and used = 0", params![normalize_topic(thema), stufe], |r| r.get::<_, i64>(0)).unwrap_or(0) as usize
+    fn cache_unused(&self, thema: &str) -> usize {
+        self.db.query_row("select count(*) from duel_question_cache where topic = ? and used = 0", params![normalize_topic(thema)], |r| r.get::<_, i64>(0)).unwrap_or(0) as usize
     }
     fn cache_count(&self) -> i64 {
         self.db.query_row("select count(*) from duel_question_cache", [], |r| r.get(0)).unwrap_or(0)
     }
     /// Startet bei Bedarf den KI-Auftrag für dieses Duell. true = Auftrag läuft, das Duell darf bis TIMEOUT_MS warten.
-    pub fn questions_request(&mut self, duel: u32, thema: &str, stufe: u8) -> bool {
+    pub fn questions_request(&mut self, duel: u32, thema: &str, kontext: &str) -> bool {
         let cfg = self.ki_cfg();
-        if cfg.key.is_empty() || self.cache_unused(thema, stufe) >= ROUNDS {
+        if cfg.key.is_empty() || self.cache_unused(thema) >= ROUNDS {
             return false;
         }
         let Ok(h) = tokio::runtime::Handle::try_current() else { return false };
-        let (tx, thema) = (self.jobs_tx.clone(), thema.to_string());
+        let (tx, thema, kontext) = (self.jobs_tx.clone(), thema.to_string(), kontext.to_string());
         h.spawn(async move {
-            let res = fetch(cfg, thema.clone(), stufe).await;
-            let _ = tx.send(Job::Fragen { duel, thema, stufe, res });
+            let res = fetch(cfg, thema.clone(), kontext.clone()).await;
+            let _ = tx.send(Job::Fragen { duel, thema, kontext, res });
         });
         true
     }
     /// Sofort genau ROUNDS Fragen: Cache, aufgefüllt aus der festen Bank. Blockiert nie.
-    pub fn questions_now(&mut self, thema: &str, fach: u8, stufe: u8) -> Vec<Question> {
-        let mut qs = self.cache_take(thema, stufe, ROUNDS).unwrap_or_default();
+    pub fn questions_now(&mut self, thema: &str, fach: u8) -> Vec<Question> {
+        let mut qs = self.cache_take(thema, ROUNDS).unwrap_or_default();
         qs.truncate(ROUNDS);
         // zuerst ohne Doppelte, im zweiten Durchgang notfalls mit Wiederholung
-        let bank = fallback(fach, stufe, ROUNDS * 2, self.now() as u64);
+        let bank = fallback(fach, ROUNDS * 2, self.now() as u64);
         for doppelt in [false, true] {
             for q in &bank {
                 if qs.len() < ROUNDS && (doppelt || !qs.iter().any(|x| x.q == q.q)) {
@@ -279,12 +280,12 @@ impl Game {
     }
     /// Im Takt: Ergebnis eines Auftrags eintragen (Cache) und an das Duell geben (duel_questions).
     pub fn job_done(&mut self, j: Job) {
-        let Job::Fragen { duel, thema, stufe, res } = j;
+        let Job::Fragen { duel, thema, res, .. } = j;
         let qs = match res {
             Ok(qs) => {
                 // ablegen und gleich als benutzt zählen (sonst spielte das nächste Duell dieselben Fragen ohne neue Anfrage)
-                let _ = self.cache_put(&thema, stufe, &qs);
-                match self.cache_take(&thema, stufe, ROUNDS) {
+                let _ = self.cache_put(&thema, &qs);
+                match self.cache_take(&thema, ROUNDS) {
                     Ok(c) if c.len() >= qs.len().min(ROUNDS) => c,
                     _ => qs,
                 }
@@ -327,11 +328,11 @@ impl Game {
         }
         self.ki_get()
     }
-    pub fn ki_test_done(&mut self, thema: &str, stufe: u8, res: Result<Vec<Question>, String>) -> R<Value> {
+    pub fn ki_test_done(&mut self, thema: &str, res: Result<Vec<Question>, String>) -> R<Value> {
         let res = res.and_then(|qs| if qs.is_empty() { Err("Die KI hat keine Frage geliefert.".to_string()) } else { Ok(qs) });
         Ok(match res {
             Ok(qs) => {
-                self.cache_put(thema, stufe, &qs)?;
+                self.cache_put(thema, &qs)?;
                 let f = &qs[0];
                 json!({ "ok": true, "anzahl": qs.len(), "frage": { "q": f.q, "antworten": f.options, "richtig": f.correct, "erklaerung": f.explanation }, "cache": self.cache_count() })
             }
@@ -411,47 +412,45 @@ mod tests {
     #[test]
     fn bank_und_fallback() {
         for fach in 0..4u8 {
-            for stufe in 0..3u8 {
-                assert!(FALLBACK.iter().filter(|f| f.fach == fach && f.stufe == stufe).count() >= ROUNDS, "Fach {fach} Stufe {stufe}");
-                let qs = fallback(fach, stufe, ROUNDS, 7);
+            {
+                assert!(FALLBACK.iter().filter(|f| f.fach == fach).count() >= ROUNDS, "Fach {fach}");
+                let qs = fallback(fach, ROUNDS, 7);
                 assert_eq!(qs.len(), ROUNDS);
                 // alle aus dem passenden Fach und der passenden Stufe, keine Doppelten
                 for (i, q) in qs.iter().enumerate() {
-                    assert!(FALLBACK.iter().any(|f| f.fach == fach && f.stufe == stufe && f.q == q.q), "{}", q.q);
+                    assert!(FALLBACK.iter().any(|f| f.fach == fach && f.q == q.q), "{}", q.q);
                     assert!(q.correct <= 3 && q.options.iter().all(|o| !o.is_empty()));
                     assert!(!qs[..i].iter().any(|x| x.q == q.q));
                 }
             }
         }
         assert!(FALLBACK.iter().all(|f| f.correct <= 3 && f.fach <= 3 && f.stufe <= 2));
-        assert_eq!(fallback(2, 1, ROUNDS, 42), fallback(2, 1, ROUNDS, 42));
-        assert!((0..20).any(|s| fallback(2, 1, ROUNDS, s) != fallback(2, 1, ROUNDS, 42)));
+        assert_eq!(fallback(2, ROUNDS, 42), fallback(2, ROUNDS, 42));
+        assert!((0..20).any(|s| fallback(2, ROUNDS, s) != fallback(2, ROUNDS, 42)));
         // gemischt: ohne Doppelte, solange die Bank reicht; darüber hinaus Wiederholung statt Lücke
-        let alle = fallback(255, 0, FALLBACK.len(), 3);
+        let alle = fallback(255, FALLBACK.len(), 3);
         let mut namen: Vec<&str> = alle.iter().map(|q| q.q.as_str()).collect();
         namen.sort_unstable();
         namen.dedup();
         assert_eq!(namen.len(), FALLBACK.len());
-        assert_eq!(fallback(0, 0, FALLBACK.len() + 5, 3).len(), FALLBACK.len() + 5);
-        assert!(fallback(9, 9, ROUNDS, 1).len() == ROUNDS);
+        assert_eq!(fallback(0, FALLBACK.len() + 5, 3).len(), FALLBACK.len() + 5);
+        assert!(fallback(9, ROUNDS, 1).len() == ROUNDS);
     }
     #[test]
     fn cache_ablegen_und_holen() {
         let g = game();
         let qs: Vec<Question> = (0..8).map(frage).collect();
-        assert_eq!(g.cache_put("Kalter  Krieg", 1, &qs).unwrap(), 8);
-        assert_eq!(g.cache_put("kalter krieg", 1, &qs).unwrap(), 0, "Doppelte nicht doppelt");
-        assert_eq!(g.cache_unused("KALTER KRIEG", 1), 8);
-        assert_eq!(g.cache_unused("kalter krieg", 2), 0);
-        assert_eq!(g.cache_take("kalter krieg", 1, 8).unwrap(), qs);
-        assert_eq!(g.cache_unused("kalter krieg", 1), 0);
-        assert!(g.cache_take("kalter krieg", 0, 8).unwrap().is_empty());
+        assert_eq!(g.cache_put("Kalter  Krieg", &qs).unwrap(), 8);
+        assert_eq!(g.cache_put("kalter krieg", &qs).unwrap(), 0, "Doppelte nicht doppelt");
+        assert_eq!(g.cache_unused("KALTER KRIEG"), 8);
+        assert_eq!(g.cache_take("kalter krieg", 8).unwrap(), qs);
+        assert_eq!(g.cache_unused("kalter krieg"), 0);
         // am seltensten benutzte zuerst: die neue Frage kommt vor den schon gespielten
-        assert_eq!(g.cache_put("kalter krieg", 1, &[frage(99)]).unwrap(), 1);
-        assert_eq!(g.cache_take("kalter krieg", 1, 3).unwrap()[0], frage(99));
+        assert_eq!(g.cache_put("kalter krieg", &[frage(99)]).unwrap(), 1);
+        assert_eq!(g.cache_take("kalter krieg", 3).unwrap()[0], frage(99));
         let t = std::time::Instant::now();
         for _ in 0..100 {
-            assert_eq!(g.cache_take("kalter krieg", 1, 8).unwrap().len(), 8);
+            assert_eq!(g.cache_take("kalter krieg", 8).unwrap().len(), 8);
         }
         let ms = t.elapsed().as_secs_f64() * 1000.0 / 100.0;
         assert!(ms < 1.0, "Cache-Zugriff im Mittel {ms:.3} ms");
@@ -460,30 +459,30 @@ mod tests {
     fn ohne_schluessel_und_ohne_laufzeit() {
         let mut g = game();
         // kein tokio in diesem Test: selbst mit Schlüssel wird nichts gestartet und nichts blockiert
-        assert!(!g.questions_request(1, "bruchrechnung", 1));
+        assert!(!g.questions_request(1, "bruchrechnung", ""));
         g.cfg_set("openrouter_key", KEY).unwrap();
-        assert!(!g.questions_request(1, "bruchrechnung", 1));
+        assert!(!g.questions_request(1, "bruchrechnung", ""));
         let t = std::time::Instant::now();
-        let qs = g.questions_now("bruchrechnung", 0, 1);
+        let qs = g.questions_now("bruchrechnung", 0);
         assert!(t.elapsed().as_millis() < 500);
         assert_eq!(qs.len(), ROUNDS);
         for (i, q) in qs.iter().enumerate() {
             assert!(!qs[..i].iter().any(|x| x.q == q.q));
         }
         // Cache geht vor, die Bank füllt auf
-        g.cache_put("bruchrechnung", 1, &[frage(1), frage(2)]).unwrap();
-        let qs = g.questions_now("Bruchrechnung", 255, 1);
+        g.cache_put("bruchrechnung", &[frage(1), frage(2)]).unwrap();
+        let qs = g.questions_now("Bruchrechnung", 255);
         assert_eq!(qs.len(), ROUNDS);
         assert_eq!(qs[..2], [frage(1), frage(2)]);
-        assert_eq!(g.questions_now("", 255, 7).len(), ROUNDS);
+        assert_eq!(g.questions_now("", 255).len(), ROUNDS);
     }
     #[test]
     fn auftrag_fuellt_den_cache() {
         let mut g = game();
-        g.job_done(Job::Fragen { duel: 77, thema: "optik".into(), stufe: 2, res: Ok((0..8).map(frage).collect()) });
+        g.job_done(Job::Fragen { duel: 77, thema: "optik".into(), kontext: String::new(), res: Ok((0..8).map(frage).collect()) });
         assert_eq!(g.cache_count(), 8);
-        assert_eq!(g.cache_unused("optik", 2), 0, "an das Duell gegebene Fragen zählen als benutzt");
-        g.job_done(Job::Fragen { duel: 77, thema: "optik".into(), stufe: 2, res: Err("aus".into()) });
+        assert_eq!(g.cache_unused("optik"), 0, "an das Duell gegebene Fragen zählen als benutzt");
+        g.job_done(Job::Fragen { duel: 77, thema: "optik".into(), kontext: String::new(), res: Err("aus".into()) });
         assert_eq!(g.cache_count(), 8);
     }
     #[test]
@@ -509,11 +508,11 @@ mod tests {
         }
         assert_eq!(g.ki_cfg().key, KEY);
         // Test-Ergebnis: Frage und Zähler, nie der Schlüssel
-        let v = g.ki_test_done("Optik", 1, Ok(vec![frage(1), frage(2)])).unwrap();
+        let v = g.ki_test_done("Optik", Ok(vec![frage(1), frage(2)])).unwrap();
         assert_eq!((v["ok"].clone(), v["anzahl"].clone(), v["cache"].clone()), (json!(true), json!(2), json!(2)));
         assert_eq!(v["frage"]["antworten"].as_array().unwrap().len(), 4);
         assert_eq!(v["frage"]["richtig"], 1);
-        let v = g.ki_test_done("Optik", 1, Err("kaputt".into())).unwrap();
+        let v = g.ki_test_done("Optik", Err("kaputt".into())).unwrap();
         assert_eq!((v["ok"].clone(), v["fehler"].clone(), v["cache"].clone()), (json!(false), json!("kaputt"), json!(2)));
         assert_eq!(g.ki_get().unwrap()["cache"], 2);
         // leerer Schlüssel löscht
@@ -525,7 +524,7 @@ mod tests {
     #[test]
     fn curl_konfiguration() {
         let cfg = KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() };
-        let c = curl_config(&cfg, "sagt \"hallo\" \\ ende", 2).unwrap();
+        let c = curl_config(&cfg, "sagt \"hallo\" \\ ende", "").unwrap();
         assert_eq!(c.matches(KEY).count(), 1, "Schlüssel nur in der Kopfzeile");
         let z: Vec<&str> = c.lines().collect();
         assert_eq!(z.len(), 4, "keine rohen Zeilenumbrüche in den Daten");
@@ -548,14 +547,14 @@ mod tests {
         assert_eq!(v["model"], DEFAULT_MODEL);
         assert_eq!(v["response_format"]["type"], "json_object");
         let auftrag = v["messages"][1]["content"].as_str().unwrap();
-        assert!(auftrag.contains("sagt \"hallo\" \\ ende") && auftrag.contains("Oberstufe / Uni") && auftrag.contains("genau 8"));
+        assert!(auftrag.contains("sagt \"hallo\" \\ ende") && auftrag.contains("Universitätsniveau") && auftrag.contains("genau 8"));
         // unbrauchbare Schlüssel und Adressen werden abgelehnt, ohne sie zu zitieren
         for k in ["", "ab\"cd", "ab\\cd", "ab\ncd", "ab cd", "ab'cd"] {
-            let e = curl_config(&KiCfg { key: k.into(), ..cfg.clone() }, "x", 0).unwrap_err();
+            let e = curl_config(&KiCfg { key: k.into(), ..cfg.clone() }, "x", "").unwrap_err();
             assert!(k.is_empty() || !e.contains(k));
         }
         for u in ["", "ftp://x", "file:///etc/passwd", "https://x/\"\nheader = \"X: y"] {
-            assert!(curl_config(&KiCfg { url: u.into(), ..cfg.clone() }, "x", 0).is_err(), "{u}");
+            assert!(curl_config(&KiCfg { url: u.into(), ..cfg.clone() }, "x", "").is_err(), "{u}");
         }
     }
     #[test]
@@ -571,10 +570,10 @@ mod tests {
     #[tokio::test]
     async fn fetch_ohne_gegenstelle_endet_rechtzeitig() {
         let t = std::time::Instant::now();
-        let e = fetch(KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: "http://127.0.0.1:9/".into() }, "optik".into(), 1).await.unwrap_err();
+        let e = fetch(KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: "http://127.0.0.1:9/".into() }, "optik".into(), String::new()).await.unwrap_err();
         assert!((t.elapsed().as_millis() as u64) < TIMEOUT_MS);
         assert!(!e.contains(KEY) && !e.is_empty());
         // ohne Schlüssel wird curl gar nicht erst gestartet
-        assert!(fetch(KiCfg { key: String::new(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() }, "optik".into(), 1).await.is_err());
+        assert!(fetch(KiCfg { key: String::new(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() }, "optik".into(), String::new()).await.is_err());
     }
 }

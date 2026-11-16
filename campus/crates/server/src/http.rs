@@ -124,10 +124,9 @@ async fn api_post(State(app): State<App>, Path(op): Path<String>, h: HeaderMap, 
                     return no(403, "Nur für die Verwaltung.");
                 }
                 let thema = crate::duel_ai::normalize_topic(b.get("thema").and_then(Value::as_str).unwrap_or("Allgemeinwissen"));
-                let stufe = b.get("stufe").and_then(Value::as_u64).unwrap_or(1).min(2) as u8;
                 let cfg = app.game.lock().unwrap().ki_cfg();
-                let res = crate::duel_ai::fetch(cfg, thema.clone(), stufe).await;
-                return app.game.lock().unwrap().ki_test_done(&thema, stufe, res);
+                let res = crate::duel_ai::fetch(cfg, thema.clone(), String::new()).await;
+                return app.game.lock().unwrap().ki_test_done(&thema, res);
             }
             let mut g = app.game.lock().unwrap();
             g.ensure_user(&u)?;

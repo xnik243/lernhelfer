@@ -1,13 +1,14 @@
 // Campus – erzeugte Hintergrundmusik (WebAudio, keine Dateien): ein Planer setzt Achtel für Achtel Stimmen aus
-// STIMMUNGEN; dazu eine einzige Regen-Schleife. Still bei Lautstärke 0 oder verdecktem Tab.
+// STIMMUNGEN; dazu eine einzige Regen-Schleife auf eigenem Bus (eigener Regler). Still bei Lautstärke 0 oder verdecktem Tab.
 import { STIMMUNGEN } from './musik_daten.js?v=__V__';
 
 const VORLAUF = 0.15, TAKT_MS = 50, BLENDE = 2, PEGEL = 0.6;
-let ac = null, master = null, nass = null, busse = [], regenLaut = null;
-let laut = 0.5, stimmung = 1, pausiert = false, regen = false;
+let ac = null, master = null, wetterBus = null, nass = null, busse = [], regenLaut = null;
+let laut = 0.5, wetterLaut = 0.25, stimmung = 1, pausiert = false, regen = false;
 let uhr = 0, naechste = 0, schritt = 0, geplant = 0, takt = { akk: [], mel: [], bass: [] };
 
 const hoerbar = () => !!ac && laut > 0 && !pausiert;
+const WETTER_PEGEL = 0.12;   // Regen bleibt leise im Hintergrund
 const wahl = l => (Array.isArray(l) && l.length ? l[Math.floor(Math.random() * l.length)] : []);
 const reihe = (l, i) => (Array.isArray(l) && l.length ? l[i % l.length] : []);
 
@@ -59,6 +60,8 @@ function regeln() {
   const an = hoerbar(), t = ac.currentTime;
   master.gain.cancelScheduledValues(t);
   master.gain.setTargetAtTime(an ? laut * PEGEL : 0, t, 0.05);
+  wetterBus.gain.cancelScheduledValues(t);
+  wetterBus.gain.setTargetAtTime(ac && !pausiert ? wetterLaut * WETTER_PEGEL : 0, t, 0.05);
   if (an && !uhr) { naechste = t + VORLAUF; uhr = setInterval(plane, TAKT_MS); }
   else if (!an && uhr) { clearInterval(uhr); uhr = 0; }
 }
@@ -79,7 +82,7 @@ function regenBauen() {
   const q = ac.createBufferSource(), tp = ac.createBiquadFilter();
   q.buffer = puf; q.loop = true; tp.type = 'lowpass'; tp.frequency.value = 1400;
   regenLaut = ac.createGain(); regenLaut.gain.value = 0;
-  q.connect(tp).connect(regenLaut).connect(master);
+  q.connect(tp).connect(regenLaut).connect(wetterBus);
   q.start();
 }
 
@@ -91,6 +94,7 @@ export function start(kontext) {
   nass = ac.createGain();
   echo.delayTime.value = 0.32; rueck.gain.value = 0.35; nass.gain.value = STIMMUNGEN[stimmung]?.hall ?? 0.25;
   master.connect(ac.destination);
+  wetterBus = ac.createGain(); wetterBus.gain.value = 0; wetterBus.connect(ac.destination);   // eigener Regler, ohne Echo
   master.connect(echo); echo.connect(rueck).connect(echo); echo.connect(nass).connect(ac.destination);
   busse = [0, 1, 2, 3].map(i => { const g = ac.createGain(); g.gain.value = i === stimmung ? 1 : 0; g.connect(master); return g; });
   if (regen) setRegen(true);
@@ -99,6 +103,12 @@ export function start(kontext) {
 
 export function setLaut(v) {
   laut = Math.min(1, Math.max(0, Number(v) || 0));
+  regeln();
+}
+
+/** Wetter-Lautstärke (Regen/Wind) unabhängig von der Musik. */
+export function setWetterLaut(v) {
+  wetterLaut = Math.min(1, Math.max(0, Number(v) || 0));
   regeln();
 }
 
@@ -121,7 +131,7 @@ export function setRegen(an) {
   regen = !!an;
   if (!ac) return;
   if (!regenLaut) { if (!regen) return; regenBauen(); }
-  regenLaut.gain.setTargetAtTime(regen ? 0.5 : 0, ac.currentTime, 0.6);
+  regenLaut.gain.setTargetAtTime(regen ? 1 : 0, ac.currentTime, 0.6);
 }
 
 export function pause(an) {

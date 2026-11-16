@@ -2,12 +2,12 @@
 // Der Server führt die Runde; hier wird nur angezeigt und gewählt (CONTRACT-21-25 §S-DUEL, §W-SPIEL).
 let C = null;                       // ctx aus hud.js
 const FELD = ['A', 'B', 'C', 'D'], KLASSE = ['a', 'b', 'c', 'd'];
-const STUFEN = ['Klasse 5–7', 'Klasse 8–10', 'Oberstufe / Uni'];
 let d = null;                       // letzte Hud-Nachricht
 let frage = null;                   // letzte Frage (die Auflösung bringt Text und Antworten nicht noch einmal mit)
 let gewaehlt = -1, ende = 0, dauer = 1, uhr = 0, rouletteUhr = 0;
 let wahl = null;                    // Knoten des Wahl-Fensters (bleiben stehen, damit das Wunsch-Thema beim Tippen nicht verschwindet)
-let meine = null, stufe = 1;        // eigene Stimme
+let meine = null;                   // eigene Stimme
+let lernhelfer = null;              // Promise der Vorschläge aus dem Lernhelfer (einmal je Sitzung)
 
 const zahl = n => Number(n || 0).toLocaleString('de-AT');
 const faecher = () => (C.reg()?.sky?.faecher || ['Mathematik', 'Sprachen', 'Naturwissenschaften', 'Gesellschaft']).slice(0, 4);
@@ -69,16 +69,79 @@ function einladung(j) {
   C.ton(7, 0.7);
 }
 
+/* ---------- Lernhelfer: Fächer, Wochen-Ausgaben, Themen ---------- */
+// Gleiche Herkunft wie der Lernhelfer: dessen Speicher-Schnittstelle (GitHub-Contents-Format) mit dem Anmelde-Cookie.
+const LH = '/api/gh/repos/lernhelfer/konto/contents/';
+async function lh(pfad, roh) {
+  const r = await fetch(LH + pfad.split('/').map(encodeURIComponent).join('/'), { cache: 'no-store', credentials: 'same-origin',
+    headers: { Accept: roh ? 'application/vnd.github.raw+json' : 'application/vnd.github+json' } });
+  if (!r.ok) throw new Error(String(r.status));
+  return roh ? r.text() : r.json();
+}
+/** Ausgabe zerlegen: ###-Themen der Zusammenfassung, dazu je Thema die Begriffe, die darin vorkommen. */
+function zerlege(text) {
+  const block = text.match(/```json\s*([\s\S]*?)```\s*$/);
+  let daten = {};
+  try { daten = block ? JSON.parse(block[1]) : {}; } catch {}
+  const begriffe = (Array.isArray(daten.begriffe) ? daten.begriffe : []).map(b => String(b?.begriff || '')).filter(Boolean);
+  const zus = (block ? text.slice(0, block.index) : text).split(/^## /m).find(t => /^Zusammenfassung/i.test(t)) || '';
+  const themen = zus.split(/^### /m).slice(1).map(t => {
+    const [kopf, ...rest] = t.split('\n'), inhalt = rest.join('\n').toLowerCase();
+    return { name: kopf.trim(), unter: begriffe.filter(b => inhalt.includes(b.toLowerCase())).slice(0, 8) };
+  }).filter(t => t.name);
+  return { schlagzeile: String(daten.schlagzeile || ''), themen };
+}
+const kurzDatum = d => `${d.slice(8, 10)}.${d.slice(5, 7)}.`;
+const mitUnter = t => t.name + (t.unter.length ? ` (${t.unter.join(', ')})` : '');
+/** Vorschläge: je Fach „Aktuelle Woche“, „Letzte Woche“ und die einzelnen Themen der aktuellen Woche. */
+async function vorschlaegeLaden() {
+  const faecher = (await lh('lernseiten')).filter(x => x.type === 'dir').map(x => x.name);
+  const proFach = await Promise.all(faecher.map(async fach => {
+    const tage = (await lh(`lernseiten/${fach}`).catch(() => [])).map(x => x.name).filter(n => /^\d{4}-\d{2}-\d{2}\.md$/.test(n)).sort().reverse().slice(0, 2);
+    const wochen = await Promise.all(tage.map(async n => ({ datum: n.slice(0, 10), ...zerlege(await lh(`lernseiten/${fach}/${n}`, true).catch(() => '')) })));
+    const v = [];
+    wochen.forEach((w, i) => {
+      if (w.themen.length) v.push({ art: 'woche', fach, titel: `${i ? 'Letzte' : 'Aktuelle'} Woche: ${fach}`, datum: w.datum, schlagzeile: w.schlagzeile, themen: w.themen,
+        thema: `${fach} Woche ${kurzDatum(w.datum)}`, kontext: `${fach}: ${w.themen.map(mitUnter).join('; ')}` });
+    });
+    for (const t of wochen[0]?.themen || []) v.push({ art: 'thema', fach, titel: t.name, datum: wochen[0].datum, themen: [t],
+      thema: `${fach}: ${t.name}`, kontext: `${fach}: ${mitUnter(t)}` });
+    return v;
+  }));
+  return proFach.flat();
+}
+
 /* ---------- Themen-Wahl (Lobby) ---------- */
 async function stimme(neu) {
   meine = neu;
   wahlStand();
-  try { await C.api('duell/wahl', { ...neu, stufe }); C.ton(13, 0.5); } catch (e) { C.fehler(e); }
+  try { await C.api('duell/wahl', neu); C.ton(13, 0.5); } catch (e) { C.fehler(e); }
+}
+function vorschau(v) {
+  if (!wahl) return;
+  wahl.vorschau.hidden = false;
+  wahl.vorschau.replaceChildren(C.el('b', {}, v.titel), C.el('span', { class: 'meta' }, ` · ${v.fach} · Ausgabe vom ${kurzDatum(v.datum)}`),
+    v.schlagzeile ? C.el('p', {}, v.schlagzeile) : null,
+    C.el('ul', {}, v.themen.map(t => C.el('li', {}, C.el('b', {}, t.name), t.unter.length ? C.el('span', { class: 'meta' }, ` – ${t.unter.join(', ')}`) : null))),
+    C.el('p', { class: 'meta' }, 'Die Fragen kommen aus genau diesen Lernhelfer-Inhalten.'));
+}
+function chipsFuellen(liste) {
+  if (!wahl) return;
+  if (!liste.length) return wahl.chips.replaceChildren(C.el('p', { class: 'meta' }, 'Im Lernhelfer gibt es noch keine Wochen-Ausgabe. Wähle unten ein Fach oder ein Wunsch-Thema.'));
+  const gruppen = {};
+  for (const v of liste) (gruppen[v.fach] ??= []).push(v);
+  wahl.chipKnoepfe = [];
+  wahl.chips.replaceChildren(...Object.entries(gruppen).map(([fach, vs]) => C.el('div', { class: 'duell-chipgruppe' }, C.el('span', { class: 'meta' }, fach),
+    C.el('div', { class: 'duell-chipreihe' }, vs.map(v => {
+      const b = knopf(v.titel, () => { vorschau(v); stimme({ art: 'frei', thema: v.thema, kontext: v.kontext }); }, `duell-chip${v.art === 'woche' ? ' woche' : ''}`);
+      wahl.chipKnoepfe.push([b, v]);
+      return b;
+    })))));
+  wahlStand();
 }
 function wahlAuf() {
   const auto = knopf('', () => stimme({ art: 'auto' }), 'knopf duell-auto');
   const fach = faecher().map((f, i) => knopf(f, () => stimme({ art: 'fach', fach: i }), 'kachel duell-fach'));
-  const stufen = STUFEN.map((s, i) => knopf(s, () => { stufe = i; if (meine) stimme(meine); else wahlStand(); }));
   const frei = C.el('input', { type: 'text', maxlength: 60, placeholder: 'z. B. Photosynthese', 'aria-label': 'Wunsch-Thema', autocomplete: 'off' });
   const form = C.el('form', { class: 'duell-frei', onsubmit: e => {
     e.preventDefault();
@@ -87,32 +150,65 @@ function wahlAuf() {
     stimme({ art: 'frei', thema });
   } }, frei, C.el('button', { class: 'knopf klein', type: 'submit' }, 'Wunsch-Thema wählen'));
   const stimmen = C.el('div', { class: 'duell-stimmen', 'aria-live': 'polite' });
+  const chips = C.el('div', { class: 'duell-chips', role: 'group', 'aria-label': 'Vorschläge aus dem Lernhelfer' }, C.el('p', { class: 'meta' }, 'Lernhelfer-Themen werden geladen …'));
+  const vorschauBox = C.el('div', { class: 'duell-vorschau', 'aria-live': 'polite', hidden: true });
   const wurzel = C.el('div', { class: 'duell-wahl' },
     C.el('h3', {}, C.el('span', {}, 'Lern-Duell'), 'Themen-Wahl ', restText()),
-    auto,
+    C.el('h4', {}, 'Aus deinem Lernhelfer'), chips, vorschauBox,
+    C.el('h4', {}, 'Schnellwahl'), auto,
     C.el('div', { class: 'duell-faecher', role: 'group', 'aria-label': 'Fach' }, fach),
-    C.el('div', { class: 'duell-stufen reihe', role: 'group', 'aria-label': 'Stufe' }, stufen),
     form, stimmen,
     C.el('p', { class: 'meta' }, 'Die meisten Stimmen gewinnen, bei Gleichstand entscheidet die Stichwahl. Ohne Stimme gilt die Empfehlung.'));
-  wahl = { wurzel, auto, fach, stufen, frei, stimmen };
+  wahl = { wurzel, auto, fach, frei, stimmen, chips, vorschau: vorschauBox, chipKnoepfe: [] };
   wahlZeigen();
+  (lernhelfer ??= vorschlaegeLaden().catch(() => null)).then(l => {
+    if (wahl?.chips !== chips) return;  // inzwischen eine neue Lobby
+    if (l) chipsFuellen(l);
+    else chips.replaceChildren(C.el('p', { class: 'meta' }, 'Der Lernhelfer ist gerade nicht erreichbar (angemeldet?). Wähle unten ein Fach oder ein Wunsch-Thema.'));
+  });
 }
 function wahlZeigen() {
   if (!wahl) return;
   C.$('dialog').replaceChildren(C.zuKnopf(), wahl.wurzel);
   C.modal.auf('dialog');
 }
+// Der Server speichert freie Themen vereinheitlicht (klein, Leerraum zusammengefasst)
+const gleich = (a, b) => String(a || '').toLowerCase().replace(/\s+/g, ' ').trim() === String(b || '').toLowerCase().replace(/\s+/g, ' ').trim();
 function wahlStand() {
   if (!wahl || d?.phase !== 'lobby') return;
   const f = faecher(), ich = C.me()?.id, st = d.stimmen || [];
   const m = st.find(s => s.id === ich);
-  if (m && !meine) { meine = { art: m.art, fach: m.fach, thema: m.thema }; if (m.stufe >= 0 && m.stufe <= 2) stufe = m.stufe; }
+  if (m && !meine) meine = { art: m.art, fach: m.fach, thema: m.thema };
   wahl.auto.textContent = `${d.auto?.name || f[d.auto?.fach] || 'Auto'} – Empfohlen aus eurem Lernhelfer`;
   wahl.auto.setAttribute('aria-pressed', String(meine?.art === 'auto'));
   wahl.fach.forEach((b, i) => b.setAttribute('aria-pressed', String(meine?.art === 'fach' && meine.fach === i)));
-  wahl.stufen.forEach((b, i) => b.setAttribute('aria-pressed', String(i === stufe)));
+  for (const [b, v] of wahl.chipKnoepfe) b.setAttribute('aria-pressed', String(meine?.art === 'frei' && gleich(meine.thema, v.thema)));
+  const name = s => wahl.chipKnoepfe.find(([, v]) => gleich(v.thema, s.thema))?.[1].titel || s.thema;
   wahl.stimmen.replaceChildren(...st.map(s => C.el('div', { class: 'zeile' }, wer(s.id)?.name || '?',
-    C.el('b', {}, `${s.art === 'frei' ? s.thema : s.art === 'fach' ? f[s.fach] ?? '?' : 'Empfehlung'} · ${STUFEN[s.stufe] ?? ''}`))));
+    C.el('b', {}, s.art === 'frei' ? name(s) : s.art === 'fach' ? f[s.fach] ?? '?' : 'Empfehlung'))));
+}
+
+/* ---------- Formeln: $…$ als MathML über KaTeX aus dem Lernhelfer (/lib), sonst Klartext ---------- */
+let katexLaden = null;
+function katexHolen() {
+  return katexLaden ??= window.katex ? Promise.resolve(window.katex) : new Promise(ok => {
+    const s = document.createElement('script');
+    s.src = '/lib/katex-0.16.11.min.js'; s.onload = () => ok(window.katex || null); s.onerror = () => ok(null);
+    document.head.append(s);
+  });
+}
+/** Text mit $…$ als Knoten-Liste; Formeln als <span class="formel">. KaTeX maskiert die Eingabe selbst (trust: false). */
+function mitFormeln(text) {
+  const teile = String(text ?? '').split(/(\$[^$\n]{1,200}\$)/g).filter(Boolean);
+  const formel = t => t.length > 2 && t[0] === '$' && t.at(-1) === '$';
+  if (!teile.some(formel)) return [String(text ?? '')];
+  if (!window.katex) { katexHolen().then(k => { if (k && d) zeichne(); }); return teile.map(t => formel(t) ? t.slice(1, -1) : t); }
+  return teile.map(t => {
+    if (!formel(t)) return t;
+    const x = C.el('span', { class: 'formel' });
+    x.innerHTML = window.katex.renderToString(t.slice(1, -1), { output: 'mathml', throwOnError: false, trust: false });
+    return x;
+  });
 }
 
 /* ---------- Stichwahl ---------- */
@@ -160,19 +256,19 @@ function zeichne() {
     t.push(C.el('div', { class: 'duell-kopf' }, C.el('b', {}, 'Stichwahl …')));
   } else if (j.phase === 'laden') {
     t.push(C.el('div', { class: 'duell-kopf' }, C.el('b', {}, 'Fragen werden vorbereitet …')),
-      C.el('p', { class: 'duell-frage' }, `${j.thema || ''} · ${STUFEN[j.stufe] ?? ''}`));
+      C.el('p', { class: 'duell-frage' }, j.thema || ''));
   } else if (j.phase === 'frage' || j.phase === 'aufloesung') {
     const f = frage || {}, los = j.phase === 'aufloesung';
     t.push(C.el('div', { class: 'duell-kopf' }, C.el('b', {}, `Runde ${j.runde ?? '?'}/${f.von || 8}`), f.thema ? ` · ${f.thema} ` : ' ', los ? null : restText()),
-      C.el('p', { class: 'duell-frage' }, f.frage || ''),
+      C.el('p', { class: 'duell-frage gross' }, ...mitFormeln(f.frage)),
       C.el('div', { class: 'duell-antworten', role: 'group', 'aria-label': 'Antworten' }, FELD.map((b, i) => C.el('button', {
         class: `duell-feld ${KLASSE[i]}${i === gewaehlt ? ' gewaehlt' : ''}${los ? (i === j.richtig ? ' richtig' : ' falsch') : ''}`, type: 'button', disabled: los,
         'aria-pressed': String(i === gewaehlt), 'aria-label': `${b}: ${f.antworten?.[i] ?? ''}${los ? (i === j.richtig ? ', richtig' : ', falsch') : ''}`,
         onclick: () => antworte(i),
-      }, C.el('b', {}, b), ' ', f.antworten?.[i] ?? ''))));
+      }, C.el('b', {}, b), ' ', ...mitFormeln(f.antworten?.[i] ?? '')))));
     if (los) {
       const s = wer(j.schnellster);
-      t.push(C.el('p', { class: 'duell-erklaerung', role: 'status' }, C.el('b', {}, `Richtig: ${FELD[j.richtig] ?? '?'}. `), j.erklaerung || '',
+      t.push(C.el('p', { class: 'duell-erklaerung', role: 'status' }, C.el('b', {}, `Richtig: ${FELD[j.richtig] ?? '?'}. `), ...mitFormeln(j.erklaerung),
         s ? ` Am schnellsten: ${s.name}.` : ''));
     } else {
       t.push(C.el('div', { class: 'duell-zeit', role: 'presentation' }, C.el('i')),

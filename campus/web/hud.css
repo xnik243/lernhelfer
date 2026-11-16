@@ -268,3 +268,9 @@ button.kachel:active { border-color: var(--fase-innen); }
   .toast, .feld.verdichtet, .iso.verdichtet, .feld.stern svg { animation: none; }
   .balken i, .leiste-balken i, #uebergang, #rand { transition: none; }
 }
+
+/* SkyBlock-Menü: Gruppen mit Überschrift; erste Gruppe (Duell & Katakomben) hervorgehoben */
+.menue-gruppe { margin: 0 0 14px; }
+.menue-gruppe > h2 { margin: 0 0 6px; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); border-bottom: 2px solid var(--hell); padding-bottom: 3px; }
+.menue-gruppe.haupt { padding: 8px; background: rgba(240, 200, 80, .06); border: 2px solid rgba(240, 200, 80, .35); }
+.menue-gruppe.haupt > h2 { color: var(--gold); }

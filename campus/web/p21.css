@@ -43,14 +43,17 @@
 /* ---------- Duell-HUD (oben Mitte, nicht modal) ---------- */
 #duell-hud {
   position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 5;
-  box-sizing: border-box; width: min(94vw, 460px); padding: 10px; color: var(--text);
+  box-sizing: border-box; width: min(96vw, 680px); padding: 14px; color: var(--text);
   background: var(--flaeche); border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
 }
 #duell-hud[hidden] { display: none; }
 .duell-frage { margin: 0 0 8px; font-size: 1.02rem; font-weight: 800; line-height: 1.3; }
-.duell-antworten { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.duell-frage.gross { margin: 6px 0 12px; padding: 10px 12px; font-size: 1.45rem; line-height: 1.45; color: #fff; background: rgba(0, 0, 0, .35); }
+.formel math { font-size: 1.2em; }
+.duell-frage .formel math { font-size: 1.25em; }
+.duell-antworten { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .duell-feld {
-  position: relative; min-height: 52px; padding: 6px 8px; font-weight: 700; font-size: .92rem;
+  position: relative; min-height: 64px; padding: 8px 10px; font-weight: 700; font-size: 1.12rem; line-height: 1.35;
   text-align: left; color: #fff; text-shadow: 1px 1px 0 rgba(0, 0, 0, .6);
   border: 3px solid; border-color: rgba(255, 255, 255, .45) rgba(0, 0, 0, .5) rgba(0, 0, 0, .5) rgba(255, 255, 255, .45);
 }
@@ -67,7 +70,7 @@
 .duell-spieler { font-weight: 600; white-space: nowrap; }
 .duell-spieler.ich { color: var(--gold); font-weight: 800; }
 .duell-spieler .bot { color: var(--leise); font-weight: 500; }
-.duell-erklaerung { margin: 8px 0 0; font-size: .88rem; color: var(--leise); line-height: 1.35; }
+.duell-erklaerung { margin: 8px 0 0; font-size: 1.02rem; color: var(--text); line-height: 1.45; }
 
 /* Wahl-Fenster (im #dialog) */
 .duell-wahl { display: grid; gap: 10px; }
@@ -81,12 +84,20 @@
   border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
 }
 .duell-faecher button[aria-pressed="true"] { border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold); color: var(--gold); }
-.duell-stufen { display: flex; flex-wrap: wrap; gap: 6px; }
-.duell-stufen button {
-  min-height: 38px; padding: 4px 10px; font-weight: 700; color: var(--text); background: var(--tief);
-  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
+.duell-wahl h4 { margin: 4px 0 -4px; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
+.duell-chips { display: grid; gap: 8px; max-height: 38vh; overflow-y: auto; }
+.duell-chipgruppe { display: grid; gap: 4px; }
+.duell-chipreihe { display: flex; flex-wrap: wrap; gap: 6px; }
+.duell-chip {
+  min-height: 36px; padding: 4px 10px; font: inherit; font-weight: 700; font-size: .86rem; text-align: left; color: var(--text); background: var(--tief);
+  border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell); cursor: pointer;
 }
-.duell-stufen button[aria-pressed="true"] { color: var(--gold); border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold); }
+.duell-chip.woche { color: var(--gruen); }
+.duell-chip:hover { background: #2f2f35; }
+.duell-chip[aria-pressed="true"] { color: #1a1408; background: var(--gold); border-color: #fff3b0 var(--dunkel) var(--dunkel) #fff3b0; }
+.duell-vorschau { padding: 8px 10px; background: var(--tief); border: 3px solid; border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold); line-height: 1.4; }
+.duell-vorschau ul { margin: 6px 0; padding-left: 18px; }
+.duell-vorschau p { margin: 4px 0 0; }
 .duell-frei { display: grid; gap: 6px; }
 .duell-frei input {
   box-sizing: border-box; width: 100%; min-height: 38px; padding: 6px 8px; font: inherit; color: var(--text);
@@ -179,7 +190,8 @@ body.kino #zahlen, body.kino #toasts { display: none !important; }
   #arch-leiste { top: 96px; left: 8px; right: 8px; max-width: none; }
   #duell-hud { top: 96px; width: calc(100vw - 16px); }
   .duell-antworten { gap: 4px; }
-  .duell-feld { min-height: 46px; font-size: .86rem; }
+  .duell-feld { min-height: 52px; font-size: 1rem; }
+  .duell-frage.gross { font-size: 1.2rem; }
   #kata-hud { top: auto; bottom: 72px; left: 8px; right: 8px; width: auto; max-width: none; }
   .kata-note { font-size: 2.2rem; }
   #foto-leiste { gap: 4px; font-size: .8rem; }

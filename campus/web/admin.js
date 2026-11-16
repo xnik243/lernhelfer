@@ -73,7 +73,7 @@ $('ki-test').onclick = async () => {
   const b = $('ki-test'), s = $('ki-status');
   b.disabled = true; s.textContent = 'Frage wird erzeugt …';
   try {
-    const r = await api('admin/ki_test', { thema: $('ki-thema').value.trim() || 'Allgemeinwissen', stufe: +$('ki-stufe').value });
+    const r = await api('admin/ki_test', { thema: $('ki-thema').value.trim() || 'Allgemeinwissen' });
     if (r.ok) {
       const f = r.frage;
       s.replaceChildren(`${r.anzahl} Fragen erhalten. Beispiel: `, el('b', {}, f.q), el('br'),
