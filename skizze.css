@@ -108,6 +108,10 @@ main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 9
 /* Fächer auf „Heute“: jede Ausgabe ein Stapel Blätter, wie die Quelle auf der Startseite */
 .fach { box-shadow: 6px -6px 0 -1.5px var(--bg), 6px -6px 0 0 var(--linie-2); transition: box-shadow 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
 @media (hover: hover) { .fach:hover { border-color: transparent; box-shadow: 9px -9px 0 -1.5px var(--bg), 9px -9px 0 0 var(--linie-2); } }
+/* Weiterlernen: gleicher Blätterstapel wie die Fächer, ohne farbigen Balken */
+.weiter-ziel { border: 1.5px solid var(--linie-2); box-shadow: 6px -6px 0 -1.5px var(--bg), 6px -6px 0 0 var(--linie-2); transition: box-shadow 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+@media (hover: hover) { .weiter-ziel:hover { background: var(--bg); box-shadow: 9px -9px 0 -1.5px var(--bg), 9px -9px 0 0 var(--linie-2); } }
+.weiter { gap: 16px; padding-top: 6px; }
 .glyph { background: none; border: 1.5px solid currentColor; border-radius: 5px 9px 6px 10px / 9px 5px 10px 6px; }
 
 /* ---------- Knöpfe, Felder, Haken ---------- */
@@ -123,6 +127,10 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 .haken input:checked { border-color: var(--tinte); background: var(--bg) var(--haken-blau) center / 18px no-repeat; }
 .vorschlag, .vt-filter { border-width: 1.5px; border-radius: var(--r); }
 @media (hover: hover) { .vorschlag:hover { border-color: var(--tinte); background: var(--gelb-hauch); color: var(--text); } }
+/* Arena: Reiter und Rundenlänge wie Knöpfe gezeichnet, gewählt bleibt angestrichen */
+.arena-chips .vt-filter { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; color: var(--text); }
+.arena-chips .vt-filter::before { display: none; }
+@media (hover: hover) { .arena-chips .vt-filter:not([aria-pressed="true"]):hover { background: var(--gelb-hauch); } }
 .pille { border-radius: 3px 6px 4px 7px / 6px 3px 7px 4px; }
 .nr { background: var(--kreis) center / 100% 100% no-repeat; color: var(--text); }
 .vt-tipps li::before { background: var(--kreis) center / 100% 100% no-repeat; }
