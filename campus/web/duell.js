@@ -160,8 +160,6 @@ function chipsFuellen(liste) {
   wahlStand();
 }
 function wahlAuf() {
-  const auto = knopf('', () => stimme({ art: 'auto' }), 'knopf duell-auto');
-  const fach = faecher().map((f, i) => knopf(f, () => stimme({ art: 'fach', fach: i }), 'kachel duell-fach'));
   const frei = C.el('input', { type: 'text', maxlength: 60, placeholder: 'z. B. Photosynthese', 'aria-label': 'Wunsch-Thema', autocomplete: 'off' });
   const form = C.el('form', { class: 'duell-frei', onsubmit: e => {
     e.preventDefault();
@@ -175,16 +173,15 @@ function wahlAuf() {
   const wurzel = C.el('div', { class: 'duell-wahl' },
     C.el('h3', {}, C.el('span', {}, 'Lern-Duell'), 'Themen-Wahl ', restText()),
     C.el('h4', {}, 'Aus deinem Lernhelfer'), chips, vorschauBox,
-    C.el('h4', {}, 'Schnellwahl'), auto,
-    C.el('div', { class: 'duell-faecher', role: 'group', 'aria-label': 'Fach' }, fach),
+    C.el('h4', {}, 'Eigenes Thema'),
     form, stimmen,
     C.el('p', { class: 'meta' }, 'Die meisten Stimmen gewinnen, bei Gleichstand entscheidet die Stichwahl. Ohne Stimme gilt die Empfehlung.'));
-  wahl = { wurzel, auto, fach, frei, stimmen, chips, vorschau: vorschauBox, chipKnoepfe: [] };
+  wahl = { wurzel, frei, stimmen, chips, vorschau: vorschauBox, chipKnoepfe: [] };
   wahlZeigen();
   (lernhelfer ??= vorschlaegeLaden().catch(() => null)).then(l => {
     if (wahl?.chips !== chips) return;  // inzwischen eine neue Lobby
     chipsFuellen(l || []);
-    if (!l) chips.prepend(C.el('p', { class: 'meta' }, 'Der Lernhelfer ist gerade nicht erreichbar (angemeldet?). Wähle unten ein Fach oder ein Wunsch-Thema.'));
+    if (!l) chips.prepend(C.el('p', { class: 'meta' }, 'Der Lernhelfer ist gerade nicht erreichbar (angemeldet?). Wähle Allgemeinwissen oder ein eigenes Thema.'));
   });
 }
 function wahlZeigen() {
@@ -199,9 +196,6 @@ function wahlStand() {
   const f = faecher(), ich = C.me()?.id, st = d.stimmen || [];
   const m = st.find(s => s.id === ich);
   if (m && !meine) meine = { art: m.art, fach: m.fach, thema: m.thema };
-  wahl.auto.textContent = `${d.auto?.name || f[d.auto?.fach] || 'Auto'} – Empfohlen aus eurem Lernhelfer`;
-  wahl.auto.setAttribute('aria-pressed', String(meine?.art === 'auto'));
-  wahl.fach.forEach((b, i) => b.setAttribute('aria-pressed', String(meine?.art === 'fach' && meine.fach === i)));
   for (const [b, v] of wahl.chipKnoepfe) b.setAttribute('aria-pressed', String(meine?.art === 'frei' && gleich(meine.thema, v.thema)));
   const name = s => wahl.chipKnoepfe.find(([, v]) => gleich(v.thema, s.thema))?.[1].titel || s.thema;
   wahl.stimmen.replaceChildren(...st.map(s => C.el('div', { class: 'zeile' }, wer(s.id)?.name || '?',

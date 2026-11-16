@@ -2,7 +2,7 @@
 //! Eine Runde lebt in einer Arena-Instanz (instance.rs): je Spieler eine 8×8-Plattform aus vier farbigen Antwort-Feldern
 //! vor einer großen Anzeigetafel. Ablauf: lobby (Themenwahl) → [roulette] → [laden] → 8 × (frage → aufloesung) → ende.
 //! Alle Zeiten kommen aus `now`; der Takt läuft nur, solange `Game.duels` nicht leer ist.
-use crate::duel_ai::{normalize_topic, Question, ROUNDS, TIMEOUT_MS};
+use crate::duel_ai::{normalize_topic, Question, ROUNDS, TIMEOUT_MS, VORAB_MS};
 use crate::game::Game;
 use crate::instance::Inst;
 use crate::{no, R};
@@ -112,8 +112,8 @@ pub struct Duel {
     auto: u8,
     topic: Option<Topic>,
     kandidaten: Vec<Topic>,
-    /// Themen, für die schon in der Lobby KI-Fragen angefragt wurden (je Thema höchstens einmal)
-    vorab: Vec<String>,
+    /// Themen, deren Vorab-Anfrage aus der Lobby noch läuft (job_done nimmt sie heraus)
+    pub vorab: Vec<String>,
     sperre: i64,
     /// KI-Auftrag läuft, Fragen fehlen noch
     waiting: bool,
@@ -537,7 +537,8 @@ impl Game {
         let votes: Vec<Topic> = d.votes.iter().map(|v| v.topic.clone()).collect();
         let (t, kand) = resolve_votes(&votes, d.auto, (now as u64) ^ (d.inst as u64).wrapping_mul(0x9E37_79B9));
         d.sperre = now;
-        d.waiting = self.questions_request(d.inst, &t.thema, &t.kontext);
+        // läuft die Vorab-Anfrage für das Sieger-Thema noch, auf sie warten statt neu anzufragen
+        d.waiting = d.vorab.contains(&t.thema) || self.questions_request(d.inst, &t.thema, &t.kontext, TIMEOUT_MS);
         if !d.waiting {
             d.qs = self.questions_now(&t.thema, t.fach);
         }
@@ -831,14 +832,14 @@ impl Game {
             _ => return no(400, "Unbekannte Wahl (auto, fach oder frei)."),
         };
         let thema = topic.thema.clone();
-        // Freie Themen: KI-Fragen schon während der Lobby anfragen (40 s), damit sie zum Start im Cache liegen
-        let vorab = art == "frei" && self.duels.get(&inst).is_some_and(|d| !d.vorab.contains(&thema));
+        // KI-Fragen schon während der Lobby anfragen (40 s), damit sie zum Start im Cache liegen
+        let vorab = self.duels.get(&inst).is_some_and(|d| !d.vorab.contains(&thema));
         let kontext = topic.kontext.clone();
         if let Some(d) = self.duels.get_mut(&inst) {
             d.votes.retain(|v| v.id != id);
             d.votes.push(Vote { id, art, topic });
         }
-        if vorab && self.questions_request(inst, &thema, &kontext) {
+        if vorab && self.questions_request(inst, &thema, &kontext, VORAB_MS) {
             if let Some(d) = self.duels.get_mut(&inst) {
                 d.vorab.push(thema.clone());
             }

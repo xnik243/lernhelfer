@@ -12,6 +12,8 @@ pub const DEFAULT_MODEL: &str = "google/gemini-2.5-flash";
 pub const DEFAULT_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 /// Harte Grenze für einen OpenRouter-Aufruf (curl bricht selbst nach 6 s ab).
 pub const TIMEOUT_MS: u64 = 6500;
+/// Vorab-Anfrage während der Lobby (40 s): langsamere Modelle brauchen für 8 Fragen 20 s und mehr.
+pub const VORAB_MS: u64 = 35_000;
 /// Fragen je Duell.
 pub const ROUNDS: usize = 8;
 
@@ -156,10 +158,10 @@ fn curl_config(cfg: &KiCfg, thema: &str, kontext: &str) -> Result<String, String
     Ok(format!("url = \"{}\"\nheader = \"Authorization: Bearer {}\"\nheader = \"Content-Type: application/json\"\ndata = \"{esc}\"\n", cfg.url, cfg.key))
 }
 /// Blockiert (nur in spawn_blocking aufrufen). Fehlertexte enthalten weder stderr noch die Konfiguration.
-fn run_curl(conf: &str) -> Result<String, String> {
+fn run_curl(conf: &str, ms: u64) -> Result<String, String> {
     use std::io::Write;
     use std::process::{Command, Stdio};
-    let mut ch = Command::new("curl").args(["-sS", "--max-time", "6", "-K", "-"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().map_err(|_| "curl ließ sich nicht starten.".to_string())?;
+    let mut ch = Command::new("curl").args(["-sS", "--max-time", &(ms / 1000).max(1).to_string(), "-K", "-"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().map_err(|_| "curl ließ sich nicht starten.".to_string())?;
     if let Some(mut si) = ch.stdin.take() {
         let _ = si.write_all(conf.as_bytes()); // schlägt das fehl, meldet curl gleich selbst einen Fehler
     }
@@ -186,11 +188,11 @@ fn parse_answer(body: &str) -> Result<Vec<Question>, String> {
         _ => Err("Die KI-Antwort ist kein gültiges JSON.".into()),
     }
 }
-/// Ein OpenRouter-Aufruf über curl (Schlüssel nur über stdin), höchstens TIMEOUT_MS. Hält nie die Spiel-Sperre.
-pub async fn fetch(cfg: KiCfg, thema: String, kontext: String) -> Result<Vec<Question>, String> {
+/// Ein OpenRouter-Aufruf über curl (Schlüssel nur über stdin), höchstens `ms` (+0,5 s). Hält nie die Spiel-Sperre.
+pub async fn fetch(cfg: KiCfg, thema: String, kontext: String, ms: u64) -> Result<Vec<Question>, String> {
     let conf = curl_config(&cfg, &thema, &kontext)?;
-    let job = tokio::task::spawn_blocking(move || run_curl(&conf));
-    let res = match tokio::time::timeout(std::time::Duration::from_millis(TIMEOUT_MS), job).await {
+    let job = tokio::task::spawn_blocking(move || run_curl(&conf, ms));
+    let res = match tokio::time::timeout(std::time::Duration::from_millis(ms + 500), job).await {
         Err(_) => Err("OpenRouter hat nicht rechtzeitig geantwortet.".to_string()),
         Ok(Err(_)) => Err("Der KI-Auftrag wurde abgebrochen.".to_string()),
         Ok(Ok(r)) => r.and_then(|body| parse_answer(&body)),
@@ -245,8 +247,8 @@ impl Game {
     fn cache_count(&self) -> i64 {
         self.db.query_row("select count(*) from duel_question_cache", [], |r| r.get(0)).unwrap_or(0)
     }
-    /// Startet bei Bedarf den KI-Auftrag für dieses Duell. true = Auftrag läuft, das Duell darf bis TIMEOUT_MS warten.
-    pub fn questions_request(&mut self, duel: u32, thema: &str, kontext: &str) -> bool {
+    /// Startet bei Bedarf den KI-Auftrag für dieses Duell (höchstens `ms`). true = Auftrag läuft.
+    pub fn questions_request(&mut self, duel: u32, thema: &str, kontext: &str, ms: u64) -> bool {
         let cfg = self.ki_cfg();
         if cfg.key.is_empty() || self.cache_unused(thema) >= ROUNDS {
             return false;
@@ -254,7 +256,7 @@ impl Game {
         let Ok(h) = tokio::runtime::Handle::try_current() else { return false };
         let (tx, thema, kontext) = (self.jobs_tx.clone(), thema.to_string(), kontext.to_string());
         h.spawn(async move {
-            let res = fetch(cfg, thema.clone(), kontext.clone()).await;
+            let res = fetch(cfg, thema.clone(), kontext.clone(), ms).await;
             let _ = tx.send(Job::Fragen { duel, thema, kontext, res });
         });
         true
@@ -281,6 +283,9 @@ impl Game {
     /// Im Takt: Ergebnis eines Auftrags eintragen (Cache) und an das Duell geben (duel_questions).
     pub fn job_done(&mut self, j: Job) {
         let Job::Fragen { duel, thema, res, .. } = j;
+        if let Some(d) = self.duels.get_mut(&duel) {
+            d.vorab.retain(|t| *t != thema);
+        }
         // Vorab-Anfrage aus der Lobby (Duell wartet nicht): nur ablegen, nicht als benutzt zählen
         if !self.duels.get(&duel).is_some_and(|d| d.wartet()) {
             match res {
@@ -467,9 +472,9 @@ mod tests {
     fn ohne_schluessel_und_ohne_laufzeit() {
         let mut g = game();
         // kein tokio in diesem Test: selbst mit Schlüssel wird nichts gestartet und nichts blockiert
-        assert!(!g.questions_request(1, "bruchrechnung", ""));
+        assert!(!g.questions_request(1, "bruchrechnung", "", TIMEOUT_MS));
         g.cfg_set("openrouter_key", KEY).unwrap();
-        assert!(!g.questions_request(1, "bruchrechnung", ""));
+        assert!(!g.questions_request(1, "bruchrechnung", "", TIMEOUT_MS));
         let t = std::time::Instant::now();
         let qs = g.questions_now("bruchrechnung", 0);
         assert!(t.elapsed().as_millis() < 500);
@@ -578,10 +583,10 @@ mod tests {
     #[tokio::test]
     async fn fetch_ohne_gegenstelle_endet_rechtzeitig() {
         let t = std::time::Instant::now();
-        let e = fetch(KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: "http://127.0.0.1:9/".into() }, "optik".into(), String::new()).await.unwrap_err();
+        let e = fetch(KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: "http://127.0.0.1:9/".into() }, "optik".into(), String::new(), TIMEOUT_MS).await.unwrap_err();
         assert!((t.elapsed().as_millis() as u64) < TIMEOUT_MS);
         assert!(!e.contains(KEY) && !e.is_empty());
         // ohne Schlüssel wird curl gar nicht erst gestartet
-        assert!(fetch(KiCfg { key: String::new(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() }, "optik".into(), String::new()).await.is_err());
+        assert!(fetch(KiCfg { key: String::new(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() }, "optik".into(), String::new(), TIMEOUT_MS).await.is_err());
     }
 }

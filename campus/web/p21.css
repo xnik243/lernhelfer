@@ -73,7 +73,7 @@
 .duell-erklaerung { margin: 8px 0 0; font-size: 1.02rem; color: var(--text); line-height: 1.45; }
 
 /* Wahl-Fenster (im #dialog) */
-.duell-wahl { display: grid; gap: 10px; }
+.duell-wahl { display: grid; gap: 10px; max-height: calc(100vh - 190px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
 .duell-auto {
   padding: 8px 10px; background: var(--tief); border: 3px solid; border-color: var(--gruen) var(--dunkel) var(--dunkel) var(--gruen);
 }
@@ -85,7 +85,7 @@
 }
 .duell-faecher button[aria-pressed="true"] { border-color: var(--gold) var(--dunkel) var(--dunkel) var(--gold); color: var(--gold); }
 .duell-wahl h4 { margin: 4px 0 -4px; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
-.duell-chips { display: grid; gap: 8px; max-height: 38vh; overflow-y: auto; }
+.duell-chips { display: grid; gap: 8px; }
 .duell-chipgruppe { display: grid; gap: 4px; }
 .duell-chipreihe { display: flex; flex-wrap: wrap; gap: 6px; }
 .duell-chip {
