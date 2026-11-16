@@ -112,6 +112,8 @@ pub struct Duel {
     auto: u8,
     topic: Option<Topic>,
     kandidaten: Vec<Topic>,
+    /// Themen, für die schon in der Lobby KI-Fragen angefragt wurden (je Thema höchstens einmal)
+    vorab: Vec<String>,
     sperre: i64,
     /// KI-Auftrag läuft, Fragen fehlen noch
     waiting: bool,
@@ -124,6 +126,9 @@ pub struct Duel {
 }
 
 impl Duel {
+    pub fn wartet(&self) -> bool {
+        self.waiting
+    }
     fn new(inst: u32, solo: bool, now: i64) -> Duel {
         Duel {
             inst,
@@ -137,6 +142,7 @@ impl Duel {
             auto: 0,
             topic: None,
             kandidaten: Vec::new(),
+            vorab: Vec::new(),
             sperre: 0,
             waiting: false,
             qs: Vec::new(),
@@ -800,7 +806,7 @@ impl Game {
         let farbe = self.duels.get(&inst).and_then(|d| d.seats.iter().find(|s| s.id == id)).map_or(0, |s| s.farbe);
         self.inst_goto(id, spawn(o, farbe), 0.0);
     }
-    /// POST duell/wahl {art: "auto"|"fach"|"frei", fach?, thema?, kontext?}
+    /// POST duell/wahl {art: "auto"|"fach"|"frei", fach?, thema?, kontext?}; bei "frei" ist `fach` (0..3) nur die Kategorie für Ersatzfragen.
     pub fn duel_vote(&mut self, id: u32, b: &Value) -> R<Value> {
         let Some((inst, ins::KIND_ARENA)) = self.inst_of(id) else { return no(409, "Du bist in keinem Duell.") };
         let Some(d) = self.duels.get(&inst) else { return no(404, "Diese Runde gibt es nicht mehr.") };
@@ -819,14 +825,23 @@ impl Game {
                     return no(400, "Bitte ein Wunsch-Thema eingeben.");
                 }
                 let kontext: String = crate::sky::clean(b.get("kontext").and_then(Value::as_str).unwrap_or("")).chars().take(400).collect();
-                ("frei", Topic { fach: 255, thema: t, kontext })
+                let fach = b.get("fach").and_then(Value::as_u64).filter(|&f| f <= 3).map_or(255, |f| f as u8);
+                ("frei", Topic { fach, thema: t, kontext })
             }
             _ => return no(400, "Unbekannte Wahl (auto, fach oder frei)."),
         };
         let thema = topic.thema.clone();
+        // Freie Themen: KI-Fragen schon während der Lobby anfragen (40 s), damit sie zum Start im Cache liegen
+        let vorab = art == "frei" && self.duels.get(&inst).is_some_and(|d| !d.vorab.contains(&thema));
+        let kontext = topic.kontext.clone();
         if let Some(d) = self.duels.get_mut(&inst) {
             d.votes.retain(|v| v.id != id);
             d.votes.push(Vote { id, art, topic });
+        }
+        if vorab && self.questions_request(inst, &thema, &kontext) {
+            if let Some(d) = self.duels.get_mut(&inst) {
+                d.vorab.push(thema.clone());
+            }
         }
         let now = self.now();
         self.duel_hud(inst, now);

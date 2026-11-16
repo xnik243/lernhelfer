@@ -120,23 +120,43 @@ async function stimme(neu) {
 function vorschau(v) {
   if (!wahl) return;
   wahl.vorschau.hidden = false;
-  wahl.vorschau.replaceChildren(C.el('b', {}, v.titel), C.el('span', { class: 'meta' }, ` · ${v.fach} · Ausgabe vom ${kurzDatum(v.datum)}`),
+  wahl.vorschau.replaceChildren(C.el('b', {}, v.titel), C.el('span', { class: 'meta' }, ` · ${v.fach}${v.datum ? ` · Ausgabe vom ${kurzDatum(v.datum)}` : ''}`),
     v.schlagzeile ? C.el('p', {}, v.schlagzeile) : null,
     C.el('ul', {}, v.themen.map(t => C.el('li', {}, C.el('b', {}, t.name), t.unter.length ? C.el('span', { class: 'meta' }, ` – ${t.unter.join(', ')}`) : null))),
-    C.el('p', { class: 'meta' }, 'Die Fragen kommen aus genau diesen Lernhelfer-Inhalten.'));
+    C.el('p', { class: 'meta' }, v.datum ? 'Die Fragen kommen aus genau diesen Lernhelfer-Inhalten.' : 'Die Fragen schreibt die KI zu diesem Thema.'));
 }
+// Reihenfolge der Fächer (Rest alphabetisch dahinter); Kategorie 0..3 = Ersatzfragen, falls die KI nicht liefert
+const ORDNUNG = ['mathematik', 'vwl', 'bwl vo', 'englisch', 'bwl'];
+const rang = f => { const i = ORDNUNG.indexOf(f.toLowerCase()); return i < 0 ? 99 : i; };
+const kategorie = f => /^mathe/i.test(f) ? 0 : /^englisch/i.test(f) ? 1 : /^(vwl|bwl)/i.test(f) ? 3 : undefined;
+const ALLGEMEIN = [
+  ['Mix', 'bunt gemischt: Geografie, Geschichte, Wissenschaft, Kultur, Sport und Alltag'],
+  ['Flaggen & Länder', 'Flaggen an Farben und Symbolen erkennen, Länder und ihre Besonderheiten'],
+  ['Hauptstädte', 'Hauptstädte der Welt, Europa zuerst, auch ein paar knifflige'],
+  ['Geschichte', 'wichtige Ereignisse, Personen und Jahreszahlen der Weltgeschichte', 3],
+  ['Naturwissenschaft & Technik', 'Physik, Chemie, Biologie und Erfindungen im Alltag', 2],
+  ['Weltall', 'Planeten, Sterne, Raumfahrt', 2],
+  ['Tiere & Natur', 'erstaunliche Fakten über Tiere, Pflanzen und Rekorde der Natur', 2],
+  ['Sport', 'Sportarten, Regeln, große Turniere und Rekorde'],
+  ['Film, Musik & Kunst', 'bekannte Filme, Musik, Bands, Gemälde und Kunstwerke'],
+].map(([titel, text, fach]) => ({ art: 'allgemein', fach: 'Allgemeinwissen', kat: fach, titel, themen: [{ name: titel, unter: [text] }],
+  thema: `Allgemeinwissen: ${titel}`, kontext: `Allgemeinwissen, ${titel}: ${text}. Interessant und abwechslungsreich, nicht zu leicht.` }));
 function chipsFuellen(liste) {
   if (!wahl) return;
-  if (!liste.length) return wahl.chips.replaceChildren(C.el('p', { class: 'meta' }, 'Im Lernhelfer gibt es noch keine Wochen-Ausgabe. Wähle unten ein Fach oder ein Wunsch-Thema.'));
   const gruppen = {};
   for (const v of liste) (gruppen[v.fach] ??= []).push(v);
+  const reihe = Object.keys(gruppen).sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, 'de'));
   wahl.chipKnoepfe = [];
-  wahl.chips.replaceChildren(...Object.entries(gruppen).map(([fach, vs]) => C.el('div', { class: 'duell-chipgruppe' }, C.el('span', { class: 'meta' }, fach),
-    C.el('div', { class: 'duell-chipreihe' }, vs.map(v => {
-      const b = knopf(v.titel, () => { vorschau(v); stimme({ art: 'frei', thema: v.thema, kontext: v.kontext }); }, `duell-chip${v.art === 'woche' ? ' woche' : ''}`);
-      wahl.chipKnoepfe.push([b, v]);
-      return b;
-    })))));
+  const chip = v => {
+    const b = knopf(v.titel, () => { vorschau(v); stimme({ art: 'frei', thema: v.thema, kontext: v.kontext, fach: v.kat ?? kategorie(v.fach) }); }, `duell-chip${v.art === 'woche' ? ' woche' : ''}`);
+    wahl.chipKnoepfe.push([b, v]);
+    return b;
+  };
+  // Je Fach zum Ausklappen; offen bleibt nur, was man selbst aufklappt
+  const gruppe = (name, vs) => C.el('details', { class: 'duell-chipgruppe' }, C.el('summary', {}, name, C.el('span', { class: 'meta' }, ` · ${vs.length}`)),
+    C.el('div', { class: 'duell-chipreihe' }, vs.map(chip)));
+  wahl.chips.replaceChildren(...reihe.map(f => gruppe(f, gruppen[f])), gruppe('Allgemeinwissen', ALLGEMEIN),
+    liste.length ? null : C.el('p', { class: 'meta' }, 'Im Lernhelfer gibt es noch keine Wochen-Ausgabe.'));
   wahlStand();
 }
 function wahlAuf() {
@@ -163,8 +183,8 @@ function wahlAuf() {
   wahlZeigen();
   (lernhelfer ??= vorschlaegeLaden().catch(() => null)).then(l => {
     if (wahl?.chips !== chips) return;  // inzwischen eine neue Lobby
-    if (l) chipsFuellen(l);
-    else chips.replaceChildren(C.el('p', { class: 'meta' }, 'Der Lernhelfer ist gerade nicht erreichbar (angemeldet?). Wähle unten ein Fach oder ein Wunsch-Thema.'));
+    chipsFuellen(l || []);
+    if (!l) chips.prepend(C.el('p', { class: 'meta' }, 'Der Lernhelfer ist gerade nicht erreichbar (angemeldet?). Wähle unten ein Fach oder ein Wunsch-Thema.'));
   });
 }
 function wahlZeigen() {

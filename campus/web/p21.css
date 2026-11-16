@@ -203,3 +203,9 @@ body.kino #zahlen, body.kino #toasts { display: none !important; }
   #kino .kino-balken { transform: none; }
   .duell-zeit > i, .kata-balken > i { transition: none; }
 }
+.duell-chipgruppe { border: 2px solid var(--hell); background: var(--tief); }
+.duell-chipgruppe > summary { padding: 6px 10px; font-weight: 800; cursor: pointer; list-style: none; }
+.duell-chipgruppe > summary::-webkit-details-marker { display: none; }
+.duell-chipgruppe > summary::before { content: '▸ '; color: var(--gold); }
+.duell-chipgruppe[open] > summary::before { content: '▾ '; }
+.duell-chipgruppe > .duell-chipreihe { padding: 0 8px 8px; }

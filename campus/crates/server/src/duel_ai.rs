@@ -281,6 +281,14 @@ impl Game {
     /// Im Takt: Ergebnis eines Auftrags eintragen (Cache) und an das Duell geben (duel_questions).
     pub fn job_done(&mut self, j: Job) {
         let Job::Fragen { duel, thema, res, .. } = j;
+        // Vorab-Anfrage aus der Lobby (Duell wartet nicht): nur ablegen, nicht als benutzt zählen
+        if !self.duels.get(&duel).is_some_and(|d| d.wartet()) {
+            match res {
+                Ok(qs) => drop(self.cache_put(&thema, &qs)),
+                Err(e) => eprintln!("duel_ai: {e}"),
+            }
+            return;
+        }
         let qs = match res {
             Ok(qs) => {
                 // ablegen und gleich als benutzt zählen (sonst spielte das nächste Duell dieselben Fragen ohne neue Anfrage)
@@ -481,7 +489,7 @@ mod tests {
         let mut g = game();
         g.job_done(Job::Fragen { duel: 77, thema: "optik".into(), kontext: String::new(), res: Ok((0..8).map(frage).collect()) });
         assert_eq!(g.cache_count(), 8);
-        assert_eq!(g.cache_unused("optik"), 0, "an das Duell gegebene Fragen zählen als benutzt");
+        assert_eq!(g.cache_unused("optik"), 8, "ohne wartendes Duell (Vorab-Anfrage): nur abgelegt, nicht benutzt");
         g.job_done(Job::Fragen { duel: 77, thema: "optik".into(), kontext: String::new(), res: Err("aus".into()) });
         assert_eq!(g.cache_count(), 8);
     }
