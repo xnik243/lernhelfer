@@ -1,5 +1,5 @@
 // Campus – Foto-Modus (F8: Freikamera, Filter, Brennweite, Screenshot) und Kamerafahrten beim ersten Besuch einer Zone.
-let ctx = null, aktiv = false, filter = 0, fokus = 0, faellig = false, faehrt = false;
+let ctx = null, aktiv = false, filter = 0, fokus = 0, faellig = false, faehrt = false, frei = 0;
 const FILTER = ['Standard', 'Retro-Pixel', 'Goldene Stunde', 'Kino-Kontrast'];
 const FAHRT = { 'Marktplatz': 0, 'Prüfungs-Zitadelle': 1, 'Prüfungs-Katakomben': 2, 'Lern-Duell-Arena': 3 };
 const MERK = 'campus-kino';
@@ -32,7 +32,10 @@ export function initFoto(c) {
       el('input', { type: 'range', class: 'foto-fokus', min: 0, max: 64, step: 1, value: fokus, 'aria-label': 'Brennweite in Blöcken, 0 ist aus', oninput: e => setFokus(e.target.value) }),
       el('span', { class: 'foto-fokus-wert' }, 'aus')),
     el('button', { type: 'button', class: 'foto-knopf', title: 'Eingabetaste', onclick: knipsen }, 'Screenshot speichern'),
-    el('button', { type: 'button', class: 'foto-knopf', title: 'F8', onclick: fotoUmschalten }, 'Beenden'));
+    el('button', { type: 'button', class: 'foto-knopf', title: 'F8', onclick: fotoUmschalten }, 'Beenden'),
+    ctx.TOUCH ? '' : el('span', { class: 'foto-tipp' }, 'Klick ins Bild: umsehen · Esc: Zeiger frei'));
+  // Zeiger losgelassen: merken, damit dasselbe Esc nicht auch gleich den Modus beendet
+  document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement) frei = performance.now(); });
   const k = $('kino');
   if (k) {
     k.replaceChildren(el('div', { class: 'kino-balken oben' }), el('div', { class: 'kino-balken unten' }),
@@ -52,12 +55,14 @@ export function fotoUmschalten() {
   g.set_photo?.(aktiv);
   if (aktiv) {
     ctx.modal.zu(true);
+    document.exitPointerLock?.();   // Zeiger frei für die Leiste; Klick ins Bild fängt ihn wieder zum Umsehen
     ctx.optAnwenden();   // hebt bei fotoAktiv() auf mindestens Stufe 1 (Eco hat keinen Nachbearbeitungs-Durchgang)
     anwenden();
   } else {
     faellig = false;
     g.set_filter?.(0, 0);
     ctx.optAnwenden();
+    if (!ctx.TOUCH) try { ctx.$('c').requestPointerLock?.()?.catch?.(() => {}); } catch {}
   }
 }
 
@@ -113,7 +118,10 @@ export function taste(e) {
   }
   else if (e.code === 'ArrowUp') setFokus(fokus + 2);
   else if (e.code === 'ArrowDown') setFokus(fokus - 2);
-  else if (e.code === 'Escape') fotoUmschalten();
+  else if (e.code === 'Escape') {
+    if (document.pointerLockElement) document.exitPointerLock();   // erst Zeiger frei, zweites Esc beendet
+    else if (performance.now() - frei > 300) fotoUmschalten();
+  }
   else return false;
   return true;
 }

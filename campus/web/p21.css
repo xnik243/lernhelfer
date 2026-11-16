@@ -149,6 +149,7 @@
   border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
 }
 #foto-leiste[hidden] { display: none; }
+.foto-tipp { flex-basis: 100%; text-align: center; font-size: .75rem; color: var(--leise); }
 .foto-filter, .foto-knopf {
   min-height: 36px; padding: 4px 10px; font-weight: 700; color: var(--text); background: var(--tief);
   border: 3px solid; border-color: var(--hell) var(--dunkel) var(--dunkel) var(--hell);
