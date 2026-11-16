@@ -143,8 +143,12 @@ fn curl_config(cfg: &KiCfg, thema: &str, kontext: &str) -> Result<String, String
          Antworte ausschließlich mit JSON in genau dieser Form: \
          {{\"questions\":[{{\"q\":\"Fragetext (höchstens 200 Zeichen)\",\"options\":[\"A) ...\",\"B) ...\",\"C) ...\",\"D) ...\"],\"correct\":0,\"explanation\":\"Ein kurzer Satz (höchstens 160 Zeichen)\"}}]}}. \
          Je Frage genau 4 Optionen (je höchstens 60 Zeichen), genau eine ist richtig; \"correct\" ist ihr Index 0 bis 3 als Zahl. \
+         Es ist ein schnelles Quiz-Spiel: Pro Frage bleiben nur 12 Sekunden zum Lesen und Antworten. \
+         Frage darum Verständnis und Logik ab (Begriffe, Zusammenhänge, Ursache und Wirkung, was passiert wenn …, \
+         welche Aussage stimmt, typische Denkfehler), keine Rechenaufgaben und nichts, wofür man Papier oder Taschenrechner braucht; \
+         Zahlen höchstens so einfach, dass man sie im Kopf sofort sieht. Halte Fragen kurz (am besten unter 140 Zeichen). \
          Verteile die richtige Stelle gleichmäßig, keine doppelten Fragen, fachlich korrekt und jugendfrei. \
-         Formeln schreibst du als LaTeX zwischen $…$."
+         Formeln nur, wenn sie zum Verständnis nötig sind, als LaTeX zwischen $…$."
     );
     let body = json!({
         "model": cfg.model,
