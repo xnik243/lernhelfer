@@ -81,7 +81,7 @@ function zeile(a, b) { return C.el('div', { class: 'kata-zeile' }, C.el('span', 
 function balken(name, wert) {
   const w = Math.max(0, Math.min(100, Number(wert) || 0));
   return [zeile(name, `${Math.round(w)}`), C.el('div', { class: 'kata-balken', role: 'meter', 'aria-label': name, 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(w) },
-    C.el('i', { style: `width:${w}%` }))];
+    C.el('i', { style: `transform:scaleX(${w / 100})` }))];
 }
 function zeichne() {
   const j = stand, p = j.punkte || {}, h = hud();

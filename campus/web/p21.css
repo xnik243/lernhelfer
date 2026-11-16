@@ -120,7 +120,7 @@
   to { text-shadow: 2px 2px 0 #000, 0 0 14px var(--gold), 0 0 24px #fff3b0; }
 }
 .kata-balken { height: 10px; margin: 4px 0; background: var(--tief); border: 2px solid; border-color: var(--fase-innen); overflow: hidden; }
-.kata-balken > i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .4s steps(4, end); }
+.kata-balken > i { display: block; height: 100%; width: 100%; transform-origin: left; background: var(--gold); transition: transform .4s steps(4, end); }
 .kata-portal { display: grid; gap: 6px; }
 .kata-stufe {
   min-height: 44px; padding: 6px 10px; font-weight: 800; text-align: left; color: var(--text); background: var(--tief);
