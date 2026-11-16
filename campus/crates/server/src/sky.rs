@@ -35,7 +35,11 @@ const BAD: [&str; 16] = ["arschloch", "fotze", "hurensohn", "wichser", "ficken",
 
 /// Text säubern: Steuerzeichen raus, spitze Klammern entschärft, Länge begrenzt, Schimpfwörter gesternt.
 pub fn clean(s: &str) -> String {
-    let mut t: String = s.chars().filter(|c| !c.is_control()).map(|c| match c { '<' => '‹', '>' => '›', _ => c }).take(CHAT_MAX).collect();
+    clean_n(s, CHAT_MAX)
+}
+/// Wie `clean`, aber mit eigener Höchstlänge (KI-Fragen, Lernhelfer-Kontext).
+pub fn clean_n(s: &str, max: usize) -> String {
+    let mut t: String = s.chars().filter(|c| !c.is_control()).map(|c| match c { '<' => '‹', '>' => '›', _ => c }).take(max).collect();
     t = t.trim().to_string();
     let low = t.to_lowercase();
     for w in BAD {

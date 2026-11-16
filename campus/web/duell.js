@@ -51,7 +51,7 @@ function aus() {
 /** Zeitbalken und Rest-Sekunden laufen zwischen den Nachrichten (höchstens 1×/s) weich weiter. */
 function takt() {
   const rest = Math.max(0, ende - performance.now());
-  for (const b of document.querySelectorAll('.duell-zeit > i')) b.style.width = `${Math.min(100, rest / dauer * 100)}%`;
+  for (const b of document.querySelectorAll('.duell-zeit:not(.gen) > i')) b.style.width = `${Math.min(100, rest / dauer * 100)}%`;
   for (const t of document.querySelectorAll('.duell-rest')) t.textContent = `${Math.ceil(rest / 1000)} s`;
 }
 const restText = () => C.el('span', { class: 'duell-rest', 'aria-hidden': 'true' }, `${Math.ceil(Math.max(0, ende - performance.now()) / 1000)} s`);
@@ -170,13 +170,14 @@ function wahlAuf() {
   const stimmen = C.el('div', { class: 'duell-stimmen', 'aria-live': 'polite' });
   const chips = C.el('div', { class: 'duell-chips', role: 'group', 'aria-label': 'Vorschläge aus dem Lernhelfer' }, C.el('p', { class: 'meta' }, 'Lernhelfer-Themen werden geladen …'));
   const vorschauBox = C.el('div', { class: 'duell-vorschau', 'aria-live': 'polite', hidden: true });
+  const gen = C.el('p', { class: 'duell-gen', role: 'status' });
   const wurzel = C.el('div', { class: 'duell-wahl' },
     C.el('h3', {}, C.el('span', {}, 'Lern-Duell'), 'Themen-Wahl ', restText()),
-    C.el('h4', {}, 'Aus deinem Lernhelfer'), chips, vorschauBox,
+    C.el('h4', {}, 'Aus deinem Lernhelfer'), chips, vorschauBox, gen,
     C.el('h4', {}, 'Eigenes Thema'),
     form, stimmen,
     C.el('p', { class: 'meta' }, 'Die meisten Stimmen gewinnen, bei Gleichstand entscheidet die Stichwahl. Ohne Stimme gilt die Empfehlung.'));
-  wahl = { wurzel, frei, stimmen, chips, vorschau: vorschauBox, chipKnoepfe: [] };
+  wahl = { wurzel, frei, stimmen, chips, vorschau: vorschauBox, gen, chipKnoepfe: [] };
   wahlZeigen();
   (lernhelfer ??= vorschlaegeLaden().catch(() => null)).then(l => {
     if (wahl?.chips !== chips) return;  // inzwischen eine neue Lobby
@@ -197,6 +198,8 @@ function wahlStand() {
   const m = st.find(s => s.id === ich);
   if (m && !meine) meine = { art: m.art, fach: m.fach, thema: m.thema };
   for (const [b, v] of wahl.chipKnoepfe) b.setAttribute('aria-pressed', String(meine?.art === 'frei' && gleich(meine.thema, v.thema)));
+  const g = meine?.thema ? (d.gen || []).find(x => gleich(x.thema, meine.thema)) : null;
+  wahl.gen.textContent = g ? `KI schreibt deine Fragen: ${genText(g)}` : '';
   const name = s => wahl.chipKnoepfe.find(([, v]) => gleich(v.thema, s.thema))?.[1].titel || s.thema;
   wahl.stimmen.replaceChildren(...st.map(s => C.el('div', { class: 'zeile' }, wer(s.id)?.name || '?',
     C.el('b', {}, s.art === 'frei' ? name(s) : s.art === 'fach' ? f[s.fach] ?? '?' : 'Empfehlung'))));
@@ -224,6 +227,16 @@ function mitFormeln(text) {
     return x;
   });
 }
+
+/* ---------- Live-Stand der KI-Fragen ---------- */
+// n = Frage, die gerade entsteht (0 = KI denkt noch); Rest grob aus dem bisherigen Tempo, vorher eine Schätzung
+function genText(g) {
+  if (!g) return 'Gleich geht es los …';
+  const von = g.von || 8, fertig = Math.max(0, g.n - 1), s = Math.round(g.ms / 1000);
+  const rest = fertig ? g.ms / fertig * (von - fertig) : Math.max(5000, 25000 - g.ms);
+  return `${g.n ? `Frage ${g.n}/${von} wird generiert` : 'KI denkt nach'} · ${s} s · noch ca. ${Math.max(1, Math.ceil(rest / 1000))} s`;
+}
+const genAnteil = g => g ? Math.min(100, Math.max(0, g.n - 1) / (g.von || 8) * 100) : 0;
 
 /* ---------- Stichwahl ---------- */
 function roulette() {
@@ -270,10 +283,13 @@ function zeichne() {
     t.push(C.el('div', { class: 'duell-kopf' }, C.el('b', {}, 'Stichwahl …')));
   } else if (j.phase === 'laden') {
     t.push(C.el('div', { class: 'duell-kopf' }, C.el('b', {}, 'Fragen werden vorbereitet …')),
-      C.el('p', { class: 'duell-frage' }, j.thema || ''));
+      C.el('p', { class: 'duell-frage' }, j.thema || ''),
+      C.el('p', { class: 'duell-gen', role: 'status' }, genText(j.gen)),
+      C.el('div', { class: 'duell-zeit gen', role: 'presentation' }, C.el('i', { style: `width:${genAnteil(j.gen)}%` })));
   } else if (j.phase === 'frage' || j.phase === 'aufloesung') {
     const f = frage || {}, los = j.phase === 'aufloesung';
     t.push(C.el('div', { class: 'duell-kopf' }, C.el('b', {}, `Runde ${j.runde ?? '?'}/${f.von || 8}`), f.thema ? ` · ${f.thema} ` : ' ', los ? null : restText()),
+      f.hinweis ? C.el('p', { class: 'duell-hinweis', role: 'status' }, f.hinweis) : null,
       C.el('p', { class: 'duell-frage gross' }, ...mitFormeln(f.frage)),
       C.el('div', { class: 'duell-antworten', role: 'group', 'aria-label': 'Antworten' }, FELD.map((b, i) => C.el('button', {
         class: `duell-feld ${KLASSE[i]}${i === gewaehlt ? ' gewaehlt' : ''}${los ? (i === j.richtig ? ' richtig' : ' falsch') : ''}`, type: 'button', disabled: los,

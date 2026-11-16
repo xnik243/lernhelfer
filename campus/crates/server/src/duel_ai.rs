@@ -12,8 +12,9 @@ pub const DEFAULT_MODEL: &str = "google/gemini-2.5-flash";
 pub const DEFAULT_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 /// Harte Grenze für einen OpenRouter-Aufruf (curl bricht selbst nach 6 s ab).
 pub const TIMEOUT_MS: u64 = 6500;
-/// Vorab-Anfrage während der Lobby (40 s): langsamere Modelle brauchen für 8 Fragen 20 s und mehr.
-pub const VORAB_MS: u64 = 35_000;
+/// Längste Wartezeit auf die KI (Lobby-Vorabfrage und Laden): langsame Modelle brauchen für 8 Fragen 20 s und mehr.
+/// Danach Ersatzfragen; das Spiel wartet nie unter der Sperre (LAW 1), nur die Phase „laden“ bleibt stehen.
+pub const VORAB_MS: u64 = 90_000;
 /// Fragen je Duell.
 pub const ROUNDS: usize = 8;
 
@@ -40,6 +41,8 @@ pub struct KiCfg {
 /// Ergebnis eines Hintergrund-Auftrags; kommt über Game.jobs_tx zurück und wird im Takt abgeholt (job_done).
 pub enum Job {
     Fragen { duel: u32, thema: String, kontext: String, res: Result<Vec<Question>, String> },
+    /// Live-Stand beim Streamen: `n` = Nummer der Frage, die gerade entsteht (0 = KI denkt noch)
+    Fortschritt { duel: u32, thema: String, n: u8 },
 }
 
 /// Thema vereinheitlichen (Cache-Schlüssel): säubern (sky::clean), Kleinbuchstaben, Leerraum zusammenfassen, höchstens 60 Zeichen.
@@ -48,7 +51,7 @@ pub fn normalize_topic(s: &str) -> String {
 }
 
 fn cut(s: &str, n: usize) -> String {
-    clean(s).chars().take(n).collect::<String>().trim().to_string()
+    crate::sky::clean_n(s, n).trim().to_string()
 }
 /// Option säubern; einen Vorsatz „A) “ entfernen, wenn der Buchstabe zur Stelle passt.
 fn option(i: usize, s: &str) -> String {
@@ -58,10 +61,10 @@ fn option(i: usize, s: &str) -> String {
         (Some(a), Some(')')) if a.to_ascii_uppercase() == (b'A' + i as u8) as char => c.as_str(),
         _ => t.as_str(),
     };
-    cut(rest, 60)
+    cut(rest, 80)
 }
 fn question(v: &Value) -> Option<Question> {
-    let q = cut(v.get("q")?.as_str()?, 110);
+    let q = cut(v.get("q")?.as_str()?, 250);
     let o = v.get("options")?.as_array()?;
     let correct = v.get("correct")?.as_u64()?;
     if q.is_empty() || o.len() != 4 || correct > 3 {
@@ -74,7 +77,7 @@ fn question(v: &Value) -> Option<Question> {
             return None;
         }
     }
-    Some(Question { q, options, correct: correct as u8, explanation: cut(v.get("explanation").and_then(Value::as_str).unwrap_or(""), 90) })
+    Some(Question { q, options, correct: correct as u8, explanation: cut(v.get("explanation").and_then(Value::as_str).unwrap_or(""), 200) })
 }
 /// Antwort-JSON `{"questions":[…]}` prüfen: je Frage genau 4 Optionen, correct 0..=3, Längen gekappt, mindestens eine Frage.
 pub fn parse_questions(json: &str) -> Result<Vec<Question>, String> {
@@ -133,19 +136,20 @@ fn curl_config(cfg: &KiCfg, thema: &str, kontext: &str) -> Result<String, String
         return Err("Die OpenRouter-Adresse ist ungültig.".into());
     }
     let thema = if thema.trim().is_empty() { "Allgemeinwissen" } else { thema.trim() };
-    let kontext = cut(kontext, 400);
+    let kontext = cut(kontext, 1200);
     let zusatz = if kontext.is_empty() { String::new() } else { format!(" Halte dich an diese Inhalte aus dem Lernhelfer: „{kontext}“.") };
     let auftrag = format!(
         "Erstelle genau {ROUNDS} Multiple-Choice-Quizfragen auf Deutsch zum Thema „{thema}“ auf Universitätsniveau.{zusatz} \
          Antworte ausschließlich mit JSON in genau dieser Form: \
-         {{\"questions\":[{{\"q\":\"Fragetext (höchstens 110 Zeichen)\",\"options\":[\"A) ...\",\"B) ...\",\"C) ...\",\"D) ...\"],\"correct\":0,\"explanation\":\"Ein kurzer Satz (höchstens 90 Zeichen)\"}}]}}. \
-         Je Frage genau 4 Optionen (je höchstens 40 Zeichen), genau eine ist richtig; \"correct\" ist ihr Index 0 bis 3 als Zahl. \
+         {{\"questions\":[{{\"q\":\"Fragetext (höchstens 200 Zeichen)\",\"options\":[\"A) ...\",\"B) ...\",\"C) ...\",\"D) ...\"],\"correct\":0,\"explanation\":\"Ein kurzer Satz (höchstens 160 Zeichen)\"}}]}}. \
+         Je Frage genau 4 Optionen (je höchstens 60 Zeichen), genau eine ist richtig; \"correct\" ist ihr Index 0 bis 3 als Zahl. \
          Verteile die richtige Stelle gleichmäßig, keine doppelten Fragen, fachlich korrekt und jugendfrei. \
          Formeln schreibst du als LaTeX zwischen $…$."
     );
     let body = json!({
         "model": cfg.model,
         "response_format": { "type": "json_object" },
+        "stream": true,
         "temperature": 0.7,
         "messages": [
             { "role": "system", "content": "Du bist ein sorgfältiger Quiz-Autor für Schülerinnen, Schüler und Studierende. Du antwortest nur mit gültigem JSON." },
@@ -158,22 +162,52 @@ fn curl_config(cfg: &KiCfg, thema: &str, kontext: &str) -> Result<String, String
     Ok(format!("url = \"{}\"\nheader = \"Authorization: Bearer {}\"\nheader = \"Content-Type: application/json\"\ndata = \"{esc}\"\n", cfg.url, cfg.key))
 }
 /// Blockiert (nur in spawn_blocking aufrufen). Fehlertexte enthalten weder stderr noch die Konfiguration.
-fn run_curl(conf: &str, ms: u64) -> Result<String, String> {
-    use std::io::Write;
+/// Gestreamt (SSE): die Teile von `delta.content` werden gesammelt; `fortschritt(n)` meldet, wie viele Fragen
+/// schon angefangen sind (gezählt an `"q"`). Liefert eine Antwort im Format ohne Streaming (für parse_answer).
+fn run_curl(conf: &str, ms: u64, mut fortschritt: impl FnMut(u8)) -> Result<String, String> {
+    use std::io::{BufRead, BufReader, Write};
     use std::process::{Command, Stdio};
-    let mut ch = Command::new("curl").args(["-sS", "--max-time", &(ms / 1000).max(1).to_string(), "-K", "-"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().map_err(|_| "curl ließ sich nicht starten.".to_string())?;
+    let mut ch = Command::new("curl").args(["-sS", "-N", "--max-time", &(ms / 1000).max(1).to_string(), "-K", "-"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().map_err(|_| "curl ließ sich nicht starten.".to_string())?;
     if let Some(mut si) = ch.stdin.take() {
         let _ = si.write_all(conf.as_bytes()); // schlägt das fehl, meldet curl gleich selbst einen Fehler
     }
-    let out = ch.wait_with_output().map_err(|_| "curl wurde abgebrochen.".to_string())?;
-    if !out.status.success() {
-        return Err(match out.status.code() {
+    let (mut roh, mut inhalt, mut fehler, mut sse, mut n) = (String::new(), String::new(), None, false, 0u8);
+    if let Some(so) = ch.stdout.take() {
+        for line in BufReader::new(so).lines() {
+            let Ok(line) = line else { break };
+            let Some(data) = line.strip_prefix("data:").map(str::trim) else {
+                if !line.starts_with(':') {
+                    roh.push_str(&line); // kein Stream (z. B. Fehler vor dem Start)
+                }
+                continue;
+            };
+            sse = true;
+            let Ok(v) = serde_json::from_str::<Value>(data) else { continue }; // auch "[DONE]"
+            if v.get("error").is_some() {
+                fehler = Some(data.to_string());
+            }
+            if let Some(c) = v.pointer("/choices/0/delta/content").and_then(Value::as_str) {
+                inhalt.push_str(c);
+                let k = inhalt.matches("\"q\"").count().min(ROUNDS) as u8;
+                if k != n {
+                    n = k;
+                    fortschritt(n);
+                }
+            }
+        }
+    }
+    let status = ch.wait().map_err(|_| "curl wurde abgebrochen.".to_string())?;
+    if let Some(f) = fehler {
+        return Ok(f);
+    }
+    if !status.success() {
+        return Err(match status.code() {
             Some(28) => "OpenRouter hat nicht rechtzeitig geantwortet.".to_string(),
             Some(c) => format!("Keine Verbindung zu OpenRouter (curl-Fehler {c})."),
             None => "curl wurde abgebrochen.".to_string(),
         });
     }
-    String::from_utf8(out.stdout).map_err(|_| "Die OpenRouter-Antwort ist kein Text.".to_string())
+    Ok(if sse { json!({ "choices": [{ "message": { "content": inhalt } }] }).to_string() } else { roh })
 }
 /// OpenRouter-Antwort → Fragen: `choices[0].message.content`, etwaige ```-Zäune fallen weg (nur der Teil von { bis }).
 fn parse_answer(body: &str) -> Result<Vec<Question>, String> {
@@ -189,9 +223,9 @@ fn parse_answer(body: &str) -> Result<Vec<Question>, String> {
     }
 }
 /// Ein OpenRouter-Aufruf über curl (Schlüssel nur über stdin), höchstens `ms` (+0,5 s). Hält nie die Spiel-Sperre.
-pub async fn fetch(cfg: KiCfg, thema: String, kontext: String, ms: u64) -> Result<Vec<Question>, String> {
+pub async fn fetch(cfg: KiCfg, thema: String, kontext: String, ms: u64, fortschritt: impl FnMut(u8) + Send + 'static) -> Result<Vec<Question>, String> {
     let conf = curl_config(&cfg, &thema, &kontext)?;
-    let job = tokio::task::spawn_blocking(move || run_curl(&conf, ms));
+    let job = tokio::task::spawn_blocking(move || run_curl(&conf, ms, fortschritt));
     let res = match tokio::time::timeout(std::time::Duration::from_millis(ms + 500), job).await {
         Err(_) => Err("OpenRouter hat nicht rechtzeitig geantwortet.".to_string()),
         Ok(Err(_)) => Err("Der KI-Auftrag wurde abgebrochen.".to_string()),
@@ -255,8 +289,10 @@ impl Game {
         }
         let Ok(h) = tokio::runtime::Handle::try_current() else { return false };
         let (tx, thema, kontext) = (self.jobs_tx.clone(), thema.to_string(), kontext.to_string());
+        let (tx2, t2) = (tx.clone(), thema.clone());
+        let melde = move |n| drop(tx2.send(Job::Fortschritt { duel, thema: t2.clone(), n }));
         h.spawn(async move {
-            let res = fetch(cfg, thema.clone(), kontext.clone(), ms).await;
+            let res = fetch(cfg, thema.clone(), kontext.clone(), ms, melde).await;
             let _ = tx.send(Job::Fragen { duel, thema, kontext, res });
         });
         true
@@ -282,9 +318,17 @@ impl Game {
     }
     /// Im Takt: Ergebnis eines Auftrags eintragen (Cache) und an das Duell geben (duel_questions).
     pub fn job_done(&mut self, j: Job) {
-        let Job::Fragen { duel, thema, res, .. } = j;
+        let (duel, thema, res) = match j {
+            Job::Fortschritt { duel, thema, n } => {
+                if let Some(d) = self.duels.get_mut(&duel) {
+                    d.vorab.iter_mut().filter(|v| v.0 == thema).for_each(|v| v.1 = n);
+                }
+                return;
+            }
+            Job::Fragen { duel, thema, res, .. } => (duel, thema, res),
+        };
         if let Some(d) = self.duels.get_mut(&duel) {
-            d.vorab.retain(|t| *t != thema);
+            d.vorab.retain(|v| v.0 != thema);
         }
         // Vorab-Anfrage aus der Lobby (Duell wartet nicht): nur ablegen, nicht als benutzt zählen
         if !self.duels.get(&duel).is_some_and(|d| d.wartet()) {
@@ -410,9 +454,9 @@ mod tests {
         for t in [&q.q, &q.explanation, &q.options[0], &q.options[1], &q.options[2]] {
             assert!(!t.contains('<') && !t.contains('>') && !t.chars().any(char::is_control), "{t}");
         }
-        assert_eq!(q.q.chars().count(), 110);
-        assert_eq!(q.options[1].chars().count(), 60);
-        assert_eq!(q.explanation.chars().count(), 90);
+        assert_eq!(q.q.chars().count(), 250);
+        assert_eq!(q.options[1].chars().count(), 80);
+        assert_eq!(q.explanation.chars().count(), 200);
         assert_eq!(q.options[2], "cc");
     }
     #[test]
@@ -583,10 +627,10 @@ mod tests {
     #[tokio::test]
     async fn fetch_ohne_gegenstelle_endet_rechtzeitig() {
         let t = std::time::Instant::now();
-        let e = fetch(KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: "http://127.0.0.1:9/".into() }, "optik".into(), String::new(), TIMEOUT_MS).await.unwrap_err();
+        let e = fetch(KiCfg { key: KEY.into(), model: DEFAULT_MODEL.into(), url: "http://127.0.0.1:9/".into() }, "optik".into(), String::new(), TIMEOUT_MS, |_| {}).await.unwrap_err();
         assert!((t.elapsed().as_millis() as u64) < TIMEOUT_MS);
         assert!(!e.contains(KEY) && !e.is_empty());
         // ohne Schlüssel wird curl gar nicht erst gestartet
-        assert!(fetch(KiCfg { key: String::new(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() }, "optik".into(), String::new(), TIMEOUT_MS).await.is_err());
+        assert!(fetch(KiCfg { key: String::new(), model: DEFAULT_MODEL.into(), url: DEFAULT_URL.into() }, "optik".into(), String::new(), TIMEOUT_MS, |_| {}).await.is_err());
     }
 }

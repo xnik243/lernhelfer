@@ -2,7 +2,7 @@
 //! Eine Runde lebt in einer Arena-Instanz (instance.rs): je Spieler eine 8×8-Plattform aus vier farbigen Antwort-Feldern
 //! vor einer großen Anzeigetafel. Ablauf: lobby (Themenwahl) → [roulette] → [laden] → 8 × (frage → aufloesung) → ende.
 //! Alle Zeiten kommen aus `now`; der Takt läuft nur, solange `Game.duels` nicht leer ist.
-use crate::duel_ai::{normalize_topic, Question, ROUNDS, TIMEOUT_MS, VORAB_MS};
+use crate::duel_ai::{normalize_topic, Question, ROUNDS, VORAB_MS};
 use crate::game::Game;
 use crate::instance::Inst;
 use crate::{no, R};
@@ -112,8 +112,10 @@ pub struct Duel {
     auto: u8,
     topic: Option<Topic>,
     kandidaten: Vec<Topic>,
-    /// Themen, deren Vorab-Anfrage aus der Lobby noch läuft (job_done nimmt sie heraus)
-    pub vorab: Vec<String>,
+    /// Laufende KI-Anfragen: (Thema, Frage in Arbeit 0..8, Start); job_done nimmt sie heraus
+    pub vorab: Vec<(String, u8, i64)>,
+    /// Warum Ersatzfragen statt KI-Fragen laufen (leer = alles in Ordnung); steht in der Frage-Anzeige
+    hinweis: String,
     sperre: i64,
     /// KI-Auftrag läuft, Fragen fehlen noch
     waiting: bool,
@@ -143,6 +145,7 @@ impl Duel {
             topic: None,
             kandidaten: Vec::new(),
             vorab: Vec::new(),
+            hinweis: String::new(),
             sperre: 0,
             waiting: false,
             qs: Vec::new(),
@@ -177,6 +180,7 @@ impl Duel {
             Phase::Lobby => {
                 v["rest_ms"] = json!(rest);
                 v["auto"] = json!({ "fach": self.auto, "name": FACH_NAMEN[self.auto.min(3) as usize] });
+                v["gen"] = Value::Array(self.vorab.iter().map(|g| json!({ "thema": g.0, "n": g.1, "ms": now - g.2 })).collect());
                 v["stimmen"] = Value::Array(self.votes.iter().map(|x| json!({ "id": x.id, "art": x.art, "fach": x.topic.fach, "thema": x.topic.thema })).collect());
             }
             Phase::Roulette => {
@@ -185,6 +189,9 @@ impl Duel {
                 v["sieger"] = json!(thema);
             }
             Phase::Laden => {
+                if let Some(g) = self.vorab.iter().find(|g| g.0 == thema) {
+                    v["gen"] = json!({ "n": g.1, "von": ROUNDS, "ms": now - g.2 });
+                }
                 v["thema"] = json!(thema);
                 v["rest_ms"] = json!(rest);
             }
@@ -197,6 +204,9 @@ impl Duel {
                 }
                 v["rest_ms"] = json!(rest);
                 v["thema"] = json!(thema);
+                if !self.hinweis.is_empty() {
+                    v["hinweis"] = json!(self.hinweis);
+                }
             }
             Phase::Aufloesung => {
                 v["runde"] = json!(self.runde + 1);
@@ -499,6 +509,7 @@ impl Game {
             }
             Phase::Laden => {
                 if d.waiting || d.qs.len() < ROUNDS {
+                    d.hinweis = "Die KI war zu langsam – Ersatzfragen aus der allgemeinen Sammlung.".into();
                     let (thema, fach) = d.topic.as_ref().map_or((FACH_NAMEN[0].to_string(), 0), |t| (t.thema.clone(), t.fach));
                     let more = self.questions_now(&thema, fach);
                     fill_up(&mut d.qs, more);
@@ -538,8 +549,15 @@ impl Game {
         let (t, kand) = resolve_votes(&votes, d.auto, (now as u64) ^ (d.inst as u64).wrapping_mul(0x9E37_79B9));
         d.sperre = now;
         // läuft die Vorab-Anfrage für das Sieger-Thema noch, auf sie warten statt neu anzufragen
-        d.waiting = d.vorab.contains(&t.thema) || self.questions_request(d.inst, &t.thema, &t.kontext, TIMEOUT_MS);
+        d.waiting = d.vorab.iter().any(|v| v.0 == t.thema);
+        if !d.waiting && self.questions_request(d.inst, &t.thema, &t.kontext, VORAB_MS) {
+            d.waiting = true;
+            d.vorab.push((t.thema.clone(), 0, now));
+        }
         if !d.waiting {
+            if self.ki_cfg().key.is_empty() {
+                d.hinweis = "Kein OpenRouter-Schlüssel – Ersatzfragen aus der allgemeinen Sammlung.".into();
+            }
             d.qs = self.questions_now(&t.thema, t.fach);
         }
         d.topic = Some(t);
@@ -556,8 +574,8 @@ impl Game {
         if d.waiting {
             d.phase = Phase::Laden;
             d.start = now;
-            // LAW 1: nie später als Sperre + 6,5 s
-            d.until = (d.sperre + TIMEOUT_MS as i64).max(now);
+            // wartet, bis die KI fertig ist (duel_questions startet sofort), höchstens VORAB_MS; nie unter der Sperre (LAW 1)
+            d.until = (d.sperre + VORAB_MS as i64).max(now);
         } else {
             self.duel_frage(d, now);
         }
@@ -825,7 +843,7 @@ impl Game {
                 if t.is_empty() {
                     return no(400, "Bitte ein Wunsch-Thema eingeben.");
                 }
-                let kontext: String = crate::sky::clean(b.get("kontext").and_then(Value::as_str).unwrap_or("")).chars().take(400).collect();
+                let kontext: String = crate::sky::clean_n(b.get("kontext").and_then(Value::as_str).unwrap_or(""), 1200);
                 let fach = b.get("fach").and_then(Value::as_u64).filter(|&f| f <= 3).map_or(255, |f| f as u8);
                 ("frei", Topic { fach, thema: t, kontext })
             }
@@ -833,15 +851,16 @@ impl Game {
         };
         let thema = topic.thema.clone();
         // KI-Fragen schon während der Lobby anfragen (40 s), damit sie zum Start im Cache liegen
-        let vorab = self.duels.get(&inst).is_some_and(|d| !d.vorab.contains(&thema));
+        let vorab = self.duels.get(&inst).is_some_and(|d| !d.vorab.iter().any(|v| v.0 == thema));
         let kontext = topic.kontext.clone();
         if let Some(d) = self.duels.get_mut(&inst) {
             d.votes.retain(|v| v.id != id);
             d.votes.push(Vote { id, art, topic });
         }
         if vorab && self.questions_request(inst, &thema, &kontext, VORAB_MS) {
+            let now = self.now();
             if let Some(d) = self.duels.get_mut(&inst) {
-                d.vorab.push(thema.clone());
+                d.vorab.push((thema.clone(), 0, now));
             }
         }
         let now = self.now();
@@ -882,6 +901,7 @@ impl Game {
         }
         let (thema, fach) = d.topic.as_ref().map_or((FACH_NAMEN[0].to_string(), 0), |t| (t.thema.clone(), t.fach));
         let mut qs = qs;
+        let leer = qs.is_empty();
         if qs.len() < ROUNDS {
             let more = self.questions_now(&thema, fach);
             fill_up(&mut qs, more);
@@ -891,6 +911,9 @@ impl Game {
         if let Some(d) = self.duels.get_mut(&duel) {
             d.qs = qs;
             d.waiting = false;
+            if leer {
+                d.hinweis = "Die KI hat keine Fragen geliefert – Ersatzfragen aus der allgemeinen Sammlung.".into();
+            }
             if d.phase == Phase::Laden {
                 d.until = now; // der nächste Takt startet die erste Frage
             }
@@ -1078,12 +1101,12 @@ mod tests {
             d.phase = Phase::Laden;
             d.start = sperre;
             d.sperre = sperre;
-            d.until = sperre + TIMEOUT_MS as i64;
+            d.until = sperre + VORAB_MS as i64;
         }
-        tick(&mut g, TIMEOUT_MS as i64 - 100);
-        assert_eq!(g.duels[&inst].phase, Phase::Laden, "wartet, blockiert aber nichts");
+        tick(&mut g, VORAB_MS as i64 - 100);
+        assert_eq!(g.duels[&inst].phase, Phase::Laden, "wartet auf die KI, blockiert aber nichts");
         tick(&mut g, 100);
-        assert!(g.clock_offset - off0 <= 6_500, "LAW 1: spätestens Sperre + 6,5 s");
+        assert!(g.clock_offset - off0 <= VORAB_MS as i64, "spätestens Sperre + VORAB_MS, dann Ersatzfragen");
         let d = &g.duels[&inst];
         assert_eq!((d.phase, d.qs.len(), d.waiting), (Phase::Frage, ROUNDS, false));
         let vorher: Vec<String> = d.qs.iter().map(|q| q.q.clone()).collect();

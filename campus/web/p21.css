@@ -209,3 +209,7 @@ body.kino #zahlen, body.kino #toasts { display: none !important; }
 .duell-chipgruppe > summary::before { content: '▸ '; color: var(--gold); }
 .duell-chipgruppe[open] > summary::before { content: '▾ '; }
 .duell-chipgruppe > .duell-chipreihe { padding: 0 8px 8px; }
+.duell-gen { margin: 6px 0; font-weight: 700; color: var(--gold); }
+.duell-gen:empty { display: none; }
+.duell-zeit.gen > i { transition: width .4s ease; }
+.duell-hinweis { margin: 4px 0 0; padding: 4px 8px; font-size: .86rem; font-weight: 700; color: #1a1408; background: var(--gold); }
