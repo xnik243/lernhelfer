@@ -923,7 +923,7 @@ impl Game {
             p.shot_at = now;
         }
         let eye = [pos[0], pos[1] + 1.6, pos[2]];
-        let wall = self.inst(n).and_then(|it| world::raycast(|x, y, z| it.get(x, y, z), eye, dv, cb::RANGED_REACH)).map_or(cb::RANGED_REACH, |(c, _)| {
+        let wall = self.inst(n).and_then(|it| world::raycast_solid(|x, y, z| it.get(x, y, z), eye, dv, cb::RANGED_REACH)).map_or(cb::RANGED_REACH, |(c, _)| {
             let q = [c[0] as f32 + 0.5 - eye[0], c[1] as f32 + 0.5 - eye[1], c[2] as f32 + 0.5 - eye[2]];
             ((q[0] * q[0] + q[1] * q[1] + q[2] * q[2]).sqrt() - 0.5).max(0.0)
         });

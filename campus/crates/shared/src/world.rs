@@ -184,7 +184,13 @@ pub const F_SEMESTER: u16 = 256;
 pub const F_REGEN: u16 = 512; // abbauen gibt Ertrag, der Block bleibt stehen
 /// Nicht im Gitter gezeichnet (Browser zeichnet Würfel-Instanzen, z. B. Pflanzen je Wachstumsstufe), nicht fest, aber anvisierbar.
 pub const F_INST: u16 = 1024;
+/// Teilblock-Modell (shape.rs): nie ein deckender Würfel, Nachbarn werden nie weggelassen; anvisierbar, auch wenn nicht fest.
+pub const F_SHAPE: u16 = 2048;
+/// Warmes Lampenlicht im Shader (PACKED-Bit 30, Leuchten vec3(3.2, 2.1, 0.9)); Stoff der Lampen-Teile.
+pub const F_LAMP: u16 = 4096;
 const S: u16 = F_SOLID;
+const M: u16 = F_SOLID | F_SHAPE; // festes Teilblock-Modell
+const D: u16 = F_SHAPE; // begehbares Teilblock-Modell (Blumen, Teppich, Leuchter)
 const R: u16 = F_SOLID | F_RARE;
 
 pub struct BlockDef {
@@ -347,7 +353,65 @@ blocks! {
     OBSIDIAN_TRUHE = 143, "Obsidian-Beutetruhe", [60, 40, 90], 10, 0, F_SOLID | F_GLOW;
     KATA_TOR = 144, "Katakomben-Gitter", [80, 84, 96], 2, 0, F_SOLID;
     BLUT_PORTAL = 145, "Blut-Portal", [200, 20, 40], 10, 0, F_SOLID | F_GLOW;
+    // ---------- Abschnitt 8: Teilblock-Modelle (Form in shape.rs; _N/_O/_S/_W = Blickrichtung, siehe shape::facing) ----------
+    SCHEIBE = 146, "Fensterscheibe", [190, 226, 236], 12, 3, M;
+    GITTERSTAB = 147, "Tresorgitter", [70, 72, 80], 0, 3, M;
+    TREPPE_EICHE_N = 148, "Eichentreppe", [196, 152, 96], 3, 2, M;
+    TREPPE_EICHE_O = 149, "Eichentreppe", [196, 152, 96], 3, 2, M;
+    TREPPE_EICHE_S = 150, "Eichentreppe", [196, 152, 96], 3, 2, M;
+    TREPPE_EICHE_W = 151, "Eichentreppe", [196, 152, 96], 3, 2, M;
+    TREPPE_STEIN_N = 152, "Steintreppe", [140, 140, 146], 14, 2, M;
+    TREPPE_STEIN_O = 153, "Steintreppe", [140, 140, 146], 14, 2, M;
+    TREPPE_STEIN_S = 154, "Steintreppe", [140, 140, 146], 14, 2, M;
+    TREPPE_STEIN_W = 155, "Steintreppe", [140, 140, 146], 14, 2, M;
+    TREPPE_DACH_N = 156, "Dachtreppe", [156, 62, 48], 2, 3, M;
+    TREPPE_DACH_O = 157, "Dachtreppe", [156, 62, 48], 2, 3, M;
+    TREPPE_DACH_S = 158, "Dachtreppe", [156, 62, 48], 2, 3, M;
+    TREPPE_DACH_W = 159, "Dachtreppe", [156, 62, 48], 2, 3, M;
+    STUFE_EICHE = 160, "Eichenstufe", [196, 152, 96], 3, 1, M;
+    STUFE_STEIN = 161, "Steinstufe", [140, 140, 146], 14, 1, M;
+    STUFE_DACH = 162, "Dachstufe", [156, 62, 48], 2, 2, M;
+    TRESEN = 163, "Tresen", [170, 118, 70], 3, 3, M;
+    TISCH = 164, "Tisch", [176, 128, 80], 3, 3, M;
+    STUHL_N = 165, "Stuhl", [150, 104, 64], 3, 2, M;
+    STUHL_O = 166, "Stuhl", [150, 104, 64], 3, 2, M;
+    STUHL_S = 167, "Stuhl", [150, 104, 64], 3, 2, M;
+    STUHL_W = 168, "Stuhl", [150, 104, 64], 3, 2, M;
+    SITZBANK_N = 169, "Sitzbank", [124, 86, 52], 3, 2, M;
+    SITZBANK_O = 170, "Sitzbank", [124, 86, 52], 3, 2, M;
+    SITZBANK_S = 171, "Sitzbank", [124, 86, 52], 3, 2, M;
+    SITZBANK_W = 172, "Sitzbank", [124, 86, 52], 3, 2, M;
+    WEBTEPPICH_ROT = 173, "Webteppich rot", [176, 52, 60], 4, 2, D;
+    WEBTEPPICH_GOLD = 174, "Webteppich gold", [214, 168, 60], 4, 2, D;
+    WEBTEPPICH_BLAU = 175, "Webteppich blau", [48, 84, 172], 4, 2, D;
+    WEBTEPPICH_SMARAGD = 176, "Webteppich smaragd", [40, 150, 100], 4, 2, D;
+    KRONLEUCHTER = 177, "Kronleuchter", [58, 58, 64], 0, 5, D | F_GLOW;
+    LATERNENMAST = 178, "Laternenmast", [52, 52, 58], 0, 4, M | F_GLOW;
+    WANDLATERNE = 179, "Wandlaterne", [52, 52, 58], 0, 3, D | F_GLOW;
+    ZAUN = 180, "Holzzaun", [124, 86, 52], 3, 1, M;
+    GELAENDER = 181, "Geländer", [72, 52, 36], 3, 2, M;
+    MARKISE_ROT_N = 182, "Markise rot-weiß", [196, 54, 52], 4, 2, M;
+    MARKISE_ROT_O = 183, "Markise rot-weiß", [196, 54, 52], 4, 2, M;
+    MARKISE_ROT_S = 184, "Markise rot-weiß", [196, 54, 52], 4, 2, M;
+    MARKISE_ROT_W = 185, "Markise rot-weiß", [196, 54, 52], 4, 2, M;
+    MARKISE_BLAU_N = 186, "Markise blau-weiß", [52, 92, 186], 4, 2, M;
+    MARKISE_BLAU_O = 187, "Markise blau-weiß", [52, 92, 186], 4, 2, M;
+    MARKISE_BLAU_S = 188, "Markise blau-weiß", [52, 92, 186], 4, 2, M;
+    MARKISE_BLAU_W = 189, "Markise blau-weiß", [52, 92, 186], 4, 2, M;
+    DEKOFASS = 190, "Deko-Fass", [124, 86, 52], 3, 2, M;
+    BUECHERSTAPEL = 191, "Bücherstapel", [150, 60, 50], 4, 2, D;
+    GOLDSTAPEL = 192, "Goldbarren-Stapel", [244, 200, 60], 10, 5, M;
+    MOHN = 193, "Mohnblume", [210, 48, 44], 9, 1, D;
+    SONNENBLUME = 194, "Sonnenblume", [240, 196, 40], 9, 1, D;
+    KORNBLUME = 195, "Kornblume", [80, 110, 220], 9, 1, D;
+    LEUCHTKLEE = 196, "Leucht-Klee", [120, 230, 170], 9, 2, D | F_GLOW;
+    HOHES_GRAS = 197, "Hohes Gras", [96, 160, 72], 9, 1, D;
+    LAMPENGLAS = 198, "Lampenglas", [255, 214, 140], 6, 0, F_SOLID | F_GLOW | F_LAMP;
 }
+/// Abschnitt 8: Wildblumen (Kreuz-Modelle) für Wiesen-Helfer.
+pub const BLUMEN: [u8; 4] = [MOHN, SONNENBLUME, KORNBLUME, LEUCHTKLEE];
+/// Webteppiche in der Reihenfolge Rot, Gold, Blau, Smaragd.
+pub const TEPPICHE: [u8; 4] = [WEBTEPPICH_ROT, WEBTEPPICH_GOLD, WEBTEPPICH_BLAU, WEBTEPPICH_SMARAGD];
 /// Saat-Blöcke (= Saat-Gegenstände) der Reihe nach, Index = Pflanze in farming_data::CROPS.
 pub const SAATEN: [u8; 5] = [SAAT_WEIZEN, SAAT_KAROTTE, SAAT_BEERE, SAAT_KUERBIS, SAAT_KRISTALL];
 pub const TELEPORTER: [u8; 4] = [TELE_ROT, TELE_BLAU, TELE_GRUEN, TELE_GOLD];
@@ -362,7 +426,8 @@ pub const CITADEL_ARENA: [i32; 4] = [232, 84, 249, 95];
 pub const CITADEL_Y: f32 = 31.0;
 /// Prüfungs-Altar (Boss rufen) im Südhof, Verzauberungs-Altar im Erdgeschoss des Bibliotheks-Turms (blueprints setzt beide).
 pub const BOSS_ALTAR_AT: [i32; 3] = [240, 31, 92];
-pub const ALTAR_AT: [i32; 3] = [391, 31, 238];
+/// Abschnitt 8: Altar auf dem Podest (y 31) in der Mitte des Bibliotheks-Atriums.
+pub const ALTAR_AT: [i32; 3] = [393, 32, 240];
 /// Phasen 23/24: Portal-Blöcke (2 hoch, [E]): Katakomben neben der Ankunft der Zitadelle, Arena neben dem Hub-Spawn.
 pub const KATA_PORTAL_AT: [i32; 3] = [245, 31, 104];
 pub const ARENA_PORTAL_AT: [i32; 3] = [249, 33, 296];
@@ -388,7 +453,11 @@ pub const M_FLUESSIG: u8 = 7;
 pub fn material(b: u8) -> u8 {
     match b {
         LAUB | BIRKENLAUB | KIRSCHLAUB | GLUEHLAUB | HECKE | BLUMEN_ROT | BLUMEN_GELB | PILZHUT | PILZSTIEL | SAAT_WEIZEN | SAAT_KAROTTE
-        | SAAT_BEERE | SAAT_KUERBIS | SAAT_KRISTALL => M_PFLANZE,
+        | SAAT_BEERE | SAAT_KUERBIS | SAAT_KRISTALL | MOHN..=HOHES_GRAS => M_PFLANZE,
+        TREPPE_EICHE_N..=TREPPE_EICHE_W | STUFE_EICHE | TRESEN | TISCH | STUHL_N..=SITZBANK_W | ZAUN | GELAENDER | DEKOFASS | BUECHERSTAPEL => M_HOLZ,
+        WEBTEPPICH_ROT..=WEBTEPPICH_SMARAGD | MARKISE_ROT_N..=MARKISE_BLAU_W => M_STOFF,
+        SCHEIBE | LAMPENGLAS => M_KRISTALL,
+        GITTERSTAB | KRONLEUCHTER | LATERNENMAST | WANDLATERNE | GOLDSTAPEL => M_METALL,
         WIESE | ERDE | SAND | WEG | ACKERBODEN => M_ERDE,
         STAMM | BRETTER | REGAL | BAMBUS | DUNKELHOLZ | DUNKELBRETT | BIRKE | FASS | KISTE | TRUHE | SCHATZ | WERKBANK | QUESTBRETT | SCHILD | SCHIENE
         | KNOTEN_EICHE | KNOTEN_BIRKE | GROSSE_TRUHE | STAENDER => M_HOLZ,
@@ -507,7 +576,13 @@ pub const PACKED: [u32; 256] = {
     let mut i = 0;
     while i < BLOCKS.len() {
         let b = &BLOCKS[i];
-        t[b.id as usize] = b.rgb[0] as u32 | (b.rgb[1] as u32) << 8 | (b.rgb[2] as u32) << 16 | (b.pat as u32) << 24 | (((b.flags & F_GLOW) != 0) as u32) << 28 | (((b.flags & F_CLEAR) != 0) as u32) << 29;
+        t[b.id as usize] = b.rgb[0] as u32
+            | (b.rgb[1] as u32) << 8
+            | (b.rgb[2] as u32) << 16
+            | (b.pat as u32) << 24
+            | (((b.flags & F_GLOW) != 0) as u32) << 28
+            | (((b.flags & F_CLEAR) != 0) as u32) << 29
+            | (((b.flags & F_LAMP) != 0) as u32) << 30;
         i += 1;
     }
     t
@@ -520,9 +595,15 @@ pub fn block(id: u8) -> Option<&'static BlockDef> {
 pub fn solid(id: u8) -> bool {
     FLAGS[id as usize] & F_SOLID != 0
 }
+/// Deckender Vollwürfel (`is_opaque_full_cube`): nur dann darf der Mesher die Nachbarfläche weglassen.
+/// Teilblock-Modelle (F_SHAPE) sind es nie – sonst entstehen Löcher unter Tischen, Teppichen, Treppen, Scheiben und Blumen.
 #[inline]
 pub fn opaque(id: u8) -> bool {
-    FLAGS[id as usize] & (F_SOLID | F_CLEAR) == F_SOLID
+    FLAGS[id as usize] & (F_SOLID | F_CLEAR | F_SHAPE) == F_SOLID
+}
+#[inline]
+pub fn is_opaque_full_cube(id: u8) -> bool {
+    opaque(id)
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -621,6 +702,19 @@ pub fn rle_air() -> Vec<u8> {
 }
 
 /// Strahl durch das Blockgitter (DDA): erster feste Block und das Feld davor.
+/// Wie raycast, aber nur feste Blöcke (und F_INST) halten den Strahl auf: Blumen, Gras, Teppich, Kronleuchter nicht (Sichtlinie für Schüsse).
+pub fn raycast_solid(get: impl Fn(i32, i32, i32) -> u8, o: [f32; 3], d: [f32; 3], max: f32) -> Option<([i32; 3], [i32; 3])> {
+    raycast(
+        |x, y, z| {
+            let v = get(x, y, z);
+            if solid(v) || FLAGS[v as usize] & F_INST != 0 { v } else { 0 }
+        },
+        o,
+        d,
+        max,
+    )
+}
+
 pub fn raycast(get: impl Fn(i32, i32, i32) -> u8, o: [f32; 3], d: [f32; 3], max: f32) -> Option<([i32; 3], [i32; 3])> {
     let mut c = [o[0].floor() as i32, o[1].floor() as i32, o[2].floor() as i32];
     let mut step = [0i32; 3];
@@ -639,7 +733,7 @@ pub fn raycast(get: impl Fn(i32, i32, i32) -> u8, o: [f32; 3], d: [f32; 3], max:
     let mut prev = c;
     loop {
         let v = get(c[0], c[1], c[2]);
-        if (solid(v) || FLAGS[v as usize] & F_INST != 0) && c[1] >= 0 {
+        if (solid(v) || FLAGS[v as usize] & (F_INST | F_SHAPE) != 0) && c[1] >= 0 {
             return Some((c, prev));
         }
         let k = if tmax[0] < tmax[1] && tmax[0] < tmax[2] { 0 } else if tmax[1] < tmax[2] { 1 } else { 2 };
@@ -849,6 +943,23 @@ mod tests {
         assert!(hardness(FELS) < hardness(ERZ_KOHLE) && hardness(ERZ_KOHLE) < hardness(ADER_SAPHIR));
         // außerhalb jeder Insel: Luft bis ganz unten
         assert!((0..CH).all(|y| w.get(140, y, 200) == 0 && w.get(600, y, 10) == 0 && w.get(350, y, 300) == 0));
+    }
+
+    /// Abschnitt 8: Möbel und Flora dürfen keine NPCs einmauern, Altäre und Portale bleiben, wo der Server sie sucht.
+    #[test]
+    fn npcs_altaere_portale() {
+        let w = Welt::new(WorldState::default());
+        for n in crate::content::NPCS {
+            let [x, y, z] = n.at.map(|v| v.floor() as i32);
+            assert!(solid(w.get(x, y - 1, z)), "{} steht auf festem Boden", n.name);
+            assert!(!solid(w.get(x, y, z)) && !solid(w.get(x, y + 1, z)), "{}: Füße und Kopf frei", n.name);
+        }
+        let at = |p: [i32; 3]| w.get(p[0], p[1], p[2]);
+        assert_eq!((at(ALTAR_AT), at(BOSS_ALTAR_AT), at(KATA_PORTAL_AT), at(ARENA_PORTAL_AT)), (ALTAR, BOSS_ALTAR, KATA_PORTAL, ARENA_PORTAL));
+        assert!(solid(at([ALTAR_AT[0], ALTAR_AT[1] - 1, ALTAR_AT[2]])), "Altar steht auf dem Podest");
+        for k in 0..11 {
+            assert_eq!(w.get(SHOWCASE[0] + 2 * k, SHOWCASE[1], SHOWCASE[2]), SOCKEL, "Minion-Sockel {k}");
+        }
     }
 
     /// Dichte-Prüfung des Hub-Archipels (Pflicht): genug Masse, genug Bauwerke, Höhlen im Inselbauch, kaum nackte Wiese.

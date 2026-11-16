@@ -319,7 +319,12 @@ impl Game {
         let d = [dir[0] / len, dir[1] / len, dir[2] / len];
         let eye = [pos[0], pos[1] + 1.62, pos[2]];
         let (hit, _) = world::raycast(|x, y, z| self.block(x, y, z), eye, d, TILL_REACH).ok_or(E(400, "Zielt auf keinen Block.".into()))?;
-        let [x, y, z] = hit;
+        let [x, mut y, z] = hit;
+        // Blume/Hohes Gras auf der Wiese: der Boden darunter ist gemeint, die Pflanze geht beim Umhacken weg
+        let flora = (world::MOHN..=world::HOHES_GRAS).contains(&self.block(x, y, z));
+        if flora {
+            y -= 1;
+        }
         let cur = self.block(x, y, z);
         if cur != world::WIESE && cur != world::ERDE {
             return no(400, "Umhacken geht nur bei Wiese oder Erde.");
@@ -329,6 +334,9 @@ impl Game {
         }
         if world::anchor(x, y, z) || !self.may_edit(id, grp, x, z, cur, false) {
             return no(403, "Hier darfst du nicht ackern.");
+        }
+        if flora {
+            self.set_block(x, y + 1, z, 0, id);
         }
         self.set_block(x, y, z, world::ACKERBODEN, id);
         if let Some(p) = self.players.get_mut(&id) {

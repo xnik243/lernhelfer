@@ -516,7 +516,7 @@ impl Game {
         }
         let eye = [pos[0], pos[1] + 1.6, pos[2]];
         // Blöcke blocken: Abstand bis zum ersten festen Block
-        let wall = world::raycast(|x, y, z| self.block(x, y, z), eye, d, cb::RANGED_REACH).map_or(cb::RANGED_REACH, |(c, _)| {
+        let wall = world::raycast_solid(|x, y, z| self.block(x, y, z), eye, d, cb::RANGED_REACH).map_or(cb::RANGED_REACH, |(c, _)| {
             let q = [c[0] as f32 + 0.5 - eye[0], c[1] as f32 + 0.5 - eye[1], c[2] as f32 + 0.5 - eye[2]];
             ((q[0] * q[0] + q[1] * q[1] + q[2] * q[2]).sqrt() - 0.5).max(0.0)
         });

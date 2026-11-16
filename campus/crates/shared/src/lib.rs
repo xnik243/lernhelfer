@@ -1,5 +1,11 @@
 //! Campus: geteilte Regeln, Welt-Mathematik und Protokoll für Server und Browser.
 pub mod blueprints;
+pub mod blueprints_v2;
+mod bp_flora;
+mod bp_furniture;
+mod bp_interiors;
+mod bp_library;
+mod bp_private;
 pub mod combat;
 pub mod content;
 pub mod economy;
@@ -15,6 +21,7 @@ pub mod mobs_data;
 pub mod npc;
 pub mod questline_data;
 pub mod rpg;
+pub mod shape;
 pub mod stats;
 pub mod mesh;
 pub mod proto;

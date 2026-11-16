@@ -817,6 +817,10 @@ impl Game {
                     if axis == 1 {
                         self.ground |= s.y < 0.0;
                         self.vel.y = 0.0;
+                    } else if let Some(h) = (was_ground && !wet && !self.flying).then(|| self.world.step_lift(p)).flatten().filter(|&h| h > 0.0) {
+                        // Treppe/Stufe/Tresen: im Gehen hinauf, ohne Sprung
+                        p.y += h;
+                        self.pos = p;
                     } else {
                         blocked = true;
                     }
@@ -829,7 +833,13 @@ impl Game {
             self.flying = false;
         }
         // eine Stufe hoch geht von selbst (wichtig am iPad)
-        if blocked && was_ground && !wet && !self.flying && wish.length_squared() > 0.05 && !self.world.collides(self.pos + Vec3::Y * 1.05 + wish.normalize() * 0.35) {
+        // nie über Zaun/Geländer: die sichern Klippen und Brücken
+        let fence_ahead = wish.length_squared() > 0.05 && {
+            let f = self.pos + wish.normalize() * 0.45;
+            let b = self.world.get(f.x.floor() as i32, (self.pos.y + 0.2).floor() as i32, f.z.floor() as i32);
+            matches!(b, w::ZAUN | w::GELAENDER)
+        };
+        if blocked && was_ground && !wet && !self.flying && !fence_ahead && wish.length_squared() > 0.05 && !self.world.collides(self.pos + Vec3::Y * 1.05 + wish.normalize() * 0.35) {
             self.vel.y = 8.7;
         }
         self.pos.x = self.pos.x.clamp(0.5, w::WORLD as f32 - 0.5);
@@ -1295,8 +1305,12 @@ impl Game {
         // je Licht: Summe der Orte, Anzahl, Summe der Farben, Reichweite
         let mut ls: Vec<(Vec3, f32, Vec3, f32)> = Vec::with_capacity(max);
         for (_, p, b) in cand {
+            // Leucht-Klee leuchtet selbst (Emission); als Punktlicht würde er auf Wiesen die Lampen verdrängen
+            if b == w::LEUCHTKLEE {
+                continue;
+            }
             let (col, rad) = match b {
-                w::LATERNE => (Vec3::new(1.4, 0.85, 0.3), 9.0),
+                w::LATERNE | w::KRONLEUCHTER | w::LATERNENMAST | w::WANDLATERNE | w::LAMPENGLAS => (Vec3::new(1.4, 0.85, 0.3), 9.0),
                 w::PORTAL => (Vec3::new(0.9, 0.25, 1.6), 8.0),
                 w::LAVA | w::GLUT => (Vec3::new(1.5, 0.55, 0.15), 7.0),
                 _ => {

@@ -10,6 +10,7 @@ Web-Module vor dem Ausliefern mit `node --input-type=module --check < datei.js` 
 ## Abschnitte
 - [x] 0–7 Grundspiel · [x] SkyBlock 8–13 · [x] Archipel M1–M4 · [x] Phasen 16–20 (RPG)
 - [x] Phasen 21–25: integriert, Review-Befunde behoben, alle Gates grün (noch nicht ausgeliefert, keine Sichtprüfung im Browser).
+- [ ] Abschnitt 8 (SPEC-8.md, CONTRACT-8.md): Gerüst grün (shape.rs, Blöcke 146–198, Eckpunkt 3×u32 in 1/16, bp_*.rs, WORLD_VERSION 3 + blueprints_v2); Agenten offen.
 
 ## Welt (shared/world.rs, blueprints.rs)
 - WORLD 960, CH 64, Hub-Archipel (Plätze i,j < 5) mit Satelliten Bibliothek, Prüfungs-Zitadelle, Himmels-Garten; Privatinsel je Platz (SLOT 96).

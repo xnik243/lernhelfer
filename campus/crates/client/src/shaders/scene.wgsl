@@ -15,22 +15,38 @@ struct VO {
   @location(3) @interpolate(flat) b: u32,
 };
 
+// Eckpunkt (campus_shared::mesh): p0 = x16 | y16 << 16, p1 = z16 | normale << 16 | ao << 20, col = world::PACKED; Orte in 1/16 Block.
+fn vpos(p0: u32, p1: u32) -> vec3<f32> {
+  return vec3<f32>(f32(p0 & 0xFFFFu), f32(p0 >> 16u), f32(p1 & 0xFFFFu)) * 0.0625;
+}
+
+// Kreuz-Pflanzen (Normale 6..9) wiegen sich im Wind; der Fuß (fract(y) = 0) bleibt stehen. Alle Kreuz-Teile sind < 1 hoch.
+fn sway(p0: u32, p1: u32) -> vec3<f32> {
+  var p = vpos(p0, p1);
+  if ((p1 >> 16u) & 15u) >= 6u {
+    let h = fract(p.y);
+    let t = g.cam.w;
+    p.x = p.x + sin(t * 1.7 + p.x * 0.6 + p.z * 0.4) * 0.06 * h;
+    p.z = p.z + sin(t * 1.3 + p.z * 0.7 - p.x * 0.3) * 0.04 * h;
+  }
+  return p;
+}
+
 @vertex
-fn vs(@location(0) a: u32, @location(1) b: u32) -> VO {
-  let p = vec3<f32>(f32(a & 1023u), f32((a >> 10u) & 127u), f32((a >> 17u) & 1023u));
+fn vs(@location(0) p0: u32, @location(1) p1: u32, @location(2) col: u32) -> VO {
+  let p = sway(p0, p1);
   var o: VO;
   o.pos = g.vp * vec4<f32>(p, 1.0);
   o.wp = p;
-  o.ao = f32(a >> 30u) / 3.0;
-  o.a = a;
-  o.b = b;
+  o.ao = f32((p1 >> 20u) & 3u) / 3.0;
+  o.a = p1;
+  o.b = col;
   return o;
 }
 
 @vertex
-fn vs_shadow(@location(0) a: u32, @location(1) b: u32) -> @builtin(position) vec4<f32> {
-  let p = vec3<f32>(f32(a & 1023u), f32((a >> 10u) & 127u), f32((a >> 17u) & 1023u));
-  return g.lvp * vec4<f32>(p, 1.0);
+fn vs_shadow(@location(0) p0: u32, @location(1) p1: u32, @location(2) col: u32) -> @builtin(position) vec4<f32> {
+  return g.lvp * vec4<f32>(sway(p0, p1), 1.0);
 }
 
 @fragment
@@ -52,9 +68,15 @@ fn pack_tile(pat: u32, uv: vec2<f32>) -> vec4<f32> {
   return textureSampleLevel(pack_tex, pack_samp, (tile + f) * 0.25, 0.0);
 }
 
-// feine Mehr-Oktaven-Details ab 64er-Auflösung (Faktor um 1): Steinkorn, Holzfasern, Kristallfacetten
-fn micro(pat: u32, uv: vec2<f32>, res: f32) -> f32 {
-  let hd = smoothstep(20.0, 64.0, res);
+// 2D-Wertrauschen 0..1 (Schnitt durch noise3) für großflächige Farbverläufe
+fn noise2(p: vec2<f32>) -> f32 {
+  return noise3(vec3<f32>(p, 0.0));
+}
+
+// feine Mehr-Oktaven-Details ab 64er-Auflösung (Faktor um 1): Steinkorn, Holzfasern, Kristallfacetten.
+// fade (Abschnitt 8) = detail_fade: bei 0 (schräg/fern) kein Korn mehr.
+fn micro(pat: u32, uv: vec2<f32>, res: f32, fade: f32) -> f32 {
+  let hd = smoothstep(20.0, 64.0, res) * fade;
   if hd <= 0.0 { return 1.0; }
   let q = floor(uv * res) / res;
   let p = vec3<f32>(q * 16.0, f32(pat) * 7.0);
@@ -78,14 +100,15 @@ fn micro(pat: u32, uv: vec2<f32>, res: f32) -> f32 {
 struct Mat { col: vec3<f32>, alpha: f32, rough: f32, metal: f32, emit: f32, };
 
 // Muster je Blockseite (Farbe im sRGB-Raum wie entworfen), Rauheit, Metall, Leuchten
-fn block_mat(b: u32, uv: vec2<f32>, wp: vec3<f32>, side: bool) -> Mat {
+// fade = detail_fade: Pixel-Sprenkel r läuft zum Mittelwert 0,5 (Grundfarbe bleibt, das Korn verschwindet)
+fn block_mat(b: u32, uv: vec2<f32>, wp: vec3<f32>, side: bool, fade: f32) -> Mat {
   let base = vec3<f32>(f32(b & 255u), f32((b >> 8u) & 255u), f32((b >> 16u) & 255u)) / 255.0;
   let pat = (b >> 24u) & 15u;
   let glow = f32((b >> 28u) & 1u);
   let res = tex_res();
   let tx = floor(uv * res);
   let px = tx / res;
-  let r = h2(tx + f32(pat) * 17.0);
+  let r = mix(0.5, h2(tx + f32(pat) * 17.0), fade);
   let f = fract(uv);
   let t = g.cam.w;
   var m: Mat;
@@ -98,7 +121,7 @@ fn block_mat(b: u32, uv: vec2<f32>, wp: vec3<f32>, side: bool) -> Mat {
   switch pat {
     case 1u: { // Wiese: oben gesprenkelt, an den Seiten Erde mit Grasrand
       let lip = 0.78 - 0.16 * h2(vec2<f32>(tx.x, 5.0));
-      if side && fract(px.y) < lip { c = vec3<f32>(0.53, 0.39, 0.27) * (0.88 + 0.24 * r); } else { c = c * (0.86 + 0.28 * r); m.rough = 0.75; }
+      if side && fract(px.y) < lip { c = vec3<f32>(0.53, 0.39, 0.27) * (0.88 + 0.24 * r); } else { c = c * (0.86 + 0.28 * r); }
     }
     case 2u: { // Ziegel im Verband
       let row = floor(uv.y * 4.0);
@@ -108,7 +131,7 @@ fn block_mat(b: u32, uv: vec2<f32>, wp: vec3<f32>, side: bool) -> Mat {
     }
     case 3u: { // Bretter, leicht lackiert
       let board = floor(uv.y * 4.0);
-      c = c * (0.90 + 0.18 * h2(vec2<f32>(floor(uv.x * res), board)));
+      c = c * (0.90 + 0.18 * mix(0.5, h2(vec2<f32>(floor(uv.x * res), board)), fade));
       if fract(uv.y * 4.0) < 0.10 { c = c * 0.72; }
       m.rough = 0.5;
     }
@@ -197,8 +220,15 @@ fn block_mat(b: u32, uv: vec2<f32>, wp: vec3<f32>, side: bool) -> Mat {
     c = base * tl.rgb;
     m.alpha = m.alpha * tl.a;
   } else {
-    c = c * micro(pat, uv, res);
+    c = c * micro(pat, uv, res, fade);
   }
+  if pat == 1u && !side {
+    // Abschnitt 8: großflächiger Wiesenverlauf (±8 % Helligkeit, leichter Gelb-Grün-Schub), auch mit Texturpaket
+    let mw = noise2(wp.xz * 0.08) * 2.0 - 1.0;
+    c = c * (1.0 + 0.08 * mw) + vec3<f32>(0.025, 0.015, -0.01) * max(mw, 0.0);
+  }
+  // Abschnitt 8: Wiese/Erde/Sand/Laub matt und ohne Metall
+  if soft_pat(pat) { m.rough = 0.92; m.metal = 0.0; }
   m.col = c;
   return m;
 }
@@ -206,7 +236,8 @@ fn block_mat(b: u32, uv: vec2<f32>, wp: vec3<f32>, side: bool) -> Mat {
 // Höhenfeld 0..1 (1 = Oberfläche) für Normalen und Parallax: Fugen, Furchen, Facetten
 fn height(pat: u32, uv: vec2<f32>, side: bool) -> f32 {
   let res = tex_res();
-  if res > 20.0 && !pack_on() { return height0(pat, uv, side, res) + (micro(pat, uv, res) - 1.0) * 0.5; }
+  // Korn im Höhenfeld voll; gedämpft wird über die Normalstärke in block_color
+  if res > 20.0 && !pack_on() { return height0(pat, uv, side, res) + (micro(pat, uv, res, 1.0) - 1.0) * 0.5; }
   return height0(pat, uv, side, res);
 }
 
@@ -274,19 +305,36 @@ fn height0(pat: u32, uv: vec2<f32>, side: bool, res: f32) -> f32 {
 fn has_relief(pat: u32) -> bool {
   return pat == 1u || pat == 2u || pat == 3u || pat == 4u || pat == 5u || pat == 7u || pat == 9u || pat == 11u || pat == 13u || pat == 14u || pat == 15u;
 }
+// Abschnitt 8: POM und scharfe Glanzlichter nur für harte Flächen: Bretter, Bruchstein, Steinziegel, Kristall
+// (Leuchtkristall 6 ist eben – Höhenfeld 1 –, dort hätte POM nichts zu tun)
 fn has_depth(pat: u32) -> bool {
-  return pat == 2u || pat == 3u || pat == 7u || pat == 11u || pat == 13u || pat == 14u || pat == 15u;
+  return pat == 3u || pat == 13u || pat == 14u || pat == 15u;
+}
+fn sharp_pat(pat: u32) -> bool {
+  return pat == 3u || pat == 6u || pat == 13u || pat == 14u || pat == 15u;
+}
+// Wiese (1), Erde/Sand/Fels (4), Laub (9): weich, matt, kein POM
+fn soft_pat(pat: u32) -> bool {
+  return pat == 1u || pat == 4u || pat == 9u;
 }
 
 struct Face { n: vec3<f32>, t: vec3<f32>, bt: vec3<f32>, uv: vec2<f32>, side: bool, };
 
 fn face_of(a: u32, wp: vec3<f32>) -> Face {
-  let nb = (a >> 27u) & 7u;
+  let nb = (a >> 16u) & 15u;
   let ax = nb >> 1u;
   let sg = f32(nb & 1u) * 2.0 - 1.0;
   var fc: Face;
   fc.side = ax != 1u;
-  if ax == 0u {
+  if nb >= 6u {
+    // Kreuz-Pflanzen: 6/7 Ebene entlang (1,0,1), 8/9 entlang (1,0,-1); Normale ±senkrecht dazu (mesh.rs)
+    let k = 0.70710678;
+    var tt = vec3<f32>(k, 0.0, k);
+    var nn = vec3<f32>(k, 0.0, -k);
+    if nb >= 8u { tt = vec3<f32>(k, 0.0, -k); nn = vec3<f32>(k, 0.0, k); }
+    if (nb & 1u) == 1u { nn = -nn; }
+    fc.n = nn; fc.t = tt; fc.bt = vec3<f32>(0.0, 1.0, 0.0); fc.uv = vec2<f32>(dot(wp, tt), wp.y); fc.side = true;
+  } else if ax == 0u {
     fc.n = vec3<f32>(sg, 0.0, 0.0); fc.uv = wp.zy; fc.t = vec3<f32>(0.0, 0.0, 1.0); fc.bt = vec3<f32>(0.0, 1.0, 0.0);
   } else if ax == 1u {
     fc.n = vec3<f32>(0.0, sg, 0.0); fc.uv = wp.xz; fc.t = vec3<f32>(1.0, 0.0, 0.0); fc.bt = vec3<f32>(0.0, 0.0, 1.0);
@@ -299,20 +347,23 @@ fn face_of(a: u32, wp: vec3<f32>) -> Face {
 const RELIEF: f32 = 0.06; // Tiefe der Fugen in Blockeinheiten
 
 // Blockfläche fertig beleuchtet (linear, HDR, mit Nebel) und Deckkraft
-fn block_color(i: VO) -> vec4<f32> {
+// detail_fade (0..1) kommt aus dem obersten Block von fs/fs_clear_hdr (Ableitungen nur dort, gleichförmiger Fluss)
+fn block_color(i: VO, detail_fade: f32) -> vec4<f32> {
   let fc = face_of(i.a, i.wp);
   let pat = (i.b >> 24u) & 15u;
   let tier = g.par.w;
   let to_eye = g.cam.xyz - i.wp;
   let dist = length(to_eye);
   let v = to_eye / max(dist, 0.001);
+  // Nähe für POM/Glanz harter Flächen: voll bis 6 m, weich aus bis 8 m
+  let near = 1.0 - smoothstep(6.0, 8.0, dist);
   var uv = fc.uv;
   var pshadow = 1.0;
   // Extrem: Parallax Occlusion Mapping in der Nähe (4 Schritte linear + 2 Halbierungen) mit Selbstschatten
-  if tier > 2.5 && dist < 14.0 && has_depth(pat) {
+  if tier > 2.5 && dist < 8.0 && has_depth(pat) && detail_fade > 0.0 {
     let vt = vec3<f32>(dot(v, fc.t), dot(v, fc.bt), dot(v, fc.n));
     if vt.z > 0.05 {
-      let shift = -vt.xy / vt.z * RELIEF * (1.0 - smoothstep(10.0, 14.0, dist));
+      let shift = -vt.xy / vt.z * RELIEF * near * detail_fade;
       var lo = 0.0;
       var hi = 1.0;
       var found = false;
@@ -339,13 +390,18 @@ fn block_color(i: VO) -> vec4<f32> {
       }
     }
   }
-  var m = block_mat(i.b, uv, i.wp, fc.side);
+  var m = block_mat(i.b, uv, i.wp, fc.side, detail_fade);
+  // harte Flächen: scharfe Glanzlichter nur bis 8 m, dahinter matter
+  if sharp_pat(pat) || pat == 5u { m.rough = mix(max(m.rough, 0.75), m.rough, near); }
   var nn = fc.n;
-  if tier > 1.5 && has_relief(pat) && dist < 40.0 {
+  if tier > 1.5 && has_relief(pat) && dist < 40.0 && detail_fade > 0.0 {
     let e = 0.5 / tex_res();
     let hu = height(pat, uv + vec2<f32>(e, 0.0), fc.side) - height(pat, uv - vec2<f32>(e, 0.0), fc.side);
     let hv = height(pat, uv + vec2<f32>(0.0, e), fc.side) - height(pat, uv - vec2<f32>(0.0, e), fc.side);
-    let k = RELIEF / (2.0 * e) * (1.0 - smoothstep(25.0, 40.0, dist));
+    // Normalstärke: weiche Muster 0,12·fade, sonst fade
+    var strength = detail_fade;
+    if soft_pat(pat) { strength = 0.12 * detail_fade; }
+    let k = RELIEF / (2.0 * e) * (1.0 - smoothstep(25.0, 40.0, dist)) * strength;
     nn = normalize(fc.n - (fc.t * hu + fc.bt * hv) * k);
   }
   var alb = to_lin(m.col);
@@ -373,16 +429,31 @@ fn block_color(i: VO) -> vec4<f32> {
   if m.metal > 0.5 && tier > 0.5 {
     let sp = h2(floor(uv * tex_res()) + floor(g.cam.w * 2.0) * 0.37);
     let rv = reflect(-v, nn);
-    c = c + alb * step(0.93, sp) * (0.6 + 2.5 * pow(max(dot(rv, g.sun.xyz), 0.0), 6.0)) * (0.5 + g.sky_dir.w);
+    c = c + alb * step(0.93, sp) * (0.6 + 2.5 * pow(max(dot(rv, g.sun.xyz), 0.0), 6.0)) * (0.5 + g.sky_dir.w) * detail_fade * near;
   }
   c = c + alb * m.emit;
+  // Abschnitt 8: warmes Lampenglas (world::F_LAMP → PACKED-Bit 30) in Kronleuchtern und Laternen
+  if ((i.b >> 30u) & 1u) == 1u { c = c + vec3<f32>(3.2, 2.1, 0.9); }
   return vec4<f32>(fog_mix(c, i.wp), m.alpha);
 }
 
 // Feste Blöcke (alle Stufen) und durchsichtige Blöcke in Eco (direkt mit Mischung)
+// Kreuz-Pflanzen: Halme statt voller Platten (verjüngen sich nach oben); true = Pixel verwerfen
+fn blade_cut(a: u32, wp: vec3<f32>, u: f32) -> bool {
+  if ((a >> 16u) & 15u) < 6u { return false; }
+  let bx = fract(u * 4.0) - 0.5;
+  let hy = fract(wp.y);
+  return abs(bx) > 0.32 * (1.0 - hy * 0.85);
+}
+
 @fragment
 fn fs(i: VO) -> @location(0) vec4<f32> {
-  let c = block_color(i);
+  // Abschnitt 8: UV-Fußabdruck je Pixel, vor jeder Verzweigung (Ableitungen brauchen gleichförmigen Fluss)
+  let fuv = face_of(i.a, i.wp).uv;
+  let fw = max(length(dpdx(fuv)), length(dpdy(fuv)));
+  let detail_fade = clamp(1.0 - fw * 18.0, 0.0, 1.0);
+  if blade_cut(i.a, i.wp, fuv.x) { discard; }
+  let c = block_color(i, detail_fade);
   return vec4<f32>(out_scene(c.rgb), c.a);
 }
 
@@ -492,15 +563,19 @@ fn water(i: VO, dz: f32) -> vec4<f32> {
 // Durchsichtige Blöcke in den HDR-Stufen: eigene Schicht, vormultipliert; Tiefentest von Hand gegen die feste Szene
 @fragment
 fn fs_clear_hdr(i: VO) -> @location(0) vec4<f32> {
+  // Abschnitt 8: UV-Fußabdruck je Pixel, vor discard und jeder Verzweigung
+  let fuv = face_of(i.a, i.wp).uv;
+  let fw = max(length(dpdx(fuv)), length(dpdy(fuv)));
+  let detail_fade = clamp(1.0 - fw * 18.0, 0.0, 1.0);
   let dz = textureLoad(scene_depth, vec2<i32>(i.pos.xy), 0).r;
-  if i.pos.z >= dz { discard; }
+  if i.pos.z >= dz || blade_cut(i.a, i.wp, fuv.x) { discard; }
   let pat = (i.b >> 24u) & 15u;
   let glow = (i.b >> 28u) & 1u;
   if pat == 8u && glow == 0u {
     let w = water(i, dz);
     return vec4<f32>(enc(w.rgb), 1.0);
   }
-  let c = block_color(i);
+  let c = block_color(i, detail_fade);
   return vec4<f32>(enc(c.rgb) * c.a, c.a);
 }
 

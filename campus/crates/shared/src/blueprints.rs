@@ -1,6 +1,8 @@
 //! Prozedurale Welt: Gelände der schwebenden Inseln (Oberfläche + Felskegel) und alle Bauten –
 //! Hub-Archipel (Hauptinsel mit sechs Vierteln, drei Satelliten, Himmelsbrücken, Portale) und Privatinseln.
 //! Jedes Stück entsteht für sich: alle Bauten schreiben über `Put`, das alles außerhalb des Stücks verwirft.
+use crate::bp_furniture::{bench, lamp_post, stair_roof, window, ZU_N, ZU_O, ZU_S, ZU_W};
+use crate::shape::facing;
 use crate::world::*;
 use std::f32::consts::PI;
 
@@ -11,20 +13,20 @@ pub struct Put<'a> {
 }
 impl Put<'_> {
     #[inline]
-    fn at(&self, x: i32, y: i32, z: i32) -> Option<usize> {
+    pub(crate) fn at(&self, x: i32, y: i32, z: i32) -> Option<usize> {
         let (lx, lz) = (x - self.ox, z - self.oz);
         ((0..16).contains(&lx) && (0..16).contains(&lz) && (0..CH).contains(&y)).then(|| idx(lx, y, lz))
     }
-    fn get(&self, x: i32, y: i32, z: i32) -> u8 {
+    pub(crate) fn get(&self, x: i32, y: i32, z: i32) -> u8 {
         self.at(x, y, z).map_or(0, |i| self.b[i])
     }
-    fn set(&mut self, x: i32, y: i32, z: i32, v: u8) {
+    pub(crate) fn set(&mut self, x: i32, y: i32, z: i32, v: u8) {
         if let Some(i) = self.at(x, y, z) {
             self.b[i] = v;
         }
     }
     /// nur in Luft (Laub, Deko)
-    fn add(&mut self, x: i32, y: i32, z: i32, v: u8) {
+    pub(crate) fn add(&mut self, x: i32, y: i32, z: i32, v: u8) {
         if let Some(i) = self.at(x, y, z) {
             if self.b[i] == 0 {
                 self.b[i] = v;
@@ -33,7 +35,7 @@ impl Put<'_> {
     }
     /// Quader mit eingeschlossenen Grenzen, auf das Stück beschnitten.
     #[allow(clippy::too_many_arguments)]
-    fn fill(&mut self, x0: i32, y0: i32, z0: i32, x1: i32, y1: i32, z1: i32, v: u8) {
+    pub(crate) fn fill(&mut self, x0: i32, y0: i32, z0: i32, x1: i32, y1: i32, z1: i32, v: u8) {
         let (xa, xb) = (x0.min(x1).max(self.ox), x0.max(x1).min(self.ox + 15));
         let (za, zb) = (z0.min(z1).max(self.oz), z0.max(z1).min(self.oz + 15));
         let (ya, yb) = (y0.min(y1).max(0), y0.max(y1).min(CH - 1));
@@ -46,7 +48,7 @@ impl Put<'_> {
         }
     }
     /// Berührt das Rechteck (Grenzen eingeschlossen) dieses Stück?
-    fn hits(&self, x0: i32, z0: i32, x1: i32, z1: i32) -> bool {
+    pub(crate) fn hits(&self, x0: i32, z0: i32, x1: i32, z1: i32) -> bool {
         x0.min(x1) <= self.ox + 15 && x0.max(x1) >= self.ox && z0.min(z1) <= self.oz + 15 && z0.max(z1) >= self.oz
     }
 }
@@ -106,8 +108,7 @@ fn hub_surf(x: i32, z: i32, st: WorldState) -> Option<Surf> {
     for (k, s) in SATS.iter().enumerate() {
         let d = rr(x, z, [s.x0, s.z0, s.x0 + s.size, s.z0 + s.size], 9.0) + wob(x, z, 2 + k as u32);
         if d > 0.0 {
-            let r = hash(x, z, 79);
-            return Some(Surf { h: s.y, top: if r % 9 == 0 { BLUMEN_ROT } else if r % 13 == 0 { BLUMEN_GELB } else { WIESE }, d });
+            return Some(Surf { h: s.y, top: WIESE, d }); // Blüten setzt `lawn` obendrauf
         }
     }
     if st.projects & P_ISLAND != 0 {
@@ -131,7 +132,7 @@ const SCHMIEDE: usize = 3;
 const WALD: usize = 4;
 
 /// Viertel der Hauptinsel (Index in DISTRICTS); Randspalten zählen zum nächsten Viertel.
-fn district(x: i32, z: i32) -> usize {
+pub(crate) fn district(x: i32, z: i32) -> usize {
     let (x, z) = (x.clamp(HUB_MAIN[0], HUB_MAIN[2] - 1), z.clamp(HUB_MAIN[1], HUB_MAIN[3] - 1));
     DISTRICTS.iter().position(|(_, r)| x >= r[0] && z >= r[1] && x < r[2] && z < r[3]).unwrap_or(MARKT)
 }
@@ -141,7 +142,7 @@ fn trail_x(z: i32) -> i32 {
 const CABIN: (i32, i32) = (301, 267);
 
 /// Oberfläche der Hauptinsel: Höhe je Viertel und Deckblock (gemischt, damit kaum nackte Wiese bleibt).
-fn main_top(x: i32, z: i32) -> (i32, u8) {
+pub(crate) fn main_top(x: i32, z: i32) -> (i32, u8) {
     let r = hash(x, z, 77) % 100;
     let pick = |t: &[(u32, u8)]| t.iter().find(|e| r < e.0).map_or(t[t.len() - 1].1, |e| e.1);
     match district(x, z) {
@@ -153,7 +154,7 @@ fn main_top(x: i32, z: i32) -> (i32, u8) {
             } else if x.rem_euclid(6) == 0 || z.rem_euclid(6) == 0 {
                 MOOS_ZIEGEL // Gartenwege
             } else {
-                pick(&[(20, WIESE), (40, ERDE), (60, BLUMEN_ROT), (80, BLUMEN_GELB), (100, HECKE)])
+                pick(&[(20, WIESE), (40, ERDE), (80, WIESE), (100, HECKE)]) // 40..80: Wiese mit Blüte (`bloom`)
             };
             (h, top)
         }
@@ -167,10 +168,53 @@ fn main_top(x: i32, z: i32) -> (i32, u8) {
             let flat = dx * dx + dz * dz < 144 || (x >= 312 && (z - 240).abs() <= 10);
             let ramp = ((x - 274) as f32 / 10.0).clamp(0.0, 1.0);
             let h = if flat { 30 } else { (28 + (noise(x as f32 / 16.0, z as f32 / 16.0, 5) * 12.0 * ramp) as i32).min(38) };
-            let top = if (x - trail_x(z)).abs() <= 1 { WEG } else { pick(&[(15, WIESE), (40, LAUB), (55, BIRKENLAUB), (78, ERDE), (90, MOOS_BRUCH), (100, BLUMEN_GELB)]) };
+            let top = if (x - trail_x(z)).abs() <= 1 { WEG } else { pick(&[(15, WIESE), (40, LAUB), (55, BIRKENLAUB), (78, ERDE), (90, MOOS_BRUCH), (100, WIESE)]) };
             (h, top)
         }
         _ => (28, pick(&[(10, WIESE), (35, ERDE), (65, FELS), (85, BRUCHSTEIN), (100, MOOS_BRUCH)])),
+    }
+}
+
+/// Blüte über der Rasenspalte (x, z) des Hubs oder 0: wo früher Würfelblumen im Rasen lagen (Spawn-Viertel, Waldwiesen,
+/// Satelliten), steht jetzt eine Kreuzblume aus `BLUMEN` oder hohes Gras auf der Wiese.
+fn bloom(x: i32, z: i32) -> u8 {
+    let main = rr(x, z, HUB_MAIN, 16.0) + wob(x, z, 1) > 0.0;
+    let on = if main {
+        let r = hash(x, z, 77) % 100;
+        match district(x, z) {
+            SPAWN => (40..80).contains(&r),
+            WALD => r >= 90,
+            _ => false,
+        }
+    } else {
+        let r = hash(x, z, 79);
+        SATS.iter().enumerate().any(|(k, s)| rr(x, z, [s.x0, s.z0, s.x0 + s.size, s.z0 + s.size], 9.0) + wob(x, z, 2 + k as u32) > 0.0) && (r % 9 == 0 || r % 13 == 0)
+    };
+    if !on {
+        return 0;
+    }
+    let h = hash(x, z, 78);
+    if h % 4 == 0 {
+        HOHES_GRAS
+    } else {
+        BLUMEN[(h / 4 % 4) as usize]
+    }
+}
+
+/// Setzt die Blüten (`bloom`) auf Wiese mit Luft darüber; läuft nach allen Bauten, nie an keep_free-Stellen.
+fn lawn(p: &mut Put, st: WorldState) {
+    for z in p.oz..p.oz + 16 {
+        for x in p.ox..p.ox + 16 {
+            let v = bloom(x, z);
+            if v == 0 || keep_free(x, z) {
+                continue;
+            }
+            if let Some(s) = surf(x, z, st) {
+                if p.get(x, s.h, z) == WIESE && p.get(x, s.h + 1, z) == 0 {
+                    p.set(x, s.h + 1, z, v);
+                }
+            }
+        }
     }
 }
 
@@ -247,40 +291,41 @@ pub fn build(p: &mut Put, st: WorldState) {
     if in_hub(p.ox, p.oz) {
         hub(p, st);
     } else {
-        private(p, st);
+        crate::bp_private::private(p, st);
     }
 }
 
 // ================= Bausteine =================
 
-const NORD: u8 = 0;
-const SUED: u8 = 1;
-const WEST: u8 = 2;
-const OST: u8 = 3;
+pub(crate) const NORD: u8 = 0;
+pub(crate) const SUED: u8 = 1;
+pub(crate) const WEST: u8 = 2;
+pub(crate) const OST: u8 = 3;
 
-struct Style {
-    wall: u8,
-    frame: u8,
-    roof: u8,
-    base: u8,
-    floor: u8,
+pub(crate) struct Style {
+    pub(crate) wall: u8,
+    pub(crate) frame: u8,
+    pub(crate) roof: u8,
+    pub(crate) base: u8,
+    pub(crate) floor: u8,
 }
-const FACHWERK: Style = Style { wall: PUTZ, frame: DUNKELHOLZ, roof: DACH, base: STEINZIEGEL, floor: BRETTER };
-const STEINHAUS: Style = Style { wall: STEINZIEGEL, frame: DUNKELHOLZ, roof: SCHIEFER, base: BRUCHSTEIN, floor: FLIESE };
-const BANKHAUS: Style = Style { wall: POLIERT, frame: GOLDZIER, roof: SCHIEFER, base: STEINZIEGEL, floor: TEPPICH_ROT };
-const BLOCKHAUS: Style = Style { wall: STAMM, frame: DUNKELHOLZ, roof: DUNKELBRETT, base: BRUCHSTEIN, floor: BRETTER };
-const SCHMIEDE_STIL: Style = Style { wall: BRUCHSTEIN, frame: DUNKELHOLZ, roof: SCHIEFER, base: BRUCHSTEIN, floor: PFLASTER };
+pub(crate) const FACHWERK: Style = Style { wall: PUTZ, frame: DUNKELHOLZ, roof: DACH, base: STEINZIEGEL, floor: BRETTER };
+pub(crate) const STEINHAUS: Style = Style { wall: STEINZIEGEL, frame: DUNKELHOLZ, roof: SCHIEFER, base: BRUCHSTEIN, floor: FLIESE };
+pub(crate) const BANKHAUS: Style = Style { wall: POLIERT, frame: GOLDZIER, roof: SCHIEFER, base: STEINZIEGEL, floor: TEPPICH_ROT };
+pub(crate) const BLOCKHAUS: Style = Style { wall: STAMM, frame: DUNKELHOLZ, roof: DUNKELBRETT, base: BRUCHSTEIN, floor: BRETTER };
+pub(crate) const SCHMIEDE_STIL: Style = Style { wall: BRUCHSTEIN, frame: DUNKELHOLZ, roof: SCHIEFER, base: BRUCHSTEIN, floor: PFLASTER };
 
-fn dist(dx: i32, dz: i32) -> f32 {
+pub(crate) fn dist(dx: i32, dz: i32) -> f32 {
     ((dx * dx + dz * dz) as f32).sqrt()
 }
-/// Laternenpfahl: zwei Pfosten, Laterne obendrauf; y = erster Block über dem Boden.
-fn lantern(p: &mut Put, x: i32, y: i32, z: i32) {
+/// Alter Laternenpfahl (Würfel-Laterne) für Baupläne, die den LATERNE-Block brauchen; der Hub nimmt `lamp_post`.
+#[allow(dead_code)]
+pub(crate) fn lantern(p: &mut Put, x: i32, y: i32, z: i32) {
     p.fill(x, y, z, x, y + 1, z, DUNKELHOLZ);
     p.set(x, y + 2, z, LATERNE);
 }
 /// Kugel nur in Luft, mit kleinen Lücken (Baumkronen, Büsche).
-fn blob(p: &mut Put, cx: i32, cy: i32, cz: i32, r: f32, v: u8) {
+pub(crate) fn blob(p: &mut Put, cx: i32, cy: i32, cz: i32, r: f32, v: u8) {
     let k = r.ceil() as i32;
     if !p.hits(cx - k, cz - k, cx + k, cz + k) {
         return;
@@ -296,7 +341,7 @@ fn blob(p: &mut Put, cx: i32, cy: i32, cz: i32, r: f32, v: u8) {
     }
 }
 /// Kreisring (r0..r1) bzw. Scheibe (r0 = 0) auf Höhe y.
-fn disc(p: &mut Put, cx: i32, y: i32, cz: i32, r0: f32, r1: f32, v: u8) {
+pub(crate) fn disc(p: &mut Put, cx: i32, y: i32, cz: i32, r0: f32, r1: f32, v: u8) {
     let k = r1.ceil() as i32;
     if !p.hits(cx - k, cz - k, cx + k, cz + k) {
         return;
@@ -311,7 +356,7 @@ fn disc(p: &mut Put, cx: i32, y: i32, cz: i32, r0: f32, r1: f32, v: u8) {
     }
 }
 /// Halbkugel-Schale ab Höhe cy; Rippen und Ringe aus `band`.
-fn dome(p: &mut Put, cx: i32, cy: i32, cz: i32, r: f32, shell: u8, band: u8) {
+pub(crate) fn dome(p: &mut Put, cx: i32, cy: i32, cz: i32, r: f32, shell: u8, band: u8) {
     let k = r.ceil() as i32;
     if !p.hits(cx - k, cz - k, cx + k, cz + k) {
         return;
@@ -328,10 +373,20 @@ fn dome(p: &mut Put, cx: i32, cy: i32, cz: i32, r: f32, shell: u8, band: u8) {
     }
 }
 
+/// Blumenkasten (DUNKELBRETT) außen unter einem Fenster, darauf eine Kreuzblume; nur in Luft, nie an keep_free-Stellen.
+fn flower_box(p: &mut Put, x: i32, y: i32, z: i32) {
+    if (in_hub(x, z) && keep_free(x, z)) || p.get(x, y, z) != 0 {
+        return;
+    }
+    p.set(x, y, z, DUNKELBRETT);
+    p.add(x, y + 1, z, BLUMEN[(hash(x, z, 58 + y as u32) % 4) as usize]);
+}
+
 /// Giebelhaus mit Fachwerk: Grundfläche x0..x0+w-1 × z0..z0+d-1, Boden auf y, `floors` Stockwerke à 4 Blöcke,
-/// Tür (3 hoch) mitten in der Wand `door`, Fenster mit Blumenkasten, Dachüberstand, Schornstein, Laterne innen.
+/// Tür (3 hoch, Bogen gestuft) mitten in der Wand `door`, Scheiben-Fenster mit Blumenkasten, Steinsockel, dunkle Eckpfosten,
+/// Treppen-Satteldach mit Überstand, Schornstein, Kronleuchter in jedem Stockwerk. Innenraum x0+1..x1-1 × z0+1..z1-1 bleibt frei.
 #[allow(clippy::too_many_arguments)]
-fn house(p: &mut Put, x0: i32, z0: i32, w: i32, d: i32, y: i32, floors: i32, s: &Style, door: u8) {
+pub(crate) fn house(p: &mut Put, x0: i32, z0: i32, w: i32, d: i32, y: i32, floors: i32, s: &Style, door: u8) {
     let (x1, z1) = (x0 + w - 1, z0 + d - 1);
     if !p.hits(x0 - 2, z0 - 2, x1 + 2, z1 + 2) {
         return;
@@ -353,43 +408,56 @@ fn house(p: &mut Put, x0: i32, z0: i32, w: i32, d: i32, y: i32, floors: i32, s: 
             p.fill(x0 + 1, yb, z0 + 1, x1 - 1, yb, z1 - 1, s.floor);
         }
     }
+    // Steinsockel (unterste Wandreihe), Fachwerk darüber, dunkle Eckpfosten
+    for (a, b, c, e) in [(x0, z0, x1, z0), (x0, z1, x1, z1), (x0, z0, x0, z1), (x1, z0, x1, z1)] {
+        p.fill(a, y + 1, b, c, y + 1, e, s.base);
+    }
     for x in x0..=x1 {
         if (x - x0) % 3 == 0 || x == x1 {
-            p.fill(x, y + 1, z0, x, top, z0, s.frame);
-            p.fill(x, y + 1, z1, x, top, z1, s.frame);
+            p.fill(x, y + 2, z0, x, top, z0, s.frame);
+            p.fill(x, y + 2, z1, x, top, z1, s.frame);
         }
     }
     for z in z0..=z1 {
         if (z - z0) % 3 == 0 || z == z1 {
-            p.fill(x0, y + 1, z, x0, top, z, s.frame);
-            p.fill(x1, y + 1, z, x1, top, z, s.frame);
+            p.fill(x0, y + 2, z, x0, top, z, s.frame);
+            p.fill(x1, y + 2, z, x1, top, z, s.frame);
         }
     }
-    // Fenster (2 hoch) in jedem zweiten Feld, einen Block nach innen versetzt (Laibung), darunter ein Blumenkasten außen
+    for (x, z) in [(x0, z0), (x1, z0), (x0, z1), (x1, z1)] {
+        p.fill(x, y + 1, z, x, top, z, DUNKELHOLZ);
+    }
+    // Fenster (2 hoch) als Scheibe in der Wandebene, darunter außen ein Blumenkasten mit Blüte
     for f in 0..floors {
         let wy = y + 4 * f + 2;
-        let flower = if f % 2 == 0 { BLUMEN_ROT } else { BLUMEN_GELB };
         for x in x0 + 1..x1 {
             if (x - x0) % 6 == 1 || (x - x0) % 6 == 2 {
                 for (z, o) in [(z0, -1), (z1, 1)] {
-                    p.fill(x, wy, z, x, wy + 1, z, 0);
-                    p.fill(x, wy, z - o, x, wy + 1, z - o, GLAS);
-                    p.set(x, wy - 1, z + o, flower);
+                    window(p, x, wy, z, 2);
+                    flower_box(p, x, wy - 1, z + o);
                 }
             }
         }
         for z in z0 + 1..z1 {
             if (z - z0) % 6 == 1 || (z - z0) % 6 == 2 {
                 for (x, o) in [(x0, -1), (x1, 1)] {
-                    p.fill(x, wy, z, x, wy + 1, z, 0);
-                    p.fill(x - o, wy, z, x - o, wy + 1, z, GLAS);
-                    p.set(x + o, wy - 1, z, flower);
+                    window(p, x, wy, z, 2);
+                    flower_box(p, x + o, wy - 1, z);
                 }
             }
         }
-        p.set(x0 + w / 2, y + 4 * f + 3, z0 + d / 2, LATERNE);
     }
-    // Tür, davor frei, daneben eine Laterne
+    // Kronleuchter mitten unter jeder Decke; das oberste Stockwerk ist zum Dach offen → Querbalken auf Traufhöhe trägt ihn
+    let (cx, cz) = (x0 + w / 2, z0 + d / 2);
+    if along_x {
+        p.fill(cx, top, z0, cx, top, z1, s.frame);
+    } else {
+        p.fill(x0, top, cz, x1, top, cz, s.frame);
+    }
+    for f in 0..floors {
+        p.set(cx, y + 4 * f + 3, cz, KRONLEUCHTER);
+    }
+    // Tür mit gestuftem Bogen (obere Ecken der Öffnung), davor frei, daneben ein Laternenmast, Schild auf der anderen Seite
     let dw = if (if door < WEST { w } else { d }) >= 14 { 3 } else { 2 };
     let (dx0, dz0, ox, oz) = match door {
         NORD => (x0 + w / 2 - 1, z0, 0, -1),
@@ -401,63 +469,70 @@ fn house(p: &mut Put, x0: i32, z0: i32, w: i32, d: i32, y: i32, floors: i32, s: 
     p.fill(dx0, y + 1, dz0, dx1, y + 3, dz1, 0);
     p.fill(dx0, y, dz0, dx1, y, dz1, s.floor);
     p.fill(dx0 + ox, y + 1, dz0 + oz, dx1 + ox, y + 3, dz1 + oz, 0);
-    // Laterne links, Schild rechts neben der Tür
     if door < WEST {
-        p.set(dx0 - 1, y + 3, dz0 + oz, LATERNE);
-        p.set(dx1 + 1, y + 3, dz0 + oz, SCHILD);
+        p.fill(dx0 - 1, y + 4, dz0, dx1 + 1, y + 4, dz0, s.base);
     } else {
-        p.set(dx0 + ox, y + 3, dz0 - 1, LATERNE);
-        p.set(dx0 + ox, y + 3, dz1 + 1, SCHILD);
+        p.fill(dx0, y + 4, dz0 - 1, dx0, y + 4, dz1 + 1, s.base);
     }
-    // Satteldach mit Überstand, Giebelwände
-    let (l0, l1, s0, s1) = if along_x { (x0 - 1, x1 + 1, z0 - 1, z1 + 1) } else { (z0 - 1, z1 + 1, x0 - 1, x1 + 1) };
+    if dw == 3 {
+        p.set(dx0, y + 3, dz0, s.frame);
+        p.set(dx1, y + 3, dz1, s.frame);
+    }
+    let (lamp, sign) = if door < WEST { ((dx0 - 1, dz0 + oz), (dx1 + 1, dz0 + oz)) } else { ((dx0 + ox, dz0 - 1), (dx0 + ox, dz1 + 1)) };
+    if !(in_hub(lamp.0, lamp.1) && keep_free(lamp.0, lamp.1)) && (y + 1..=y + 3).all(|h| p.get(lamp.0, h, lamp.1) == 0) {
+        lamp_post(p, lamp.0, y + 1, lamp.1);
+    }
+    p.set(sign.0, y + 3, sign.1, SCHILD);
+    // Satteldach aus Treppen mit Überstand (Material nach dem Stil), Giebelwände
+    let (stair, cap) = match s.roof {
+        DACH => (TREPPE_DACH_N, STUFE_DACH),
+        DUNKELBRETT | BRETTER => (TREPPE_EICHE_N, STUFE_EICHE),
+        _ => (TREPPE_STEIN_N, STUFE_STEIN),
+    };
+    let crest = stair_roof(p, x0 - 1, z0 - 1, x1 + 1, z1 + 1, top + 1, along_x, stair, cap);
+    let (s0, s1) = if along_x { (z0 - 1, z1 + 1) } else { (x0 - 1, x1 + 1) };
     let gables = if along_x { [x0, x1] } else { [z0, z1] };
     let mut k = 0;
     while s0 + k <= s1 - k {
-        let yr = top + 1 + k;
-        for l in l0..=l1 {
-            for sv in [s0 + k, s1 - k] {
-                let (x, z) = if along_x { (l, sv) } else { (sv, l) };
-                p.set(x, yr, z, s.roof);
-            }
-        }
         for g in gables {
             for sv in s0 + k + 1..s1 - k {
                 let (x, z) = if along_x { (g, sv) } else { (sv, g) };
-                p.set(x, yr, z, s.wall);
+                p.set(x, top + 1 + k, z, s.wall);
             }
         }
         k += 1;
     }
-    p.fill(x1 - 1, y + 1, z0 + 1, x1 - 1, ridge + 2, z0 + 1, BRUCHSTEIN); // Schornstein
+    // Schornstein auf der Traufwand, durch das Dach
+    let (sx, sz) = if along_x { (x1 - 1, z0) } else { (x0, z1 - 1) };
+    p.fill(sx, top + 1, sz, sx, crest.max(ridge) + 2, sz, BRUCHSTEIN);
 }
 
-/// Marktstand 5×4 mit gestreifter Markise; `south`: Theke vorn im Süden (sonst im Norden).
-fn stall(p: &mut Put, x0: i32, z0: i32, y: i32, c: (u8, u8), goods: u8, south: bool) {
+/// Marktstand 5×4: Zaun-Eckpfosten, Theke aus TRESEN mit Ware obendrauf, Deko-Fässer hinten, Markise (rot-weiß bzw.
+/// blau-weiß nach den Farben `c`) fällt zur Kundenseite ab; `south`: Theke vorn im Süden (sonst im Norden).
+pub(crate) fn stall(p: &mut Put, x0: i32, z0: i32, y: i32, c: (u8, u8), goods: u8, south: bool) {
     let (x1, z1) = (x0 + 4, z0 + 3);
     if !p.hits(x0 - 1, z0 - 2, x1 + 1, z1 + 2) {
         return;
     }
     for (x, z) in [(x0, z0), (x1, z0), (x0, z1), (x1, z1)] {
-        p.fill(x, y + 1, z, x, y + 3, z, DUNKELHOLZ);
+        p.fill(x, y + 1, z, x, y + 3, z, ZAUN);
     }
-    let (front, back, over) = if south { (z1, z0, z1 + 1) } else { (z0, z1, z0 - 1) };
-    p.fill(x0 + 1, y + 1, front, x1 - 1, y + 1, front, KISTE);
+    let (front, back, over, zu) = if south { (z1, z0, z1 + 1, ZU_S) } else { (z0, z1, z0 - 1, ZU_N) };
+    p.fill(x0 + 1, y + 1, front, x1 - 1, y + 1, front, TRESEN);
     for x in [x0 + 1, x1 - 1] {
         p.set(x, y + 2, front, goods);
     }
-    p.set(x0 + 1, y + 1, back, FASS);
-    p.set(x1 - 1, y + 1, back, FASS);
-    p.set(x1 - 1, y + 2, back, KISTE);
-    for x in x0..=x1 {
-        let v = if (x - x0) % 2 == 0 { c.0 } else { c.1 };
-        p.fill(x, y + 4, z0, x, y + 4, z1, v);
-        p.set(x, y + 3, over, v);
-    }
+    p.set(x0 + 1, y + 1, back, DEKOFASS);
+    p.set(x1 - 1, y + 1, back, DEKOFASS);
+    p.set(x0 + 2, y + 1, back, KISTE);
+    let blue = matches!(c.0, STOFF_BLAU | STOFF_GRUEN) || c.1 == STOFF_BLAU;
+    let awning = facing(if blue { MARKISE_BLAU_N } else { MARKISE_ROT_N }, zu);
+    p.fill(x0, y + 4, z0, x1, y + 4, z1, awning);
+    p.fill(x0, y + 3, over, x1, y + 3, over, awning);
 }
 
 /// Torbogen mit Warp-Portal (3 breit, 4 hoch), Mitte (cx, cz) auf Boden y; Ebene x = cx (`plane_x`) oder z = cz.
-fn arch(p: &mut Put, cx: i32, cz: i32, y: i32, plane_x: bool) {
+pub(crate) fn arch(p: &mut Put, cx: i32, cz: i32, y: i32, plane_x: bool) {
     if !p.hits(cx - 3, cz - 3, cx + 3, cz + 3) {
         return;
     }
@@ -476,7 +551,7 @@ fn arch(p: &mut Put, cx: i32, cz: i32, y: i32, plane_x: bool) {
 
 /// Baum mit Wurzelansätzen; ab 9 Blöcken Höhe mit 2–4 Ästen und eigenen Laubbüscheln.
 #[allow(clippy::too_many_arguments)]
-fn tree(p: &mut Put, x: i32, z: i32, y: i32, h: i32, wood: u8, leaf: u8, seed: u32) {
+pub(crate) fn tree(p: &mut Put, x: i32, z: i32, y: i32, h: i32, wood: u8, leaf: u8, seed: u32) {
     if !p.hits(x - 9, z - 9, x + 9, z + 9) {
         return;
     }
@@ -500,7 +575,7 @@ fn tree(p: &mut Put, x: i32, z: i32, y: i32, h: i32, wood: u8, leaf: u8, seed: u
     blob(p, x, y + h, z, if h >= 9 { 3.4 } else { 2.6 }, leaf);
 }
 
-fn mushroom(p: &mut Put, x: i32, z: i32, y: i32, h: i32) {
+pub(crate) fn mushroom(p: &mut Put, x: i32, z: i32, y: i32, h: i32) {
     if !p.hits(x - 3, z - 3, x + 3, z + 3) {
         return;
     }
@@ -511,7 +586,7 @@ fn mushroom(p: &mut Put, x: i32, z: i32, y: i32, h: i32) {
 
 /// Bach bis zur Kante und Wasserfall in die Leere: auf Land wird die Oberfläche zu Wasser, in der Leere hängt eine Wassersäule.
 #[allow(clippy::too_many_arguments)]
-fn fall(p: &mut Put, st: WorldState, x0: i32, z0: i32, x1: i32, z1: i32, top: i32, bot: i32) {
+pub(crate) fn fall(p: &mut Put, st: WorldState, x0: i32, z0: i32, x1: i32, z1: i32, top: i32, bot: i32) {
     if !p.hits(x0, z0, x1, z1) {
         return;
     }
@@ -575,16 +650,18 @@ fn hub(p: &mut Put, st: WorldState) {
     forge(p, st);
     forest(p);
     ruins(p, st);
-    library(p, st);
+    crate::bp_library::library(p, st);
     zitadelle(p, st);
     garden(p, st);
-    bridges(p);
+    bridges(p, st);
     projects(p, st);
     scatter(p);
+    lawn(p, st);
+    crate::bp_flora::dress(p, st);
 }
 
 /// Stellen, an denen keine Zufalls-Deko stehen darf (Ankunft, NPCs, Portale, Sprungpolster, Turm-Bauplatz).
-fn keep_free(x: i32, z: i32) -> bool {
+pub(crate) fn keep_free(x: i32, z: i32) -> bool {
     let near = |px: f32, pz: f32, r: f32| (px - x as f32 - 0.5).powi(2) + (pz - z as f32 - 0.5).powi(2) <= r * r;
     SPOTS.iter().any(|s| near(s.1[0], s.1[2], 3.0))
         || crate::content::NPCS.iter().any(|n| {
@@ -656,10 +733,14 @@ fn spawn(p: &mut Put) {
             let h = main_top(x, z).0;
             if x % 8 == 4 {
                 if p.get(x, h + 1, z) == 0 {
-                    lantern(p, x, h + 1, z);
+                    lamp_post(p, x, h + 1, z);
                 }
-            } else {
-                p.add(x, h + 1, z, if x % 8 < 4 { HECKE } else { BLUMEN_ROT });
+            } else if x % 8 < 4 {
+                p.add(x, h + 1, z, HECKE);
+            } else if matches!(p.get(x, h, z), WIESE | ERDE) && p.get(x, h + 1, z) == 0 && !keep_free(x, z) {
+                // Blumenstreifen vor der Stützmauer: Rasen mit Kreuzblume obendrauf
+                p.set(x, h, z, WIESE);
+                p.set(x, h + 1, z, BLUMEN[(hash(x, z, 59) % 4) as usize]);
             }
         }
     }
@@ -677,7 +758,7 @@ fn spawn(p: &mut Put) {
         }
     }
     for (x, z) in [(224, 286), (224, 300), (256, 286), (256, 293), (256, 300), (232, 284), (248, 284)] {
-        lantern(p, x, 33, z);
+        lamp_post(p, x, 33, z);
     }
     arch(p, 231, 296, 32, true);
     let [ax, ay, az] = ARENA_PORTAL_AT;
@@ -740,24 +821,25 @@ fn avenue(p: &mut Put) {
     }
     for z in 253..284 {
         let h = main_top(240, z).0;
+        // Fahrbahn aus Bruchstein und Pflaster mit Steinziegel-Kante, Kiesrand (WEG), dann ein Rasenstreifen
         for x in 236..=244 {
-            p.set(x, h, z, if x == 236 || x == 244 { STEINZIEGEL } else if hash(x, z, 90) % 3 == 0 { MOOS_ZIEGEL } else { BRUCHSTEIN });
+            p.set(x, h, z, if x == 236 || x == 244 { STEINZIEGEL } else if hash(x, z, 90) % 3 == 0 { PFLASTER } else { BRUCHSTEIN });
         }
-        for x in [234, 235, 245, 246] {
-            p.set(x, h, z, ERDE);
+        for x in [235, 245] {
+            p.set(x, h, z, WEG);
+        }
+        for x in [234, 246] {
+            p.set(x, h, z, WIESE);
         }
         let gap = z % 24 == 12; // Durchgang zu den Terrassen
         for x in [235, 245] {
             if z % 6 == 0 {
-                lantern(p, x, h + 1, z);
-            } else if !gap {
-                p.set(x, h + 1, z, if z % 12 < 6 { HECKE } else { BLUMEN_ROT });
+                lamp_post(p, x, h + 1, z);
             }
         }
-        if !gap {
-            for x in [234, 246] {
-                p.set(x, h + 1, z, if z % 2 == 0 { BLUMEN_GELB } else { BLUMEN_ROT });
-            }
+        for x in [234, 246] {
+            let v = if !gap && z % 12 < 6 { HECKE } else if hash(x, z, 91) % 4 == 0 { HOHES_GRAS } else { BLUMEN[(hash(x, z, 92) % 4) as usize] };
+            p.set(x, h + 1, z, v);
         }
         if z % 12 == 3 {
             for (x, c) in [(233, STOFF_ROT), (247, STOFF_BLAU)] {
@@ -766,9 +848,9 @@ fn avenue(p: &mut Put) {
             }
         }
         if z % 12 == 9 {
-            for x in [233, 247] {
-                p.fill(x, h + 1, z, x, h + 1, z + 1, DUNKELBRETT);
-            }
+            // Sitzbänke mit Blick auf die Allee
+            bench(p, 233, z, 233, z + 1, h + 1, ZU_O);
+            bench(p, 247, z, 247, z + 1, h + 1, ZU_W);
         }
     }
 }
@@ -804,53 +886,10 @@ fn market(p: &mut Put) {
         p.set(240 + dx, 39, 230 + dz, KRISTALL);
         p.fill(240 + 3 * dx, 31, 230 + 3 * dz, 240 + 3 * dx, 34, 230 + 3 * dz, WASSER);
     }
-    // Bazaar-Halle: offenes Dach auf Pfosten, darunter 8 gestreifte Stände
-    if p.hits(220, 197, 260, 215) {
-        for x in (222..=258).step_by(6) {
-            for z in [199, 213] {
-                p.fill(x, 29, z, x, 33, z, DUNKELHOLZ);
-            }
-        }
-        for (a, b, c, e) in [(222, 199, 258, 199), (222, 213, 258, 213), (222, 199, 222, 213), (258, 199, 258, 213)] {
-            p.fill(a, 34, b, c, 34, e, DUNKELHOLZ);
-        }
-        for k in 0..=8 {
-            p.fill(221, 35 + k, 198 + k, 259, 35 + k, 198 + k, DACH);
-            p.fill(221, 35 + k, 214 - k, 259, 35 + k, 214 - k, DACH);
-        }
-        let cols = [
-            (STOFF_ROT, STOFF_WEISS),
-            (STOFF_BLAU, STOFF_WEISS),
-            (STOFF_GRUEN, STOFF_GELB),
-            (STOFF_GELB, STOFF_ROT),
-            (STOFF_BLAU, STOFF_GELB),
-            (STOFF_ROT, STOFF_GRUEN),
-            (STOFF_WEISS, STOFF_BLAU),
-            (STOFF_GRUEN, STOFF_WEISS),
-        ];
-        let goods = [SAND, BRETTER, GLAS, KUPFER, ZIEGEL, STAMM, LAUB, BRUCHSTEIN];
-        for i in 0..4 {
-            let x0 = 225 + i as i32 * 8;
-            stall(p, x0, 200, 28, cols[i], goods[i], true);
-            stall(p, x0, 208, 28, cols[i + 4], goods[i + 4], false);
-        }
-        for x in [231, 239, 247] {
-            p.set(x, 33, 206, LATERNE);
-        }
-    }
+    crate::bp_interiors::markthalle(p);
     // Bank: zwei Stockwerke mit Goldzier, Schalter und begehbarem Tresor
     house(p, 206, 218, 16, 18, 28, 2, &BANKHAUS, OST);
-    if p.hits(205, 217, 222, 236) {
-        p.fill(211, 29, 219, 211, 31, 234, EISEN);
-        p.fill(211, 29, 225, 211, 31, 227, 0);
-        p.fill(207, 29, 219, 208, 30, 222, GOLD);
-        p.fill(207, 29, 231, 208, 29, 234, KISTE);
-        p.fill(209, 29, 219, 210, 29, 219, ROHGOLD);
-        p.fill(214, 29, 220, 214, 29, 234, POLIERT);
-        p.fill(214, 29, 226, 214, 29, 228, 0);
-        p.fill(214, 30, 220, 214, 30, 224, GOLDZIER);
-        p.fill(214, 30, 230, 214, 30, 234, GOLDZIER);
-    }
+    crate::bp_interiors::bank(p);
     // Auktionshaus: drei Stockwerke, Turm, Schausockel
     house(p, 258, 216, 16, 20, 28, 3, &STEINHAUS, WEST);
     if p.hits(256, 214, 276, 238) {
@@ -864,7 +903,7 @@ fn market(p: &mut Put) {
                 for x in 263..=268 {
                     let edge = x == 263 || x == 268 || z == 223 || z == 228;
                     let win = y % 4 == 2 && (x == 265 || x == 266 || z == 225 || z == 226);
-                    p.set(x, y, z, if !edge { 0 } else if win { GLAS } else { STEINZIEGEL });
+                    p.set(x, y, z, if !edge { 0 } else if win { SCHEIBE } else { STEINZIEGEL });
                 }
             }
         }
@@ -893,7 +932,7 @@ fn market(p: &mut Put) {
         stall(p, x, z, 28, c, g, true);
     }
     for (x, z) in [(219, 210), (261, 210), (219, 252), (261, 252), (232, 252), (248, 252)] {
-        lantern(p, x, 29, z);
+        lamp_post(p, x, 29, z);
     }
 }
 
@@ -944,7 +983,7 @@ fn forge(p: &mut Put, st: WorldState) {
             p.set(185, 27, z, MOOS_ZIEGEL);
         }
         for (x, z) in [(166, 211), (185, 211), (166, 221), (185, 221)] {
-            lantern(p, x, 27, z);
+            lamp_post(p, x, 27, z);
         }
         p.set(170, 27, 215, AMBOSS);
         p.set(181, 27, 215, AMBOSS);
@@ -954,35 +993,7 @@ fn forge(p: &mut Put, st: WorldState) {
     }
     house(p, 152, 212, 12, 14, 26, 1, &FACHWERK, OST); // Lagerhaus
     // Minion-Werkstatt: offene Halle, Sockel für Stufe I–XI (SHOWCASE)
-    if p.hits(162, 236, 194, 252) {
-        p.fill(164, 26, 240, 192, 26, 250, PFLASTER);
-        p.fill(164, 27, 250, 192, 31, 250, PUTZ);
-        p.fill(164, 27, 240, 164, 31, 250, PUTZ);
-        p.fill(192, 27, 240, 192, 31, 250, PUTZ);
-        p.fill(165, 27, 241, 191, 31, 249, 0);
-        for x in (164..=192).step_by(4) {
-            p.fill(x, 27, 240, x, 31, 240, DUNKELHOLZ);
-            p.fill(x, 27, 250, x, 31, 250, DUNKELHOLZ);
-        }
-        for (a, b, c, e) in [(164, 240, 192, 240), (164, 250, 192, 250), (164, 240, 164, 250), (192, 240, 192, 250)] {
-            p.fill(a, 32, b, c, 32, e, DUNKELHOLZ);
-        }
-        for k in 0..=6 {
-            p.fill(163, 33 + k, 239 + k, 193, 33 + k, 239 + k, DACH);
-            p.fill(163, 33 + k, 251 - k, 193, 33 + k, 251 - k, DACH);
-            for x in [164, 192] {
-                p.fill(x, 33 + k, 240 + k, x, 33 + k, 250 - k, PUTZ);
-            }
-        }
-        for k in 0..11 {
-            p.set(SHOWCASE[0] + 2 * k, SHOWCASE[1], SHOWCASE[2], SOCKEL);
-        }
-        for x in [170, 178, 186] {
-            p.set(x, 31, 247, LATERNE);
-        }
-        p.set(189, 27, 248, WERKBANK);
-        p.fill(166, 27, 248, 167, 28, 248, KISTE);
-    }
+    crate::bp_interiors::werkstatt(p);
     // Mühle mit Wasserrad, Bach und Wasserfall über die Westkante
     fall(p, st, 138, 260, 179, 262, 26, 4);
     if p.hits(150, 254, 183, 268) {
@@ -1011,15 +1022,15 @@ fn forge(p: &mut Put, st: WorldState) {
         }
         arch(p, 154, 235, 30, false);
         for (x, z) in [(151, 232), (159, 232), (151, 248), (159, 248)] {
-            lantern(p, x, 31, z);
+            lamp_post(p, x, 31, z);
         }
     }
     // Straßenlaternen alle 8 Blöcke
     for x in (152..=208).step_by(8) {
-        lantern(p, x, 27, 251);
+        lamp_post(p, x, 27, 251);
     }
     for z in (200..=328).step_by(8) {
-        lantern(p, 198, 27, z);
+        lamp_post(p, 198, 27, z);
     }
 }
 
@@ -1054,7 +1065,7 @@ fn forest(p: &mut Put) {
             let y = main_top(x, z).0;
             p.fill(x, y + 1, z, x, y + 2, z, if i % 2 == 0 { KNOTEN_EICHE } else { KNOTEN_BIRKE });
         }
-        lantern(p, 298, 31, 259);
+        lamp_post(p, 298, 31, 259);
     }
     for (x, z, along_x, len) in [(282, 170, true, 5), (318, 190, false, 6), (285, 302, true, 4), (312, 314, false, 5), (300, 212, true, 6)] {
         if !p.hits(x - 1, z - 1, x + len + 1, z + len + 1) {
@@ -1076,7 +1087,7 @@ fn forest(p: &mut Put) {
         p.fill(312, 30, 230, 330, 30, 250, PFLASTER);
         arch(p, 326, 235, 30, false);
         for (x, z) in [(313, 231), (313, 249), (321, 231)] {
-            lantern(p, x, 31, z);
+            lamp_post(p, x, 31, z);
         }
     }
 }
@@ -1146,7 +1157,7 @@ fn mines(p: &mut Put) {
         p.set(247, 29, 193, KISTE);
         p.set(246, 29, 196, FASS);
         for (x, z) in [(243, 186), (251, 186)] {
-            lantern(p, x, 29, z);
+            lamp_post(p, x, 29, z);
         }
     }
     // Brückenkopf Nord mit Portal zur Prüfungs-Zitadelle
@@ -1156,7 +1167,7 @@ fn mines(p: &mut Put) {
         p.fill(236, 28, 161, 244, 29, 161, STEINZIEGEL);
         arch(p, 235, 154, 30, true);
         for (x, z) in [(231, 151), (249, 151), (231, 160), (249, 160)] {
-            lantern(p, x, 31, z);
+            lamp_post(p, x, 31, z);
         }
     }
     for (x, z) in [(212, 158), (262, 156), (214, 192), (266, 198), (230, 190)] {
@@ -1341,96 +1352,7 @@ fn ruins(p: &mut Put, st: WorldState) {
     fall(p, st, 168, 187, 172, 190, 35, 2);
 }
 
-// ---------- Satelliten ----------
-fn library(p: &mut Put, st: WorldState) {
-    if !p.hits(362, 210, 423, 271) {
-        return;
-    }
-    let (cx, cz) = (393, 240);
-    disc(p, cx, 30, cz, 0.0, 11.0, POLIERT);
-    for k in 0..8 {
-        if k != 4 {
-            let a = k as f32 * PI / 4.0;
-            lantern(p, cx + (11.5 * a.cos()).round() as i32, 31, cz + (11.5 * a.sin()).round() as i32);
-        }
-    }
-    // Turm: Wand mit Fenstern, Regale innen, Galerien, Wendeltreppe um die Mittelsäule
-    for y in 31..=56 {
-        for dz in -7..=7 {
-            for dx in -7..=7 {
-                let r = dist(dx, dz);
-                let (x, z) = (cx + dx, cz + dz);
-                let v = if r > 6.4 {
-                    continue
-                } else if r > 5.2 {
-                    if (y % 8 == 3 || y % 8 == 4) && (dx == 0 || dz == 0) {
-                        GLAS
-                    } else if y % 8 == 0 {
-                        POLIERT
-                    } else {
-                        STEINZIEGEL
-                    }
-                } else if y == 56 {
-                    POLIERT
-                } else if r > 4.2 {
-                    if y % 8 == 6 {
-                        BRETTER
-                    } else if hash(x, z, y as u32) % 4 != 0 {
-                        REGAL
-                    } else {
-                        0
-                    }
-                } else if r > 3.6 && y % 8 == 6 {
-                    BRETTER
-                } else {
-                    0
-                };
-                p.set(x, y, z, v);
-            }
-        }
-        if y < 56 {
-            p.set(cx, y, cz, STAMM);
-            let a = (y - 31) as f32 * 0.55;
-            for rad in [2.0f32, 3.0] {
-                p.set(cx + (rad * a.cos()).round() as i32, y, cz + (rad * a.sin()).round() as i32, BRETTER);
-            }
-        }
-    }
-    p.fill(cx - 7, 31, cz - 1, cx - 4, 33, cz + 1, 0);
-    for y in 57..=62 {
-        let ry = 7.5 - (y - 57) as f32 * 1.25;
-        for dz in -8..=8 {
-            for dx in -8..=8 {
-                let r = dist(dx, dz);
-                if r <= ry && r > ry - 1.4 {
-                    p.set(cx + dx, y, cz + dz, if (y + dx + dz).rem_euclid(3) == 0 { LILA } else { SCHIEFER });
-                }
-            }
-        }
-    }
-    p.fill(cx, 61, cz, cx, 63, cz, KRISTALL);
-    // schwebende Bücherregale und Fach-Trainer
-    for k in 0..8i32 {
-        if k == 4 {
-            continue;
-        }
-        let a = k as f32 * PI / 4.0 + 0.3;
-        let (x, z) = (cx + (13.0 * a.cos()).round() as i32, cz + (13.0 * a.sin()).round() as i32);
-        let y = 38 + (k % 3) * 4;
-        p.fill(x, y, z, x, y + 1, z, REGAL);
-        p.set(x, y - 1, z, GLUEH);
-    }
-    for (i, b) in [SAPHIR, SPRACHGOLD, SMARAGD, KUPFER, GLUEH, BRETTER, GOLD].into_iter().enumerate() {
-        let a = -1.2 + i as f32 * 0.4;
-        let (x, z) = (cx + (9.0 * a.cos()).round() as i32, cz + (9.0 * a.sin()).round() as i32);
-        p.set(x, 31, z, SOCKEL);
-        p.set(x, 32, z, b);
-    }
-    arch(p, 374, 235, 30, false);
-    let [ax, ay, az] = ALTAR_AT;
-    p.set(ax, ay, az, ALTAR);
-    fall(p, st, 397, 254, 400, 268, 30, 6);
-}
+// Bibliotheks-Turm: bp_library.rs
 
 fn zitadelle(p: &mut Put, st: WorldState) {
     if !p.hits(207, 52, 273, 118) {
@@ -1483,8 +1405,8 @@ fn zitadelle(p: &mut Put, st: WorldState) {
         p.set(x, 43, 82, STEINZIEGEL);
     }
     for z in [76, 78] {
-        p.fill(234, 36, z, 234, 37, z, GLAS);
-        p.fill(246, 36, z, 246, 37, z, GLAS);
+        window(p, 234, 36, z, 2);
+        window(p, 246, 36, z, 2);
     }
     p.fill(240, 43, 77, 240, 46, 77, DUNKELHOLZ);
     p.fill(241, 45, 77, 242, 46, 77, LILA);
@@ -1500,7 +1422,7 @@ fn zitadelle(p: &mut Put, st: WorldState) {
         p.set(x, 31, z, SPLITTER_ADER);
     }
     for (x, z) in [(228, 72), (252, 92), (228, 92)] {
-        lantern(p, x, 31, z);
+        lamp_post(p, x, 31, z);
     }
     let [bx, by, bz] = BOSS_ALTAR_AT;
     p.set(bx, by, bz, BOSS_ALTAR);
@@ -1518,7 +1440,26 @@ fn garden(p: &mut Put, st: WorldState) {
     // Blumenbeete (vor den Bäumen, damit Stämme durchgehen)
     for z in (247..=256).step_by(3) {
         for x in 84..=100 {
-            p.set(x, 31, z, if (x + z) % 2 == 0 { BLUMEN_ROT } else { BLUMEN_GELB });
+            if surf(x, z, st).is_some() && !keep_free(x, z) {
+                p.set(x, 30, z, WIESE);
+                p.set(x, 31, z, BLUMEN[((x + z) / 2).rem_euclid(4) as usize]);
+            }
+        }
+    }
+    // Gartenwege (Kreuz): Bruchstein/Steinziegel gemischt, Kiesweg-Rand auf angrenzender Wiese; die Kuppel überdeckt die Mitte
+    let weg = |x: i32, z: i32| ((239..=241).contains(&z) && (74..=108).contains(&x)) || ((89..=91).contains(&x) && (216..=264).contains(&z));
+    for z in 214..=266 {
+        for x in 72..=110 {
+            if surf(x, z, st).is_none() || keep_free(x, z) {
+                continue;
+            }
+            if weg(x, z) {
+                p.set(x, 30, z, if hash(x, z, 91) % 3 == 0 { STEINZIEGEL } else { BRUCHSTEIN });
+                p.set(x, 31, z, 0);
+            } else if p.get(x, 30, z) == WIESE && [(0, 1), (1, 0), (0, -1), (-1, 0)].iter().any(|&(dx, dz)| weg(x + dx, z + dz)) {
+                p.set(x, 30, z, WEG);
+                p.set(x, 31, z, 0);
+            }
         }
     }
     // Sternwarte unter der Glaskuppel
@@ -1546,19 +1487,21 @@ fn garden(p: &mut Put, st: WorldState) {
     p.set(ox - 5, 31, oz, SCHATZ);
     p.set(97, 31, 257, SCHATZ);
     for (x, z) in [(88, 244), (100, 232)] {
-        lantern(p, x, 31, z);
+        lamp_post(p, x, 31, z);
     }
     arch(p, 106, 235, 30, false);
     fall(p, st, 62, 250, 73, 252, 30, 8);
 }
 
 // ---------- Himmelsbrücken ----------
-fn bridges(p: &mut Put) {
-    deck(p, 316, 239, 371, 241, true);
-    deck(p, 239, 109, 241, 152, false);
-    deck(p, 109, 239, 152, 241, true);
+fn bridges(p: &mut Put, st: WorldState) {
+    deck(p, st, 316, 239, 371, 241, true);
+    deck(p, st, 239, 109, 241, 152, false);
+    deck(p, st, 109, 239, 152, 241, true);
 }
-fn deck(p: &mut Put, x0: i32, z0: i32, x1: i32, z1: i32, along_x: bool) {
+/// Himmelsbrücke: Bretter, Pfosten mit Laternen, über der Leere an beiden Seiten ein Randbalken mit Geländer.
+#[allow(clippy::too_many_arguments)]
+fn deck(p: &mut Put, st: WorldState, x0: i32, z0: i32, x1: i32, z1: i32, along_x: bool) {
     if !p.hits(x0 - 1, z0 - 1, x1 + 1, z1 + 1) {
         return;
     }
@@ -1578,6 +1521,15 @@ fn deck(p: &mut Put, x0: i32, z0: i32, x1: i32, z1: i32, along_x: bool) {
             p.fill(a, 29, z0, a, 29, z1, DUNKELBRETT);
         } else {
             p.fill(x0, 29, a, x1, 29, a, DUNKELBRETT);
+        }
+    }
+    for a in a0..=a1 {
+        for side in sides {
+            let (x, z) = if along_x { (a, side) } else { (side, a) };
+            if p.at(x, 31, z).is_some() && surf(x, z, st).is_none() && !keep_free(x, z) {
+                p.add(x, 30, z, DUNKELBRETT);
+                p.add(x, 31, z, GELAENDER);
+            }
         }
     }
 }
@@ -1640,72 +1592,50 @@ fn projects(p: &mut Put, st: WorldState) {
     }
 }
 
-// ================= Privatinsel =================
-/// 38×38-Hauptinsel mit Fachwerk-Starthütte (Bett, Regal, Laterne, Truhe, Werkbank), Minion-Sockel, Eichen, Portal zum Hub;
-/// Hängebrücke zur 16×16-Rohstoffinsel mit Bruchstein- und Splitter-Generator zwischen Wasser und Lava, Holzknoten-Eichen.
-fn private(p: &mut Put, st: WorldState) {
-    let (a, c) = (p.ox / SLOT * SLOT, p.oz / SLOT * SLOT);
-    if !p.hits(a + 20, c + 24, a + 94, c + 72) {
-        return;
-    }
-    let g = GROUND;
-    p.fill(a + 47, g, c + 39, a + 48, g, c + 51, WEG);
-    p.fill(a + 47, g, c + 53, a + 49, g, c + 60, WEG);
-    p.fill(a + 50, g, c + 48, a + 66, g, c + 48, WEG);
-    house(p, a + 41, c + 31, 14, 8, g, 1, &FACHWERK, SUED);
-    p.fill(a + 42, g + 1, c + 32, a + 43, g + 1, c + 32, BETT);
-    p.fill(a + 53, g + 1, c + 32, a + 53, g + 3, c + 34, REGAL);
-    p.set(a + 51, g + 1, c + 32, TRUHE);
-    p.set(a + 50, g + 1, c + 32, WERKBANK);
-    p.set(a + 44, g + 1, c + 35, FASS);
-    p.fill(a + 45, g, c + 34, a + 50, g, c + 36, TEPPICH_ROT);
-    p.set(a + 51, g + 1, c + 46, SOCKEL);
-    arch(p, a + 48, c + 62, g, false);
-    for (x, z) in [(45, 40), (51, 40), (64, 46), (64, 50)] {
-        lantern(p, a + x, g + 1, c + z);
-    }
-    for x in [41, 42, 43, 52, 53, 54] {
-        p.set(a + x, g, c + 39, if x % 2 == 0 { BLUMEN_ROT } else { BLUMEN_GELB });
-    }
-    for (x, z) in [(34, 44), (62, 36), (35, 59), (62, 58)] {
-        tree(p, a + x, c + z, g, 5 + (hash(a + x, c + z, 66) % 2) as i32, STAMM, LAUB, 69);
-    }
-    // Hängebrücke
-    p.fill(a + 66, g, c + 47, a + 73, g, c + 49, BRETTER);
-    for x in [66, 72] {
-        for z in [46, 50] {
-            p.fill(a + x, g, c + z, a + x, g + 3, c + z, DUNKELHOLZ);
-        }
-    }
-    for z in [46, 50] {
-        p.fill(a + 67, g + 2, c + z, a + 71, g + 2, c + z, DUNKELBRETT);
-    }
-    // Rohstoffinsel: Becken mit Wasser | Generatoren | Lava
-    p.fill(a + 76, g, c + 44, a + 84, g, c + 52, STEINZIEGEL);
-    for z in 44..=52 {
-        for x in 76..=84 {
-            let v = if x == 76 || x == 84 || z == 44 || z == 52 {
-                STEINZIEGEL
-            } else {
-                match x {
-                    77 | 78 => WASSER,
-                    79 | 81 => POLIERT,
-                    80 => match z {
-                        46 | 47 => GENERATOR,
-                        48 => KRISTALL,
-                        49 | 50 => SPLITTER_GEN,
-                        _ => POLIERT,
-                    },
-                    _ => LAVA,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Abschnitt 8: Haus-Hülle (Scheiben, Blumenkasten, Eckpfosten, Treppendach, Kronleuchter, freier Innenraum) und Marktstand.
+    #[test]
+    fn haus_und_stand() {
+        let mut b = vec![0u8; VOL];
+        let p = &mut Put { b: &mut b, ox: 0, oz: 0 };
+        house(p, 2, 2, 12, 8, 10, 2, &FACHWERK, SUED); // x 2..13, z 2..9, Stockwerke y 11..13 und 15..17, Traufe 18
+        for y in (11..=13).chain(15..=17) {
+            for z in 3..=8 {
+                for x in 3..=12 {
+                    assert!(matches!(p.get(x, y, z), 0 | KRONLEUCHTER), "Innenraum frei bei {x},{y},{z}");
                 }
-            };
-            p.set(a + x, g + 1, c + z, v);
+            }
         }
+        assert_eq!((p.get(8, 13, 6), p.get(8, 17, 6)), (KRONLEUCHTER, KRONLEUCHTER));
+        assert!(solid(p.get(8, 14, 6)) && solid(p.get(8, 18, 6)), "Leuchter hängen unter festen Blöcken");
+        assert_eq!((p.get(3, 12, 2), p.get(3, 13, 2), p.get(3, 11, 1)), (SCHEIBE, SCHEIBE, DUNKELBRETT));
+        assert!(BLUMEN.contains(&p.get(3, 12, 1)), "Blume im Kasten");
+        assert_eq!((p.get(2, 12, 2), p.get(2, 11, 2)), (DUNKELHOLZ, DUNKELHOLZ), "dunkler Eckpfosten");
+        assert_eq!(p.get(5, 19, 1), facing(TREPPE_DACH_N, ZU_S), "Treppendach mit Überstand");
+        assert!((11..=12).all(|y| p.get(7, y, 9) == 0 && p.get(8, y, 9) == 0), "Tür offen");
+        assert!(!b.iter().any(|&v| v == GLAS || v == LATERNE || v == BLUMEN_ROT || v == BLUMEN_GELB));
+
+        let mut b = vec![0u8; VOL];
+        let p = &mut Put { b: &mut b, ox: 0, oz: 0 };
+        stall(p, 4, 4, 10, (STOFF_BLAU, STOFF_WEISS), SAND, true);
+        assert_eq!((p.get(4, 11, 4), p.get(5, 11, 7), p.get(6, 11, 7), p.get(5, 12, 7)), (ZAUN, TRESEN, TRESEN, SAND));
+        assert_eq!((p.get(5, 11, 4), p.get(6, 14, 5), p.get(6, 13, 8)), (DEKOFASS, facing(MARKISE_BLAU_N, ZU_S), facing(MARKISE_BLAU_N, ZU_S)));
     }
-    for (x, z) in [(86, 42), (86, 54)] {
-        p.fill(a + x, g + 1, c + z, a + x, g + 4, c + z, KNOTEN_EICHE);
-        blob(p, a + x, g + 5, c + z, 2.2, LAUB);
+
+    /// Rasen ohne Würfelblumen (Allee, Spawn-Viertel, Himmels-Garten), Geländer an der Ostbrücke über der Leere.
+    #[test]
+    fn rasen_und_bruecken() {
+        let st = WorldState::default();
+        for (cx, cz) in [(15, 16), (14, 17), (5, 15)] {
+            let c = gen_chunk(cx, cz, st);
+            assert!(!c.iter().any(|&v| v == BLUMEN_ROT || v == BLUMEN_GELB), "Würfelblumen in Stück {cx},{cz}");
+            assert!(c.iter().any(|v| BLUMEN.contains(v)), "Kreuzblumen in Stück {cx},{cz}");
+        }
+        let c = gen_chunk(350 / 16, 238 / 16, st);
+        assert_eq!((c[idx(350 & 15, 31, 238 & 15)], c[idx(350 & 15, 30, 238 & 15)]), (GELAENDER, DUNKELBRETT));
+        assert_eq!(c[idx(350 & 15, 31, 240 & 15)], 0, "Brücke begehbar");
     }
-    lantern(p, a + 75, g + 1, c + 43);
-    fall(p, st, a + 24, c + 60, a + 31, c + 61, g, 6);
 }

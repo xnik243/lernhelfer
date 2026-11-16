@@ -126,7 +126,9 @@ pub struct Gfx {
     pub adapter_name: String,
 }
 
-const VOXEL_ATTRS: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![0 => Uint32, 1 => Uint32];
+const VOXEL_ATTRS: [wgpu::VertexAttribute; 3] = wgpu::vertex_attr_array![0 => Uint32, 1 => Uint32, 2 => Uint32];
+/// Bytes je Rechteck: 4 Eckpunkte à 3 × u32 (Format in campus_shared::mesh).
+const QUAD_BYTES: usize = 48;
 const CUBE_ATTRS: [wgpu::VertexAttribute; 2] = wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x3];
 const INST_ATTRS: [wgpu::VertexAttribute; 4] = wgpu::vertex_attr_array![2 => Float32x4, 3 => Float32x4, 4 => Float32x4, 5 => Unorm8x4];
 
@@ -219,7 +221,7 @@ impl Gfx {
         let layout = |l: &[&wgpu::BindGroupLayout]| device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor { label: None, bind_group_layouts: l, push_constant_ranges: &[] });
         let (l_env, l_main, l_clear, l_two, l_post) = (layout(&[&bgl_env]), layout(&[&bgl_main]), layout(&[&bgl_main, &bgl_clear]), layout(&[&bgl_main, &bgl_two]), layout(&[&bgl_main, &bgl_post]));
 
-        let voxel = [wgpu::VertexBufferLayout { array_stride: 8, step_mode: wgpu::VertexStepMode::Vertex, attributes: &VOXEL_ATTRS }];
+        let voxel = [wgpu::VertexBufferLayout { array_stride: 12, step_mode: wgpu::VertexStepMode::Vertex, attributes: &VOXEL_ATTRS }];
         let boxes = [
             wgpu::VertexBufferLayout { array_stride: 24, step_mode: wgpu::VertexStepMode::Vertex, attributes: &CUBE_ATTRS },
             wgpu::VertexBufferLayout { array_stride: std::mem::size_of::<Inst>() as u64, step_mode: wgpu::VertexStepMode::Instance, attributes: &INST_ATTRS },
@@ -393,10 +395,10 @@ impl Gfx {
     }
 
     /// Gitter eines Stücks hochladen; der Puffer wächst nur, wenn er zu klein ist.
-    pub fn upload(&self, c: &mut ChunkGpu, solid: &[[u32; 2]], clear: &[[u32; 2]]) {
+    pub fn upload(&self, c: &mut ChunkGpu, solid: &[[u32; 3]], clear: &[[u32; 3]]) {
         let sq = (solid.len() / 4).min(MAX_QUADS);
         let cq = (clear.len() / 4).min(MAX_QUADS - sq);
-        let bytes = ((sq + cq) * 32) as u64;
+        let bytes = ((sq + cq) * QUAD_BYTES) as u64;
         c.solid = sq as u32;
         c.clear = cq as u32;
         if bytes == 0 {
@@ -411,7 +413,7 @@ impl Gfx {
             self.queue.write_buffer(b, 0, bytemuck::cast_slice(&solid[..sq * 4]));
         }
         if cq > 0 {
-            self.queue.write_buffer(b, (sq * 32) as u64, bytemuck::cast_slice(&clear[..cq * 4]));
+            self.queue.write_buffer(b, (sq * QUAD_BYTES) as u64, bytemuck::cast_slice(&clear[..cq * 4]));
         }
     }
 
@@ -536,7 +538,7 @@ fn draw_solid(rp: &mut wgpu::RenderPass<'_>, chunks: &[ChunkGpu], list: &[u32]) 
         let c = &chunks[i as usize];
         let Some(b) = &c.buf else { continue };
         if c.solid > 0 {
-            rp.set_vertex_buffer(0, b.slice(..c.solid as u64 * 32));
+            rp.set_vertex_buffer(0, b.slice(..c.solid as u64 * QUAD_BYTES as u64));
             rp.draw_indexed(0..c.solid * 6, 0, 0..1);
             q += c.solid;
         }
@@ -551,7 +553,7 @@ fn draw_clear(rp: &mut wgpu::RenderPass<'_>, chunks: &[ChunkGpu], visible: &[u32
         let c = &chunks[i as usize];
         let Some(b) = &c.buf else { continue };
         if c.clear > 0 {
-            rp.set_vertex_buffer(0, b.slice(c.solid as u64 * 32..(c.solid + c.clear) as u64 * 32));
+            rp.set_vertex_buffer(0, b.slice(c.solid as u64 * QUAD_BYTES as u64..(c.solid + c.clear) as u64 * QUAD_BYTES as u64));
             rp.draw_indexed(0..c.clear * 6, 0, 0..1);
             q += c.clear;
         }

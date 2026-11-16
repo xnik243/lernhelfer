@@ -1066,6 +1066,7 @@ mod tests {
         tick(&mut g, LOBBY_MS + 1);
         // steht für einen laufenden KI-Auftrag, der nie zurückkommt (ohne tokio-Laufzeit)
         let sperre = g.now();
+        let off0 = g.clock_offset; // gemessen wird die simulierte Zeit; echte Laufzeit (ms-Takt) machte den Test wackelig
         {
             let d = g.duels.get_mut(&inst).unwrap();
             d.waiting = true;
@@ -1079,7 +1080,7 @@ mod tests {
         tick(&mut g, TIMEOUT_MS as i64 - 100);
         assert_eq!(g.duels[&inst].phase, Phase::Laden, "wartet, blockiert aber nichts");
         tick(&mut g, 100);
-        assert!(g.now() <= sperre + 6_500, "LAW 1: spätestens Sperre + 6,5 s");
+        assert!(g.clock_offset - off0 <= 6_500, "LAW 1: spätestens Sperre + 6,5 s");
         let d = &g.duels[&inst];
         assert_eq!((d.phase, d.qs.len(), d.waiting), (Phase::Frage, ROUNDS, false));
         let vorher: Vec<String> = d.qs.iter().map(|q| q.q.clone()).collect();

@@ -1,6 +1,7 @@
 //! Welt im Browser: geladene Stücke, Gitter nur bei Änderung neu, Strahl für das Ziel-Feld.
 use crate::gfx::{ChunkGpu, Gfx};
 use campus_shared::mesh::{self, MeshOut, PAD};
+use campus_shared::shape;
 use campus_shared::world::{self, WorldState, CH, VOL, WC, WORLD};
 use glam::Vec3;
 
@@ -148,20 +149,13 @@ impl World {
         world::raycast(|x, y, z| self.get(x, y, z), o.to_array(), d.to_array(), max)
     }
 
-    /// Stößt ein Körper (Füße bei p, 0,6 breit, 1,8 hoch) an feste Blöcke?
+    /// Stößt ein Körper (Füße bei p, 0,6 breit, 1,8 hoch) an feste Blöcke bzw. Teilblock-Kästen?
     pub fn collides(&self, p: Vec3) -> bool {
-        let (x0, x1) = ((p.x - 0.3).floor() as i32, (p.x + 0.3).floor() as i32);
-        let (y0, y1) = (p.y.floor() as i32, (p.y + 1.79).floor() as i32);
-        let (z0, z1) = ((p.z - 0.3).floor() as i32, (p.z + 0.3).floor() as i32);
-        for y in y0..=y1 {
-            for z in z0..=z1 {
-                for x in x0..=x1 {
-                    if world::solid(self.get(x, y, z)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
+        shape::body_hits(|x, y, z| self.get(x, y, z), p.to_array())
+    }
+
+    /// Ersteigen im Gehen (Treppe, Stufe, Tresen): Some(h) = um h anheben, None = Wand.
+    pub fn step_lift(&self, p: Vec3) -> Option<f32> {
+        shape::step_lift(|x, y, z| self.get(x, y, z), p.to_array())
     }
 }

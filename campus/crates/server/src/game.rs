@@ -196,8 +196,11 @@ create table if not exists duel_elo (user integer primary key, elo integer not n
 create table if not exists dungeon_best (user integer not null, stufe integer not null, note integer not null, ms integer not null, ts integer not null, primary key (user, stufe)) without rowid;
 ";
 const ALTER: &[&str] = &["alter table plots add column visit integer not null default 0"];
-/// Weltfassung: steigt sie, sind gespeicherte Stücke einer alten Grundwelt wertlos und werden verworfen.
-const WORLD_VERSION: &str = "3-archipel";
+/// Grundwelt (kv "welt"): steigt sie, sind gespeicherte Stücke einer alten Grundwelt wertlos und werden verworfen.
+const WORLD_BASE: &str = "3-archipel";
+/// Abschnitt 8: Fassung der Baupläne (kv "world_version", fehlt = 2). Steigt sie, baut `migrate_world` beim Start einmal
+/// Hub und Satelliten neu und hebt gespeicherte Privatinsel-Stücke auf die neue Vorlage – Spieler-Bauten bleiben.
+pub const WORLD_VERSION: u32 = 3;
 
 pub(crate) fn ci(cx: i32, cz: i32) -> usize {
     (cz * WC + cx) as usize
@@ -257,8 +260,11 @@ impl Game {
                 g.chunks.push(Chunk { b: world::gen_chunk(cx, cz, g.st), dirty: false, msg: None });
             }
         }
-        if g.kv("welt").as_deref() != Some(WORLD_VERSION) {
+        if g.kv("welt").as_deref() != Some(WORLD_BASE) {
             g.migrate()?;
+        }
+        if g.kv("world_version").and_then(|v| v.parse::<u32>().ok()).unwrap_or(2) < WORLD_VERSION {
+            g.migrate_world()?;
         }
         let rows: Vec<(i32, i32, Vec<u8>)> = g.db.prepare("select cx, cz, data from chunks")?.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect::<Result<_, _>>()?;
         for (cx, cz, data) in rows {
@@ -311,7 +317,31 @@ impl Game {
         for (mid, uid) in ms {
             self.minion_collect(uid, mid, true)?;
         }
-        self.kv_set("welt", WORLD_VERSION)?;
+        self.kv_set("welt", WORLD_BASE)?;
+        self.kv_set("world_version", &WORLD_VERSION.to_string())?;
+        Ok(())
+    }
+
+    /// Abschnitt 8 (einmal beim Start, vor dem Laden der Stücke): gespeicherte Hub-/Satelliten-Stücke löschen (sie entstehen neu
+    /// aus den Bauplänen), Privatinsel-Stücke Zelle für Zelle mit blueprints_v2::merge auf die neue Vorlage heben, dann
+    /// world_version setzen – alles in einer Transaktion, darum bricht ein Absturz mittendrin nichts.
+    fn migrate_world(&mut self) -> R<()> {
+        let rows: Vec<(i32, i32, Vec<u8>)> = self.db.prepare("select cx, cz, data from chunks")?.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect::<Result<_, _>>()?;
+        let tx = self.db.unchecked_transaction()?;
+        for (cx, cz, data) in rows {
+            if world::in_hub(cx * 16, cz * 16) || !(0..WC).contains(&cx) || !(0..WC).contains(&cz) {
+                tx.execute("delete from chunks where cx = ? and cz = ?", params![cx, cz])?;
+                continue;
+            }
+            let mut saved = vec![0u8; world::VOL];
+            if !world::unrle(&data, &mut saved) {
+                continue; // unlesbar: so lassen, wie es ist
+            }
+            let merged = campus_shared::blueprints_v2::merge(&saved, &campus_shared::blueprints_v2::gen_chunk(cx, cz), &world::gen_chunk(cx, cz, self.st));
+            tx.execute("update chunks set data = ? where cx = ? and cz = ?", params![world::rle(&merged), cx, cz])?;
+        }
+        tx.execute("insert into kv (k, v) values ('world_version', ?) on conflict (k) do update set v = excluded.v", [WORLD_VERSION.to_string()])?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -577,9 +607,10 @@ impl Game {
         self.send(u.id, &S2C::Welcome { id: u.id, pos, state: self.st });
         // gleich danach immer die Ankunft: gespeicherte Stelle, wenn Füße und Kopf frei sind und höchstens 2 darunter Boden ist;
         // sonst sicherer Boden an der eigenen Insel bzw. am Hub-Spawn (nicht die gespeicherte Spalte: dort läge das Dach)
+        // Körper wie im Browser (Treppen/Stufen: Füße auf halber Höhe zählen als frei)
         let free = |p: [f32; 3]| {
-            let (x, y, z) = (p[0].floor() as i32, p[1].floor() as i32, p[2].floor() as i32);
-            !world::solid(self.block(x, y, z)) && !world::solid(self.block(x, y + 1, z)) && (1..=2).any(|k| world::solid(self.block(x, y - k, z)))
+            let (x, y, z) = (p[0].floor() as i32, (p[1] - 0.01).floor() as i32, p[2].floor() as i32);
+            !campus_shared::shape::body_hits(|x, y, z| self.block(x, y, z), p) && (0..=2).any(|k| world::solid(self.block(x, y - k, z)))
         };
         match saved {
             Some(p) if free(p) => self.send(u.id, &S2C::Spawn { p, yaw: 0.0 }),
@@ -1022,4 +1053,92 @@ impl Game {
 
 pub fn plot_may(p: &Plot, uid: u32, group: u32) -> bool {
     (p.owner != 0 && p.owner == uid) || p.acl.contains(&uid) || (p.group != 0 && p.group == group)
+}
+
+#[cfg(test)]
+mod world_v3_tests {
+    use super::*;
+    use campus_shared::blueprints_v2;
+    use campus_shared::world::{FELS, GROSSE_TRUHE, SOCKEL, STAENDER, TRUHE, VOL};
+
+    fn at(v: &[u8], k: usize) -> u8 {
+        v.get(k).copied().unwrap_or(0)
+    }
+    fn row(g: &Game, cx: i32, cz: i32) -> Option<Vec<u8>> {
+        g.db.query_row("select data from chunks where cx = ? and cz = ?", params![cx, cz], |r| r.get(0)).optional().unwrap()
+    }
+
+    /// Stück des Platzes (5, 0) (Hütte), an dem sich alte und neue Vorlage am meisten unterscheiden.
+    fn pick(st: WorldState) -> (i32, i32, Vec<u8>, Vec<u8>) {
+        let mut best: Option<(usize, i32, i32, Vec<u8>, Vec<u8>)> = None;
+        for cz in 0..6 {
+            for cx in 30..36 {
+                let old = blueprints_v2::gen_chunk(cx, cz);
+                if old.is_empty() {
+                    continue;
+                }
+                let new = world::gen_chunk(cx, cz, st);
+                let n = (0..VOL).filter(|&k| at(&old, k) != at(&new, k)).count();
+                if best.as_ref().map_or(true, |b| n > b.0) {
+                    best = Some((n, cx, cz, old, new));
+                }
+            }
+        }
+        let (n, cx, cz, old, new) = best.expect("Platz (5,0) hat alte Vorlage");
+        assert!(n > 0, "alte und neue Vorlage gleich – nichts zu prüfen");
+        (cx, cz, old, new)
+    }
+
+    #[test]
+    fn frische_db_hat_version_3() {
+        let g = crate::testkit::game();
+        assert_eq!(g.kv("world_version").as_deref(), Some("3"));
+    }
+
+    #[test]
+    fn umzug_auf_version_3() {
+        let g = crate::testkit::game();
+        let path = g.db.path().expect("Datei-DB").to_string();
+        let st = g.st;
+        let (cx, cz, old, new) = pick(st);
+        let keep = |v: u8| matches!(v, TRUHE | GROSSE_TRUHE | STAENDER | SOCKEL);
+        // Spieler-FELS und TRUHE in Luft (alt wie neu leer), eine abgebaute Vorlagen-Zelle
+        let mut air = (0..VOL).rev().filter(|&k| at(&old, k) == 0 && at(&new, k) == 0);
+        let fels = air.next().expect("Luft");
+        let truhe = air.next().expect("Luft");
+        let gone = (0..VOL).find(|&k| at(&old, k) != 0 && at(&new, k) != 0 && !keep(at(&old, k))).expect("Vorlagen-Zelle");
+        let mut saved = old.clone();
+        saved[fels] = FELS;
+        saved[truhe] = TRUHE;
+        saved[gone] = 0;
+        let changed = (0..VOL).find(|&k| ![fels, truhe, gone].contains(&k) && at(&old, k) != at(&new, k) && !keep(at(&old, k))).expect("unterschiedliche Zelle");
+        g.db.execute("insert or replace into chunks (cx, cz, data) values (?, ?, ?)", params![cx, cz, world::rle(&saved)]).unwrap();
+        g.db.execute("insert or replace into chunks (cx, cz, data) values (15, 15, ?)", [world::rle(&vec![FELS; VOL])]).unwrap();
+        g.kv_set("world_version", "2").unwrap();
+        drop(g);
+
+        let g = Game::open(&path).unwrap();
+        assert_eq!(g.kv("world_version").as_deref(), Some("3"));
+        assert!(row(&g, 15, 15).is_none(), "Hub-Zeile gelöscht");
+        assert_eq!(g.chunks[ci(15, 15)].b, world::gen_chunk(15, 15, st), "Hub neu aus den Bauplänen");
+        let b = &g.chunks[ci(cx, cz)].b;
+        assert_eq!(b[fels], FELS, "Spieler-Block bleibt");
+        assert_eq!(b[truhe], TRUHE, "Truhe bleibt");
+        assert_eq!(b[gone], 0, "Abbau bleibt");
+        assert_eq!(b[changed], at(&new, changed), "unberührte Zelle trägt die neue Vorlage");
+        let (x, y, z) = ((changed % 16) as i32 + cx * 16, (changed / 256) as i32, ((changed / 16) % 16) as i32 + cz * 16);
+        assert_eq!(world::idx(x & 15, y, z & 15), changed);
+        assert_eq!(g.block(x, y, z), at(&new, changed));
+        let first = row(&g, cx, cz).expect("Privat-Zeile bleibt");
+        drop(g);
+
+        // idempotent: normal neu öffnen, und selbst ein erzwungener zweiter Umzug ändert kein Byte
+        let g = Game::open(&path).unwrap();
+        assert_eq!(row(&g, cx, cz).as_ref(), Some(&first));
+        g.kv_set("world_version", "2").unwrap();
+        drop(g);
+        let g = Game::open(&path).unwrap();
+        assert_eq!(row(&g, cx, cz).as_ref(), Some(&first), "zweiter Umzug byte-gleich");
+        assert_eq!(g.kv("world_version").as_deref(), Some("3"));
+    }
 }

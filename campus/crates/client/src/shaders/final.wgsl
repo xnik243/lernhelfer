@@ -76,7 +76,8 @@ fn gtao(pix: vec2<i32>, wp: vec3<f32>, dist: f32) -> f32 {
       let ps = world_from((vec2<f32>(q) + 0.5) * g.scr.zw, d);
       let v = ps - wp;
       let l = length(v);
-      if l > 0.01 && l < 1.6 { occ = occ + max(dot(n, v / l) - 0.15, 0.0) * (1.0 - l / 1.6); }
+      // Abschnitt 8: Mindest-Tiefenunterschied 0,045 Blöcke entlang der Normalen – flache Böden/Wiesen verdecken sich nicht selbst
+      if l > 0.01 && l < 1.6 && dot(n, v) > 0.045 { occ = occ + max(dot(n, v / l) - 0.15, 0.0) * (1.0 - l / 1.6); }
     }
   }
   return clamp(1.0 - occ / 6.0 * 1.8, 0.35, 1.0);
