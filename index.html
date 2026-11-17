@@ -1371,6 +1371,8 @@ aussehen();
           <p class="klein" data-en="Word Power Journal, talk script, cue card, learning strategies and progress table from the transcript. With bullet points you also get a reflection draft.">Word Power Journal, Talk-Skript, Cue Card, Lernstrategien und Progress-Tabelle aus dem Transkript. Mit Stichpunkten kommt ein Reflection-Entwurf dazu.</p>
           <label class="feld"><span><span data-en="Bullet points for the reflection">Stichpunkte für die Reflection</span> <span class="opt">optional</span></span>
             <textarea id="wp-notes" name="notizen" placeholder="Was ist diese Woche passiert, was war schwierig, was hat dich überrascht? …" data-en-ph="What happened this week, what was difficult, what surprised you? …"></textarea></label>
+          <label class="feld"><span><span data-en="Guidance for the AI">Anweisungen an die KI</span> <span class="opt">optional</span></span>
+            <textarea id="wp-guide" name="anweisungen" placeholder="z. B. Inkludiere xyz · Schreib mit … im Hinterkopf · Zusatz zur Aufgabe: …" data-en-ph="e.g. Include xyz · Write with … in mind · Extra for the task: …"></textarea></label>
           <div class="knopfreihe"><button id="wp-hwgo" class="knopf voll" type="button" data-en="Create homework from transcript">Hausaufgabe aus Transkript erstellen</button></div>
           <p id="wp-hwst" class="wp-status" role="status"></p>
           <nav class="abschnitte wp-fassung" id="wp-fassung" aria-label="Fassung" hidden>
@@ -4238,13 +4240,15 @@ $('wp-sperre').onsubmit = async e => {
 $('wp-zu').onclick = () => { WP = null; wordpower(); $('wp-sperre-text').textContent = ue('Gesperrt.', 'Locked.'); };
 $('wp-sprache').onclick = spracheWechseln;
 spracheStatisch();
-for (const [id, k] of [['wp-url', 'wp.url'], ['wp-out', 'wp.out'], ['wp-notes', 'wp.notes'], ['wp-woerter', 'wp.woerter']]) {
+for (const [id, k] of [['wp-url', 'wp.url'], ['wp-out', 'wp.out'], ['wp-notes', 'wp.notes'], ['wp-guide', 'wp.guide'], ['wp-woerter', 'wp.woerter']]) {
   $(id).value = merk(k) || '';
   $(id).addEventListener('input', () => { merk(k, $(id).value); wordpower(); });
 }
 $('wp-url').addEventListener('change', wpNachschlagen);
-$('wp-dl').onclick = () => speichern($('wp-out').value, 'transkript.txt', 'text/plain;charset=utf-8');
-const wpName = endung => `Word Power${WP_KURZ ? '' : ' (voll)'}.${endung}`;
+// Dateiname = YouTube-Titel (ohne Zeichen, die Windows/iOS in Dateinamen verbieten), sonst „Word Power“
+const wpDateiTitel = () => wpTitel.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').replace(/[\s.]+$/, '').trim().slice(0, 150) || 'Word Power';
+$('wp-dl').onclick = () => speichern($('wp-out').value, wpDateiTitel() + '.txt', 'text/plain;charset=utf-8');
+const wpName = endung => `${wpDateiTitel()}${WP_KURZ ? '' : ' voll'}.${endung}`;
 $('wp-hwdl').onclick = async () => {
   const { d } = await wpSeite();
   speichern(WP_KURZ ? `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Word Power</title><style>${WP_KURZ_CSS}</style></head><body>${d.innerHTML}</body></html>` : wpDoc, wpName('html'), 'text/html;charset=utf-8');
@@ -4282,7 +4286,8 @@ $('wp-hwgo').onclick = async () => {
   await wpBeschaeftigt($('wp-hwgo'), true); wpSag(st, ue('Starte …', 'Starting …'), 'presse');
   const notizen = $('wp-notes').value;
   const nachricht = `Talk: ${wpTitel}\nLink: ${wpVideo() || $('wp-url').value.trim()}\n\nTranscript:\n${$('wp-out').value}\n\n`
-    + (notizen.trim() ? `Student's notes for the reflection:\n${notizen}` : 'No notes given: skip section 7.');
+    + (notizen.trim() ? `Student's notes for the reflection:\n${notizen}` : 'No notes given: skip section 7.')
+    + ($('wp-guide').value.trim() ? `\n\nExtra instructions from the student (follow them; they may add content, set a focus or extend the task):\n${$('wp-guide').value.trim()}` : '');
   try {
     const { text, preis } = await strom({ model: WP_MODELL, feature: 'wp-text', reasoning: { effort: 'medium' }, messages: [
       { role: 'system', content: WP.homework + '\nIn section 5, start the two strategies with <h3>Strategy 1: short name</h3> and <h3>Strategy 2: short name</h3>.' }, { role: 'user', content: nachricht }] },
