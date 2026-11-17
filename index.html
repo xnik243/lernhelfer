@@ -4537,7 +4537,7 @@ $('wp-hwgo').onclick = async () => {
     + (notizen.trim() ? `Student's notes for the reflection:\n${notizen}` : 'No notes given: skip section 7.')
     + ($('wp-guide').value.trim() ? `\n\nExtra instructions from the student (follow them; they may add content, set a focus or extend the task):\n${$('wp-guide').value.trim()}` : '');
   try {
-    const { text, preis } = await strom({ model: wpModell('wpText'), feature: 'wp-text', reasoning: { effort: 'medium' }, messages: [
+    const { text, preis } = await strom({ model: wpModell('wpText'), feature: 'wp-text', reasoning: { effort: 'max' }, messages: [
       { role: 'system', content: WP.homework + '\nIn section 5, start the two strategies with <h3>Strategy 1: short name</h3> and <h3>Strategy 2: short name</h3>.' }, { role: 'user', content: nachricht }] },
       t => wpSag(st, ue('Schreibt … ', 'Writing … ') + t.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length + ue(' Wörter', ' words'), 'presse'),
       () => wpSag(st, ue('Denkt nach …', 'Thinking …'), 'presse'));
