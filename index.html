@@ -455,6 +455,12 @@
   .nr.ok::after { content: ""; position: absolute; inset: 6px; background: var(--ok); -webkit-mask: var(--haken) center / contain no-repeat; mask: var(--haken) center / contain no-repeat; }
   #wp-out { min-height: 16rem; font-variant-numeric: tabular-nums; }
   #wp-notes, #wp-woerter { min-height: 8rem; }
+  .wpm-form { display: grid; gap: 12px; }
+  .wpm-zeile { padding: 14px 16px; border: 1px solid var(--linie); border-radius: var(--r); }
+  .wpm-zeile .feld { margin: 0; }
+  .wpm-zeile .zeile { display: flex; gap: 8px; }
+  .wpm-zeile input { flex: 1; min-width: 0; }
+  .wpm-zeile > p { margin: 8px 0 0; }
   .wp-vgl { margin: 12px 0 16px; padding: 12px 16px; border: 1px solid var(--linie); border-radius: var(--r); }
   .wp-vgl summary { cursor: pointer; font-weight: 600; }
   .wp-vgl[open] summary { margin-bottom: 8px; }
@@ -1347,7 +1353,7 @@ aussehen();
           <p class="schlagzeile" id="wp-zeile">Vom YouTube-Talk zum Hausaufgaben-Entwurf</p>
           <p class="meta" data-en="English, Communication in Business">Englisch, Communication in Business</p>
         </div>
-        <div class="kopf-aktionen"><a class="knopf" id="wp-normal" href="#/wordpower" hidden data-en="Normal view">Normale Ansicht</a><button class="knopf" type="button" id="wp-sprache">English</button></div>
+        <div class="kopf-aktionen"><a class="knopf" id="wp-modelle" href="#/admin" hidden>KI-Modelle einstellen</a><a class="knopf" id="wp-normal" href="#/wordpower" hidden data-en="Normal view">Normale Ansicht</a><button class="knopf" type="button" id="wp-sprache">English</button></div>
       </header>
       <nav class="abschnitte wp-teile" id="wp-teile" aria-label="Teile von Word Power"></nav>
       <div id="wp-extra" class="wp-extra" hidden></div>
@@ -3963,6 +3969,19 @@ function spracheStatisch() {  // feste Texte der Word-Power-Seite: data-en hat d
 }
 const WP_TRANSKRIPT = 'google/gemini-3.8-flash';  // nur Gemini über Google AI Studio nimmt YouTube-Links
 const WP_MODELL = 'openai/gpt-6-luna';
+// Word Power je Aufgabe ein eigenes Modell, einstellbar in der Admin-Ecke unter „Word Power: KI-Modelle“ (leer = Vorgabe).
+// kosten: grobe Token je Lauf [Eingabe, Ausgabe] für die Schätzung dort; kontext: so viel Token braucht die Aufgabe mindestens.
+const WP_AUFGABEN = [
+  { k: 'wpTranskript', schluessel: 'LH_WP_TRANSKRIPT', name: 'Transkript', video: true, kontext: 0, kosten: [270e3, 5e3], lauf: 'ein 15-Minuten-Talk',
+    was: 'Sieht sich das YouTube-Video an und schreibt alles mit Zeitstempeln mit, auch beim Talk-Vergleich (einmal je Talk).', vorgabe: () => transkriptModell(WP_TRANSKRIPT) },
+  { k: 'wpVergleich', schluessel: 'LH_WP_VERGLEICH', name: 'Talks vergleichen', json: true, kontext: 32e3, kosten: [20e3, 6e3], lauf: '3 Talks vergleichen',
+    was: 'Liest die Transkripte von bis zu 3 Talks und schreibt die ausführlichen Zusammenfassungen und die Unterschiede.' },
+  { k: 'wpText', schluessel: 'LH_WP_TEXT', name: 'Hausaufgabe', kontext: 16e3, kosten: [8e3, 8e3], lauf: 'eine Hausaufgabe',
+    was: 'Schreibt den Hausaufgaben-Entwurf aus dem Transkript und erledigt die Wochenaufgaben.' },
+  { k: 'wpReflexion', schluessel: 'LH_WP_REFLEXION', name: 'Reflection-Feedback', json: true, kontext: 8e3, kosten: [3e3, 3e3], lauf: 'ein Feedback',
+    was: 'Liest eine fertige Reflection und gibt Rückmeldung (für alle, wenn es eingeschaltet ist).' }];
+const wpVorgabe = a => a.vorgabe ? a.vorgabe() : WP_MODELL;
+const wpModell = k => { const a = WP_AUFGABEN.find(x => x.k === k); return modelle()[k] || wpVorgabe(a); };
 const WP_DOC_CSS = ':root{color-scheme:light}html{background:#fdfbf6}'
   + 'body{max-width:780px;margin:0 auto;padding:40px;padding:clamp(24px,5vw,56px);color:#1b2130;'
   + 'font:17px/1.65 Literata,"Iowan Old Style",Georgia,serif}'
@@ -3982,7 +4001,7 @@ const wpVoll = () => !!ICH?.ecke && location.hash === '#/wordpower/voll';
 const wpDarf = f => darf(f, !wpVoll());
 function wordpower() {
   const hoeren = wpDarf('wp-transkript'), text = wpDarf('wp-text');
-  $('wp-normal').hidden = !wpVoll();
+  $('wp-normal').hidden = $('wp-modelle').hidden = !wpVoll();
   if (SERVER && !WP && !WP_LAEDT && hoeren) {  // Server: Prompts mit dem Tarif statt mit Passwort
     WP_LAEDT = true;
     api('geschuetzt/wordpower').then(j => { WP = j; }, e => status(e.message, true)).finally(() => { WP_LAEDT = false; if (WP && document.body.dataset.ansicht === 'wordpower') wordpower(); });
@@ -4116,7 +4135,7 @@ const eaFinden = () => eaLauf('finden', async () => {
 });
 const eaMachen = (i, notiz) => eaLauf(i, async () => {
   const a = EA.liste.aufgaben[i];
-  const { text } = await strom({ model: WP_MODELL, reasoning: { effort: 'medium' }, feature: 'wp-text', plugins: [{ id: 'web', max_results: 6 }], messages: [
+  const { text } = await strom({ model: wpModell('wpText'), reasoning: { effort: 'medium' }, feature: 'wp-text', plugins: [{ id: 'web', max_results: 6 }], messages: [
     { role: 'system', content: EA_MACHEN },
     { role: 'user', content: `Aufgabe: ${a.titel}\n${a.beschreibung}${a.frist ? `\nFrist: ${a.frist}` : ''}${notiz ? `\n\nWünsche des Studenten: ${notiz}` : ''}` }] },
     t => { EA.hinweis = `Schreibt … ${t.split(/\s+/).length} Wörter`; }, () => { EA.hinweis = 'Sucht und denkt nach …'; });
@@ -4291,7 +4310,7 @@ $('wp-tform').onsubmit = async e => {
   await wpBeschaeftigt($('wp-go'), true);
   wpNachschlagen(); wpSag(st, ue('Gemini sieht sich das Video an …', 'Gemini is watching the video …'), 'presse');
   try {
-    const { text, preis } = await strom({ model: transkriptModell(WP_TRANSKRIPT), feature: 'wp-transkript', stil: false, ...nurGoogle(transkriptModell(WP_TRANSKRIPT)), reasoning: { effort: 'low' },
+    const { text, preis } = await strom({ model: wpModell('wpTranskript'), feature: 'wp-transkript', stil: false, ...nurGoogle(wpModell('wpTranskript')), reasoning: { effort: 'low' },
       messages: [{ role: 'user', content: [{ type: 'text', text: WP.transcribe }, { type: 'video_url', video_url: { url: v } }] }] },
       t => {
         const o = $('wp-out'), marken = t.match(/\d\d:\d\d:\d\d/g);
@@ -4315,7 +4334,7 @@ $('wp-hwgo').onclick = async () => {
     + (notizen.trim() ? `Student's notes for the reflection:\n${notizen}` : 'No notes given: skip section 7.')
     + ($('wp-guide').value.trim() ? `\n\nExtra instructions from the student (follow them; they may add content, set a focus or extend the task):\n${$('wp-guide').value.trim()}` : '');
   try {
-    const { text, preis } = await strom({ model: WP_MODELL, feature: 'wp-text', reasoning: { effort: 'medium' }, messages: [
+    const { text, preis } = await strom({ model: wpModell('wpText'), feature: 'wp-text', reasoning: { effort: 'medium' }, messages: [
       { role: 'system', content: WP.homework + '\nIn section 5, start the two strategies with <h3>Strategy 1: short name</h3> and <h3>Strategy 2: short name</h3>.' }, { role: 'user', content: nachricht }] },
       t => wpSag(st, ue('Schreibt … ', 'Writing … ') + t.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length + ue(' Wörter', ' words'), 'presse'),
       () => wpSag(st, ue('Denkt nach …', 'Thinking …'), 'presse'));
@@ -4370,7 +4389,7 @@ $('wp-vgo').onclick = async () => {
   VGL.talks = links.map(url => ({ url, titel: '', autor: '', transkript: '', text: '', fehler: '', hinweis: ue('Gemini sieht sich den Talk an …', 'Gemini is watching the talk …') }));
   VGL.unterschiede = ''; VGL_LAEUFT = true;
   await wpBeschaeftigt($('wp-vgo'), true); wpVglZeigen();
-  const uhr = setInterval(wpVglZeigen, 1000), m = transkriptModell(WP_TRANSKRIPT);
+  const uhr = setInterval(wpVglZeigen, 1000), m = wpModell('wpTranskript');
   let summe = 0;
   try {
     await Promise.all(VGL.talks.map(async k => {
@@ -4386,7 +4405,7 @@ $('wp-vgo').onclick = async () => {
     const da = VGL.talks.filter(k => k.transkript);
     da.forEach(k => { k.hinweis = ue('Vergleicht die Talks …', 'Comparing the talks …'); });
     if (da.length) {
-      const { text, preis } = await strom({ model: WP_MODELL, feature: 'wp-transkript', reasoning: { effort: 'medium' }, response_format: { type: 'json_object' }, messages: [
+      const { text, preis } = await strom({ model: wpModell('wpVergleich'), feature: 'wp-transkript', reasoning: { effort: 'medium' }, response_format: { type: 'json_object' }, messages: [
         { role: 'system', content: WP_VGL(da.length, !EN) },
         { role: 'user', content: da.map((k, i) => `=== Talk ${i + 1}: ${k.titel || k.url}${k.autor ? ` (${k.autor})` : ''} ===\n${k.transkript}`).join('\n\n') }] }, () => {});
       const j = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
@@ -4645,7 +4664,7 @@ function wpReflexion() {
     const uhr = setInterval(() => presseZeigen('wp-refl', WPT.laeuft), 1000);
     await wach(true);
     try {
-      const { text: antwort } = await strom({ model: WP_MODELL, reasoning: { effort: 'medium' }, feature: 'reflexion', response_format: { type: 'json_object' },
+      const { text: antwort } = await strom({ model: wpModell('wpReflexion'), reasoning: { effort: 'medium' }, feature: 'reflexion', response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: WP_REFL_AUFTRAG() }, { role: 'user', content: text.value }] }, () => { WPT.laeuft.hinweis = ue('Schreibt die Rückmeldung …', 'Writing the feedback …'); }, () => { WPT.laeuft.hinweis = ue('Denkt nach …', 'Thinking …'); });
       const j = JSON.parse(antwort.slice(antwort.indexOf('{'), antwort.lastIndexOf('}') + 1)), liste = x => Array.isArray(x) ? x.filter(Boolean) : [];
       WPT.ergebnis = { ...j, woerter: woerterVon(text.value), punkte: liste(j.punkte), fragen: liste(j.fragen), sprache: liste(j.sprache).filter(s => s.zitat), staerken: liste(j.staerken) };
@@ -6970,6 +6989,9 @@ async function adminZeigen() {
       await api('admin/schluessel', { LH_MODELL: neu.model, LH_MODELL_DENKEN: neu.denken, LH_MODELL_TRANSKRIPT: neu.transkript, LH_MODELL_CHECK: neu.check, weg: [!neu.transkript && 'LH_MODELL_TRANSKRIPT', !neu.check && 'LH_MODELL_CHECK'].filter(Boolean) });
       TARIFE = await api('tarife');
     }),
+    el('h2', { id: 'admin-wp-modelle' }, 'Word Power: KI-Modelle'),
+    el('p', { class: 'klein' }, 'Ein eigenes Modell für jeden Schritt von Word Power. Leer lassen heißt: die Vorgabe (steht grau im Feld). Jede ID wird beim Tippen gegen OpenRouter geprüft: ob es das Modell gibt, ob es die Aufgabe kann und was ein Lauf ungefähr kostet. Gespeichert wird nur, wenn alles passt; es gilt ab der nächsten Anfrage für alle.'),
+    wpModellKarte(),
     el('h2', {}, 'Volle Werkzeuge'),
     el('p', { class: 'klein' }, 'Nur für dich, solange die Ecke offen ist: Word Power mit Hausaufgaben-Entwurf (nur über den Knopf hier; über die Seitenleiste siehst du Word Power wie alle anderen) und der Löser mit den Originalzahlen. Alle anderen bekommen nur das Transkript. Löser und Test-Fotos sind auf Eis: Nur wer von dir unten bei „Tarif von Hand“ den Zusatz Manual Access bekommt, sieht sie, und dann nur als Lösungsweg an Übungsaufgaben mit anderen Zahlen.'),
     el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower/voll' }, 'Word Power, voll'), el('a', { class: 'knopf voll', href: '#/onlinetests' }, 'Onlinetests mit vollem Löser')),
@@ -7147,11 +7169,72 @@ function modellKarte(m, speichern) {
     el('label', { class: 'feld' }, 'Nachdenken', el('select', { name: 'denken' }, DENKSTUFEN.map(([w, t]) => el('option', { value: w, selected: m.denken === w }, t)))),
     el('label', { class: 'feld' }, el('span', {}, 'Transkript-Modell ', el('span', { class: 'opt' }, 'leer: Gemini wie bisher')),
       id('transkript', m.transkript, 'google/gemini-3.8-flash'),
-      el('span', { class: 'meta' }, 'Für Word Power, Vortrag und YouTube-Videos. YouTube-Links und Tonspuren versteht nur Gemini (google/…), andere Modelle scheitern daran.')),
+      el('span', { class: 'meta' }, 'Für Vortrag und YouTube-Videos, und für Word Power, solange dort unter „Word Power: KI-Modelle“ kein eigenes steht. YouTube-Links und Tonspuren versteht nur Gemini (google/…), andere Modelle scheitern daran.')),
     SERVER && el('label', { class: 'feld' }, el('span', {}, 'Prüf-Modell ', el('span', { class: 'opt' }, 'leer: Standard-Modell')),
       id('check', m.check || '', m.model),
       el('span', { class: 'meta' }, 'Prüft die Antworten auf Check-Fragen, für alle Tarife, mit wenig Nachdenken.')),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, 'Als Standard setzen'),
+      el('a', { class: 'knopf', href: 'https://openrouter.ai/models', target: '_blank', rel: 'noopener' }, 'Modelle auf OpenRouter')), hinweis);
+}
+// Word Power: Modell je Aufgabe, jede ID live gegen die Modellliste von OpenRouter geprüft
+let OR_LISTE = null;
+const orModelle = () => OR_LISTE ??= fetch('https://openrouter.ai/api/v1/models').then(r => r.ok ? r.json() : Promise.reject())
+  .then(j => new Map(j.data.map(m => [m.id, m])), () => { OR_LISTE = null; return null; });
+async function wpModellPruefen(a, id) {  // → { ok, text }
+  if (!MODELL_ID.test(id)) return { ok: false, text: 'So sieht keine OpenRouter-ID aus. Richtig wäre etwa google/gemini-3.8-flash: Anbieter, Schrägstrich, Modell.' };
+  const liste = await orModelle();
+  if (!liste) return { ok: true, text: 'OpenRouter ist gerade nicht erreichbar, nur das Format ist geprüft.' };
+  const m = liste.get(id);
+  if (!m) {  // ähnlichste ID vom selben Anbieter vorschlagen: längster gemeinsamer Anfang
+    const gleich = s => { let i = 0; while (i < s.length && s[i] === id[i]) i++; return i; };
+    const tipp = [...liste.keys()].filter(x => x.split('/')[0] === id.split('/')[0]).sort((x, y) => gleich(y) - gleich(x) || Math.abs(x.length - id.length) - Math.abs(y.length - id.length))[0];
+    return { ok: false, text: `Dieses Modell gibt es auf OpenRouter nicht.${tipp ? ` Meintest du ${tipp}?` : ' Den Anbieter gibt es dort auch nicht.'}` };
+  }
+  const ein = m.architecture?.input_modalities || ['text'], p = m.supported_parameters || [];
+  if (a.video && (!id.startsWith('google/') || !ein.includes('video'))) return { ok: false, text: `${m.name} kann keine YouTube-Videos ansehen. Fürs Transkript geht nur Gemini (google/…) mit Video-Eingabe.` };
+  if (!(m.architecture?.output_modalities || ['text']).includes('text')) return { ok: false, text: `${m.name} schreibt keinen Text.` };
+  if (a.json && !p.some(x => x === 'response_format' || x === 'structured_outputs')) return { ok: false, text: `${m.name} kann kein JSON liefern, das braucht dieser Schritt.` };
+  if (m.context_length < a.kontext) return { ok: false, text: `${m.name} hat nur ${Math.round(m.context_length / 1000)}k Token Kontext, gebraucht werden mindestens ${a.kontext / 1000}k.` };
+  const pe = +m.pricing?.prompt, pa = +m.pricing?.completion, preis = pe >= 0 && pa >= 0 ? ` · ${geld(pe * 1e6)} / ${geld(pa * 1e6)} pro Mio. Token rein/raus · ${a.lauf} ≈ ${geld(pe * a.kosten[0] + pa * a.kosten[1])}` : ' · Preis je nach Anbieter';
+  return { ok: true, text: `✓ ${m.name}${preis}` };
+}
+function wpModellKarte() {
+  const zeilen = WP_AUFGABEN.map(a => {
+    const feld = el('input', { name: a.k, value: modelle()[a.k] || '', placeholder: wpVorgabe(a), autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-describedby': 'wpm-' + a.k });
+    const info = el('p', { class: 'meta', id: 'wpm-' + a.k, role: 'status' }), jetzt = el('span', { class: 'meta' });
+    let nr = 0;
+    const pruefen = async () => {
+      const n = ++nr, id = feld.value.trim() || wpVorgabe(a);
+      jetzt.textContent = feld.value.trim() ? 'eigenes Modell' : 'Vorgabe';
+      info.textContent = 'Prüfe …'; info.className = 'meta';
+      const r = await wpModellPruefen(a, id);
+      if (n === nr) { info.textContent = r.text; info.className = r.ok ? 'meta' : 'fehlertext'; }
+      return r.ok;
+    };
+    let warte;
+    feld.oninput = () => { clearTimeout(warte); warte = setTimeout(pruefen, 400); };
+    pruefen();
+    return { a, feld, pruefen, knoten: el('div', { class: 'wpm-zeile' },
+      el('label', { class: 'feld' }, el('span', {}, el('b', {}, a.name), ' · ', jetzt), el('span', { class: 'meta' }, a.was),
+        el('span', { class: 'zeile' }, feld, el('button', { class: 'knopf', type: 'button', onclick: () => { feld.value = ''; pruefen(); } }, 'Vorgabe'))),
+      info) };
+  });
+  const hinweis = el('p', { class: 'klein', role: 'status' });
+  return el('form', { class: 'wpm-form', onsubmit: async e => {
+    e.preventDefault();
+    const knopf = e.submitter; knopf.disabled = true; hinweis.textContent = 'Prüfe alle …';
+    const ok = await Promise.all(zeilen.map(z => z.pruefen()));
+    const falsch = zeilen.find((z, i) => !ok[i]);
+    if (falsch) { hinweis.textContent = `Nicht gespeichert: ${falsch.a.name} passt so nicht (rot markiert).`; falsch.feld.focus(); knopf.disabled = false; return; }
+    const b = { weg: [] };
+    for (const { a, feld } of zeilen) feld.value.trim() ? b[a.schluessel] = feld.value.trim() : b.weg.push(a.schluessel);
+    try {
+      await api('admin/schluessel', b); TARIFE = await api('tarife');
+      hinweis.textContent = 'Gespeichert. ' + zeilen.map(({ a }) => `${a.name}: ${wpModell(a.k)}`).join(' · ');
+    } catch (err) { hinweis.textContent = err.message; }
+    knopf.disabled = false;
+  } }, zeilen.map(z => z.knoten),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, 'Word-Power-Modelle speichern'),
       el('a', { class: 'knopf', href: 'https://openrouter.ai/models', target: '_blank', rel: 'noopener' }, 'Modelle auf OpenRouter')), hinweis);
 }
 async function rechtZeigen() {

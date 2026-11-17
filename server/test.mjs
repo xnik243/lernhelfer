@@ -452,6 +452,14 @@ try {
   assert.deepEqual([ar.mit, ar.xp, ar.liste[0].name, ar.liste[0].xp, ar.liste[0].ich], [true, 0, 'Maxi', 0, true], 'XP vom Gerät zählen nicht');
   assert.equal((await chef('POST', '/api/arena', { name: 'maxi' })).status, 409, 'Spitzname vergeben');
   ar = (await max('POST', '/api/arena/tag', {})).j;
+  // Word Power je Aufgabe: falsche IDs nicht, gesetztes Modell steht in /tarife und geht beim Transkript durch, Löschen führt zum Standard zurück
+  assert.equal((await chef('POST', '/api/admin/schluessel', { LH_WP_VERGLEICH: 'kein modell' })).status, 400);
+  await chef('POST', '/api/admin/schluessel', { LH_WP_VERGLEICH: 'x-ai/grok-9-mini' });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpVergleich, 'x-ai/grok-9-mini');
+  assert.equal((await chef('POST', '/api/ki', { feature: 'wp-transkript', model: 'x-ai/grok-9-mini', messages: [{ role: 'user', content: 'x' }] })).status, 200);
+  assert.equal(or.anfragen.at(-1).model, 'x-ai/grok-9-mini');
+  await chef('POST', '/api/admin/schluessel', { weg: ['LH_WP_VERGLEICH'] });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpVergleich, '');
   assert.deepEqual([ar.neu.xp, ar.neu.serie, ar.serie.tage, ar.serie.heute, ar.xp], [10, 1, 1, true, 10], 'Anmelde-XP');
   assert.equal((await max('POST', '/api/arena/tag', {})).j.neu, null, 'nur einmal am Tag');
   assert.equal((await max('POST', '/api/arena/runde', { start: 7 })).status, 400, 'nur feste Längen');
