@@ -755,6 +755,209 @@
   .arena-abzeichen { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
   .arena-abzeichen li { display: grid; gap: 2px; padding: 10px 12px; border: 1px dashed var(--linie-2); border-radius: var(--r-l); opacity: 0.55; }
   .arena-abzeichen li.hat { border: 1px solid var(--akzent); background: var(--akzent-flaeche); opacity: 1; }
+  .arena-plan { padding: 10px 14px; border-radius: var(--r-l); background: var(--akzent-flaeche); }
+
+  /* Arena-Lernmethoden. Jede Stimmung hat eine Farbe zum Wiedererkennen (wie die Fächer); Handlung bleibt Königsblau. */
+  :root { --k-neugier: #e8590c; --k-knobeln: #ae3ec9; --k-bauen: #2f9e44; --k-leicht: #1098ad; --k-woop: #656d7a; --auf-kat: #ffffff; }
+  :root[data-thema="dunkel"] { --k-neugier: #ffa94d; --k-knobeln: #e599f7; --k-bauen: #8ce99a; --k-leicht: #66d9e8; --k-woop: #949ba8; --auf-kat: #111317; }
+  [data-kat="neugier"] { --kat: var(--k-neugier); } [data-kat="knobeln"] { --kat: var(--k-knobeln); } [data-kat="bauen"] { --kat: var(--k-bauen); }
+  [data-kat="leicht"] { --kat: var(--k-leicht); } [data-kat="woop"] { --kat: var(--k-woop); }
+  [data-kat] { --kat-text: color-mix(in srgb, var(--kat) 70%, var(--text)); --kat-flaeche: color-mix(in srgb, var(--kat) 11%, var(--bg)); }
+  .m-zeichen { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--kat, var(--akzent)); color: var(--auf-kat); }
+  .m-zeichen svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .m-beleg { display: inline-flex; flex: none; gap: 3px; }
+  .m-beleg i { width: 8px; height: 8px; border: 1.5px solid var(--kat-text, var(--text-3)); border-radius: 50%; }
+  .m-beleg i[data-an] { background: var(--kat-text, var(--text-2)); }
+  .knopf.gross { width: 100%; min-height: 52px; padding: 12px 20px; border-radius: var(--r-l); font-size: 1rem; }
+  .knopf.leise { border-color: transparent; background: transparent; box-shadow: none; color: var(--text-2); }
+  @media (hover: hover) { .knopf.leise:hover { background: color-mix(in srgb, var(--text) 7%, transparent); } }
+
+  /* Einstieg: Energie-Regler über der Karte, Stimmungen darunter, rechts (schmal: darunter) das Blatt */
+  .methoden-kopf { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 40px; margin: 4px 0 18px; }
+  .methoden-kopf h2 { margin: 0 0 4px; font: 750 clamp(1.5rem, 3vw, 2rem)/1.1 var(--sans); letter-spacing: -0.02em; }
+  .methoden-kopf .klein { max-width: 52ch; margin: 0; }
+  .energie { display: grid; gap: 4px; width: min(100%, 340px); font: 600 0.875rem/1.3 var(--sans); }
+  .energie-wort { color: var(--akzent-text); font-weight: 700; }
+  .energie-enden { display: flex; justify-content: space-between; color: var(--text-3); font-size: 0.75rem; }
+  .energie input[type="range"] { -webkit-appearance: none; appearance: none; min-height: 32px; padding: 0; border: 0; background: none; cursor: pointer; }
+  .energie input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--bg-3); }
+  .energie input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--bg-3); }
+  .energie input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--akzent); }
+  .energie input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border: 3px solid var(--bg); border-radius: 50%; background: var(--akzent); box-shadow: 0 1px 4px rgb(18 22 32 / 0.35); transition: scale 0.15s; }
+  .energie input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border: 3px solid var(--bg); border-radius: 50%; background: var(--akzent); box-shadow: 0 1px 4px rgb(18 22 32 / 0.35); }
+  .energie input[type="range"]:active::-webkit-slider-thumb { scale: 1.12; }
+  .energie input[type="range"]:focus-visible { outline: none; }
+  .energie input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  .energie input[type="range"]:focus-visible::-moz-range-thumb { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  .methoden-raster { display: grid; gap: 20px; }
+  @media (min-width: 1200px) { .methoden-raster { grid-template-columns: minmax(0, 1fr) minmax(330px, 380px); align-items: start; } .mblatt-platz { position: sticky; top: 24px; } }
+  .ekarte { --e: 50; position: relative; width: 100%; aspect-ratio: 16 / 10; min-height: 320px; border: 1px solid var(--linie); border-radius: var(--r-xl); background: var(--bg-2); overflow: hidden; }
+  .ekarte::before, .ekarte::after { content: ""; position: absolute; pointer-events: none; }
+  .ekarte::before { left: 50%; top: 16px; bottom: 34px; border-left: 1px dashed var(--linie-2); }
+  .ekarte::after { top: calc(50% - 8px); left: 28px; right: 16px; border-top: 1px dashed var(--linie-2); }
+  .achse { position: absolute; color: var(--text-3); font: 600 0.75rem/1 var(--sans); pointer-events: none; }
+  .achse.hoch { left: 8px; top: 50%; translate: 0 -50%; writing-mode: vertical-rl; rotate: 180deg; }
+  .achse.quer { left: 28px; right: 16px; bottom: 11px; display: flex; justify-content: space-between; }
+  .ekarte-feld { position: absolute; inset: 34px 26px 38px 30px; }
+  .ekarte-licht { position: absolute; top: -34px; bottom: -38px; left: calc((var(--e) - 24) * 1%); width: 48%; background: color-mix(in srgb, var(--akzent) 10%, transparent);
+    transition: left 0.5s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease; }  /* genau ±24 %: was darunter liegt, leuchtet */
+  .ekarte[data-filter] .ekarte-licht { opacity: 0; }
+  .emarke { position: absolute; left: calc(var(--x) * 1%); bottom: calc(var(--y) * 1%); z-index: 2; translate: -50% 50%; display: inline-flex; align-items: center; gap: 8px;
+    min-height: 44px; padding: 5px 14px 5px 5px; border: 1px solid var(--linie-2); border-radius: 999px; background: var(--bg); color: var(--text); font: 650 0.875rem/1.15 var(--sans);
+    white-space: nowrap; cursor: pointer; box-shadow: 0 1px 2px rgb(18 22 32 / 0.06); opacity: 0.45; filter: saturate(0.25);
+    transition: opacity 0.35s ease, filter 0.35s ease, scale 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s, box-shadow 0.2s; }
+  .emarke[data-anker="links"] { translate: -21px 50%; }
+  .emarke[data-anker="rechts"] { translate: calc(-100% + 21px) 50%; }
+  .emarke .m-zeichen { width: 32px; height: 32px; border-radius: 50%; }
+  .emarke .m-zeichen svg { width: 18px; height: 18px; }
+  .emarke .kurz { display: none; }
+  .emarke[data-an] { opacity: 1; filter: none; border-color: color-mix(in srgb, var(--kat) 50%, var(--linie-2)); box-shadow: var(--schatten); }
+  .emarke[aria-pressed="true"] { z-index: 3; opacity: 1; filter: none; scale: 1.06; border-color: var(--kat); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kat) 24%, transparent), var(--schatten); }
+  .emarke.woop { border-style: dashed; }
+  @media (hover: hover) { .emarke:hover { opacity: 1; filter: none; } }
+  .emarke:active { scale: 0.97; }
+  .ekarte { container-type: inline-size; }
+  @container (max-width: 660px) {  /* schmale Karte: kurze Namen, damit sich nichts überdeckt */
+    .emarke { gap: 6px; padding-right: 11px; font-size: 0.8125rem; }
+    .emarke .lang { display: none; }
+    .emarke .kurz { display: inline; }
+  }
+  @media (max-width: 640px) { .ekarte { aspect-ratio: auto; height: 340px; } }
+  .estimmungen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .estimmung { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 14px 4px 4px; border: 1px solid var(--linie-2); border-radius: 999px;
+    background: var(--bg); color: var(--text); font: 650 0.9375rem/1.2 var(--sans); cursor: pointer; transition: border-color 0.2s, background-color 0.2s; }
+  .estimmung .m-zeichen { width: 34px; height: 34px; border-radius: 50%; background: var(--kat-flaeche); color: var(--kat-text); transition: background-color 0.2s, color 0.2s; }
+  .estimmung .m-zeichen svg { width: 19px; height: 19px; }
+  .estimmung[aria-pressed="true"] { border-color: var(--kat); background: var(--kat-flaeche); }
+  .estimmung[aria-pressed="true"] .m-zeichen { background: var(--kat); color: var(--auf-kat); }
+  @media (hover: hover) { .estimmung:hover { border-color: var(--kat); } }
+  .estimmung-satz { min-height: 1.4em; margin: 8px 2px 0; color: var(--text-2); font-size: 0.875rem; }
+  .mblatt { display: grid; gap: 14px; padding: 0 20px 20px; border: 1px solid var(--linie); border-radius: var(--r-xl); background: var(--bg); box-shadow: var(--schatten); overflow: clip;
+    animation: blatt-rein 0.35s cubic-bezier(0.23, 1, 0.32, 1); }
+  @keyframes blatt-rein { from { translate: 0 6px; } }  /* nur Bewegung, nie unsichtbar: steht die Animation still, ist das Blatt trotzdem da */
+  .mblatt-kopf { display: flex; align-items: center; gap: 14px; margin: 0 -20px; padding: 20px; background: var(--kat-flaeche); }
+  .mblatt-kopf > div { flex: 1; min-width: 0; }
+  .mblatt-kopf .m-zeichen { width: 52px; height: 52px; border-radius: 16px; }
+  .mblatt-kopf .m-zeichen svg { width: 28px; height: 28px; }
+  .mblatt h2 { margin: 0; font: 750 1.375rem/1.15 var(--sans); letter-spacing: -0.015em; }
+  .mblatt-was { margin: 0; font-size: 1rem; line-height: 1.5; }
+  .mblatt-warum { padding-top: 12px; border-top: 1px solid var(--linie); }
+  .mblatt-warum h3 { margin: 0 0 4px; font: 650 0.875rem/1.3 var(--sans); }
+  .mblatt-warum p { margin: 0; color: var(--text-2); font-size: 0.9375rem; line-height: 1.5; }
+  .mblatt-warum .mblatt-beleg { display: flex; align-items: center; gap: 10px; margin-top: 8px; color: var(--text-3); font-size: 0.8125rem; line-height: 1.4; }
+  .mblatt-beispiel { margin: 0; padding: 12px 14px; border-radius: var(--r-l); background: var(--bg-2); font: 400 1rem/1.5 var(--serif); }
+  .mblatt-wahl .feld:first-child { margin-top: 0; }
+  .mblatt-wahl .haken { margin-top: 12px; }
+  .mblatt .feld { margin-top: 0; }
+
+  /* Bühne: die laufende Methode */
+  .buehne, .ergebnis { border: 1px solid var(--linie); border-radius: var(--r-xl); background: var(--bg); box-shadow: var(--schatten); overflow: clip; }
+  .buehne-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 16px 20px; background: var(--kat-flaeche); }
+  .buehne-titel { flex: 1; min-width: 12ch; }
+  .buehne-titel h2 { margin: 0; font: 750 1.25rem/1.2 var(--sans); letter-spacing: -0.01em; }
+  .buehne-uhr { padding: 4px 10px; border-radius: 999px; background: var(--bg); color: var(--akzent-text); font: 700 0.875rem/1.2 var(--sans); font-variant-numeric: tabular-nums; }
+  .buehne-inhalt { display: grid; gap: 18px; padding: 22px 20px 24px; }
+  .buehne-inhalt > * { max-width: 72ch; margin: 0; }
+  @media (min-width: 900px) { .buehne-inhalt { padding: 28px 32px 32px; } }
+  .buehne-frage { display: block; font: 500 1.125rem/1.45 var(--serif); }
+  .buehne-hinweis { padding: 12px 14px; border-radius: var(--r-l); background: var(--bg-2); color: var(--text-2); font-size: 0.9375rem; line-height: 1.5; }
+  .buehne-fragen { display: grid; gap: 22px; padding: 0; list-style: none; }
+  .buehne-fragen > li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; }
+  .buehne-fragen .nr { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--kat-flaeche); color: var(--kat-text); font: 750 0.875rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .buehne-fragen li > div { display: grid; gap: 8px; min-width: 0; }
+  .buehne-fragen .feld { margin-top: 0; }
+  .buehne-vorher { margin: 0; color: var(--text-3); font-size: 0.875rem; }
+  .buehne-vorher span { color: var(--text-2); }
+  .buehne-lesen { border: 1px solid var(--linie); border-radius: var(--r-l); background: var(--bg-2); }
+  .buehne-lesen > summary { padding: 12px 16px; font-weight: 650; cursor: pointer; }
+  .buehne-lesen > .text { max-width: 68ch; padding: 0 18px 14px; font: 400 1.0625rem/1.6 var(--serif); }
+  .buehne-aufgabe { padding: 18px 20px; border-radius: var(--r-l); background: var(--kat-flaeche); font: 500 1.1875rem/1.5 var(--serif); }
+  .buehne-aufgabe > :first-child { margin-top: 0; } .buehne-aufgabe > :last-child { margin-bottom: 0; }
+  .buehne-fuss { display: flex; justify-content: flex-end; max-width: none !important; }
+  .buehne-fuss .knopf.gross { width: auto; min-width: min(100%, 300px); }
+  .buehne-fuss .presse { width: min(100%, 320px); }
+  .quiz-punkte { display: flex; gap: 6px; padding: 0; list-style: none; }
+  .quiz-punkte li { flex: 1; height: 6px; border-radius: 3px; background: var(--bg-3); transition: background-color 0.3s; }
+  .quiz-punkte li[data-an] { background: var(--kat); }
+  .quiz-punkte li[data-jetzt] { background: color-mix(in srgb, var(--kat) 35%, var(--bg-3)); }
+  .quiz-optionen { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; }
+  .quiz-optionen .knopf { justify-content: flex-start; min-height: 56px; padding: 12px 16px; font-size: 1rem; text-align: left; white-space: normal; }
+  .quiz-optionen .knopf[aria-pressed="true"] { border-color: var(--kat); background: var(--kat-flaeche); box-shadow: inset 0 0 0 1px var(--kat); }
+  .quiz-sicher { padding: 14px 16px; border-radius: var(--r-l); background: var(--bg-2); transition: opacity 0.25s ease, translate 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+  @starting-style { .quiz-sicher { opacity: 0; translate: 0 6px; } }
+  .quiz-sicher p { margin: 0; font-weight: 650; }
+  .quiz-sicher .knopfreihe { margin-top: 10px; }
+  .karte-bau { display: grid; gap: 18px; }
+  .karte-zeilen { display: grid; gap: 8px; align-content: start; }
+  .karte-zeilen > .knopf { justify-self: start; }
+  .karte-zeile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1fr) 36px; gap: 6px; align-items: center; }
+  .karte-spalten span { color: var(--text-3); font: 600 0.75rem/1.2 var(--sans); }
+  .karte-zeile input { min-height: 42px; padding: 8px 10px; font-size: 0.9375rem; }
+  .karte-zeile input:nth-child(2) { background: var(--bg-2); text-align: center; }
+  .karte-weg { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-3); cursor: pointer; }
+  .karte-weg svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+  @media (hover: hover) { .karte-weg:not(:disabled):hover { background: var(--bg-2); color: var(--fehler); } }
+  .karte-weg:disabled { opacity: 0.3; cursor: default; }
+  .karte-bild { padding: 10px; border: 1px solid var(--linie); border-radius: var(--r-l); background: var(--bg-2); }
+  .karte-svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; overflow: visible; }
+  .karte-kante { stroke: color-mix(in srgb, var(--kat, var(--akzent)) 55%, var(--linie-2)); stroke-width: 1.75; }
+  .karte-kante.ok { stroke: var(--ok); stroke-width: 2.25; }
+  .karte-kante.falsch { stroke: var(--fehler); stroke-dasharray: 5 4; }
+  .karte-knoten { fill: var(--bg); stroke: var(--kat, var(--akzent)); stroke-width: 1.5; }
+  .karte-name { fill: var(--text); font: 650 12px/1 var(--sans); }
+  .karte-rel { fill: var(--text-2); font: 500 11px/1 var(--sans); paint-order: stroke; stroke: var(--bg-2); stroke-width: 5px; stroke-linejoin: round; }
+  .karte-rel.ok { fill: var(--ok); } .karte-rel.falsch { fill: var(--fehler); }
+  .karte-leer { fill: var(--text-3); font: 500 14px/1 var(--sans); }
+
+  /* Ergebnis: Zeichen springt auf, ein Ring läuft aus, die XP zählen hoch; danach die Rückmeldung */
+  .erg-kopf { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 16px; align-items: center; padding: 22px 20px; background: var(--kat-flaeche); }
+  @media (min-width: 640px) { .erg-kopf { grid-template-columns: auto minmax(0, 1fr) auto; padding: 26px 32px; } }
+  .erg-kopf .m-zeichen { position: relative; width: 56px; height: 56px; border-radius: 18px; }
+  .erg-kopf .m-zeichen svg { width: 30px; height: 30px; }
+  .erg-kopf h2 { margin: 2px 0 4px; font: 750 1.625rem/1.1 var(--sans); letter-spacing: -0.02em; }
+  .erg-kopf .klein { max-width: 56ch; margin: 0; }
+  .erg-plus { grid-column: 1 / -1; margin: 0; color: var(--kat-text); font: 800 clamp(2.75rem, 8vw, 3.75rem)/1 var(--sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  @media (min-width: 640px) { .erg-plus { grid-column: auto; text-align: right; } }
+  .erg-plus span { margin-left: 6px; font-size: 0.4em; letter-spacing: 0; }
+  .ergebnis[data-neu] .erg-kopf .m-zeichen { animation: erg-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .ergebnis[data-neu] .erg-kopf .m-zeichen::after { content: ""; position: absolute; inset: 0; border: 2px solid var(--kat); border-radius: inherit; animation: erg-ring 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
+  @keyframes erg-pop { from { scale: 0.5; } }
+  @keyframes erg-ring { from { opacity: 0.9; } to { opacity: 0; scale: 2.3; } }
+  .erg-inhalt { display: grid; gap: 18px; padding: 22px 20px 24px; }
+  @media (min-width: 900px) { .erg-inhalt { padding: 26px 32px 32px; } }
+  .erg-inhalt > * { margin: 0; }
+  .erg-fazit { max-width: 62ch; font: 400 1.125rem/1.5 var(--serif); }
+  .erg-block h3 { margin: 0 0 8px; font: 650 1rem/1.3 var(--sans); }
+  details.erg-block > summary { padding: 4px 0; font-weight: 650; cursor: pointer; }
+  .erg-liste { display: grid; margin: 0; padding: 0; list-style: none; }
+  .erg-liste > li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-top: 1px solid var(--linie); }
+  .erg-liste > li:first-child { border-top: 0; }
+  .erg-liste p { max-width: 68ch; margin: 0 0 4px; }
+  .erg-frage { font-weight: 650; }
+  .erg-mark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; }
+  .erg-mark svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .erg-mark.ok { background: var(--ok-flaeche); color: var(--ok); }
+  .erg-mark.nein { background: var(--fehler-flaeche); color: var(--fehler); }
+  .erg-vorher { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px; }
+  .erg-vorher > span { padding-top: 2px; color: var(--text-3); font-size: 0.8125rem; font-weight: 600; }
+  .erg-muster { margin-top: 6px !important; padding: 10px 12px; border-radius: var(--r); background: var(--bg-2); font-size: 0.9375rem; }
+  .erg-marken { display: flex; flex-wrap: wrap; gap: 6px; }
+  .erg-paar { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .erg-paar .erg-block { padding: 14px 16px; border-radius: var(--r-l); background: var(--bg-2); }
+  .erg-paar p { margin: 0; }
+  .erg-kern { padding: 16px 18px; border-radius: var(--r-l); background: var(--kat-flaeche); }
+  .erg-kern .text > * { margin: 0; font: 500 1.0625rem/1.5 var(--serif); }
+  .erg-anteil p { margin: 0 0 8px; }
+  .erg-anteil b { color: var(--kat-text); font: 800 2rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .erg-anteil .arena-balken { margin: 0; }
+  .ergebnis .arena-balken span { background: var(--kat); }
+  .erg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .erg-chips li { padding: 5px 12px; border-radius: 999px; background: var(--kat-flaeche); font-size: 0.875rem; font-weight: 600; }
+  .erg-tipp { color: var(--text-3); font-size: 0.875rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .ergebnis[data-neu] .erg-kopf .m-zeichen, .ergebnis[data-neu] .erg-kopf .m-zeichen::after, .mblatt { animation: none; }
+    .emarke, .ekarte-licht, .quiz-sicher { transition: none; }
+  }
   .ea-liste { display: grid; gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
   .ea-liste input { flex: 1 1 260px; }
   .vid-player { position: relative; aspect-ratio: 16 / 9; max-width: 860px; margin: 14px 0 4px; border-radius: var(--r-l); overflow: hidden; background: #000; }
@@ -1631,7 +1834,7 @@ aussehen();
         <p>Ältere Ausgaben bleiben unter „Frühere Ausgaben“ erhalten. Welches Modell schreibt, stellst du unter <span class="nur-eigen">Einrichten</span><span class="nur-server">Konto</span> ein.<span class="nur-server"> In Base schreibt immer DeepSeek V4.1, ab Pro wählst du selbst.</span></p>
         <p class="nur-server">Für Word Power gibt es in jedem Tarif die Vorlage: Du gibst deine Word Partnerships ein und bekommst das Journal mit allen Feldern zum Ausfüllen und der Progress-Tabelle, als Datei für Word. Ab Pro schreibt Gemini dazu jeden YouTube-Talk mit Zeitstempeln mit.</p>
         <p>In der <b>Vortragsanalyse</b> kannst du deine Word Partnerships eintragen: Sie zeigt, welche du im Probevideo eingebaut hast, und für die fehlenden die Stelle, an der sie am besten gepasst hätten.</p>
-        <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
+        <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen), 20 XP für jede ernsthaft abgeschlossene Lernmethode (6 am Tag zählen; es zählt der echte Versuch, nicht ob alles richtig war) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
         <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Balanced (kurz erklärt, dann die Formeln), Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
         <p><b>Fach aufteilen:</b> Haben Vorlesung und Proseminar eigenen Stoff, öffne <a href="#/unterlagen">Unterlagen</a>, tippe beim Fach auf „Fach aufteilen“ und beim PS auf „Eigenes Fach“. Dann bekommt jeder Teil eigene Wochenausgaben, Termine und Begriffe. „Zurück zu …“ holt den Teil wieder. Hat der Lernhelfer ein Fach doppelt angelegt, etwa VO und PS unter zwei Namen, legst du die beiden dort zusammen. Ein ganz neues Fach entsteht, wenn du unter Unterlagen Dateien mit einem neuen Fachnamen hochlädst.</p>
@@ -6709,7 +6912,7 @@ const UP = { wahl: null, monate: 1 };
 const LAUNCH_RABATT = 'Solange die Launch-Preise gelten, kommen keine Rabatte dazu, weil sich Rabatte nicht kombinieren lassen. Sie bleiben gespeichert und gelten ab den regulären Preisen.';
 const PLAN = {  // was jeder Tarif dazubringt
   base: ['Wochenausgabe für jedes Fach: Zusammenfassung, Übungen, Begriffe, Termine, „Bis zum nächsten Mal“ und was im PS-Test kommt, geschrieben vom Modell mit dem besten Preis-Leistungs-Verhältnis', 'OLAT-Abgleich am PC', 'Onlinetests im Überblick',
-    'Tipp auf jede Formel: jedes Zeichen erklärt', 'Arena: Fokus-Runden, Tagesziele, Speedrun und Bestenliste', 'Word Power: das Journal als Vorlage mit deinen Word Partnerships'],
+    'Tipp auf jede Formel: jedes Zeichen erklärt', 'Arena: Lernmethoden aus der Forschung, Fokus-Runden, Tagesziele und Bestenliste', 'Word Power: das Journal als Vorlage mit deinen Word Partnerships'],
   pro: ['Freie Wahl des KI-Modells: GPT-6 Luna, MiMo V2.6 Pro, GPT-6.1 Sol oder der Standard', 'Videos erklärt: YouTube-Link einfügen, Konzepte erklärt, Rückfragen mit Zeitstempeln',
     'Notentracker: Onlinetest-Punkte von selbst aus OLAT, Verlauf als Diagramm, Prognose, Vergleich mit dem Kursschnitt, was dir für jede Note noch fehlt',
     'Prüfungs-Countdown mit Lernplan bis zur Klausur', 'Karteikarten aus allen Begriffen mit Wiederholplan, Export für Anki und Quizlet', 'Jede Ausgabe als PDF', 'Kalender mit Stundenplan und allen Fristen, mit Übernahme ins iPad', 'Word Power: YouTube-Talks mit Zeitstempeln transkribieren', 'Vortrag analysieren: Einschätzung, Tipps und Fehler mit Zeitstempel'],
@@ -7029,7 +7232,7 @@ async function adminZeigen() {
       el('span', {}, el('span', { class: 'anteil', 'aria-hidden': 'true' }, el('i', { style: `width: ${K.aktiv30 ? Math.min(100, Math.round(100 * x.k30 / K.aktiv30)) : 0}%` })), anteil(x.k30, K.aktiv30)),
       String(x.n30), x.usd30 ? geld(x.usd30) : '–'])),
     el('h2', {}, 'Arena'),
-    el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
+    el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen), Lernmethoden mit vom Server gestellter Aufgabe und KI-Urteil (6 am Tag zählen) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
     el('p', { class: 'meta' }, P.art ? `Gerade: Platz 1 bis 3 bekommen ${P.werte.join(', ')} ${P.art === 1 ? 'Tage Ultra' : '% Rabatt'}, ab ${P.min} XP.${P.art === 2 && !TARIFE.verkauf ? ' Achtung: Der Verkauf ist aus, Rabatte nützen gerade niemandem.' : ''}` : 'Gerade keine Preise.'),
     arenaPreise,
     el('h3', {}, `Mitmachende (${A.teilnehmer.length})`),
@@ -7505,6 +7708,8 @@ const ABZEICHEN = [  // [id, Name, wofür, erreicht?]
   ['challenge', 'Tagesziel', 'Alle drei Challenges eines Tages geschafft', () => Object.values(ARENA.erledigt).some(l => l.length >= 3)],
   ['level5', 'Level 5', '400 XP gesammelt', () => LEVEL(ARENA.xp) >= 5],
   ['level10', 'Level 10', '2025 XP gesammelt', () => LEVEL(ARENA.xp) >= 10],
+  ['methode1', 'Neue Wege', 'Die erste Lernmethode abgeschlossen', () => (ARENA.probiert || []).length >= 1],
+  ['methoden', 'Methoden-Sammler', 'Jede Lernmethode einmal ausprobiert', () => Object.keys(LERNMETHODEN).every(id => id === 'speed' || (ARENA.probiert || []).includes(id))],
 ];
 async function arenaPlus(xp, was) {  // XP gutschreiben, erfüllte Challenges und neue Abzeichen dazu, speichern, Bestenliste melden
   const t = arenaTag(), erledigt = ARENA.erledigt[HEUTE] ??= [];
@@ -7540,12 +7745,12 @@ document.addEventListener('visibilitychange', () => {
 async function rundeStarten(min) {
   if (SERVER) {
     try { arenaVomServer(await api('arena/runde', { start: min })); } catch (e) { return status(e.message, true); }
-    RUNDE = { server: true, start: Date.now(), tick: Date.now(), aktiv: 0, min, aufgabe: AR.aufgabe.trim(), fach: AR.fach };
-    AR.weiter = false; merk('arena-runde', JSON.stringify(RUNDE)); wach(true);
+    RUNDE = { server: true, start: Date.now(), tick: Date.now(), aktiv: 0, min, aufgabe: AR.aufgabe.trim(), fach: AR.fach, plan: AR.plan || '' };
+    AR.weiter = false; AR.plan = ''; merk('arena-runde', JSON.stringify(RUNDE)); wach(true);
     return arenaNeu(), rundeTicken();
   }
-  RUNDE = { start: Date.now(), ende: Date.now() + min * 60e3, min, aufgabe: AR.aufgabe.trim(), fach: AR.fach };
-  AR.weiter = false; merk('arena-runde', JSON.stringify(RUNDE));
+  RUNDE = { start: Date.now(), ende: Date.now() + min * 60e3, min, aufgabe: AR.aufgabe.trim(), fach: AR.fach, plan: AR.plan || '' };
+  AR.weiter = false; AR.plan = ''; merk('arena-runde', JSON.stringify(RUNDE));
   try { if (Notification.permission === 'default') Notification.requestPermission(); } catch {}
   arenaNeu(); rundeTicken();
 }
@@ -7721,7 +7926,8 @@ function arenaKurz() {  // Heute: Stand und ein Knopf zum Loslegen
     el('p', {}, el('b', {}, `Level ${lv}`), ` · ${ARENA.xp} XP · Serie ${serie()} ${serie() === 1 ? 'Tag' : 'Tage'} · heute ${t.min} min`),
     RUNDE ? el('p', { class: 'arena-gross' }, RUNDE.pause ? 'Pause ' : 'Fokus ', el('span', { 'data-runde-uhr': '' }, minuten(rundeRest() + 999)))
       : el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: () => rundeStarten(AR.minuten) }, `${AR.minuten} Minuten Fokus starten`),
-        el('button', { class: 'knopf', type: 'button', onclick: () => rundeStarten(2) }, 'Nur 2 Minuten anfangen'))));
+        el('button', { class: 'knopf', type: 'button', onclick: () => rundeStarten(2) }, 'Nur 2 Minuten anfangen'),
+        SERVER && el('a', { class: 'knopf', href: '#/arena', onclick: () => { AR.tab = 'methoden'; } }, 'Lernmethode wählen'))));
 }
 async function arenaZeigen() {
   const s = $('arena');
@@ -7731,7 +7937,9 @@ async function arenaZeigen() {
     if (document.body.dataset.ansicht !== 'arena') return;
   }
   const lv = LEVEL(ARENA.xp), von = levelXp(lv), bis = levelXp(lv + 1), t = ARENA.tage[HEUTE] || { min: 0, runden: 0 }, sr = AR.sr;
-  const tab = AR.tab || 'fokus', reiter = [['fokus', 'Fokus'], ['spiele', `Challenges ${(ARENA.erledigt[HEUTE] || []).length}/3`], ['rang', 'Bestenliste'], ['verlauf', 'Verlauf']];
+  if (SERVER && ARENA.methode && !AM.lauf && !AM.ergebnis && !AM.laedt && !AM.prueft) amLauf(ARENA.methode);  // offene Methode, auch von einem anderen Gerät
+  const tab = AR.tab || (SERVER ? 'methoden' : 'fokus');
+  const reiter = [SERVER && ['methoden', 'Methoden'], ['fokus', 'Fokus'], ['spiele', `Challenges ${(ARENA.erledigt[HEUTE] || []).length}/3`], ['rang', 'Bestenliste'], ['verlauf', 'Verlauf']].filter(Boolean);
   const erledigt = ARENA.erledigt[HEUTE] || [], faecher = Object.keys(R).filter(f => aktuell(f)?.begriffe?.length);
   const uhr = () => minuten(rundeRest() + 999);
   const fokus = RUNDE?.pause ? [
@@ -7743,6 +7951,7 @@ async function arenaZeigen() {
       el('p', { class: 'arena-gross', 'data-runde-uhr': '' }, uhr()),
       el('div', { class: 'arena-balken', 'aria-hidden': 'true' }, el('span', { 'data-runde-balken': '', style: `width:${100 - rundeRest() / (RUNDE.min * 600)}%` })),
       el('p', {}, RUNDE.aufgabe ? ['Du arbeitest an: ', el('b', {}, RUNDE.aufgabe)] : 'Eine Sache, sonst nichts. Handy weg, alle anderen Tabs zu.', RUNDE.fach && ` (${RUNDE.fach})`),
+      RUNDE.plan && el('p', { class: 'arena-plan' }, el('b', {}, 'Dein Plan: '), RUNDE.plan),
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: rundeHalten }, RUNDE.halt != null ? 'Weiter' : 'Kurz anhalten'),
         el('button', { class: 'knopf', type: 'button', onclick: rundeAbbrechen }, 'Beenden'))]
     : [
@@ -7788,7 +7997,8 @@ async function arenaZeigen() {
       el('span', { style: `width:${(ARENA.xp - von) / (bis - von) * 100}%` })),
     el('div', { class: 'arena-chips arena-tabs', role: 'group', 'aria-label': 'Bereich der Arena' }, reiter.map(([id, name]) => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(tab === id),
       onclick: () => { AR.tab = id; arenaZeigen(); } }, name))),
-    ...tab === 'fokus' ? [
+    ...tab === 'methoden' ? [AM.lauf ? methodeBuehne() : AM.ergebnis ? methodeErgebnis() : methodenKarte()]
+    : tab === 'fokus' ? [
     el('section', { class: 'schritt' }, el('h2', {}, RUNDE?.pause ? 'Pause' : 'Fokus-Runde'), fokus),
     ] : tab === 'spiele' ? [
     el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, 'Challenges für heute'), el('p', { class: 'meta' }, `${erledigt.length} von 3`)),
@@ -7849,6 +8059,436 @@ function bestenliste() {
   box.append(el('p', { class: 'klein' }, 'Mit anderen messen kannst du dich in der Server-Version. Hier trittst du gegen dich selbst an:'),
     tabelle(['Woche', 'XP', 'Minuten', 'Runden'], [0, -1, -2, -3].map(n => [n ? `vor ${-n} ${n === -1 ? 'Woche' : 'Wochen'}` : 'diese', wocheSumme('xp', n), wocheSumme('min', n), wocheSumme('runden', n)])));
   return box;
+}
+
+/* ---------- Arena: Lernmethoden ---------- */
+// Gut belegte Lernmethoden, sortiert nach Lust statt nach Fach. Der Server stellt die Aufgabe, hält Lösungen zurück und prüft die Abgabe;
+// XP gibt es für jeden ernsthaften Versuch, nicht für die Note. Nur in der Server-Version: Ohne Server zählt niemand fair mit.
+const ARENA_KAT = [  // [id, Name, wie es sich anfühlt, Zeichen]
+  ['neugier', 'Neugier', 'Ich will raten und überrascht werden', '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.1V16h5v-.1c0-.8.4-1.6 1.1-2.1A6 6 0 0 0 12 3z"/>'],
+  ['knobeln', 'Knobeln', 'Ich will mir an etwas die Zähne ausbeißen', '<path d="M5 5h4.5a2.5 2.5 0 0 1 5 0H19v4.5a2.5 2.5 0 0 1 0 5V19h-4.5a2.5 2.5 0 0 0-5 0H5v-4.5a2.5 2.5 0 0 0 0-5z"/>'],
+  ['bauen', 'Bauen', 'Ich will selbst etwas bauen', '<rect x="3.5" y="13" width="7.5" height="7" rx="1.5"/><rect x="13" y="13" width="7.5" height="7" rx="1.5"/><rect x="8.25" y="4.5" width="7.5" height="7" rx="1.5"/>'],
+  ['leicht', 'Wenig Energie', 'Kopf ist leer, ein bisschen geht trotzdem', '<rect x="2.5" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3M6 10.5v3"/>'],
+];
+const LERNMETHODEN = {  // belegt: Studienlage 1 dünn, 2 gut, 3 stark (Meta-Analyse)
+  vorab: { kat: 'neugier', name: 'Vorab-Fragen', kurz: 'Vorab-Fragen', min: 10, belegt: 3, zeichen: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.5M12 16.8v.2"/>',
+    was: 'Vier Fragen zu einem Abschnitt, bevor du ihn liest. Du rätst, liest und antwortest nochmal.',
+    warum: 'Wer vorher eine eigene Antwort wagt, behält danach mehr, auch wenn die Vermutung falsch war.',
+    beleg: 'Meta-Analyse: g = 0,54, mit selbst formulierter Antwort 0,65 (St. Hilaire u. a.)',
+    beispiel: '„Warum kaufen Leute weniger, wenn der Preis steigt?“ Erst raten, dann nachlesen.',
+    danach: 'Deine Vermutungen von vorhin machen das Gelesene haltbarer, auch die falschen.' },
+  scheitern: { kat: 'knobeln', name: 'Erst scheitern, dann lernen', kurz: 'Erst scheitern', min: 15, belegt: 3, zeichen: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12h.01"/>',
+    was: 'Eine Aufgabe, bevor du die passende Idee kennst. Erst dein Versuch, dann die Erklärung.',
+    warum: 'Der eigene Versuch zeigt dir, wo es hakt. Die Erklärung danach sitzt tiefer.',
+    beleg: 'Meta-Analyse über 53 Studien: g = 0,36, gut umgesetzt bis 0,58 (Sinha & Kapur 2021)',
+    beispiel: '„Ein Kino erhöht die Preise um 20 %. Verdient es danach mehr oder weniger?“',
+    danach: 'Dein Versuch hat den Boden bereitet. Die Erklärung landet jetzt dort, wo es gehakt hat.' },
+  fragen: { kat: 'bauen', name: 'Prüfungsfragen bauen', kurz: 'Fragen bauen', min: 15, belegt: 2, zeichen: '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    was: 'Du schreibst drei Fragen, wie sie in der Klausur kommen könnten, und beantwortest sie selbst.',
+    warum: 'Wer Fragen baut, muss das Wichtige finden und in eigene Worte fassen.',
+    beleg: 'Nach einer Woche so gut wie Abfragen, klar besser als Wiederlesen (Ebersbach u. a. 2020)',
+    beispiel: '„Was passiert mit dem Umsatz, wenn die Nachfrage elastisch ist und der Preis steigt?“',
+    danach: 'Wer Fragen baut, findet das Wichtige. Die guten kannst du gleich in den Karteikasten legen.' },
+  karte: { kat: 'bauen', name: 'Gedankenkarte aus dem Kopf', kurz: 'Gedankenkarte', min: 10, belegt: 2, zeichen: '<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.4 7.9l2.7 7.7M16.9 8.3l-3.8 7.4M8.5 6.8l7-.6"/>',
+    was: 'Ohne Unterlagen baust du eine Karte: Begriffe und wie sie zusammenhängen.',
+    warum: 'Entscheidend ist, dass alles aus dem Gedächtnis kommt. Das Abrufen selbst ist das Lernen.',
+    beleg: 'Karte aus dem Gedächtnis wirkt so gut wie freies Aufschreiben (Blunt & Karpicke 2014)',
+    beispiel: 'Preis – senkt – Nachfrage · Einkommen – erhöht – Nachfrage',
+    danach: 'Alles kam aus deinem Kopf. Genau dieses Abrufen macht es haltbar.' },
+  quiz: { kat: 'leicht', name: 'Sicherheits-Quiz', kurz: 'Quiz', min: 5, belegt: 2, zeichen: '<path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l3.5-4.5M6.5 20h11"/>',
+    was: 'Acht Begriffe zum Antippen. Zu jeder Antwort sagst du, wie sicher du bist.',
+    warum: 'Fehler, bei denen du dir sicher warst, merkst du dir nach der Korrektur am besten.',
+    beleg: 'Hyperkorrektur-Effekt, vielfach wiederholt (Butterfield & Metcalfe 2001)',
+    beispiel: '„Reaktion der Menge auf den Preis“: Elastizität? Ganz sicher.',
+    danach: 'Schau dir vor allem die Fehler an, bei denen du dir sicher warst.' },
+  speed: { kat: 'leicht', name: 'Begriffe-Speedrun', kurz: 'Speedrun', min: 3, belegt: 2, zeichen: '<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>',
+    was: 'Zehn Definitionen, der richtige Begriff aus vier, auf Zeit.',
+    warum: 'Abfragen statt Wiederlesen: Jeder Abruf festigt die Erinnerung.',
+    beleg: 'Abfragen wirkt stark (Dunlosky u. a. 2013); Auswahl auf Zeit ist die leichteste Form davon',
+    beispiel: 'Zehn Begriffe in unter einer Minute?' },
+};
+const WOOP = { kat: 'woop', name: 'Ich komm nicht rein', kurz: 'Starthilfe', zeichen: '<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>' };
+// Lage auf der Energie-Karte: [Energie 0–100, Tiefe 0 abrufen bis 100 verstehen]
+const KARTE_POS = { woop: [6, 94], speed: [10, 8], quiz: [30, 30], karte: [74, 30], vorab: [42, 56], fragen: [84, 74], scheitern: [92, 94] };
+const AM = { stoff: null, lauf: null, ergebnis: null, e: {}, prueft: false, laedt: null, kat: null, wahl: null, teil: '', fach: merk('arena-m-fach') || '',
+  energie: Number(merk('arena-energie') ?? 50), mitRunde: merk('arena-mit-runde') !== '0' };
+const zeichen = pfade => { const s = el('span', { class: 'm-zeichen', 'aria-hidden': 'true' }); s.innerHTML = `<svg viewBox="0 0 24 24">${pfade}</svg>`; return s; };
+const belegtPunkte = n => el('span', { class: 'm-beleg', title: ['', 'Studienlage: dünn', 'Studienlage: gut', 'Studienlage: stark'][n] },
+  el('span', { class: 'sr' }, ['', 'Studienlage dünn', 'Studienlage gut', 'Studienlage stark'][n]), [1, 2, 3].map(i => el('i', { 'data-an': i <= n })));
+const markOk = ok => { const s = el('span', { class: `erg-mark ${ok ? 'ok' : 'nein'}`, role: 'img', 'aria-label': ok ? 'stimmt' : 'stimmt nicht' }); s.innerHTML = `<svg viewBox="0 0 24 24">${ok ? '<path d="M6 12.5l4 4 8-9"/>' : '<path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/>'}</svg>`; return s; };
+const amKey = l => `${l.methode}|${l.fach}|${l.teil}`;
+const amMerken = () => merk('arena-eingabe', AM.lauf ? JSON.stringify({ k: amKey(AM.lauf), e: AM.e }) : null);
+function amLauf(l) {  // offene Methode übernehmen, auch nach dem Neuladen, mit dem, was schon getippt war
+  AM.lauf = l; AM.ergebnis = null;
+  const alt = liesJson('arena-eingabe');
+  AM.e = l && alt?.k === amKey(l) ? alt.e : {};
+}
+function amText(ziel, key, attrs = {}) {  // Textfeld, dessen Inhalt Neuzeichnen und Neuladen übersteht
+  const t = el(attrs.zeile ? 'input' : 'textarea', { ...attrs, zeile: null, type: attrs.zeile ? 'text' : null, oninput: e => { ziel[key] = e.target.value; amMerken(); } });
+  t.value = ziel[key] || '';
+  return t;
+}
+async function methodeStarten(id, fach = AM.fach, teil = '') {
+  if (id === 'speed') { AR.tab = 'spiele'; AM.ergebnis = null; return speedStart(fach); }
+  if (AM.lauf && !confirm('Die offene Methode verwerfen und neu anfangen?')) return;
+  AM.laedt = id; arenaZeigen();
+  try {
+    const j = await api('arena/methode', { start: id, fach, teil });
+    amLauf(j.methode); amMerken();
+    const m = LERNMETHODEN[id];
+    if (AM.mitRunde && !RUNDE) { AR.aufgabe = `${m.name}${j.methode.teil ? `: ${j.methode.teil}` : ''}`; AR.fach = fach; AR.plan = ''; await rundeStarten(m.min <= 10 ? 10 : m.min <= 20 ? 20 : 25); }
+  } catch (e) { status(e.message, true); }
+  AM.laedt = null; arenaZeigen();
+  $('arena').scrollIntoView({ block: 'start' });
+}
+async function methodeAbgeben(body) {
+  if (AM.prueft) return;
+  AM.prueft = true; arenaZeigen();
+  try {
+    const j = await api('arena/methode', body);
+    if (j.methode) { AM.lauf = j.methode; amMerken(); }
+    else {
+      arenaVomServer(j); AM.lauf = null; AM.e = {}; amMerken();
+      AM.ergebnis = j.ergebnis;
+      if (j.ergebnis.ernsthaft) arenaMeldung(j.ergebnis.xp, LERNMETHODEN[j.ergebnis.methode].name, j.ergebnis); else status('');
+    }
+  } catch (e) { status(e.message, true); if (e.status === 410) { AM.lauf = null; amMerken(); } }
+  AM.prueft = false; arenaZeigen();
+  if (AM.ergebnis || body.raten) $('arena').scrollIntoView({ block: 'start' });
+}
+async function methodeAbbrechen() {
+  if (!confirm('Methode abbrechen? Was du getippt hast, geht verloren.')) return;
+  try { await api('arena/methode', { abbruch: true }); } catch {}
+  AM.lauf = null; AM.e = {}; amMerken();
+  if (ARENA) ARENA.methode = null;
+  arenaZeigen();
+}
+const lesestueck = (titel, md, offen) => el('details', { class: 'buehne-lesen', open: offen }, el('summary', {}, titel), markdown(el('div', { class: 'text' }), md));
+const fuss = (text, fn) => el('div', { class: 'buehne-fuss' }, AM.prueft ? el('p', { class: 'presse', role: 'status' }, 'Die KI liest deine Abgabe …')
+  : el('button', { class: 'knopf voll gross', type: 'button', onclick: fn }, text));
+const amFragen = (fragen, inhalt) => el('ol', { class: 'buehne-fragen' }, fragen.map((f, n) => el('li', {}, el('span', { class: 'nr', 'aria-hidden': 'true' }, n + 1), el('div', {}, ...inhalt(f, n)))));
+// Gedankenkarte als Bild: Begriffe auf einer Ellipse, Verbindungen als Linien mit der Beziehung in der Mitte; art je Kante: 'ok', 'falsch' oder ''
+function karteSvg(kanten, art = []) {
+  const ns = 'http://www.w3.org/2000/svg', mk = (t, a, txt) => { const e = document.createElementNS(ns, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); if (txt != null) e.textContent = txt; return e; };
+  const schluessel = x => x.trim().toLowerCase(), namen = [...new Map(kanten.flatMap(k => [k[0], k[2]]).map(x => [schluessel(x), x.trim()])).values()];
+  // Start auf einer Ellipse, dann ein paar Runden schieben: überlappende Begriffe auseinander, verbundene zueinander. Ohne Zufall, damit das Bild beim Tippen ruhig bleibt.
+  const W = 440, H = 280, knoten = namen.map((n, i) => {
+    const w = -Math.PI / 2 + i * 2 * Math.PI / namen.length, t = n.length > 18 ? n.slice(0, 17) + '…' : n;
+    return { k: schluessel(n), t, b: t.length * 6.6 + 22, x: namen.length === 1 ? W / 2 : W / 2 + 150 * Math.cos(w), y: namen.length === 1 ? H / 2 : H / 2 + 100 * Math.sin(w) };
+  }), nach = new Map(knoten.map(n => [n.k, n]));
+  for (let r = 0; r < 160; r++) {
+    for (const [i, a] of knoten.entries()) for (const b of knoten.slice(i + 1)) {
+      const dx = b.x - a.x, dy = b.y - a.y, ux = (a.b + b.b) / 2 + 14 - Math.abs(dx), uy = 40 - Math.abs(dy);
+      if (ux <= 0 || uy <= 0) continue;
+      if (ux / (a.b + b.b) < uy / 40) { const s = Math.sign(dx) || 1; a.x -= s * ux / 4; b.x += s * ux / 4; } else { const s = Math.sign(dy) || 1; a.y -= s * uy / 4; b.y += s * uy / 4; }
+    }
+    for (const [a, , b] of kanten) {
+      const p = nach.get(schluessel(a)), q = nach.get(schluessel(b));
+      if (p === q) continue;
+      const dx = q.x - p.x, dy = q.y - p.y, d = Math.hypot(dx, dy) || 1, f = (d - 140) * 0.01;
+      p.x += dx / d * f; p.y += dy / d * f; q.x -= dx / d * f; q.y -= dy / d * f;
+    }
+    for (const n of knoten) { n.x = Math.min(W - n.b / 2 - 4, Math.max(n.b / 2 + 4, n.x)); n.y = Math.min(H - 17, Math.max(17, n.y)); }
+  }
+  const pos = new Map(knoten.map(n => [n.k, [Math.round(n.x), Math.round(n.y)]]));
+  const svg = mk('svg', { viewBox: `0 0 ${W} ${H}`, class: 'karte-svg', role: 'img',
+    'aria-label': kanten.length ? `Gedankenkarte: ${namen.length} Begriffe, ${kanten.length} Verbindungen` : 'Die Gedankenkarte ist noch leer' });
+  if (!kanten.length) { svg.append(mk('text', { x: W / 2, y: H / 2, 'text-anchor': 'middle', class: 'karte-leer' }, 'Hier wächst deine Karte')); return svg; }
+  kanten.forEach(([a, r, b], i) => {
+    const [x1, y1] = pos.get(schluessel(a)), [x2, y2] = pos.get(schluessel(b));
+    svg.append(mk('line', { x1, y1, x2, y2, class: `karte-kante ${art[i] || ''}` }));
+    if (r.trim()) svg.append(mk('text', { x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 5, 'text-anchor': 'middle', class: `karte-rel ${art[i] || ''}` }, r.trim().slice(0, 22)));
+  });
+  for (const n of knoten) {
+    const [x, y] = pos.get(n.k);
+    svg.append(mk('rect', { x: x - n.b / 2, y: y - 13, width: n.b, height: 26, rx: 13, class: 'karte-knoten' }), mk('text', { x, y: y + 4.5, 'text-anchor': 'middle', class: 'karte-name' }, n.t));
+  }
+  return svg;
+}
+const BUEHNE = {  // was während einer Methode zu sehen ist
+  quiz(l) {
+    const q = l.aufgabe.fragen, a = AM.e.antworten ??= [], i = a.length, f = q[i], w = AM.e.wahl;
+    if (!f) return [el('p', { class: 'presse', role: 'status' }, 'Wird ausgewertet …')];
+    return [
+      el('ol', { class: 'quiz-punkte', 'aria-label': `Frage ${i + 1} von ${q.length}` }, q.map((_, n) => el('li', { 'data-an': n < i, 'data-jetzt': n === i }))),
+      bruechen(el('p', { class: 'buehne-frage' }, f.definition)),
+      el('div', { class: 'quiz-optionen', role: 'group', 'aria-label': 'Welcher Begriff passt?' }, f.optionen.map((o, n) => el('button', { type: 'button', class: 'knopf', 'aria-pressed': String(w === n),
+        onclick: () => { AM.e.wahl = n; amMerken(); arenaZeigen(); } }, o))),
+      w != null && el('div', { class: 'quiz-sicher' }, el('p', {}, 'Wie sicher bist du?'),
+        el('div', { class: 'knopfreihe' }, [['Eher geraten', false], ['Ganz sicher', true]].map(([t, sicher]) => el('button', { type: 'button', class: `knopf${sicher ? ' voll' : ''}`, onclick: () => {
+          a.push({ wahl: w, sicher }); AM.e.wahl = null; amMerken();
+          if (a.length === q.length) methodeAbgeben({ antworten: a }); else arenaZeigen();
+        } }, t)))),
+    ];
+  },
+  vorab(l) {
+    const q = l.aufgabe.fragen;
+    if (l.phase === 'raten') {
+      const r = AM.e.raten ??= [];
+      return [
+        el('p', { class: 'buehne-hinweis' }, 'Rate zuerst, ohne nachzuschauen. Falsch ist ausdrücklich erlaubt: Gerade die eigene Vermutung macht das Lesen danach wirksamer.'),
+        amFragen(q, (f, n) => [el('label', { class: 'buehne-frage', for: `vorab-${n}` }, f), amText(r, n, { id: `vorab-${n}`, rows: 2, placeholder: 'Deine Vermutung' })]),
+        fuss('Vermutungen abgeben, dann lesen', () => {
+          if (q.some((_, n) => !(r[n] || '').trim())) return status('Schreib zu jeder Frage eine Vermutung, ein Wort reicht.', true);
+          methodeAbgeben({ raten: true, antworten: q.map((_, n) => r[n].trim()) });
+        }),
+      ];
+    }
+    const d = AM.e.danach ??= [];
+    return [
+      lesestueck(`Jetzt lesen: ${l.teil}`, l.lesen, true),
+      amFragen(q, (f, n) => [el('label', { class: 'buehne-frage', for: `vorab-${n}` }, f), el('p', { class: 'buehne-vorher' }, 'Deine Vermutung: ', el('span', {}, l.raten?.[n] || '')),
+        amText(d, n, { id: `vorab-${n}`, rows: 2, placeholder: 'Und jetzt?' })]),
+      fuss('Abgeben', () => {
+        if (q.some((_, n) => (d[n] || '').trim().length < 2)) return status('Beantworte jede Frage noch einmal, jetzt mit dem Abschnitt im Kopf.', true);
+        methodeAbgeben({ antworten: q.map((_, n) => d[n].trim()) });
+      }),
+    ];
+  },
+  scheitern(l) {
+    return [
+      markdown(el('div', { class: 'buehne-aufgabe text' }), l.aufgabe.aufgabe),
+      el('p', { class: 'buehne-hinweis' }, 'Die passende Idee kennst du vielleicht noch nicht. Genau darum geht es: Probier, wie du es angehen würdest, mit allem, was dir einfällt. Die Erklärung kommt danach.'),
+      el('label', { class: 'feld' }, 'Dein Versuch', amText(AM.e, 'versuch', { rows: 7, placeholder: 'Ich würde zuerst …' })),
+      fuss('Versuch abgeben, dann Erklärung', () => {
+        if ((AM.e.versuch || '').trim().length < 40) return status('Schreib zwei, drei Sätze, wie du es angehen würdest. Falsch ist ausdrücklich erlaubt.', true);
+        methodeAbgeben({ versuch: AM.e.versuch.trim() });
+      }),
+    ];
+  },
+  fragen(l) {
+    const f = AM.e.fragen ??= [{}, {}, {}];
+    return [
+      el('p', { class: 'buehne-hinweis' }, 'Bau drei Fragen, wie sie in der Klausur kommen könnten, und beantworte sie selbst. Gute Fragen verlangen mehr als ein Wort: warum, was passiert, wenn …, wie hängt das zusammen.'),
+      lesestueck(`Abschnitt nachlesen: ${l.teil}`, l.aufgabe.lesen, false),
+      amFragen(f, (x, n) => [el('label', { class: 'feld' }, `Frage ${n + 1}`, amText(x, 'frage', { rows: 2, placeholder: n ? null : 'Was passiert mit …, wenn …?' })),
+        el('label', { class: 'feld' }, 'Deine Antwort', amText(x, 'antwort', { rows: 3 }))]),
+      fuss('Fragen prüfen lassen', () => {
+        if (f.some(x => (x.frage || '').trim().length < 10 || (x.antwort || '').trim().length < 3)) return status('Bau drei Fragen, jede mit deiner Antwort.', true);
+        methodeAbgeben({ fragen: f.map(x => ({ frage: x.frage.trim(), antwort: x.antwort.trim() })) });
+      }),
+    ];
+  },
+  karte(l) {
+    const z = AM.e.zeilen ??= [['', '', ''], ['', '', ''], ['', '', '']];
+    const bild = el('div', { class: 'karte-bild' }), neu = () => bild.replaceChildren(karteSvg(z.filter(r => r[0].trim() && r[2].trim())));
+    neu();
+    const zeile = (r, n) => el('div', { class: 'karte-zeile' }, [0, 1, 2].map(i => {
+      const t = el('input', { type: 'text', autocomplete: 'off', 'aria-label': `${['Begriff', 'Beziehung', 'Begriff'][i]}, Zeile ${n + 1}`, placeholder: n ? null : ['Preis', 'senkt', 'Nachfrage'][i],
+        oninput: e => { r[i] = e.target.value; amMerken(); neu(); } });
+      t.value = r[i]; return t;
+    }), (() => {  // neutrales Kreuz, rot erst unter der Maus: eine Zeile ist kein Fehler
+      const k = el('button', { class: 'karte-weg', type: 'button', 'aria-label': `Zeile ${n + 1} entfernen`, disabled: z.length <= 1, onclick: () => { z.splice(n, 1); amMerken(); arenaZeigen(); } });
+      k.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9"/></svg>';
+      return k;
+    })());
+    return [
+      el('p', { class: 'buehne-hinweis' }, `Ohne Unterlagen: Was weißt du über „${l.teil}“? Schreib Verbindungen aus Begriff, Beziehung und Begriff. Die Karte wächst mit.`),
+      el('div', { class: 'karte-bau' }, el('div', { class: 'karte-zeilen' }, el('div', { class: 'karte-zeile karte-spalten', 'aria-hidden': 'true' }, el('span', {}, 'Begriff'), el('span', {}, 'Beziehung'), el('span', {}, 'Begriff')),
+        z.map(zeile), el('button', { class: 'knopf', type: 'button', onclick: () => { z.push(['', '', '']); amMerken(); arenaZeigen(); } }, '+ Verbindung')), bild),
+      fuss('Karte vergleichen lassen', () => {
+        const ganz = z.filter(r => r.every(x => x.trim()));
+        if (ganz.length < 3) return status('Schreib mindestens drei ganze Verbindungen: Begriff, Beziehung, Begriff.', true);
+        methodeAbgeben({ karte: ganz.map(r => r.map(x => x.trim()).join(' – ')).join('\n') });
+      }),
+    ];
+  },
+};
+// Einstieg: die Energie-Karte. Der Regler schiebt einen Lichtkegel über die Karte, was zur Energie passt, leuchtet; die Stimmungen darunter
+// filtern nach Lust. Rechts (am Handy darunter) das Blatt der gewählten Methode mit Studie, Beispiel, Fach und „Los“.
+const ENERGIE_WORT = e => e < 15 ? 'fast leer' : e < 38 ? 'eher wenig' : e < 62 ? 'mittel' : e < 85 ? 'gut drauf' : 'voller Energie';
+// Leuchten richtet sich nach der gezeichneten Mitte der Marke (Randmarken wachsen nach innen), genau wie der Streifen mit ±24 % darüber liegt
+const MITTE = {}, mitteVon = id => MITTE[id] ?? KARTE_POS[id][0];
+const leuchtet = id => AM.kat ? LERNMETHODEN[id]?.kat === AM.kat : Math.abs(mitteVon(id) - AM.energie) <= 24;
+const amVorschlag = () => Object.keys(KARTE_POS).filter(id => leuchtet(id))
+  .sort((a, b) => Math.abs(mitteVon(a) - AM.energie) - Math.abs(mitteVon(b) - AM.energie))[0] || 'quiz';
+const LUST_LEER = 'Oder wähl nach Lust, dann zeigt die Karte nur, was dazu passt.';
+const rundenMin = m => m.min <= 10 ? 10 : m.min <= 20 ? 20 : 25;
+function methodenKarte() {
+  if (!AM.stoff) {
+    api('arena/stoff').then(s => { AM.stoff = s; }, () => { AM.stoff = {}; }).then(() => { if (document.body.dataset.ansicht === 'arena') arenaZeigen(); });
+    return el('p', { class: 'leer' }, 'Lade deine Fächer …');
+  }
+  const blatt = el('div', { class: 'mblatt-platz' });
+  const marken = Object.entries(KARTE_POS).map(([id, [x, y]]) => {
+    const m = LERNMETHODEN[id] || WOOP;
+    return el('button', { type: 'button', class: `emarke${id === 'woop' ? ' woop' : ''}`, 'data-kat': m.kat, 'data-id': id, style: `--x:${x};--y:${y}`,
+      'data-anker': x < 22 ? 'links' : x > 78 ? 'rechts' : null,  // Randmarken wachsen nach innen, damit der Name auf der Karte bleibt
+      onclick: () => { AM.wahl = id; zeigen(); blatt.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } },
+      zeichen(m.zeichen), el('span', { class: 'lang' }, m.name), el('span', { class: 'kurz' }, m.kurz || m.name));
+  });
+  const feld = el('div', { class: 'ekarte-feld' }, el('div', { class: 'ekarte-licht', 'aria-hidden': 'true' }), marken);
+  const karte = el('div', { class: 'ekarte', role: 'group', 'aria-label': 'Lernmethoden: rechts mehr Energie, oben mehr Verstehen, unten mehr Abrufen' },
+    el('span', { class: 'achse hoch', 'aria-hidden': 'true' }, 'abrufen → verstehen'),
+    el('span', { class: 'achse quer', 'aria-hidden': 'true' }, el('span', {}, 'wenig Energie'), el('span', {}, 'viel Energie')), feld);
+  new ResizeObserver(() => {  // nach jedem Layout (auch kurze Namen am Handy) die Mitten neu messen
+    const f = feld.getBoundingClientRect();
+    if (!f.width) return;
+    for (const b of marken) { const r = b.getBoundingClientRect(); MITTE[b.dataset.id] = (r.left + r.width / 2 - f.left) / f.width * 100; }
+    zeigen();
+  }).observe(feld);
+  const lust = el('p', { class: 'estimmung-satz' }, AM.kat ? ARENA_KAT.find(k => k[0] === AM.kat)[2] : LUST_LEER);
+  const lustZeigen = satz => { lust.textContent = satz || (AM.kat ? ARENA_KAT.find(k => k[0] === AM.kat)[2] : LUST_LEER); };
+  const wort = el('output', { class: 'energie-wort' }, ENERGIE_WORT(AM.energie));
+  let gezeigt = null;
+  function zeigen() {  // nur Karte und Blatt neu, damit der Regler beim Ziehen nicht springt; das Blatt nur, wenn eine andere Methode dran ist
+    const wahl = AM.wahl && (AM.kat ? leuchtet(AM.wahl) : true) ? AM.wahl : amVorschlag();
+    karte.style.setProperty('--e', AM.energie);
+    karte.toggleAttribute('data-filter', !!AM.kat);
+    for (const b of marken) { b.toggleAttribute('data-an', leuchtet(b.dataset.id)); b.setAttribute('aria-pressed', String(b.dataset.id === wahl)); }
+    if (wahl !== gezeigt) { gezeigt = wahl; blatt.replaceChildren(wahl === 'woop' ? woopBlatt() : methodeBlatt(wahl)); }
+  }
+  zeigen();
+  return el('section', { class: 'methoden', 'aria-label': 'Lernmethoden' },
+    el('div', { class: 'methoden-kopf' },
+      el('div', {}, el('h2', {}, 'Worauf hast du Lust?'), el('p', { class: 'klein' }, 'Stell ein, wie viel Energie du gerade hast. Was dazu passt, leuchtet auf. Alle Methoden sind in Studien gut belegt.')),
+      el('label', { class: 'energie' }, el('span', {}, 'Energie: ', wort),
+        el('input', { type: 'range', min: 0, max: 100, step: 1, value: AM.energie, 'aria-valuetext': ENERGIE_WORT(AM.energie), oninput: e => {
+          AM.energie = Number(e.target.value); merk('arena-energie', String(AM.energie));
+          wort.textContent = ENERGIE_WORT(AM.energie); e.target.setAttribute('aria-valuetext', wort.textContent);
+          AM.wahl = null;
+          if (AM.kat) { AM.kat = null; for (const b of stimmungen.children) b.setAttribute('aria-pressed', 'false'); lustZeigen(); }
+          zeigen();
+        } }),
+        el('span', { class: 'energie-enden', 'aria-hidden': 'true' }, el('span', {}, 'wenig'), el('span', {}, 'viel')))),
+    el('div', { class: 'methoden-raster' },
+      el('div', { class: 'methoden-links' }, karte,
+        stimmungen = el('div', { class: 'estimmungen', role: 'group', 'aria-label': 'Nach Lust filtern' }, ARENA_KAT.map(([id, name, satz, z]) => el('button', { type: 'button', class: 'estimmung', 'data-kat': id,
+          'aria-pressed': String(AM.kat === id), 'aria-description': satz,
+          onpointerenter: () => lustZeigen(satz), onpointerleave: () => lustZeigen(), onfocus: () => lustZeigen(satz), onblur: () => lustZeigen(),
+          onclick: e => {
+            AM.kat = AM.kat === id ? null : id; AM.wahl = null;
+            for (const b of stimmungen.children) b.setAttribute('aria-pressed', String(b === e.currentTarget && !!AM.kat));
+            lustZeigen(AM.kat && satz); zeigen();
+          } }, zeichen(z), name))), lust),
+      blatt));
+}
+let stimmungen;
+function methodeBlatt(id) {
+  const m = LERNMETHODEN[id], braucht = !['quiz', 'speed'].includes(id);
+  const faecher = braucht ? Object.keys(AM.stoff).filter(f => AM.stoff[f].length) : Object.keys(R).filter(f => aktuell(f)?.begriffe?.length);
+  const fach = faecher.includes(AM.fach) ? AM.fach : braucht ? faecher[0] || '' : '', teile = braucht ? AM.stoff[fach] || [] : [];
+  const teil = teile.includes(AM.teil) ? AM.teil : '', neu = id !== 'speed' && !(ARENA.probiert || []).includes(id);
+  return el('article', { class: 'mblatt', 'data-kat': m.kat, 'aria-live': 'polite', 'aria-label': m.name },
+    el('header', { class: 'mblatt-kopf' }, zeichen(m.zeichen),
+      el('div', {}, el('h2', {}, m.name)), neu && el('span', { class: 'pille akzent' }, 'Neu für dich')),
+    el('p', { class: 'mblatt-was' }, m.was),
+    el('section', { class: 'mblatt-warum' }, el('h3', {}, 'Warum es wirkt'), el('p', {}, m.warum),
+      el('p', { class: 'mblatt-beleg' }, belegtPunkte(m.belegt), el('span', {}, m.beleg))),
+    el('blockquote', { class: 'mblatt-beispiel' }, m.beispiel),
+    faecher.length ? el('div', { class: 'mblatt-wahl' },
+      el('label', { class: 'feld' }, 'Fach', el('select', { onchange: e => { AM.fach = e.target.value; AM.teil = ''; merk('arena-m-fach', AM.fach); arenaZeigen(); } },
+        !braucht && el('option', { value: '' }, 'Alle Fächer'), faecher.map(f => el('option', { value: f, selected: f === fach }, f)))),
+      braucht && el('label', { class: 'feld' }, 'Abschnitt', el('select', { onchange: e => { AM.teil = e.target.value; } },
+        el('option', { value: '' }, 'Überrasch mich'), teile.map(t => el('option', { value: t, selected: t === teil }, t)))),
+      id !== 'speed' && !RUNDE && el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: AM.mitRunde,
+        onchange: e => { AM.mitRunde = e.target.checked; merk('arena-mit-runde', AM.mitRunde ? null : '0'); } }), `Mit Fokus-Runde (${rundenMin(m)} min)`))
+      : el('p', { class: 'leer' }, braucht ? 'Sobald eine Ausgabe Abschnitte hat, geht es hier los.' : 'Sobald deine Ausgaben Begriffe haben, geht es hier los.'),
+    AM.laedt === id ? el('p', { class: 'presse', role: 'status' }, ['vorab', 'scheitern'].includes(id) ? 'Die KI stellt deine Aufgabe zusammen …' : 'Wird vorbereitet …')
+      : el('button', { class: 'knopf voll gross', type: 'button', disabled: !faecher.length || !!AM.laedt,
+        onclick: () => methodeStarten(id, fach, teile.includes(AM.teil) ? AM.teil : '') }, `Los, etwa ${m.min} Minuten`));
+}
+function woopBlatt() {  // Starthilfe: Wunsch, Ergebnis, Hindernis, Plan; dann eine Fokus-Runde mit dem Plan oben. Keine XP: Das wäre nur Selbstauskunft.
+  const w = AM.woop ??= liesJson('arena-woop') || {};
+  const feld = (k, label, ph) => { const t = el('input', { type: 'text', placeholder: ph, autocomplete: 'off', oninput: e => { w[k] = e.target.value; merk('arena-woop', JSON.stringify(w)); } }); t.value = w[k] || ''; return el('label', { class: 'feld' }, label, t); };
+  const laeuft = RUNDE && !RUNDE.pause;
+  return el('article', { class: 'mblatt', 'data-kat': 'woop', 'aria-label': WOOP.name },
+    el('header', { class: 'mblatt-kopf' }, zeichen(WOOP.zeichen), el('div', {}, el('h2', {}, WOOP.name))),
+    el('p', { class: 'mblatt-was' }, 'Zwei Minuten, vier kurze Fragen, dann startet eine Fokus-Runde. Dein Wenn-dann-Plan steht die ganze Runde über oben.'),
+    el('section', { class: 'mblatt-warum' }, el('h3', {}, 'Warum es wirkt'), el('p', {}, 'Wer sich Ziel, größtes Hindernis und einen Wenn-dann-Plan vorher klar macht, hält eher durch.'),
+      el('p', { class: 'mblatt-beleg' }, belegtPunkte(3), el('span', {}, 'Meta-Analyse über 21 Studien zu WOOP (Wang u. a. 2021)'))),
+    feld('wunsch', 'Was willst du in dieser Runde schaffen?', 'Elastizität verstehen'),
+    feld('ergebnis', 'Woran merkst du, dass es geklappt hat?', 'Ich kann es jemandem erklären'),
+    feld('hindernis', 'Was in dir hält dich am ehesten ab?', 'Ich greife zum Handy'),
+    feld('plan', 'Dein Plan: Wenn das passiert, was tust du dann?', 'Wenn ich zum Handy greife, lege ich es in den Flur'),
+    el('button', { class: 'knopf voll gross', type: 'button', disabled: laeuft, onclick: () => {
+      if (!w.wunsch?.trim() || !w.plan?.trim()) return status('Was du schaffen willst und dein Plan reichen schon. Die zwei bitte.', true);
+      AR.aufgabe = w.wunsch.trim(); AR.plan = w.plan.trim(); AR.tab = 'fokus';
+      if (RUNDE?.pause) { RUNDE = null; merk('arena-runde', null); }
+      rundeStarten(AR.minuten);
+    } }, laeuft ? 'Es läuft schon eine Fokus-Runde' : `${AR.minuten} Minuten Fokus starten`));
+}
+function methodeBuehne() {
+  const l = AM.lauf, m = LERNMETHODEN[l.methode];
+  return el('section', { class: 'buehne', 'data-kat': m.kat, 'aria-label': m.name },
+    el('header', { class: 'buehne-kopf' }, zeichen(m.zeichen),
+      el('div', { class: 'buehne-titel' }, el('h2', {}, m.name), el('p', { class: 'meta' }, [l.fach || 'Alle Fächer', l.teil].filter(Boolean).join(' · '))),
+      RUNDE && !RUNDE.pause && el('span', { class: 'buehne-uhr', title: 'Deine Fokus-Runde' }, el('span', { 'data-runde-uhr': '' }, minuten(rundeRest() + 999))),
+      el('button', { class: 'knopf leise', type: 'button', onclick: methodeAbbrechen }, 'Abbrechen')),
+    el('div', { class: 'buehne-inhalt' }, ...BUEHNE[l.methode](l)));
+}
+const quizZeile = f => el('li', {}, markOk(f.ok), el('div', {}, bruechen(el('p', { class: 'erg-frage' }, f.definition)),
+  el('p', { class: 'meta' }, f.ok ? `${f.optionen[f.richtig]} · ${f.sicher ? 'sicher' : 'geraten'}` : [el('s', {}, f.optionen[f.wahl]), ' → ', el('b', {}, f.optionen[f.richtig]), f.sicher ? ' · du warst dir sicher' : ' · geraten'])));
+const ERGEBNIS = {  // was nach der Abgabe kommt, je Methode
+  quiz(e) {
+    const ueber = e.fragen.filter(f => !f.ok && f.sicher), richtig = e.fragen.filter(f => f.ok).length;
+    return [
+      el('p', { class: 'erg-fazit' }, el('b', {}, `${richtig} von ${e.fragen.length} richtig.`), ' ', ueber.length ? 'Unten stehen die Fehler, bei denen du dir sicher warst. Genau diese Korrekturen bleiben am besten hängen.'
+        : richtig === e.fragen.length ? 'Kein einziger Fehler.' : 'Deine Fehler waren alle geraten: Du weißt ziemlich gut, was du schon kannst.'),
+      ueber.length > 0 && el('section', { class: 'erg-block' }, el('h3', {}, ueber.length === 1 ? 'Eine Überraschung' : `${ueber.length} Überraschungen`), el('ul', { class: 'erg-liste' }, ueber.map(quizZeile))),
+      el('details', { class: 'erg-block', open: !ueber.length }, el('summary', {}, 'Alle Antworten'), el('ul', { class: 'erg-liste' }, e.fragen.map(quizZeile))),
+    ];
+  },
+  vorab: e => [
+    e.fazit && el('p', { class: 'erg-fazit' }, e.fazit),
+    el('ol', { class: 'erg-liste' }, e.fragen.map(f => el('li', {}, markOk(f.ok), el('div', {}, el('p', { class: 'erg-frage' }, f.frage),
+      el('p', { class: 'erg-vorher' }, el('span', {}, 'Vorher'), f.vorher), el('p', { class: 'erg-vorher' }, el('span', {}, 'Danach'), f.danach),
+      f.rueck && el('p', { class: 'klein' }, f.rueck), el('p', { class: 'erg-muster' }, el('b', {}, 'Musterantwort: '), f.muster))))),
+  ],
+  scheitern: e => [
+    el('div', { class: 'erg-paar' }, el('section', { class: 'erg-block' }, el('h3', {}, 'Das war schon gut'), el('p', {}, e.gut)),
+      el('section', { class: 'erg-block' }, el('h3', {}, 'Was gefehlt hat'), el('p', {}, e.luecke))),
+    el('section', { class: 'erg-block erg-kern' }, el('h3', {}, 'Der Kern'), markdown(el('div', { class: 'text' }), e.kern)),
+    lesestueck('Die Lösung', e.loesung, true),
+    lesestueck('Dein Versuch', e.versuch, false),
+    lesestueck(`Abschnitt nachlesen: ${e.teil}`, e.lesen, false),
+  ],
+  fragen(e) {
+    const gute = e.fragen.filter(f => f.gut && f.antwortOk);
+    return [
+      e.fazit && el('p', { class: 'erg-fazit' }, e.fazit),
+      el('ol', { class: 'erg-liste' }, e.fragen.map(f => el('li', {}, markOk(f.gut && f.antwortOk), el('div', {}, el('p', { class: 'erg-frage' }, f.frage), el('p', {}, f.antwort),
+        el('p', { class: 'erg-marken' }, el('span', { class: `pille ${f.gut ? 'ok' : 'warn'}` }, f.gut ? 'Gute Frage' : 'Frage ausbaufähig'),
+          el('span', { class: `pille ${f.antwortOk ? 'ok' : 'fehler'}` }, f.antwortOk ? 'Antwort stimmt' : 'Antwort prüfen')),
+        f.rueck && el('p', { class: 'klein' }, f.rueck))))),
+      gute.length > 0 && darf('karten') && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async ev => {
+        ev.currentTarget.disabled = true;
+        await kartenDazu(gute.map(f => ({ f: e.fach, frage: f.frage, antwort: f.antwort, datum: HEUTE, gewusst: true })));
+        status(`${gute.length === 1 ? 'Deine Frage liegt' : `${gute.length} Fragen liegen`} jetzt im Karteikasten.`);
+      } }, gute.length === 1 ? 'Die gute Frage in den Karteikasten' : `${gute.length} gute Fragen in den Karteikasten`)),
+    ];
+  },
+  karte(e) {
+    const kanten = e.zeilen.map(z => { const t = z.split(' – '); return t.length >= 3 ? [t[0], t.slice(1, -1).join(' – '), t.at(-1)] : [z, '', z]; });
+    const art = e.zeilen.map((_, i) => e.stimmt.includes(i + 1) ? 'ok' : e.falsch.some(f => f.zeile === i + 1) ? 'falsch' : '');
+    return [
+      el('div', { class: 'erg-anteil' }, el('p', {}, el('b', {}, `${e.anteil} %`), ' vom Wesentlichen hattest du im Kopf'),
+        el('div', { class: 'arena-balken', role: 'img', 'aria-label': `${e.anteil} Prozent` }, el('span', { style: `width:${e.anteil}%` }))),
+      e.fazit && el('p', { class: 'erg-fazit' }, e.fazit),
+      el('div', { class: 'karte-bild' }, karteSvg(kanten, art)),
+      e.falsch.length > 0 && el('section', { class: 'erg-block' }, el('h3', {}, 'Stimmt so nicht'), el('ul', { class: 'erg-liste' }, e.falsch.map(f => el('li', {}, markOk(false),
+        el('div', {}, el('p', { class: 'erg-frage' }, e.zeilen[f.zeile - 1]), el('p', { class: 'klein' }, f.warum)))))),
+      e.fehlt.length > 0 && el('section', { class: 'erg-block' }, el('h3', {}, 'Das fehlte noch'), el('ul', { class: 'erg-chips' }, e.fehlt.map(x => el('li', {}, x)))),
+      lesestueck(`Abschnitt nachlesen: ${e.teil}`, e.lesen, false),
+    ];
+  },
+};
+function methodeErgebnis() {
+  const e = AM.ergebnis, m = LERNMETHODEN[e.methode], erst = !e.gezeigt, plus = el('b', {}, erst ? '0' : String(e.xp));
+  e.gezeigt = true;
+  if (erst) requestAnimationFrame(() => zaehlHoch(plus, e.xp, 900));  // nur beim ersten Zeigen, nicht bei jedem Neuzeichnen
+  return el('section', { class: 'ergebnis', 'data-kat': m.kat, 'data-neu': erst, 'aria-label': `Ergebnis: ${m.name}` },
+    el('header', { class: 'erg-kopf' }, zeichen(m.zeichen),
+      el('div', {}, el('h2', {}, e.ernsthaft ? 'Geschafft' : 'Das zählt noch nicht'),
+        el('p', { class: 'klein' }, `${m.name}${e.teil ? ` zu „${e.teil}“` : ''}${e.fach ? ` (${e.fach})` : ''}. `,
+          !e.ernsthaft ? 'Das sah nicht nach einem echten Versuch aus, darum gibt es keine XP. Probier es nochmal ernsthaft; falsch sein ist dabei völlig in Ordnung.'
+          : e.gedeckelt ? 'Heute hast du schon sechs Methoden geschafft. Diese zählt für dein Lernen, aber nicht mehr für XP.' : m.danach)),
+      e.ernsthaft && el('p', { class: 'erg-plus', 'aria-label': `plus ${e.xp} XP` }, '+', plus, el('span', {}, 'XP'))),
+    el('div', { class: 'erg-inhalt' }, ...ERGEBNIS[e.methode](e).filter(Boolean),
+      e.ernsthaft && el('p', { class: 'erg-tipp' }, 'Nimm dir das Thema in zwei, drei Tagen mit einer anderen Methode nochmal vor: Verteilt wiederholen wirkt am stärksten.'),
+      el('div', { class: 'knopfreihe' },
+        el('button', { class: 'knopf voll', type: 'button', onclick: () => methodeStarten(e.methode, e.methode === 'quiz' ? AM.fach : e.fach) }, e.methode === 'quiz' ? 'Nochmal' : 'Nochmal, anderer Abschnitt'),
+        el('button', { class: 'knopf', type: 'button', onclick: () => { AM.ergebnis = null; arenaZeigen(); } }, 'Andere Methode'))));
 }
 
 /* ---------- Ansichten ---------- */

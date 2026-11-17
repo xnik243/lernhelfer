@@ -187,3 +187,43 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 /* Fuß: gezeichneter Strich statt Linie, Empfehlung als leiser Kasten */
 .fuss { border-top: 0; background: var(--strich-waagrecht) left top / 360px 6px repeat-x; }
 .empfehlung { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen-2) 10 / 10px / 4px stretch; background-color: var(--bg); }
+
+/* ---------- Arena: Lernmethoden ---------- */
+/* Die Energie-Karte liegt auf dem Punktpapier; der Regler schiebt einen Textmarker-Streifen darüber. Marken und Kästen sind gezeichnet,
+   gewählt heißt angestrichen. Die Stimmungsfarben bleiben wie Buntstifte, im Dunkeln gedämpft wie die Fachfarben. */
+:root[data-thema="dunkel"] { --k-neugier: #d9a27a; --k-knobeln: #c4a3cf; --k-bauen: #9cc3a8; --k-leicht: #8fbfc7; --k-woop: #8a867f; --auf-kat: #151515; }
+:is(.ekarte, .mblatt, .buehne, .ergebnis, .estimmung, .karte-bild) { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 10px / 4px stretch; box-shadow: none; }
+:is(.mblatt, .ergebnis, .estimmung:nth-child(even)) { border-image-source: var(--rahmen-2); }
+:is(.ekarte, .karte-bild) { background: transparent; }
+.ekarte::before { width: 6px; border: 0; translate: -3px 0; background: var(--strich-senkrecht) center / 6px 100% no-repeat; }
+.ekarte::after { height: 6px; border: 0; translate: 0 -3px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
+.ekarte-licht { background: var(--gelb-hauch); }
+.m-zeichen, .estimmung[aria-pressed="true"] .m-zeichen { background: var(--kreis) center / 100% 100% no-repeat; color: var(--kat-text); }
+.emarke { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; box-shadow: none; }
+.emarke:nth-child(even) { border-image-source: var(--rahmen-2); }
+.emarke[data-an], .emarke[aria-pressed="true"] { box-shadow: none; border-color: transparent; }
+.emarke[aria-pressed="true"] { background: var(--marker) center / 100% 100% no-repeat, var(--bg); color: var(--auf-gelb); }
+.estimmung { border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; }
+.estimmung .m-zeichen, .estimmung[aria-pressed="true"] .m-zeichen { width: 32px; height: 32px; background: var(--kreis) center / 100% 100% no-repeat; color: var(--kat-text); }
+.estimmung[aria-pressed="true"] { border-color: transparent; background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb); }
+@media (hover: hover) { .estimmung:not([aria-pressed="true"]):hover { border-color: transparent; background: var(--gelb-hauch); } }
+/* Hinweise, Lesestücke, Sicherheitsfrage, Rückmeldungen und Musterantworten: gezeichnete Kästen in Tinte; Blau bleibt Handlungen vorbehalten */
+:is(.buehne-hinweis, .quiz-sicher, .erg-paar .erg-block, .buehne-lesen) { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen-2) 10 / 10px / 4px stretch; background: transparent; }
+.erg-muster { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; background: transparent; }
+:is(.mblatt-kopf, .buehne-kopf, .erg-kopf) { background: var(--strich-waagrecht) left bottom / 100% 6px no-repeat; }
+:is(.methoden-kopf, .mblatt, .buehne-titel, .erg-kopf) h2 { font-weight: 800; font-stretch: 88%; }
+:is(.mblatt-beispiel, .buehne-aufgabe) { border-radius: 2px; background: var(--zettel); color: var(--text); transform: rotate(-0.5deg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 20px -14px rgb(0 0 0 / 0.45); }
+:root:not([data-thema="dunkel"]) :is(.mblatt-beispiel, .buehne-aufgabe) { color: #121212; }
+.buehne-aufgabe { transform: rotate(0.3deg); }
+.buehne-fragen .nr { background: var(--kreis) center / 100% 100% no-repeat; color: var(--text); }
+.quiz-optionen .knopf[aria-pressed="true"] { box-shadow: none; background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb); }
+.quiz-punkte li { border-radius: 2px 4px 3px 5px; }
+.knopf.leise, .karte-weg { border-color: transparent; border-image: none; }
+.erg-plus { color: var(--text); }
+.erg-plus b { padding: 0 0.08em; background: var(--marker) center 58% / 100% 72% no-repeat; color: var(--auf-gelb); }
+.erg-kern { border: 1.5px solid transparent; border-image: var(--rahmen-2) 10 / 10px / 4px stretch; background: var(--kat-flaeche); }
+.erg-mark.ok { background: var(--haken-blau) center / 18px no-repeat; color: transparent; }
+.energie input[type="range"]::-webkit-slider-runnable-track { height: 6px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
+.energie input[type="range"]::-moz-range-track { height: 6px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
+.energie input[type="range"]::-moz-range-progress { background: none; }

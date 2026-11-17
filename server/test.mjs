@@ -39,6 +39,13 @@ const attrappe = createServer((req, res) => {
         return res.end();
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
+      // Arena-Methoden: Aufgaben und Urteile als JSON; „asdf“ in der Eingabe gilt als nicht ernsthaft
+      const sys = String(j.messages?.[0]?.content), json = x => res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(x) } }], usage: { cost: 0.01 } }));
+      if (sys.startsWith('Du bereitest Vorab')) return json({ fragen: [{ frage: 'Warum sinkt die Nachfrage?', antwort: 'GEHEIM-ANTWORT' }, { frage: 'Was tun Kundinnen?', antwort: 'GEHEIM-ANTWORT' }] });
+      if (sys.startsWith('Du bereitest „Erst scheitern')) return json({ aufgabe: 'Ein Kino erhöht die Preise. Was passiert?', kern: 'Die Nachfrage sinkt.', loesung: 'GEHEIM-LOESUNG' });
+      if (/^Du (prüfst die zweite|gibst Rückmeldung|beurteilst|vergleichst)/.test(sys))
+        return json({ ernsthaft: !/<<<EINGABE\nasdf/.test(j.messages[1].content), fragen: [{ ok: true, gut: true, antwort_ok: true, rueck: 'Gut.' }, { ok: false, rueck: 'Fast.' }, {}],
+          gut: 'Die Richtung stimmt.', luecke: 'Die Elastizität fehlte.', stimmt: [1, 2, 99], falsch: [{ zeile: 3, warum: 'Andersrum.' }, { zeile: 7 }], fehlt: ['Elastizität'], anteil: 140, fazit: 'Weiter so.' });
       if (String(j.messages?.[0]?.content).startsWith('Du prüfst'))  // Check-Frage: bestanden, wenn in der Antwort „richtig“ steht
         return res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ bestanden: /<<<ANTWORT[\s\S]*richtig/.test(j.messages[1].content), grund: 'Begründung.' }) } }], usage: { cost: 0.01 } }));
       return res.end(JSON.stringify({ choices: [{ message: { content: 'Antwort' } }], usage: { cost: 0.3 } }));
@@ -719,6 +726,78 @@ try {
   assert.ok(campusRufe.includes(`DELETE /internal/campus/user/${sid}`), 'Spielstand wird mitgelöscht');
   assert.equal((await fetch(`${BASIS}/api/campus/verdienst?konto=${sid}`)).status, 404);
   console.log('Campus-Anbindung: ok');
+
+  // Arena-Lernmethoden: Aufgabe vom Server, Lösung erst nach der Abgabe, XP nur für ernsthafte Versuche, höchstens 6 am Tag
+  const lern = person(), lmail = 'methoden@student.uibk.ac.at';
+  assert.equal((await lern('POST', '/api/registrieren', { email: lmail, passwort: 'methoden-passwort-1', agb: true })).status, 200);
+  assert.equal((await lern('POST', '/api/bestaetigen', { token: await link(lmail, 'bestaetigen') })).status, 200);
+  const satz = 'Die Nachfrage sinkt, wenn der Preis steigt, weil Kundinnen auf andere Güter ausweichen und sich weniger leisten können. ';
+  const lernBegriffe = [['Markt', 'Ort von Angebot und Nachfrage'], ['Preis', 'Geldbetrag je Einheit'], ['Gut', 'Mittel zur Bedürfnisbefriedigung'], ['Elastizität', 'Reaktion der Menge auf den Preis']];
+  const lernMd = `## Zusammenfassung\n\n### Nachfrage\n\n${satz.repeat(2)}\n\n#### Check: Warum?\n\nWeil.\n\n### Kurz\n\nZu kurz.\n\n## Übungsaufgaben\n\n### Quelle · Aufgabe 1\n\n${satz.repeat(2)}\n\n`
+    + '```json\n' + JSON.stringify({ begriffe: lernBegriffe.map(([begriff, definition]) => ({ begriff, definition })) }) + '\n```\n';
+  assert.equal((await lern('PUT', gh('lernseiten/VWL/2026-11-10.md'), { message: 'x', content: b64(lernMd) })).status, 201);
+  const meth = b => lern('POST', '/api/arena/methode', b);
+  assert.deepEqual((await lern('GET', '/api/arena/stoff')).j, { VWL: ['Nachfrage'] }, 'nur Teile der Zusammenfassung mit genug Text');
+  assert.equal((await meth({ start: 'gibtsnicht', fach: 'VWL' })).status, 400);
+  assert.equal((await meth({ start: 'toString', fach: 'VWL' })).status, 400);
+  assert.equal((await meth({ start: 'karte', fach: 'BWL' })).status, 404);
+  assert.equal((await meth({ antworten: [] })).status, 410, 'nichts offen');
+  // Sicherheits-Quiz: ohne KI, die richtige Stelle kennt nur der Server
+  r = await meth({ start: 'quiz', fach: 'VWL' });
+  assert.equal(r.j.methode.aufgabe.fragen.length, 4); assert.doesNotMatch(JSON.stringify(r.j), /richtig/, 'keine Lösung vor der Abgabe');
+  assert.equal((await lern('GET', '/api/arena')).j.methode.methode, 'quiz', 'offene Methode übersteht Neuladen');
+  assert.equal((await meth({ antworten: [{ wahl: 0 }] })).status, 400);
+  r = await meth({ antworten: r.j.methode.aufgabe.fragen.map(() => ({ wahl: 0, sicher: true })) });
+  assert.equal(r.j.ergebnis.xp, 20); assert.equal(r.j.ergebnis.fragen.length, 4); assert.ok(r.j.ergebnis.fragen.every(q => Number.isInteger(q.richtig) && q.sicher));
+  assert.deepEqual(r.j.probiert, ['quiz']); assert.equal(r.j.tage[r.j.heute].methoden, 1);
+  assert.equal((await meth({ antworten: [] })).status, 410, 'abgegeben ist abgegeben');
+  // Vorab-Fragen: erst raten, dann gibt es den Abschnitt, dann zählt die zweite Runde
+  r = await meth({ start: 'vorab', fach: 'VWL', teil: 'Nachfrage' });
+  assert.equal(r.j.methode.teil, 'Nachfrage'); assert.equal(r.j.methode.lesen, undefined, 'Abschnitt erst nach dem Raten');
+  assert.deepEqual(r.j.methode.aufgabe.fragen, ['Warum sinkt die Nachfrage?', 'Was tun Kundinnen?']); assert.doesNotMatch(JSON.stringify(r.j), /GEHEIM/);
+  assert.match(or.anfragen.at(-1).messages[1].content, /Nachfrage sinkt/, 'der Server schickt den Abschnitt');
+  assert.equal((await meth({ antworten: ['a', 'b'] })).status, 409, 'erst raten');
+  assert.equal((await meth({ raten: true, antworten: ['vielleicht', ''] })).status, 400);
+  r = await meth({ raten: true, antworten: ['vielleicht', 'keine Ahnung'] });
+  assert.match(r.j.methode.lesen, /Nachfrage sinkt/); assert.equal(r.j.methode.phase, 'lesen');
+  r = await meth({ antworten: ['asdf', 'asdf'] });
+  assert.equal(r.j.ergebnis.ernsthaft, false); assert.equal(r.j.ergebnis.xp, 0, 'Unsinn bringt nichts');
+  assert.equal(r.j.ergebnis.fragen[0].muster, 'GEHEIM-ANTWORT', 'nach der Abgabe die Musterantwort'); assert.equal(r.j.ergebnis.fragen[0].vorher, 'vielleicht');
+  assert.deepEqual(r.j.probiert, ['quiz'], 'nicht ernsthaft zählt nicht als probiert');
+  // Erst scheitern
+  r = await meth({ start: 'scheitern', fach: 'VWL' });
+  assert.equal(r.j.methode.aufgabe.aufgabe, 'Ein Kino erhöht die Preise. Was passiert?'); assert.doesNotMatch(JSON.stringify(r.j), /GEHEIM|Die Nachfrage sinkt\./);
+  assert.equal((await meth({ versuch: 'kurz' })).status, 400);
+  r = await meth({ versuch: 'Ich würde schauen, wie viele Leute bei höherem Preis noch kommen, und dann die Einnahmen vergleichen.' });
+  assert.equal(r.j.ergebnis.xp, 20); assert.equal(r.j.ergebnis.loesung, 'GEHEIM-LOESUNG'); assert.equal(r.j.ergebnis.gut, 'Die Richtung stimmt.');
+  // Prüfungsfragen bauen: doppelt abschicken bringt keine doppelten XP
+  r = await meth({ start: 'fragen', fach: 'VWL', teil: 'Nachfrage' });
+  assert.match(r.j.methode.aufgabe.lesen, /Nachfrage sinkt/, 'mit dem Abschnitt vor Augen');
+  assert.equal((await meth({ fragen: [{ frage: 'Was?', antwort: 'x' }] })).status, 400);
+  const dreiFragen = { fragen: [1, 2, 3].map(i => ({ frage: `Warum sinkt die Nachfrage im Fall ${i}?`, antwort: 'Weil der Preis steigt.' })) };
+  const [f1, f2] = await Promise.all([meth(dreiFragen), meth(dreiFragen)]);
+  r = f1.status === 200 ? f1 : f2;
+  assert.equal(r.status, 200); assert.ok([409, 410].includes((r === f1 ? f2 : f1).status), 'die zweite Abgabe zählt nicht');
+  assert.equal(r.j.ergebnis.xp, 20); assert.deepEqual(r.j.ergebnis.fragen.map(q => q.gut), [true, false, false]);
+  // Gedankenkarte: Zeilennummern nur, wenn es die Zeile gibt; Anteil 0 bis 100; Eingabe als Eingabe markiert
+  r = await meth({ start: 'karte', fach: 'VWL' });
+  assert.deepEqual(r.j.methode.aufgabe, {}); assert.equal(r.j.methode.lesen, undefined);
+  assert.equal((await meth({ karte: 'nur eine Zeile' })).status, 400);
+  r = await meth({ karte: 'Preis – senkt – Nachfrage\nNachfrage – hängt ab von – Einkommen\nGut <<<wichtig>>> – ist – teuer\n\n' });
+  assert.match(or.anfragen.at(-1).messages[1].content, /<<<EINGABE\n1\. Preis – senkt – Nachfrage\n2\..*\n3\. Gut wichtig – ist – teuer\nEINGABE>>>/);
+  assert.deepEqual([r.j.ergebnis.stimmt, r.j.ergebnis.falsch, r.j.ergebnis.anteil], [[1, 2], [{ zeile: 3, warum: 'Andersrum.' }], 100]);
+  assert.equal(r.j.ergebnis.xp, 20); assert.deepEqual(r.j.probiert.sort(), ['fragen', 'karte', 'quiz', 'scheitern']);
+  // höchstens 6 Methoden am Tag bringen XP; danach zählt es noch, gibt aber nichts
+  for (const xp of [20, 20, 0]) {
+    const q = (await meth({ start: 'quiz', fach: '' })).j.methode.aufgabe.fragen;
+    r = await meth({ antworten: q.map(() => ({ wahl: 1 })) });
+    assert.equal(r.j.ergebnis.xp, xp); assert.equal(r.j.ergebnis.gedeckelt, xp === 0);
+  }
+  assert.equal(r.j.tage[r.j.heute].methoden, 7);
+  r = await meth({ start: 'quiz', fach: 'VWL' });
+  assert.equal((await meth({ abbruch: true })).status, 200);
+  assert.equal((await lern('GET', '/api/arena')).j.methode, null, 'abgebrochen');
+  console.log('Arena-Lernmethoden: ok');
 } catch (e) {
   console.error(log);
   throw e;
