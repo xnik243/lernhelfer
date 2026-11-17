@@ -455,6 +455,23 @@
   .nr.ok::after { content: ""; position: absolute; inset: 6px; background: var(--ok); -webkit-mask: var(--haken) center / contain no-repeat; mask: var(--haken) center / contain no-repeat; }
   #wp-out { min-height: 16rem; font-variant-numeric: tabular-nums; }
   #wp-notes, #wp-woerter { min-height: 8rem; }
+  .wp-vgl { margin: 12px 0 16px; padding: 12px 16px; border: 1px solid var(--linie); border-radius: var(--r); }
+  .wp-vgl summary { cursor: pointer; font-weight: 600; }
+  .wp-vgl[open] summary { margin-bottom: 8px; }
+  #wp-vlinks { min-height: 5.5rem; }
+  .wp-vkarten { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; margin-top: 14px; }
+  .wp-vkarte { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--linie); border-radius: var(--r); background: var(--bg-2); }
+  .wp-vkarte[aria-current] { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent); }
+  .wp-vkarte img { width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; object-fit: cover; background: var(--bg-3); }
+  .wp-vkarte p { margin: 0; }
+  .wp-vkarte .text { flex: 1; font-size: 0.9375rem; }
+  .wp-vkarte .text p { margin: 0.6em 0 0; }
+  .wp-vkarte .text ul { margin: 0.3em 0; padding-left: 1.2em; }
+  .wp-vkarte .text li { margin: 0.3em 0; }
+  .wp-vunter { margin-top: 12px; padding: 14px 16px; border-radius: var(--r); background: var(--akzent-flaeche); }
+  .wp-vunter h3 { margin: 0 0 6px; }
+  .wp-vunter .text p { margin: 0.5em 0 0; }
+  .wp-vkarte .knopf { align-self: stretch; }
   .talk { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 10px; border-radius: var(--r); background: var(--bg-2); }
   .talk img { width: 112px; aspect-ratio: 16 / 9; flex: none; border-radius: 6px; object-fit: cover; background: var(--bg-3); }
   .talk p { margin: 0; }
@@ -1345,6 +1362,15 @@ aussehen();
           <div id="wp-tsperre"></div>
           <div id="wp-tteil">
           <p class="klein" data-en="Gemini listens to the video and writes everything down with timestamps, without filler words.">Gemini hört sich das Video an und schreibt alles mit Zeitstempeln mit, ohne Füllwörter.</p>
+          <details id="wp-vgl" class="wp-vgl">
+            <summary data-en="Not sure yet? Compare 2–3 talks first">Noch unsicher? Erst 2–3 Talks vergleichen</summary>
+            <p class="klein" data-en="One YouTube link per line. Gemini transcribes every talk, then you get detailed summaries side by side and what sets them apart. Pick one and its transcript is already done.">Ein YouTube-Link pro Zeile. Gemini schreibt jeden Talk mit, dann bekommst du ausführliche Zusammenfassungen nebeneinander und die Unterschiede. Wählst du einen, ist sein Transkript schon fertig.</p>
+            <label class="feld"><span data-en="Links">Links</span> <textarea id="wp-vlinks" name="links" spellcheck="false" autocapitalize="off" placeholder="https://www.youtube.com/watch?v=…&#10;https://youtu.be/…"></textarea></label>
+            <div class="knopfreihe"><button id="wp-vgo" class="knopf voll" type="button" data-en="Compare">Vergleichen</button></div>
+            <p id="wp-vglst" class="wp-status" role="status"></p>
+            <div id="wp-vkarten" class="wp-vkarten"></div>
+            <div id="wp-vunter" class="wp-vunter" hidden></div>
+          </details>
           <form id="wp-tform" class="feld" novalidate>
             <label for="wp-url" data-en="YouTube link">YouTube-Link</label>
             <div class="zeile">
@@ -4300,6 +4326,84 @@ $('wp-hwgo').onclick = async () => {
 };
 wpZeigen();
 if (wpVideo()) wpNachschlagen();
+
+// Vergleich: 1–3 Talks gleich ganz transkribieren (das Video geht so nur einmal durch Gemini), dann vergleicht ein
+// billiges Textmodell die Transkripte. Wer einen wählt, hat sein Transkript schon und kann direkt die Hausaufgabe machen.
+const VGL = (g => g?.talks ? g : { talks: [], unterschiede: '' })(liesJson('wp.vgl'));
+let VGL_LAEUFT = false;
+const vglMerken = () => merk('wp.vgl', JSON.stringify({ talks: VGL.talks.map(({ hinweis, ...k }) => k), unterschiede: VGL.unterschiede }));
+const WP_VGL = (n, de) => `A business English student (B2–C1) is choosing between ${n} talk${n > 1 ? 's' : ''} for a Word Power homework (word partnerships from the talk, then a short talk of their own about it). The talks are often on very similar topics, so make the differences visible: what each one actually says, how it argues, and what only it offers. Use only the transcripts.
+Answer only with JSON: {"talks": ["Markdown for talk 1", …], "unterschiede": "Markdown"}, one string per talk in the given order. Write in ${de ? 'German' : 'English'}.
+Each talk, 180–250 words, with these bold labels in this order:
+**${de ? 'Kernaussage' : 'Core message'}:** one sentence.
+**${de ? 'Hauptpunkte' : 'Main points'}:** 4–6 bullet points, each with one or two sentences of explanation, in the order of the talk.
+**${de ? 'Beispiele und Geschichten' : 'Examples and stories'}:** the concrete stories, studies, numbers or cases the speaker uses.
+**${de ? 'Was nur dieser Talk hat' : 'Only in this talk'}:** ${n > 1 ? 'what sets it apart from the others (angle, evidence, tone, practical takeaway).' : 'its particular angle and takeaway.'}
+**${de ? 'Sprache' : 'Language'}:** length, accent, pace, how personal or academic it is, how much useful business vocabulary it has.
+${n > 1 ? `"unterschiede", 120–200 words: where the talks overlap, how they differ in angle, tone, evidence and practical takeaway, and for which kind of interest each one is the best pick. Refer to the talks by a short title.` : '"unterschiede": empty string.'}`;
+function wpVglZeigen() {
+  const jetzt = wpVideo();
+  $('wp-vkarten').replaceChildren(...VGL.talks.map(k => el('article', { class: 'wp-vkarte', 'aria-current': k.url === jetzt ? 'true' : null },
+    el('img', { src: `https://i.ytimg.com/vi/${k.url.slice(-11)}/hqdefault.jpg`, alt: '', loading: 'lazy' }),
+    el('div', {}, el('p', { class: 'talk-titel' }, k.titel || k.url), k.autor && el('p', { class: 'meta' }, k.autor)),
+    k.fehler ? el('p', { class: 'wp-status fehlertext' }, k.fehler) : k.text ? markdown(el('div', { class: 'text' }), k.text)
+      : VGL_LAEUFT ? el('p', { class: 'presse' }, k.hinweis) : el('p', { class: 'klein' }, ue('Transkript ist da, die Zusammenfassung fehlt.', 'Transcript is ready, the summary is missing.')),
+    el('button', { class: k.url === jetzt ? 'knopf' : 'knopf voll', type: 'button', disabled: VGL_LAEUFT || !k.transkript || k.url === jetzt, onclick: () => wpVglNehmen(k) },
+      k.url === jetzt ? ue('Gewählt', 'Chosen') : ue('Diesen nehmen', 'Pick this one')))));
+  $('wp-vunter').hidden = !VGL.unterschiede;
+  $('wp-vunter').replaceChildren(el('h3', {}, ue('Die Unterschiede', 'How they differ')), markdown(el('div', { class: 'text' }), VGL.unterschiede));
+}
+function wpVglNehmen(k) {  // Link und fertiges Transkript übernehmen, weiter zur Hausaufgabe
+  if ($('wp-go').disabled) return wpSag($('wp-vglst'), ue('Es läuft noch ein Transkript.', 'A transcript is still running.'), 'fehlertext');
+  $('wp-url').value = k.url; merk('wp.url', k.url);
+  $('wp-out').value = k.transkript; merk('wp.out', k.transkript);
+  wpNachschlagen(); wordpower(); wpVglZeigen();
+  wpSag($('wp-st'), ue('Transkript aus dem Vergleich übernommen.', 'Transcript taken from the comparison.'));
+  ($('wp-schritt2').hidden ? $('wp-tform') : $('wp-schritt2')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('wp-vgo').onclick = async () => {
+  const st = $('wp-vglst'), links = [...new Set($('wp-vlinks').value.split(/\s+/).map(ytLink).filter(Boolean))];
+  if (!links.length) return wpSag(st, ue('Keine YouTube-Links gefunden.', 'No YouTube links found.'), 'fehlertext');
+  if (links.length > 3) return wpSag(st, ue('Höchstens 3 Talks auf einmal.', 'At most 3 talks at once.'), 'fehlertext');
+  if (!WP) return wpSag(st, ue('Einen Moment, Word Power lädt noch.', 'One moment, Word Power is still loading.'), 'fehlertext');
+  wpSag(st, '');
+  VGL.talks = links.map(url => ({ url, titel: '', autor: '', transkript: '', text: '', fehler: '', hinweis: ue('Gemini sieht sich den Talk an …', 'Gemini is watching the talk …') }));
+  VGL.unterschiede = ''; VGL_LAEUFT = true;
+  await wpBeschaeftigt($('wp-vgo'), true); wpVglZeigen();
+  const uhr = setInterval(wpVglZeigen, 1000), m = transkriptModell(WP_TRANSKRIPT);
+  let summe = 0;
+  try {
+    await Promise.all(VGL.talks.map(async k => {
+      fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(k.url)).then(r => r.json()).then(j => { k.titel = j.title; k.autor = j.author_name; }, () => {});
+      try {
+        const { text, preis } = await strom({ model: m, feature: 'wp-transkript', stil: false, ...nurGoogle(m), reasoning: { effort: 'low' },
+          messages: [{ role: 'user', content: [{ type: 'text', text: WP.transcribe }, { type: 'video_url', video_url: { url: k.url } }] }] },
+          t => { const marken = t.match(/\d\d:\d\d:\d\d/g); k.hinweis = ue('Transkribiere …', 'Transcribing …') + (marken ? ue(' bei ', ' at ') + marken.pop().replace(/^00:/, '') : ''); });
+        k.transkript = text; summe += preis;
+        k.hinweis = ue('Fertig, wartet auf die anderen …', 'Done, waiting for the others …');
+      } catch (e) { k.fehler = wpWarum(e); }
+    }));
+    const da = VGL.talks.filter(k => k.transkript);
+    da.forEach(k => { k.hinweis = ue('Vergleicht die Talks …', 'Comparing the talks …'); });
+    if (da.length) {
+      const { text, preis } = await strom({ model: WP_MODELL, feature: 'wp-transkript', reasoning: { effort: 'medium' }, response_format: { type: 'json_object' }, messages: [
+        { role: 'system', content: WP_VGL(da.length, !EN) },
+        { role: 'user', content: da.map((k, i) => `=== Talk ${i + 1}: ${k.titel || k.url}${k.autor ? ` (${k.autor})` : ''} ===\n${k.transkript}`).join('\n\n') }] }, () => {});
+      const j = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+      da.forEach((k, i) => { k.text = String(j.talks?.[i] || ''); });
+      VGL.unterschiede = da.length > 1 ? String(j.unterschiede || '') : '';
+      summe += preis;
+    }
+    wpSag(st, (da.length ? ue('Wähl einen Talk aus, sein Transkript ist schon fertig.', 'Pick a talk, its transcript is already done.') : ue('Kein Talk ließ sich transkribieren.', 'No talk could be transcribed.'))
+      + (SERVER ? '' : ue(' · Kosten ', ' · Cost ') + geld(summe)), da.length ? '' : 'fehlertext');
+  } catch (e) { wpSag(st, wpWarum(e), 'fehlertext'); }
+  clearInterval(uhr); VGL_LAEUFT = false; vglMerken(); wpVglZeigen();
+  wpBeschaeftigt($('wp-vgo'), false); kosten();
+};
+$('wp-vlinks').value = merk('wp.vlinks') || '';
+$('wp-vlinks').addEventListener('input', () => merk('wp.vlinks', $('wp-vlinks').value));
+$('wp-url').addEventListener('input', wpVglZeigen);
+if (VGL.talks.length) { wpVglZeigen(); $('wp-vgl').open = true; }
 
 /* ---------- Word Power: Glossar, Trainer, Time Log, Reflection-Feedback ---------- */
 // Alles hier arbeitet nur mit dem, was du selbst einträgst: Die App schreibt keine Erklärungen, Synonyme oder Reflections für dich.
