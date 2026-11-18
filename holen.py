@@ -432,6 +432,10 @@ def testliste(fach):
         if f.stem.endswith(" – Fragen"):
             continue
         t, fragen = f.read_text("utf-8"), ordner / f"{f.stem} – Fragen.txt"
+        if t.startswith("OLAT-Bewertung „"):  # Bewertungs-Baustein (PS-Test, Präsentation …): Punkte liest die App aus dem Text
+            lv = re.match(r"OLAT-Bewertung „.*?“ \((\w*)\)", t)
+            aus.append({"fach": fach, "titel": f.stem, "art": "bewertung", "lv": lv and lv.group(1) or None, "startseite": t})
+            continue
         if t.startswith("Selbsttest „"):  # Selbsttest-Baustein: die Datei enthält schon die Fragen
             aus.append({"fach": fach, "titel": f.stem, "art": "selbsttest", "fragen": t})
             continue
@@ -463,10 +467,12 @@ def tests(browser, fach):
     page = ctx.new_page()
     ziel = MATERIAL / fach / TESTS
     ziel.mkdir(parents=True, exist_ok=True)
+    # Art der Lehrveranstaltung je Kurs (VO, PS …) aus den Namen in kurse.json, für die Bewertungen
+    arten = {q["url"].split("/")[0]: q["name"].split()[0] for q in KURSE[fach] if re.match(r"(VO|PS|UE|VU|SE|UV|KS) ", q["name"])}
     for kurs in sorted({q["url"].split("/")[0] for q in KURSE[fach]}):
         for k in knoten(page, kurs):
             # ponytail: Altklausuren (Klausurarchiv) übersprungen – eigener Prüfungsmodus, falls gewünscht
-            if k["icon"] not in ("o_iqtest_icon", "o_iqself_icon") or k["eltern"] == "Klausurarchiv":
+            if k["icon"] not in ("o_iqtest_icon", "o_iqself_icon", "o_ms_icon") or k["eltern"] == "Klausurarchiv":
                 continue
             name = re.sub(r'[\\/:*?"<>|]', "-", k["titel"])
             datei, fragen = ziel / f"{name}.txt", ziel / f"{name} – Fragen.txt"
@@ -476,7 +482,11 @@ def tests(browser, fach):
             page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
             page.wait_for_load_state("networkidle")
             try:
-                if k["icon"] == "o_iqself_icon":
+                if k["icon"] == "o_ms_icon":  # Bewertung: nur lesen, die Seite hat für Teilnehmende nichts zum Abschicken
+                    # ponytail: nur Bewertungs-Bausteine; Punkte in Aufgaben-Bausteinen (o_gta_icon) erst, wenn eine echte Seite dazu vorliegt
+                    seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
+                    t = f"OLAT-Bewertung „{k['titel']}“ ({arten.get(kurs, '')})\n\n" + seite
+                elif k["icon"] == "o_iqself_icon":
                     t = f"Selbsttest „{k['titel']}“ (anonyme, unbewertete Übung) – Fragen ohne Lösung\n\n" + test_lesen(page, frei, "Selbsttest starten")
                 else:
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)

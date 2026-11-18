@@ -9,7 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Lernhelfer">
 <meta name="theme-color" content="#fbfbf9">
 <title>Lernhelfer</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232446c8'/%3E%3Cpath d='M11 8h3.6v13H22v3H11z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cpath d=%22M7 6.5C22 4.6 42 5.4 57.8 6.2 59.4 22 59 42 58.2 57.6 42 59.2 22 58.8 6.4 58 5 42 5.2 22 7 6.5Z%22 fill=%22%23ffe93a%22/%3E%3Cpath d=%22M18 10.5Q16 31 17.6 50Q33 48.6 50 50.5%22 fill=%22none%22 stroke=%22%23121212%22 stroke-width=%227%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M28.5 28.5Q32 31 34.6 36.5Q39.5 24 50 13%22 fill=%22none%22 stroke=%22%232446c8%22 stroke-width=%226.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preload" href="fonts/Archivo.woff2" as="font" type="font/woff2" crossorigin>
 <script src="lib/marked-12.0.2.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
 <script src="lib/purify-3.1.6.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
@@ -517,6 +518,12 @@
 
   /* Onlinetests */
   .testgruppe { margin-top: 32px; }
+  .test-zu > summary { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; cursor: pointer; }
+  .test-zu > summary h2 { margin: 0; font-size: 1.125rem; }
+  .test-zu > summary h2::after { content: " ›"; color: var(--text-3); }
+  .test-zu[open] > summary h2::after { content: " ⌄"; }
+  .test-spaeter { margin-top: 10px; }
+  .test-spaeter > summary { width: max-content; color: var(--akzent-text); font-size: 0.875rem; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
   .testzeilen { margin: 0; padding: 0; list-style: none; border: 1px solid var(--linie); border-radius: var(--r-l); overflow: hidden; }
   .testzeile { position: relative; display: grid; grid-template-columns: 6.5rem minmax(0, 1fr) auto; gap: 2px 14px; align-items: center; padding: 12px 16px; transition: background-color 0.15s; }
   .testzeile + .testzeile { border-top: 1px solid var(--linie); }
@@ -1355,6 +1362,32 @@
   .note-gross small { color: var(--text-3); font-size: 0.8125rem; font-weight: 600; }
   .lernplan { display: grid; gap: 6px; margin: 10px 0 0; padding-left: 1.25em; color: var(--text-2); font-size: 0.875rem; }
   .pruefung-neu { margin-top: 12px; }
+  .lv-noten { list-style: none; padding: 0 !important; gap: 2px !important; }
+  .lv-noten li { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: 8px; }
+  .lv-noten li b { color: var(--text); font-weight: 650; }
+  .lv-noten li[data-z="sicher"] span { color: var(--gut, #1f7a3a); font-weight: 600; }
+  .lv-noten li[data-z="weg"] { opacity: 0.55; }
+  .lv-zwischen { margin: 6px 0 0; font: 650 0.8125rem/1.3 var(--sans); color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+  .lv-teile { list-style: none; padding: 0 !important; gap: 0 !important; border-top: 1px solid var(--linie); }
+  .lv-teile li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--linie); }
+  .lv-teile li b { display: block; color: var(--text); font-weight: 600; overflow-wrap: anywhere; hyphens: auto; }
+  .lv-teile .meta { display: block; font-size: 0.8125rem; }
+  .lv-teil-punkte { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
+  .lv-teil-noch { text-align: right; color: var(--akzent-text); font-weight: 600; font-size: 0.8125rem; }
+  .lv-teile li[data-z="fertig"] .lv-teil-noch { color: var(--text-3); font-weight: 500; }
+  .pr-faecher { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; align-items: start; }
+  .pr-fach h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 650 0.9375rem/1.3 var(--sans); }
+  .pr-fach h3::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--fach, var(--linie-2)); }
+  .pr-fach .testzeile { grid-template-columns: 4.75rem minmax(0, 1fr) auto; }
+  .pr-fach .pr-zeile > summary { list-style: none; cursor: pointer; grid-template-columns: 4.75rem minmax(0, 1fr) auto auto; }
+  .pr-zeile > summary::-webkit-details-marker { display: none; }
+  .pr-zeile > summary::after { content: "›"; color: var(--text-3); font-size: 1.2rem; transition: transform 0.15s; }
+  .pr-zeile[open] > summary::after { transform: rotate(90deg); }
+  .pr-zeile .bald { color: var(--fach, var(--text)); }
+  .pr-titel { font-weight: 600; overflow-wrap: anywhere; }
+  .pr-innen { display: grid; gap: 10px; justify-items: start; padding: 0 16px 14px; }
+  .testzeilen > li + li .pr-zeile { border-top: 1px solid var(--linie); }
+  @media (max-width: 640px) { .pr-fach .testzeile { grid-template-columns: 4.25rem minmax(0, 1fr) auto; } .pr-fach .pr-zeile > summary.testzeile { grid-template-columns: 4.25rem minmax(0, 1fr) auto auto; } .pr-fach .testzeile .wann { justify-self: end; margin-top: 0; } }
   .pruefung-neu > summary, .skript > summary { width: max-content; cursor: pointer; }
   .pruefung-neu > summary { color: var(--akzent-text); font-size: 0.875rem; font-weight: 600; }
   .pruefung-form, .pk-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 0 12px; align-items: end; }
@@ -1469,7 +1502,8 @@ aussehen();
       </div>
       <details class="mehr-funktionen" id="nav-mehr" hidden><summary><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg><span id="nav-mehr-titel">Pro und Ultra</span></summary><div class="navi" id="nav-mehr-liste"></div></details>
       <p class="gruppe nur-server">Spiel</p>
-      <a href="/game/info" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-9M12 12c0-4 3-6 7-6 0 4-3 6-7 6zM12 15c0-3-2.500-5-6-5 0 3 2.500 5 6 5z"/></svg>Lernhof</a>
+      <!-- Lernhof (/game) archiviert: bleibt erreichbar, steht aber nicht mehr in der Leiste -->
+      <a href="/campus/hilfe.html" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.7M12 16.8v.2"/></svg>So geht Campus</a>
       <a href="/campus/" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.500v9L12 21l-8-4.500v-9zM4 7.500l8 4.500 8-4.500M12 12v9"/></svg>Campus</a>
       <hr>
       <a href="#/unterlagen" data-ansicht="unterlagen" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 16.5v-6M9.5 13l2.5-2.5 2.5 2.5"/></svg>Unterlagen</a>
@@ -3288,8 +3322,14 @@ const notenLaden = () => NOTEN_P ??= (async () => {
   let neu = 0;
   for (const t of TESTS) {
     const m = t.art === 'test' && t.ergebnis && !t.uebung && t.startseite?.match(/Erreichte Punktzahl\s*(-?[\d.,]+) von ([\d.,]+) Punkt/);
-    if (!m || NOTEN.eintraege.some(e => e.olat === testId(t))) continue;
-    NOTEN.eintraege.push({ id: crypto.randomUUID(), olat: testId(t), lv: `${t.fach} PS`, titel: t.titel, datum: (t.bis || HEUTE).slice(0, 10), punkte: zahl(m[1]), max: zahl(m[2]) });
+    const pm = m ? [zahl(m[1]), zahl(m[2])] : t.art === 'bewertung' && bewertungPunkte(t.startseite);
+    if (!pm) continue;
+    const alt = NOTEN.eintraege.find(e => e.olat === testId(t));
+    if (alt) {  // nachträglich korrigierte Punkte übernehmen, außer der Eintrag wurde von Hand geändert
+      if (!alt.hand && !alt.weg && (alt.punkte !== pm[0] || alt.max !== pm[1])) { alt.punkte = pm[0]; alt.max = pm[1]; neu++; }
+      continue;
+    }
+    NOTEN.eintraege.push({ id: crypto.randomUUID(), olat: testId(t), lv: LV_ART.test(t.fach) ? t.fach : `${t.fach} ${t.lv || 'PS'}`, titel: t.titel, datum: (t.bis || HEUTE).slice(0, 10), punkte: pm[0], max: pm[1] });
     neu++;
   }
   for (const f of Object.keys(R)) for (const x of aktuell(f)?.pruefungen || []) {  // derselbe Tag im selben Fach ist dieselbe Prüfung
@@ -3306,13 +3346,86 @@ async function notenAendern(fn) {  // ändern, speichern, neu zeichnen; geht das
   notenZeigen();
 }
 function lvStand(name) {
-  const c = NOTEN.lv[name] || {}, s = c.schluessel || SCHLUESSEL, e = notenAktiv().filter(x => x.lv === name);
-  const p = summe(e, 'punkte'), m = summe(e, 'max'), stand = m ? 100 * p / m : null;
+  const fach = fachVon(name), b = bewLvs().find(x => x.lv === name), hand = Object.fromEntries(Object.entries(NOTEN.lv[name] || {}).filter(([, v]) => v != null));
+  const c = { ...b && { ects: b.ects, gesamt: b.gesamt, schluessel: b.schluessel }, ...hand }, s = c.schluessel || SCHLUESSEL, e = notenAktiv().filter(x => x.lv === name);
+  const m = summe(e, 'max'), stand = m ? 100 * summe(e, 'punkte') / m : null;
   const mitS = e.filter(x => x.schnitt != null), sm = summe(mitS, 'max');
-  return { name, c, s, e, p, m, stand, fach: fachVon(name), note: c.note || noteAus(stand, s), offen: c.gesamt ? Math.max(0, c.gesamt - m) : null,
+  // mit Schema aus dem Syllabus: nur zählende Punkte (beste n von m, Obergrenzen) und was in jedem Teil noch zu holen ist
+  const teile = b?.teile.map(t => teilStand(t, e, fach)) || null, sonst = teile ? e.filter(x => !teile.some(t => t.da.includes(x))) : e;
+  const p = (teile ? summe(teile, 'p') : 0) + summe(sonst, 'punkte');
+  return { name, c, s, e, p, m, stand, fach, b, teile, note: c.note || noteAus(stand, s),
+    offen: teile ? summe(teile, 'offen') : c.gesamt ? Math.max(0, c.gesamt - m) : null,
     du: sm ? 100 * summe(mitS, 'punkte') / sm : null, schnitt: sm ? 100 * summe(mitS, 'schnitt') / sm : null };
 }
-const notenLVs = () => [...new Set([...Object.keys(NOTEN.lv), ...notenAktiv().map(e => e.lv)])]
+// Bewertungsschema je Fach (noten.json → bewertung[Fach] = { text, lvs }), von der KI einmal aus den Stammdaten der neuesten Ausgabe gelesen:
+// lvs: [{ lv, ects, gesamt, schluessel: [ab % für 4, 3, 2, 1], bedingung, teile: [{ titel, art, suche, anzahl, max_je, zaehlen, max }] }]
+const LV_ART = /\s(VO|PS|UE|VU|SE|UV|KS)$/;  // Fächer wie „BWL VO“ sind schon eine Lehrveranstaltung
+const bewLvs = () => Object.values(NOTEN?.bewertung || {}).flatMap(b => b.lvs || []);
+const norm = s => String(s || '').toLowerCase().replace(/[-–_\s]+/g, ' ').trim();
+const trifft = (t, titel) => !!t.suche && norm(titel).includes(norm(t.suche));
+const kommendeTests = fach => (TESTS ? [...TESTS, ...erwarteteTests()] : [])
+  .filter(x => x.fach === fach && x.art === 'test' && !x.uebung && (x.erwartet || ['offen', 'bald'].includes(teststand(x).gruppe)))
+  .sort((a, b) => (a.bis || '9').localeCompare(b.bis || '9'));
+function teilStand(t, e, fach) {
+  const da = e.filter(x => trifft(t, x.titel)), werte = da.map(x => x.punkte);
+  const beste = l => { const n = l.slice().sort((a, b) => b - a).slice(0, t.zaehlen || l.length).reduce((a, b) => a + b, 0); return t.max != null ? Math.min(t.max, n) : n; };
+  const je = t.max_je ?? (t.anzahl && t.max != null ? t.max / t.anzahl : null);
+  // was noch kommt: bei Onlinetests die offenen und angekündigten Tests aus OLAT, sonst die restlichen Einzelleistungen laut Syllabus
+  const tests = t.art === 'onlinetest' ? kommendeTests(fach).filter(x => trifft(t, x.titel) && !da.some(y => y.titel === x.titel)) : [];
+  const rest = tests.length ? tests.map(x => x.punkte ?? je ?? 0) : t.anzahl ? Array(Math.max(0, t.anzahl - da.length)).fill(je ?? 0) : !da.length && t.max != null ? [t.max] : [];
+  const termin = tests.length ? { datum: tests[0].bis?.slice(0, 10), titel: tests[0].titel }
+    : (NOTEN.pruefungen || []).filter(q => !q.weg && q.fach === fach && q.datum >= HEUTE && trifft(t, q.titel)).sort((a, b) => a.datum.localeCompare(b.datum))[0];
+  const p = beste(werte);
+  return { ...t, da, p, je, offen: Math.max(0, beste([...werte, ...rest]) - p), rest: rest.length, termin };
+}
+// Wie viele Punkte ein Termin (Prüfung, PS-Test, Präsentation) laut Schema bringt
+const terminPunkte = (fach, titel) => bewLvs().filter(l => l.fach === fach).flatMap(l => l.teile).filter(t => trifft(t, titel))
+  .sort((a, b) => norm(b.suche).length - norm(a.suche).length).map(t => t.max_je ?? (t.anzahl && t.max != null ? t.max / t.anzahl : t.max))[0] ?? null;
+// Punkte aus einem OLAT-Bewertungsbaustein (PS-Test, Präsentation …): „Punkte: 12,5“, „Erreichte Punkte 12.5 von 15“, dazu „Max. Punktzahl: 15“
+function bewertungPunkte(text) {
+  if (!text || /noch nicht bewertet|keine bewertung/i.test(text)) return null;
+  const max = text.match(/Max(?:imale|imal|\.)?\s*(?:Punktzahl|Punkte)\s*:?\s*(-?[\d.,]+)/i), z = text.split('\n').filter(l => !/max|min/i.test(l)).join('\n');
+  const p = z.match(/(?:Erreichte\s+)?(?:Punktzahl|Punkte)\s*:?\s*(-?[\d.,]+)(?:\s*(?:von|\/)\s*([\d.,]+))?/i);
+  const pm = p && [zahl(p[1]), zahl(p[2] || max?.[1])];
+  return pm && Number.isFinite(pm[0]) && pm[1] > 0 ? pm : null;  // ponytail: Muster nach OpenOLAT, ohne echte UIBK-Seite geprüft; passt es nicht, bleibt der Eintrag weg
+}
+const BEW_KI = { model: 'google/gemini-3.8-flash', max_tokens: 4000 }, BEW_LAEUFT = new Set();
+const bewHash = t => [...t].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7).toString(36);
+const BEW_AUFTRAG = (f, text) => `Unten steht der Abschnitt Stammdaten (aus dem Syllabus) des Fachs ${f}. Bau daraus das Bewertungsschema jeder Lehrveranstaltung. Antworte nur mit JSON:
+{"lvs": [{"lv": "${f} PS", "ects": null, "gesamt": 100, "schluessel": [50, 63, 76, 89], "bedingung": null, "teile": [{"titel": "PS-Tests", "art": "pstest", "suche": "PS-Test", "anzahl": 5, "max_je": 15, "zaehlen": 4, "max": 60}]}]}
+Regeln:
+- lv: ${LV_ART.test(f) ? `immer genau „${f}“` : `genau „${f} PS“, „${f} VO“, „${f} UE“ usw. nach Art der Lehrveranstaltung; gibt es nur eine ohne erkennbare Art, „${f}“`}. Jede Lehrveranstaltung mit eigener Note ist ein eigener Eintrag.
+- gesamt: höchstens erreichbare Gesamtpunkte (zählen nur Prozent, dann 100).
+- schluessel: ab wie viel Prozent von gesamt es Note 4, 3, 2 und 1 gibt, aufsteigend; Punktgrenzen in Prozent von gesamt umrechnen (50 von 100 Punkten = 50). Fehlt der Schlüssel, null.
+- bedingung: eine zusätzliche Bestehensregel in einem kurzen Satz (etwa „Jeder Bereich mindestens 50 %“, „Präsentation ist Pflicht“) oder null.
+- teile: jede Teilleistung, die Punkte bringt. art: onlinetest, pstest, klausur, pruefung, praesentation, abgabe, mitarbeit oder sonst. suche: das Wort, mit dem die einzelnen Leistungen dieses Teils in OLAT oder im Prüfungskalender heißen (etwa „Onlinetest“, „PS-Test“, „PS-Klausur“, „VO-Prüfung“, „Präsentation“), sonst null. anzahl: wie viele Einzelleistungen es gibt, null wenn unbekannt. max_je: Punkte je Einzelleistung, null wenn sie verschieden sind. zaehlen: wie viele davon zählen, wenn nur die besten zählen (ein Streichresultat bei 11 Tests = 10), sonst null. max: höchstens zählende Punkte dieses Teils.
+- Nur was im Text steht, nichts erfinden oder schätzen. ects nur, wenn sie für genau diese Lehrveranstaltung genannt sind.
+
+=== STAMMDATEN ${f} ===
+${text}`;
+// Schema für jedes Fach holen, dessen Stammdaten neu sind oder sich geändert haben; danach neu zeichnen
+async function bewertungenPruefen() {
+  if (!darf('noten')) return;
+  for (const f of Object.keys(R)) {
+    const a = aktuell(f), text = a && abschnitt(a, 'stammdaten').slice(0, 12000), h = text && bewHash(text);
+    if (!text || NOTEN.bewertung?.[f]?.text === h || BEW_LAEUFT.has(f)) continue;
+    BEW_LAEUFT.add(f);  // auch nach einem Fehler nur einmal je Sitzung
+    try {
+      const j = await anfrage({ ...BEW_KI, feature: 'noten', response_format: { type: 'json_object' } }, [{ role: 'user', content: BEW_AUFTRAG(f, text) }]);
+      const t = j.choices?.[0]?.message?.content || '', d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+      const n = x => x === null || x === '' || !Number.isFinite(+x) ? null : +x;
+      const lvs = (Array.isArray(d.lvs) ? d.lvs : []).filter(l => l?.lv && norm(l.lv).startsWith(norm(f))).map(l => ({
+        fach: f, lv: String(l.lv).trim(), ects: n(l.ects), gesamt: n(l.gesamt), bedingung: l.bedingung ? String(l.bedingung).slice(0, 200) : null,
+        schluessel: Array.isArray(l.schluessel) && l.schluessel.length === 4 && l.schluessel.every(x => n(x) != null) ? l.schluessel.map(Number).sort((a, b) => a - b) : null,
+        teile: (Array.isArray(l.teile) ? l.teile : []).filter(x => x?.titel).map(x => ({ titel: String(x.titel).slice(0, 60), art: String(x.art || 'sonst'),
+          suche: x.suche ? String(x.suche).slice(0, 40) : null, anzahl: n(x.anzahl), max_je: n(x.max_je), zaehlen: n(x.zaehlen), max: n(x.max) })) }));
+      (NOTEN.bewertung ??= {})[f] = { text: h, lvs };
+      await notenSpeichern();
+      if (document.body.dataset.ansicht === 'noten') notenZeigen();
+    } catch (e) { console.warn('Bewertungsschema', f, e); }
+  }
+}
+const notenLVs = () => [...new Set([...Object.keys(NOTEN.lv), ...bewLvs().map(l => l.lv), ...notenAktiv().map(e => e.lv)])]
   .sort((a, b) => ((ORDNUNG.indexOf(fachVon(a)) + 1 || 99) - (ORDNUNG.indexOf(fachVon(b)) + 1 || 99)) || a.localeCompare(b, 'de')).map(lvStand);
 // Notenschnitt aus Endnoten und Prognosen: nach ECTS gewichtet, sobald alle ECTS haben, sonst ungewichtet
 const nachEcts = lvs => lvs.filter(l => l.note).every(l => l.c.ects > 0);
@@ -3349,11 +3462,16 @@ function notenVerlauf(lvs) {
 }
 function lvKarte(l) {
   const g = l.c.gesamt, zahlFeld = (text, name, wert) => el('label', {}, text, el('input', { name, inputmode: 'decimal', autocomplete: 'off', value: feldWert(wert) }));
-  const fehlt = g > 0 && l.offen > 0 && [...l.s].reverse().map((grenze, i) => {
-    const n = i + 1, noch = grenze / 100 * g - l.p;
-    return el('li', {}, noch <= 0 ? `Note ${n} ist dir sicher.` : noch > l.offen ? `Note ${n} ist nicht mehr erreichbar.`
-      : `Für Note ${n} fehlen dir ${dez(noch)} von ${dez(l.offen)} offenen Punkten, also ${dez(100 * noch / l.offen, 0)} %.`);
+  const fehlt = g > 0 && l.offen != null && !l.c.note && [...l.s].reverse().map((grenze, i) => {
+    const n = i + 1, noch = grenze / 100 * g - l.p, z = noch <= 0 ? 'sicher' : noch > l.offen + 1e-9 ? 'weg' : 'offen';
+    return el('li', { 'data-z': z }, el('b', {}, `Note ${n}`), el('span', {}, z === 'sicher' ? 'hast du sicher' : z === 'weg' ? 'nicht mehr erreichbar'
+      : `noch ${dez(noch)} Punkte · ${dez(100 * noch / l.offen, 0)} % vom Rest`));
   });
+  // je Teilleistung: zählende Punkte, Regel und was noch zu holen ist
+  const teile = l.teile?.length > 0 && el('ul', { class: 'lv-teile' }, l.teile.map(t => el('li', { 'data-z': t.offen > 0 ? 'offen' : 'fertig' },
+    el('div', {}, el('b', {}, t.titel), el('span', { class: 'meta' }, [el('span', { class: 'lv-teil-punkte' }, `${dez(t.p)}${t.max != null ? ` / ${dez(t.max)}` : ''}`), t.zaehlen && t.anzahl ? `beste ${t.zaehlen} von ${t.anzahl}` : t.zaehlen ? `die besten ${t.zaehlen}` : t.anzahl > 1 && `${t.anzahl} ×${t.je != null ? ` ${dez(t.je)}` : ''}`,
+      t.da.length > 0 && `${t.da.length} eingetragen`].filter(Boolean).flatMap((x, i) => i ? [' · ', x] : [x]))),
+    el('span', { class: 'lv-teil-noch' }, t.offen > 0 ? [`+${dez(t.offen)} möglich`, t.termin?.datum && el('span', { class: 'meta' }, `nächster ${kurz(t.termin.datum)}`)] : t.da.length ? 'fertig' : '–'))));
   const form = el('form', { class: 'lv-einst', onsubmit: e => {
     e.preventDefault();
     const f = e.target.elements, s = [0, 1, 2, 3].map(i => zahl(f['s' + i].value));
@@ -3365,11 +3483,14 @@ function lvKarte(l) {
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf' }, 'Speichern')));
   return el('article', { class: 'lv-karte', 'data-fach': l.fach || null },
     el('div', { class: 'lv-kopf' }, el('h3', {}, l.name), el('span', { class: 'note-gross', role: 'img', 'aria-label': l.note ? `Note ${l.note}` : 'noch keine Note' }, l.note ? String(l.note) : '–')),
-    el('p', { class: 'meta' }, l.c.note ? `Endnote: ${NOTEN_NAMEN[l.c.note]}` : l.stand == null ? 'Noch keine Punkte'
-      : `${dez(l.p)} von ${dez(l.m)} Punkten, ${dez(l.stand, 0)} %. Bleibt es so, wird es ${NOTEN_NAMEN[noteAus(l.stand, l.s)]}.`),
-    fehlt && el('ul', {}, fehlt),
+    el('p', { class: 'meta' }, l.c.note ? `Endnote: ${NOTEN_NAMEN[l.c.note]}`
+      : [g > 0 ? `${dez(l.p)} von ${dez(g)} Punkten sicher` : l.stand != null && `${dez(l.p)} von ${dez(l.m)} Punkten`, l.offen > 0 && `${dez(l.offen)} noch zu holen`,
+        l.stand != null ? `bisher ${dez(l.stand, 0)} %, bleibt es so: ${NOTEN_NAMEN[noteAus(l.stand, l.s)]}` : 'noch keine Ergebnisse'].filter(Boolean).join(' · ')),
+    fehlt && el('ul', { class: 'lv-noten' }, fehlt),
+    teile && [el('h4', { class: 'lv-zwischen' }, 'Wo du noch Punkte holst'), teile],
+    l.b?.bedingung && el('p', { class: 'klein' }, el('b', {}, 'Achtung: '), l.b.bedingung),
     !g && !l.c.note && l.e.length > 0 && el('p', { class: 'klein' }, 'Mit den Gesamtpunkten aus dem Syllabus steht hier, was dir für jede Note noch fehlt.'),
-    el('details', {}, el('summary', {}, 'Notenschlüssel und ECTS'),
+    el('details', {}, el('summary', {}, l.b ? 'Notenschlüssel (aus dem Syllabus gelesen) ändern' : 'Notenschlüssel und ECTS'),
       R[l.fach] && el('p', { class: 'meta' }, 'Steht in der ', el('a', { href: `#/${encodeURIComponent(l.fach)}` }, `Ausgabe ${l.fach}`), ' unter Stammdaten.'), form));
 }
 function notenForm() {
@@ -3383,7 +3504,7 @@ function notenForm() {
     const warum = !d.lv.trim() ? 'Bitte die Lehrveranstaltung angeben.' : !(max > 0) ? 'Bitte angeben, wie viele Punkte möglich waren.'
       : !Number.isFinite(punkte) ? 'Bitte deine Punkte als Zahl angeben.' : s && !Number.isFinite(sz) ? 'Den Kursschnitt bitte als Zahl, etwa 6,5 oder 65 %.' : '';
     if (warum) { fehler.textContent = warum; fehler.hidden = false; return; }
-    const neu = { ...b, id: b?.id || crypto.randomUUID(), lv: d.lv.trim(), titel: d.titel.trim() || 'Ohne Titel', datum: d.datum || HEUTE, punkte, max, schnitt: s ? (proz ? sz * max / 100 : sz) : null };
+    const neu = { ...b, hand: b?.olat ? true : undefined, id: b?.id || crypto.randomUUID(), lv: d.lv.trim(), titel: d.titel.trim() || 'Ohne Titel', datum: d.datum || HEUTE, punkte, max, schnitt: s ? (proz ? sz * max / 100 : sz) : null };
     notenAendern(() => { const i = NOTEN.eintraege.findIndex(x => x.id === neu.id); if (i < 0) NOTEN.eintraege.push(neu); else NOTEN.eintraege[i] = neu; NOTE_ID = null; });
   } },
     el('div', { class: 'noten-form' },
@@ -3414,15 +3535,15 @@ async function notenZeigen() {
   const vergleich = lvs.filter(l => l.du != null);
   s.replaceChildren(...[
     kopf(el('p', { class: 'schlagzeile' }, g ? `Du steuerst auf einen Schnitt von ${dez(g)} zu` : 'Alle deine Punkte an einem Ort'),
-      el('p', { class: 'meta' }, 'Erledigte Onlinetests kommen mit dem Abgleich von selbst dazu, alles andere trägst du unten ein. Die Prognose rechnet nur mit deinen Einträgen, sie ist keine offizielle Note.')),
+      el('p', { class: 'meta' }, `Onlinetests und bewertete Leistungen aus OLAT kommen mit dem Abgleich von selbst dazu, Notenschlüssel und Teilleistungen liest der Lernhelfer aus dem Syllabus${Object.keys(R).some(f => BEW_LAEUFT.has(f) && !NOTEN.bewertung?.[f]) ? ' (liest gerade …)' : ''}. Was fehlt, trägst du unten ein. Die Prognose ist keine offizielle Note.`)),
     el('div', { class: 'kacheln' },
       kachel('Notenschnitt', g ? dez(g, 2) : '–', g ? `aus ${mitNote} ${mitNote === 1 ? 'Lehrveranstaltung' : 'Lehrveranstaltungen'}, ${nachEcts(lvs) ? 'nach ECTS gewichtet' : 'ungewichtet, bis alle ECTS haben'}` : 'sobald Punkte da sind'),
       kachel('Punkte insgesamt', M ? `${dez(100 * P / M, 0)} %` : '–', `${dez(P)} von ${dez(M)} möglichen Punkten`),
       kachel('Gegen den Kursschnitt', abst == null ? '–' : `${abst >= 0 ? '+' : '−'}${dez(Math.abs(abst), 0)}`, abst == null ? 'Schreib bei einem Eintrag den Kursschnitt dazu' : `Prozentpunkte ${abst >= 0 ? 'über' : 'unter'} dem Schnitt`),
       ects > 0 && kachel('Positiv abgeschlossen', `${dez(ects)} ECTS`, 'mit eingetragener Endnote')),
+    lvs.length > 0 && teil('Lehrveranstaltungen', 'Was du hast, was dir für jede Note fehlt und wo es noch Punkte gibt', el('div', { class: 'lv-karten' }, lvs.map(lvKarte))),
     pruefungenTeil(teil),
     teil('Verlauf', 'Jeder Punkt ein Eintrag, in Prozent der möglichen Punkte', notenVerlauf(lvs)),
-    lvs.length > 0 && teil('Lehrveranstaltungen', 'Prognose und was dir für jede Note noch fehlt', el('div', { class: 'lv-karten' }, lvs.map(lvKarte))),
     vergleich.length > 0 && teil('Du gegen den Kursschnitt', 'Nur Einträge, bei denen der Schnitt dabeisteht', el('div', { class: 'vergleich' }, vergleich.map(l =>
       el('div', { class: 'vg-zeile', 'data-fach': l.fach || null }, el('span', {}, l.name),
         el('div', { class: 'vg-balken', role: 'img', 'aria-label': `Du ${dez(l.du, 0)} Prozent, Kursschnitt ${dez(l.schnitt, 0)} Prozent` },
@@ -3438,6 +3559,7 @@ async function notenZeigen() {
           el('button', { class: 'knopf', type: 'button', onclick: () => confirm(`„${e.titel}“ (${e.lv}) löschen?`)
             && notenAendern(() => { if (e.olat) e.weg = true; else NOTEN.eintraege.splice(NOTEN.eintraege.indexOf(e), 1); if (NOTE_ID === e.id) NOTE_ID = null; }) }, 'Löschen'))]))),
   ].filter(Boolean));
+  bewertungenPruefen();
 }
 const kommendePruefungen = () => (NOTEN?.pruefungen || []).filter(p => !p.weg && p.datum >= HEUTE).sort((a, b) => (a.datum + (a.zeit || '')).localeCompare(b.datum + (b.zeit || '')));
 function pruefungenTeil(teil) {
@@ -3453,20 +3575,35 @@ function pruefungenTeil(teil) {
     el('label', { class: 'feld' }, 'Datum', el('input', { name: 'datum', type: 'date', required: true, min: HEUTE })),
     el('label', { class: 'feld' }, el('span', {}, 'Uhrzeit ', el('span', { class: 'opt' }, 'optional')), el('input', { name: 'zeit', type: 'time' })),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf' }, 'Eintragen')));
-  return teil('Prüfungen', 'Countdown und Lernplan bis dahin', [
-    liste.length ? el('div', { class: 'lv-karten' }, liste.map(pruefungKarte))
+  // je Fach eine kurze Liste, chronologisch; Lernplan und Löschen erst beim Antippen einer Zeile
+  const test = f => kommendeTests(f)[0];
+  const faecher = [...new Set([...liste.map(p => p.fach), ...Object.keys(R).filter(test)])].sort((a, b) => (ORDNUNG.indexOf(a) + 1 || 99) - (ORDNUNG.indexOf(b) + 1 || 99) || a.localeCompare(b, 'de'));
+  const zeilen = f => [...liste.filter(p => p.fach === f).map(p => [p.datum, pruefungZeile(p)]), test(f) && [test(f).bis.slice(0, 10), testTerminZeile(test(f))]]
+    .filter(Boolean).sort((a, b) => a[0].localeCompare(b[0])).map(x => x[1]);
+  return teil('Termine, die zählen', faecher.length ? 'Nach Fach, mit den Punkten, die es dort gibt; antippen für den Lernplan' : null, [
+    faecher.length ? el('div', { class: 'pr-faecher' }, faecher.map(f => el('section', { class: 'pr-fach', 'data-fach': f },
+      el('h3', {}, f), el('ul', { class: 'testzeilen' }, zeilen(f)))))
       : el('p', { class: 'leer' }, 'Noch keine Prüfung. Neue Wochenausgaben übernehmen die Termine aus dem Syllabus von selbst, oder du trägst sie hier ein.'),
     el('details', { class: 'pruefung-neu' }, el('summary', {}, 'Prüfung eintragen'), form)]);
 }
-function pruefungKarte(p) {
+const tageText = n => n === 0 ? 'heute' : n === 1 ? 'morgen' : `${n} Tage`;
+const punktePille = x => x != null && el('span', { class: 'wann pille' }, `bis ${dez(x)} P.`);
+function testTerminZeile(t) {  // der nächste Onlinetest eines Fachs, angetippt öffnet er die Testseite
+  const n = tageBis(t.bis.slice(0, 10));
+  return el('li', { class: 'testzeile' }, el('b', { class: n <= 7 ? 'bald' : null }, tageText(n)),
+    el('span', {}, t.erwartet ? el('span', { class: 'pr-titel' }, t.titel) : el('a', { href: `#/onlinetests/${encodeURIComponent(testId(t))}` }, t.titel),
+      el('span', { class: 'ort' }, `Onlinetest, ${t.erwartet ? 'vermutlich ' : ''}bis ${zeitpunkt(t.bis)}`)), punktePille(t.punkte));
+}
+function pruefungZeile(p) {
   const n = tageBis(p.datum);
-  return el('article', { class: 'lv-karte', 'data-fach': p.fach },
-    el('div', { class: 'lv-kopf' }, el('h3', {}, `${p.fach}: ${p.titel}`),
-      el('span', { class: 'note-gross', role: 'img', 'aria-label': faellig(n) }, String(n), el('small', {}, n === 1 ? ' Tag' : ' Tage'))),
-    el('p', { class: 'meta' }, `${datum(p.datum, { weekday: 'long', day: 'numeric', month: 'long' })}${p.zeit ? `, ${p.zeit} Uhr` : ''}, ${faellig(n)}`),
-    el('details', {}, el('summary', {}, 'Lernplan bis dahin'), lernplan(p)),
-    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => confirm(`${p.fach}: ${p.titel} löschen?`)
-      && notenAendern(() => { if (p.quelle) p.weg = true; else NOTEN.pruefungen.splice(NOTEN.pruefungen.indexOf(p), 1); }) }, 'Löschen')));
+  return el('li', {}, el('details', { class: 'pr-zeile' },
+    el('summary', { class: 'testzeile' },
+      el('b', { class: n <= 7 ? 'bald' : null }, tageText(n)),
+      el('span', {}, el('span', { class: 'pr-titel' }, p.titel), el('span', { class: 'ort' }, `${kurz(p.datum)}${p.zeit ? `, ${p.zeit} Uhr` : ''}`)),
+      punktePille(terminPunkte(p.fach, p.titel)) || el('span')),
+    el('div', { class: 'pr-innen' }, lernplan(p),
+      el('button', { class: 'knopf', type: 'button', onclick: () => confirm(`${p.fach}: ${p.titel} löschen?`)
+        && notenAendern(() => { if (p.quelle) p.weg = true; else NOTEN.pruefungen.splice(NOTEN.pruefungen.indexOf(p), 1); }) }, 'Termin löschen'))));
 }
 // Rückwärts von der Prüfung: alle Ausgaben des Fachs gleichmäßig auf die Wochen bis dahin, die letzten zwei Tage zum Üben
 function lernplan(p) {
@@ -5779,6 +5916,7 @@ const zeitpunkt = d => new Date(d).toLocaleString('de-AT', { weekday: 'short', d
 const punkte = t => t.punkte != null && `${String(t.punkte).replace('.', ',')} ${t.punkte === 1 ? 'Punkt' : 'Punkte'}`;
 function teststand(t) {
   const jetzt = Date.now(), von = t.von ? Date.parse(t.von) : null, bis = t.bis ? Date.parse(t.bis) : null;
+  if (t.art === 'bewertung') return { gruppe: 'bewertung', text: 'Bewertung aus OLAT' };  // PS-Tests u. a.: nur für die Noten, nicht in der Testliste
   if (t.art === 'selbsttest' || t.uebung) return { gruppe: 'uebung', text: t.art === 'selbsttest' ? 'Selbsttest' : 'zählt nicht für die Note' };
   if (t.ergebnis || t.verbleibend === 0) return { gruppe: 'fertig', text: 'Erledigt' };
   if (von && jetzt < von) return { gruppe: 'bald', text: `ab ${zeitpunkt(von)}` };
@@ -5794,26 +5932,45 @@ async function onlinetestsZeigen(id) {
   const t = id && TESTS.find(x => testId(x) === id);
   t ? testZeigen(t) : testUebersicht();
 }
+// Manche Fächer schalten ihre Onlinetests erst kurz vorher frei (VWL: jede Woche einer). Folgen die letzten zwei bewerteten Tests
+// eines Fachs im festen Abstand aufeinander und ist keiner offen oder angekündigt, steht der nächste vermutet in der Liste.
+function erwarteteTests() {
+  const aus = [];
+  for (const f of new Set(TESTS.map(t => t.fach))) {
+    const b = TESTS.filter(t => t.fach === f && t.art === 'test' && !t.uebung && t.bis && /\d+\s*$/.test(t.titel)).sort((x, y) => x.bis.localeCompare(y.bis));
+    if (b.length < 2 || TESTS.some(t => t.fach === f && ['offen', 'bald'].includes(teststand(t).gruppe))) continue;
+    const [v, l] = b.slice(-2), tage = Math.round((Date.parse(l.bis.slice(0, 10)) - Date.parse(v.bis.slice(0, 10))) / 864e5);
+    const bis = `${iso(new Date(Date.parse(l.bis.slice(0, 10) + 'T12:00') + tage * 864e5))}T${l.bis.slice(11)}`;
+    if (tage < 5 || tage > 15 || Date.parse(bis) < Date.now()) continue;  // ponytail: Ferien kennt die Vermutung nicht, sie gilt nur bis zum nächsten Abgleich
+    aus.push({ fach: f, titel: l.titel.replace(/\d+\s*$/, n => +n + 1), art: 'test', bis, punkte: l.punkte, erwartet: true });
+  }
+  return aus;
+}
 function testUebersicht() {
-  const gruppen = { offen: [], bald: [], uebung: [], fertig: [] };
+  const gruppen = { offen: [], bald: [], uebung: [], fertig: [], bewertung: [] };
   for (const t of TESTS) gruppen[teststand(t).gruppe].push(t);
   gruppen.offen.sort((a, b) => (a.bis || '9').localeCompare(b.bis || '9'));
-  gruppen.bald.sort((a, b) => a.von.localeCompare(b.von));
+  gruppen.bald.push(...erwarteteTests());
+  gruppen.bald.sort((a, b) => (a.von || a.bis).localeCompare(b.von || b.bis));
   gruppen.fertig.sort((a, b) => (b.bis || '').localeCompare(a.bis || ''));
+  // Demnächst: je Fach nur der nächste Test, die späteren zum Aufklappen
+  const naechste = gruppen.bald.filter((t, i, l) => l.findIndex(x => x.fach === t.fach) === i), spaeter = gruppen.bald.filter(t => !naechste.includes(t));
   const zeile = (t, erste) => {
-    const st = teststand(t);
-    const unten = [st.gruppe === 'uebung' ? st.text : [st.bis && `bis ${zeitpunkt(st.bis)}`, punkte(t)].filter(Boolean).join(', '),
-      t.eigen && 'per Foto'].filter(Boolean).join(', ');
+    const st = t.erwartet ? { gruppe: 'bald', text: 'vermutet' } : teststand(t);
+    const unten = t.erwartet ? `noch nicht in OLAT freigeschaltet, vermutlich bis ${zeitpunkt(t.bis)}${t.punkte != null ? `, ${punkte(t)}` : ''}`
+      : [st.gruppe === 'uebung' ? st.text : [st.bis && `bis ${zeitpunkt(st.bis)}`, punkte(t)].filter(Boolean).join(', '), t.eigen && 'per Foto'].filter(Boolean).join(', ');
     const rest = st.bis && tageBis(iso(new Date(st.bis)));
     return el('li', { class: 'testzeile' },
       el('b', {}, t.fach),
-      el('span', {}, el('a', { href: `#/onlinetests/${encodeURIComponent(testId(t))}` }, t.titel), unten && el('span', { class: 'ort' }, unten)),
+      el('span', {}, t.erwartet ? el('span', { class: 'pr-titel' }, t.titel) : el('a', { href: `#/onlinetests/${encodeURIComponent(testId(t))}` }, t.titel), unten && el('span', { class: 'ort' }, unten)),
       st.gruppe !== 'uebung' && el('span', { class: `wann pille${st.bis && rest <= 1 ? ' warn' : erste ? ' akzent' : ''}` },
-        st.gruppe === 'offen' && st.bis ? faellig(rest) : st.gruppe === 'bald' ? st.text : st.text));
+        st.gruppe === 'offen' && st.bis ? faellig(rest) : st.text));
   };
-  const gruppe = (titel, zusatz, liste, hervor) => liste.length > 0 && el('section', { class: 'testgruppe' },
-    el('div', { class: 'rubrik' }, el('h2', {}, titel), el('p', { class: 'meta' }, zusatz)),
-    el('ul', { class: 'testzeilen' }, liste.map((t, i) => zeile(t, hervor && i === 0))));
+  const liste = (l, hervor) => el('ul', { class: 'testzeilen' }, l.map((t, i) => zeile(t, hervor && i === 0)));
+  const gruppe = (titel, zusatz, l, hervor, ...extra) => l.length > 0 && el('section', { class: 'testgruppe' },
+    el('div', { class: 'rubrik' }, el('h2', {}, titel), el('p', { class: 'meta' }, zusatz)), liste(l, hervor), ...extra);
+  const zu = (titel, zusatz, l) => l.length > 0 && el('details', { class: 'testgruppe test-zu' },
+    el('summary', {}, el('h2', {}, titel), el('span', { class: 'meta' }, `${l.length} · ${zusatz}`)), liste(l));
   const n = gruppen.offen.length;
   $('onlinetests').replaceChildren(...[
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Onlinetests'),
@@ -5821,9 +5978,10 @@ function testUebersicht() {
       el('p', { class: 'meta' }, `Aus OLAT, Stand des letzten Abgleichs${darf('test-foto') ? ', dazu deine Tests per Foto' : ''}. Ein Test zeigt angetippt seine Aufgabenstellung.`)),
     darf('test-foto') && testFotoForm(),
     gruppe('Jetzt offen', 'Frist zuerst', gruppen.offen, true),
-    gruppe('Demnächst', 'Bearbeitungszeitraum laut OLAT', gruppen.bald),
-    gruppe('Zum Üben', 'Selbsttests und Tests ohne Punkte', gruppen.uebung),
-    gruppe('Erledigt und vorbei', 'Mit deinen Antworten und der Lösung, soweit OLAT sie zeigt', gruppen.fertig),
+    gruppe('Als Nächstes', 'Je Fach der nächste Test', naechste, false,
+      spaeter.length > 0 && el('details', { class: 'test-spaeter' }, el('summary', {}, `${spaeter.length} spätere ${spaeter.length === 1 ? 'Test' : 'Tests'} anzeigen`), liste(spaeter))),
+    zu('Zum Üben', 'Selbsttests und Tests ohne Punkte', gruppen.uebung),
+    zu('Erledigt und vorbei', 'mit deinen Antworten und der Lösung, soweit OLAT sie zeigt', gruppen.fertig),
     !TESTS.length && el('p', { class: 'leer' }, 'Noch keine Tests. Der PC oder Mac liest sie beim nächsten Abgleich aus OLAT.' + (darf('test-foto') ? ' Ohne Computer fügst du sie per Foto hinzu.' : '')),
   ].filter(Boolean));
 }
