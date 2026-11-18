@@ -69,6 +69,7 @@ const SPRACHE = { model: 'google/gemini-3.8-flash-tts', usdProSekunde: 0.00025, 
 // ponytail: Funktion und Modell prüft der Server, den Prompt nicht; Missbrauch deckelt das Monatsbudget. Strenger: Prompts serverseitig bauen.
 const MODELLE = new Set(['openai/gpt-6-luna', 'xiaomi/mimo-v2.6-pro', 'openai/gpt-6.1-sol', 'google/gemini-3.8-flash', 'google/gemini-4-argon', BASIS_KI.model]);
 const WP_MODELLE = { LH_WP_TRANSKRIPT: 0, LH_WP_VERGLEICH: 0, LH_WP_TEXT: 0, LH_WP_REFLEXION: 0 };
+const WP_DENKEN = Object.fromEntries(Object.keys(WP_MODELLE).map(n => [n + '_DENKEN', 0]));  // Nachdenken je Word-Power-Schritt
 const modellOk = m => MODELLE.has(m) || !!m && [E.LH_MODELL, E.LH_MODELL_TRANSKRIPT, ...Object.keys(WP_MODELLE).map(n => E[n])].includes(m);
 const basisKi = () => ({ ...BASIS_KI, model: E.LH_MODELL || BASIS_KI.model, reasoning: E.LH_MODELL_DENKEN === 'none' ? undefined : { effort: E.LH_MODELL_DENKEN || 'max' } });
 const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/, DENKSTUFEN = ['max', 'xhigh', 'high', 'medium', 'low', 'none'];
@@ -207,7 +208,7 @@ const entschluesseln = s => {
 const SCHLUESSEL = { LH_OR_KEY: 1, LH_OR_VERWALTUNG: 1, LH_BREVO: 1, LH_PASS_WORDPOWER: 1, LH_PASS_ONLINETEST: 1,  // 1 = geheim, wird nie zurückgegeben
   LH_ABSENDER: 0, LH_EMPFAENGER: 0, LH_IBAN: 0, LH_BIC: 0, LH_PAYPAL: 0,
   LH_MODELL: 0, LH_MODELL_DENKEN: 0, LH_MODELL_TRANSKRIPT: 0, LH_MODELL_CHECK: 0,  // Standard- und Transkript-Modell (OpenRouter-ID), Admin-Ecke „KI-Modelle“
-  ...WP_MODELLE };  // Word Power je Aufgabe, Admin-Ecke „Word Power: KI-Modelle“
+  ...WP_MODELLE, ...WP_DENKEN };  // Word Power je Aufgabe, Admin-Ecke „Word Power: KI-Modelle“
 const AUS_DATEI = Object.fromEntries(Object.keys(SCHLUESSEL).map(n => [n, E[n]]));  // Löschen in der Ecke führt hierher zurück
 for (const { name, wert } of db.prepare('select name, wert from schluessel').all())
   try { if (name in SCHLUESSEL) E[name] = entschluesseln(wert); } catch { console.error(`Gespeicherter Wert ${name} lässt sich nicht entschlüsseln (LH_GEHEIM geändert?).`); }
@@ -1020,7 +1021,8 @@ let spielNr = 0;
 const ROUTEN = {
   'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olat: !wert('olat-aus', 0), ankuendigung: ankuendigung(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
     modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '', check: E.LH_MODELL_CHECK || '',
-      wpTranskript: E.LH_WP_TRANSKRIPT || '', wpVergleich: E.LH_WP_VERGLEICH || '', wpText: E.LH_WP_TEXT || '', wpReflexion: E.LH_WP_REFLEXION || '' },
+      wpTranskript: E.LH_WP_TRANSKRIPT || '', wpVergleich: E.LH_WP_VERGLEICH || '', wpText: E.LH_WP_TEXT || '', wpReflexion: E.LH_WP_REFLEXION || '',
+      wpDenken: { wpTranskript: E.LH_WP_TRANSKRIPT_DENKEN || '', wpVergleich: E.LH_WP_VERGLEICH_DENKEN || '', wpText: E.LH_WP_TEXT_DENKEN || '', wpReflexion: E.LH_WP_REFLEXION_DENKEN || '' } },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
   'GET /api/ich': ({ k }) => ich(muss(k)),
@@ -1412,7 +1414,7 @@ const ROUTEN = {
       if (!(n in SCHLUESSEL) || typeof v !== 'string' || !v.trim()) continue;
       if (v.length > 500 || /[\r\n]/.test(v)) nein(400, `${n}: zu lang oder mit Zeilenumbruch.`);
       if ((/^LH_MODELL(_TRANSKRIPT|_CHECK)?$/.test(n) || n in WP_MODELLE) && !MODELL_ID.test(v.trim())) nein(400, 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.');
-      if (n === 'LH_MODELL_DENKEN' && !DENKSTUFEN.includes(v.trim())) nein(400, 'Unbekannte Stufe fürs Nachdenken.');
+      if (/_DENKEN$/.test(n) && !DENKSTUFEN.includes(v.trim())) nein(400, 'Unbekannte Stufe fürs Nachdenken.');
       db.prepare('insert into schluessel (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(n, verschluesseln(v.trim()));
       E[n] = v.trim();
     }

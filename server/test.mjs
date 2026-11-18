@@ -467,6 +467,12 @@ try {
   assert.equal(or.anfragen.at(-1).model, 'x-ai/grok-9-mini');
   await chef('POST', '/api/admin/schluessel', { weg: ['LH_WP_VERGLEICH'] });
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpVergleich, '');
+  // Nachdenken je Word-Power-Schritt: nur bekannte Stufen, steht in /tarife, Löschen = Vorgabe der App
+  assert.equal((await chef('POST', '/api/admin/schluessel', { LH_WP_TEXT_DENKEN: 'ultra' })).status, 400);
+  await chef('POST', '/api/admin/schluessel', { LH_WP_TEXT_DENKEN: 'xhigh' });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpDenken.wpText, 'xhigh');
+  await chef('POST', '/api/admin/schluessel', { weg: ['LH_WP_TEXT_DENKEN'] });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpDenken.wpText, '');
   assert.deepEqual([ar.neu.xp, ar.neu.serie, ar.serie.tage, ar.serie.heute, ar.xp], [10, 1, 1, true, 10], 'Anmelde-XP');
   assert.equal((await max('POST', '/api/arena/tag', {})).j.neu, null, 'nur einmal am Tag');
   assert.equal((await max('POST', '/api/arena/runde', { start: 7 })).status, 400, 'nur feste Längen');
