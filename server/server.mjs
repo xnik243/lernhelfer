@@ -77,12 +77,9 @@ const WP_DENKEN = Object.fromEntries(Object.keys(WP_MODELLE).map(n => [n + '_DEN
 const modellOk = m => MODELLE.has(m) || !!m && [E.LH_MODELL, E.LH_MODELL_TRANSKRIPT, ...Object.keys(WP_MODELLE).map(n => E[n])].includes(m);
 const basisKi = () => ({ ...BASIS_KI, model: E.LH_MODELL || BASIS_KI.model, reasoning: E.LH_MODELL_DENKEN === 'none' ? undefined : { effort: E.LH_MODELL_DENKEN || 'max' } });
 const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/, DENKSTUFEN = ['max', 'xhigh', 'high', 'medium', 'low', 'none'];
-// Anbieter bei OpenRouter: nie mit den Eingaben trainieren, nie Anbieter mit Sitz in China (Kürzel laut OpenRouter, 18.11.2026; nur echte
-// Kürzel, sonst lehnt OpenRouter womöglich ab). Von der App gelten nur „only“ (YouTube und Ton kann nur Google AI Studio) und „max_price“.
+// Anbieter bei OpenRouter: jedes Modell nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren, sonst freie Wahl der App
 // ponytail: kein zdr: true, Google AI Studio hat keine Zero Data Retention und Vortrag, Video, Transkript brauchen es
-const CHINA = ['alibaba', 'antdigital', 'baidu', 'moonshotai', 'siliconflow', 'stepfun', 'streamlake', 'tencent', 'xiaomi', 'z-ai'];
-const anbieter = (p = {}) => ({ ...Array.isArray(p.only) && { only: p.only.map(String).slice(0, 5) }, ...p.max_price && { max_price: p.max_price },
-  data_collection: 'deny', ignore: CHINA });
+const anbieter = (p = {}) => ({ ...p, data_collection: 'deny' });
 const FELDER = ['model', 'messages', 'reasoning', 'provider', 'response_format', 'stream', 'temperature', 'max_tokens', 'plugins'];  // plugins (Websuche) nur in der Admin-Ecke
 const SPEICHER = 200e6;  // Bytes pro Konto
 // Öffentlich zeigt der Löser nur Lösungswege an gleichartigen Aufgaben mit anderen Zahlen: Lernhilfe statt fertiger Prüfungsleistung

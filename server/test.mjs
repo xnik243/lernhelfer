@@ -205,7 +205,7 @@ try {
   const basis = or.anfragen.at(-1);
   assert.equal(basis.model, 'deepseek/deepseek-v4.1-flash', 'Base: nur DeepSeek, egal was die App schickt');
   assert.deepEqual(basis.reasoning, { effort: 'max' }); assert.equal(basis.max_tokens, 120000);
-  assert.deepEqual({ ...basis.provider, ignore: basis.provider.ignore.length > 5 }, { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 }, ignore: true });
+  assert.deepEqual(basis.provider, { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 } });
   assert.equal((await anna('GET', '/api/ich')).j.genutzt, 15, '0,30 $ von 2 $');
   // Abgebrochener Strom: Preis kommt über /generation nach; zu große Anfragen und max_tokens gedeckelt
   await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', stream: true, messages: [{ role: 'user', content: 'abbruch' }] });
@@ -228,8 +228,7 @@ try {
   r = await anna('POST', '/api/test');
   assert.equal(r.j.tarif, 'ultra'); assert.equal(r.j.test, true); assert.ok(r.j.bis - Date.now() > 23.9 * 3600e3);
   r = await anna('POST', '/api/ki', { feature: 'chat', model: 'openai/gpt-6-luna', stream: true, messages: [], provider: { only: ['google-ai-studio'], ignore: [], data_collection: 'allow', sort: 'price' } });
-  assert.deepEqual(or.anfragen.at(-1).provider, { only: ['google-ai-studio'], data_collection: 'deny', ignore: or.anfragen.at(-1).provider.ignore }, 'nur only bleibt (YouTube, Ton)');
-  assert.ok(or.anfragen.at(-1).provider.ignore.includes('baidu'), 'App kann den China-Ausschluss nicht aufheben');
+  assert.deepEqual(or.anfragen.at(-1).provider, { only: ['google-ai-studio'], ignore: [], data_collection: 'deny', sort: 'price' }, 'freie Anbieterwahl, nur Training bleibt aus');
   assert.match(r.text, /Hallo /); assert.match(r.text, /\[DONE\]/);
   assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna', 'im Test die großen Modelle');
   assert.equal((await anna('GET', '/api/ich')).j.genutzt, 60, 'Test zählt extra: 0,30 von 0,50 $');
@@ -317,7 +316,7 @@ try {
   let m = or.anfragen.at(-1).messages;
   assert.match(m[0].content, /Originalzahlen/); assert.match(m[1].content, /niedrigsten Rang[\s\S]*Fußball/); assert.equal(m[2].content, 'APP', 'Reihenfolge: Regel, Stil, App');
   await anna('POST', '/api/ki', { feature: 'vortrag', model: 'google/gemini-4-argon', stil: false, provider: { only: ['google-ai-studio'], data_collection: 'allow' }, messages: [{ role: 'user', content: 'TON' }] });
-  assert.deepEqual({ ...or.anfragen.at(-1).provider, ignore: undefined }, { only: ['google-ai-studio'], data_collection: 'deny', ignore: undefined }, 'jedes Modell nur ohne Training, only der App bleibt');
+  assert.deepEqual(or.anfragen.at(-1).provider, { only: ['google-ai-studio'], data_collection: 'deny' }, 'jedes Modell nur ohne Training, Rest der App bleibt');
   assert.equal(or.anfragen.at(-1).messages[0].content, 'TON', 'Transkript ohne Stil'); assert.ok(!('stil' in or.anfragen.at(-1)), 'stil geht nicht an OpenRouter');
   st = await stilPut('', st.j.content.sha);
   assert.equal(st.status, 200);
@@ -619,7 +618,7 @@ try {
   assert.equal((await max('POST', '/api/ki', foto)).status, 200);
   const fb = or.anfragen.at(-1);
   assert.equal(fb.model, 'google/gemini-3.8-flash', 'Fotos: Modell mit Bildern, nicht DeepSeek'); assert.equal(fb.max_tokens, 16000);
-  assert.equal(fb.reasoning, undefined); assert.equal(fb.provider.data_collection, 'deny'); assert.ok(fb.provider.ignore.includes('baidu')); assert.equal(fb.messages[0].content[1].type, 'image_url');
+  assert.equal(fb.reasoning, undefined); assert.deepEqual(fb.provider, { data_collection: 'deny' }); assert.equal(fb.messages[0].content[1].type, 'image_url');
   assert.equal((await max('POST', '/api/ki', { ...foto, model: 'openai/gpt-6.1-sol' })).status, 200);
   assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'auch wenn die App etwas anderes schickt');
   const ot = (await max('GET', '/api/geschuetzt/onlinetest')).j.system;
