@@ -6554,16 +6554,21 @@ const appAdresse = () => {  // Adresse der App für Mac-Befehl und PC-Datei; sie
   if (!/^https?:\/\/[\w.:\/~-]+$/.test(a)) throw new Error('Die Adresse der App enthält ungewöhnliche Zeichen. Bitte die App über ihre normale Adresse öffnen.');
   return a;
 };
+// Der Zugangsschlüssel steht nicht im Befehl (sonst bliebe er im Terminal-Verlauf): Das Skript fragt ihn ab, die App kopiert ihn extra.
 function macBefehl(z) {
   const app = appAdresse(), werte = [z.repo, z.github, z.api || '', app];
   if (!z.repo || !z.github || werte.some(w => /['\\\s]/.test(w))) throw new Error('Der Zugang fehlt oder enthält ungewöhnliche Zeichen. Bitte erst Schritt 1 und 2 abschließen bzw. neu verbinden.');
-  return `LH_REPO='${werte[0]}' LH_TOKEN='${werte[1]}' LH_API='${werte[2]}' LH_APP='${app}' /bin/bash -c "$(curl -fsSL ${app}einrichten-mac.sh)"`;
+  return `LH_REPO='${werte[0]}' LH_API='${werte[2]}' LH_APP='${app}' /bin/bash -c "$(curl -fsSL ${app}einrichten-mac.sh)"`;
 }
 function macTeil(zugang, neu) {  // zugang: () => {repo, github, api} oder ein Versprechen darauf (Server: neuer PC-Schlüssel)
+  let z = null;  // einmal geholt: Ein zweiter Aufruf würde beim Server den eben ausgegebenen PC-Schlüssel ersetzen
+  const holen = () => z ??= Promise.resolve().then(zugang).catch(e => { z = null; throw e; });
   const feld = el('textarea', { class: 'mac-befehl', readonly: true, rows: 3, 'aria-label': 'Befehl für das Terminal', onfocus: e => e.target.select() });
-  const zeile = el('div', { class: 'befehl-zeile', hidden: true }, feld, el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, feld.value) }, 'Kopieren'));
+  const geheim = el('button', { class: 'knopf', type: 'button', onclick: async e => kopieren(e, (await holen()).github) }, 'Zugangsschlüssel kopieren');
+  const zeile = el('div', { hidden: true }, el('div', { class: 'befehl-zeile' }, feld, el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, feld.value) }, 'Kopieren')),
+    el('div', { class: 'knopfreihe' }, geheim));
   const knopf = el('button', { class: `knopf${neu ? ' voll' : ''}`, type: 'button', onclick: async e => {
-    const k = e.currentTarget, befehl = Promise.resolve().then(zugang).then(macBefehl);
+    const k = e.currentTarget, befehl = holen().then(macBefehl);
     k.disabled = true;
     try {  // Safari kopiert nur direkt im Klick: darum ClipboardItem mit dem Versprechen, das den Befehl erst noch holt
       if (window.ClipboardItem && navigator.clipboard?.write) await navigator.clipboard.write([new ClipboardItem({ 'text/plain': befehl.then(t => new Blob([t], { type: 'text/plain' })) })]);
@@ -6578,8 +6583,9 @@ function macTeil(zugang, neu) {  // zugang: () => {repo, github, api} oder ein V
       el('li', {}, 'Auf „Befehl für den Mac kopieren“ tippen.'),
       el('li', {}, 'Das Terminal öffnen: ⌘ und Leertaste drücken, „Terminal“ tippen, Enter.'),
       el('li', {}, 'Mit ⌘ V einfügen und Enter drücken. Fragt macOS, ob das Terminal auf den Schreibtisch darf: „Erlauben“.'),
-      el('li', {}, 'Im Terminal einmal Benutzerkennung, Passwort und 2FA-Schlüssel eintragen, dann loggt es sich künftig selbst ein (oder mit Enter überspringen und im Chrome-Fenster selbst einloggen). Warten, bis im Terminal „Fertig“ steht. Beim ersten Mal 5 bis 15 Minuten.')),
-    el('p', { class: 'meta' }, 'Der Befehl enthält deinen Zugang zum Speicher: nur auf deinem eigenen Mac einfügen. Kein Administratorpasswort nötig.')];
+      el('li', {}, 'Fragt das Terminal nach dem Zugangsschlüssel: hier auf „Zugangsschlüssel kopieren“ tippen, im Terminal mit ⌘ V einfügen (bleibt unsichtbar) und Enter.'),
+      el('li', {}, 'Öffnet sich Chrome, dort einmal bei OLAT einloggen. Warten, bis im Terminal „Fertig“ steht. Beim ersten Mal 5 bis 15 Minuten.')),
+    el('p', { class: 'meta' }, 'Der Zugangsschlüssel öffnet deinen Speicher: nur auf deinem eigenen Mac einfügen. Kein Administratorpasswort nötig.')];
 }
 const ohneComputer = () => fertig() && el('p', { class: 'klein' }, 'Nur mit iPad oder Handy: ', el('a', { href: '#/unterlagen' }, 'Unterlagen selbst hochladen'),
   ` (Folien als PDF oder ZIP aus OLAT, ein paar Minuten pro Woche)${darf('test-foto') ? ' und Onlinetests per Foto' : ''}. Wie das geht, steht in der `, el('a', { href: '#a-ohne-pc' }, 'Anleitung'), '.');
@@ -6817,7 +6823,7 @@ function einrichtenZeigen() {
         el('li', {}, formular('gh', 'Schlüssel hier einfügen', 'Verbinden', async w => { await ghVerbinden(w); if (fertig()) { history.replaceState(null, '', location.pathname + '#/einstellungen'); start(); } }, 'password')))),
     el('section', { class: 'schritt', 'aria-labelledby': 'ei-3' }, nr('3', 'Unterlagen aus OLAT', !!ABGLEICH?.ok || Object.keys(R).length > 0),
       stand(!!ABGLEICH?.ok, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text, ABGLEICH?.ok === false),
-      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Auch beim OLAT-Login mit 2FA loggt es sich selbst ein, wenn du einmal deine Zugangsdaten am Computer einträgst.'),
+      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Bei OLAT loggst du dich ab und zu im Chrome-Fenster selbst ein. Den automatischen Login kannst du unter „Konto“ einschalten, sobald der erste Abgleich gelaufen ist. Er ist anfangs aus.'),
       !offenGH && ABGLEICH && autoLoginTeil(),
       WINDOWS ? [
         el('div', { class: 'knopfreihe' }, el('button', { class: `knopf${ABGLEICH ? '' : ' voll'}`, type: 'button', disabled: offenGH, onclick: pcDatei }, ABGLEICH ? 'PC-Programm neu laden' : 'PC-Programm herunterladen'),
@@ -6825,7 +6831,7 @@ function einrichtenZeigen() {
         el('ol', { class: 'schritte klein' },
           el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
           el('li', {}, 'Nicht doppelklicken, sonst blockiert Windows die Datei (SmartScreen). Im Ordner Downloads mit der rechten Maustaste auf „Lernhelfer-PC-einrichten“ klicken, „Als Administrator ausführen“ wählen und mit „Ja“ bestätigen.'),
-          el('li', {}, 'Im schwarzen Fenster einmal Benutzerkennung, Passwort und 2FA-Schlüssel eintragen, dann loggt es sich künftig selbst ein (oder mit Enter überspringen und im Chrome-Fenster selbst einloggen). Warten, bis „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
+          el('li', {}, 'Öffnet sich Chrome, dort einmal bei OLAT einloggen. Warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
         : MAC ? (offenGH ? el('p', { class: 'meta' }, 'Erst Schritt 2') : macTeil(() => cfg, !ABGLEICH))
         : el('p', { class: 'klein' }, 'Auf diesem Gerät läuft das Programm nicht. Hast du einen Windows-PC oder Mac: dort xnik243.github.io/lernhelfer öffnen, bei „Schon eingerichtet?“ den Verbindungslink aus Schritt 4 einfügen und das Programm laden.'),
       ohneComputer()),
@@ -6983,7 +6989,7 @@ function pcEinrichten() {
     el('ol', { class: 'schritte klein' },
       el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
       el('li', {}, 'Nicht doppelklicken, sonst blockiert Windows die Datei (SmartScreen). Im Ordner Downloads mit der rechten Maustaste auf „Lernhelfer-PC-einrichten“ klicken, „Als Administrator ausführen“ wählen und mit „Ja“ bestätigen.'),
-      el('li', {}, 'Im schwarzen Fenster einmal Benutzerkennung, Passwort und 2FA-Schlüssel eintragen, dann loggt es sich künftig selbst ein (oder mit Enter überspringen und im Chrome-Fenster selbst einloggen). Warten, bis „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
+      el('li', {}, 'Öffnet sich Chrome, dort einmal bei OLAT einloggen. Warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
   const mac = () => macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc);
   const sicher = el('p', { class: 'meta' }, el('a', { href: '#a-virus' }, 'Ist das sicher? Hier steht, was das Programm tut.'));
   if (WINDOWS) return [win(), sicher];
@@ -6995,28 +7001,48 @@ function pcEinrichten() {
       el('section', {}, el('h3', {}, 'Windows-PC'), win(), el('p', { class: 'meta' }, 'Die Datei muss auf den PC, etwa per USB-Stick oder als Mail an dich selbst.'))), sicher];
 }
 // Automatischer OLAT-Login: der Schalter liegt in olat.json, holen.py liest ihn. Kennung, Passwort und 2FA-Schlüssel gibt man
-// nur am Computer ein, sie bleiben dort verschlüsselt. Ohne olat.json ist er an (wie in holen.py).
-const OLAT_D = datei('olat.json', () => ({ autologin: true }));
+// nur am Computer ein, sie bleiben dort verschlüsselt. Standard: aus. An nur mit allen Haken unten (zustimmung = Fassung der Hinweise);
+// holen.py prüft dasselbe. Ändern sich die Hinweise, ZUSTIMMUNG hochzählen (auch in holen.py), dann muss man neu zustimmen.
+const ZUSTIMMUNG = 1;
+const OLAT_D = datei('olat.json', () => ({ autologin: false }));
+const autologinAn = d => d.autologin === true && d.zustimmung >= ZUSTIMMUNG;
+const AUTOLOGIN_HINWEISE = [
+  'Benutzerkennung, Passwort und 2FA-Schlüssel liegen dann verschlüsselt auf diesem Computer. Wer an meinen entsperrten Computer kommt, kommt damit auch in meinen Uni-Account. Ich sperre ihn immer mit Passwort.',
+  'Auf diesem Computer schützt die Zwei-Faktor-Anmeldung meinen Uni-Account damit praktisch nur noch wie ein einziger Faktor.',
+  'Ob die Universität Innsbruck das Speichern der Zugangsdaten und den automatischen Login erlaubt (Benützungsordnung des ZID), ist nicht geklärt. Ich entscheide selbst und trage die Folgen, etwa eine Sperre meines Uni-Accounts.',
+  'Der Lernhelfer ist ein privates Studierendenprojekt, kein Angebot der Universität Innsbruck, und kommt ohne Gewähr.',
+  'Notbremse: Wird der Computer gestohlen oder verloren, lösche ich auf accounts.uibk.ac.at den Token, den ich für den Lernhelfer anlege, oder ändere mein Uni-Passwort.',
+  'Ich kann den Schalter jederzeit ausschalten. Dann löscht das Programm die gespeicherten Zugangsdaten beim nächsten Abgleich.',
+];
 function autoLoginTeil() {
   const a = ABGLEICH?.autologin, zustand = el('p', { class: 'meta', 'aria-live': 'polite' });
+  const haken = AUTOLOGIN_HINWEISE.map(t => el('label', { class: 'zustimmung' }, el('input', { type: 'checkbox', onchange: () => { ok.disabled = !haken.every(h => h.firstChild.checked); } }), el('span', {}, t)));
+  const speichern = async an => {
+    knopf.disabled = true;
+    try { const d = await OLAT_D.laden(); Object.assign(d, an ? { autologin: true, zustimmung: ZUSTIMMUNG, zugestimmt: new Date().toISOString() } : { autologin: false }); await OLAT_D.speichern(); knopf.checked = an; zeige(an); }
+    catch (err) { knopf.checked = !an; status(err.message, true); }
+    knopf.disabled = false;
+  };
+  const ok = el('button', { class: 'knopf voll', type: 'button', disabled: true, onclick: async () => { frage.hidden = true; await speichern(true); } }, 'Verstanden, einschalten');
+  const frage = el('div', { class: 'einst-frage', hidden: true },
+    el('p', { class: 'klein' }, el('b', {}, 'Bevor du ihn einschaltest: '), 'Bitte jeden Punkt lesen und abhaken. Ohne den automatischen Login funktioniert alles genauso, du loggst dich dann ab und zu im Browserfenster selbst ein.'),
+    haken, el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => { frage.hidden = true; } }, 'Abbrechen'), ok));
   const zeige = an => { zustand.textContent = !an ? 'Aus: Läuft die Sitzung ab, loggst du dich im Browserfenster selbst ein.'
     : a?.fehler ? `Ging zuletzt nicht: ${a.fehler}. Am Computer „Lernhelfer OLAT“ doppelklicken und die Zugangsdaten neu eintragen.`
     : a?.eingerichtet ? 'An: Der Computer loggt sich selbst bei OLAT ein, auch mit dem 2FA-Code.'
     : 'An. Jetzt am Computer einmal „Lernhelfer OLAT“ doppelklicken, das Programm fragt dann deine Zugangsdaten ab.'; };
-  const knopf = el('input', { type: 'checkbox', role: 'switch', disabled: true, onchange: async e => {
-    const an = knopf.checked;
-    knopf.disabled = true;
-    try { (await OLAT_D.laden()).autologin = an; await OLAT_D.speichern(); zeige(an); }
-    catch (err) { knopf.checked = !an; status(err.message, true); }
-    knopf.disabled = false;
+  const knopf = el('input', { type: 'checkbox', role: 'switch', disabled: true, onchange: () => {
+    if (!knopf.checked) return speichern(false);
+    knopf.checked = false;  // an erst nach allen Haken
+    haken.forEach(h => { h.firstChild.checked = false; }); ok.disabled = true; frage.hidden = false;
   } });
-  OLAT_D.laden().then(d => { knopf.checked = !!d.autologin; knopf.disabled = false; zeige(knopf.checked); }).catch(() => { zustand.textContent = 'Der Schalter lässt sich gerade nicht laden.'; });
+  OLAT_D.laden().then(d => { knopf.checked = autologinAn(d); knopf.disabled = false; zeige(knopf.checked); }).catch(() => { zustand.textContent = 'Der Schalter lässt sich gerade nicht laden.'; });
   return el('div', { class: 'einst-teil' },
     el('label', { class: 'schalter' }, knopf, 'Automatisch bei OLAT einloggen'),
-    zustand,
+    zustand, frage,
     el('details', {}, el('summary', {}, 'So richtest du es ein'),
       el('ol', { class: 'schritte klein' },
-        el('li', {}, 'Schalter einschalten, dann am Computer „Lernhelfer OLAT“ doppelklicken.'),
+        el('li', {}, 'Schalter einschalten, die Hinweise abhaken, dann am Computer „Lernhelfer OLAT“ doppelklicken.'),
         el('li', {}, 'Im schwarzen Fenster Benutzerkennung und Passwort eingeben.'),
         el('li', {}, 'Auf ', el('a', { href: 'https://accounts.uibk.ac.at/', target: '_blank', rel: 'noopener' }, 'accounts.uibk.ac.at'), ' bei der Zwei-Faktor-Authentifizierung „Verwalten“ und „Neuer Token“ wählen, unter dem QR-Code auf „hier“ klicken und den Schlüssel ins Fenster einfügen.'),
         el('li', {}, 'Den 6-stelligen Code aus dem Fenster im Account Portal eingeben. Das Programm testet den Login und speichert erst dann.')),
@@ -7094,7 +7120,7 @@ function kontoZeigen() {
         el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, ICH.api) }, 'Kopieren'))),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-pc' }, el('h2', { id: 'k-pc' }, 'Unterlagen aus OLAT'),
       el('p', { class: `stand${ABGLEICH?.ok ? ' ok' : ''}${ABGLEICH?.ok === false ? ' warnung' : ''}` }, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text),
-      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Auch beim OLAT-Login mit 2FA loggt es sich selbst ein, wenn du einmal deine Zugangsdaten am Computer einträgst.'),
+      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Bei OLAT loggst du dich ab und zu im Chrome-Fenster selbst ein. Den automatischen Login kannst du unter „Konto“ einschalten, sobald der erste Abgleich gelaufen ist. Er ist anfangs aus.'),
       pcEinrichten(), (ICH.pc || ABGLEICH) && autoLoginTeil(), ohneComputer()),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-weg' }, el('h2', { id: 'k-weg' }, 'Abmelden'),
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async () => {
@@ -7485,7 +7511,33 @@ async function adminZeigen() {
       k.email + (k.bestaetigt ? '' : ' (unbestätigt)') + (k.gesperrt ? ' (gesperrt)' : ''), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k),
       geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
       `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`, setzen(k),
-      k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])));
+      k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])),
+    vorstellenTeil());
+}
+// Nur für den Admin: Spickzettel, wie man den Lernhelfer anderen zeigt und mit ihnen einrichtet (Stand 18.11.2026)
+function vorstellenTeil() {
+  const liste = (tag, punkte) => el(tag, { class: 'schritte klein' }, punkte.map(p => el('li', {}, p)));
+  return el('details', { class: 'quellen' }, el('summary', {}, 'So stellst du den Lernhelfer anderen vor'),
+    el('h3', {}, 'Vorher bei dir'),
+    liste('ul', ['Einmal selbst „Abgleich starten“ und im Chrome-Fenster bei OLAT einloggen, damit deine eigene Ausgabe für die Vorführung frisch ist.',
+      'Neue Konten haben nur Base: Wochenausgabe, Formeln erklären, Check-Fragen, Arena. Karteikarten, Kalender, Noten, Vortrag und Videos sind Pro, Probeklausur und Chat Ultra. Mehr zeigen: oben bei „Tarif von Hand“ Beta vergeben (bis 6 $ KI im Monat je Konto, Base bis 2 $).']),
+    el('h3', {}, 'Schritt für Schritt mit der Person'),
+    liste('ol', ['Konto: lernhelfer.xyz öffnen, „Anmelden“, Konto mit E-Mail und Passwort anlegen, Haken setzen. Dann die Bestätigungsmail anklicken, sonst schreibt die KI nichts.',
+      'PC-Programm (nur Windows-PC oder Mac): am Computer lernhelfer.xyz öffnen, einloggen, unter Start bzw. Konto „PC-Programm herunterladen“. Chrome fragt: „Behalten“.',
+      'Nicht doppelklicken (SmartScreen): im Ordner Downloads Rechtsklick auf „Lernhelfer-PC-einrichten“, „Als Administrator ausführen“, „Ja“.',
+      'Chrome öffnet sich: einmal bei OLAT einloggen, wie immer mit 2FA. Warten, bis im schwarzen Fenster „Fertig“ steht (beim ersten Mal 5 bis 15 Minuten).',
+      'Danach läuft es von selbst, etwa alle 12 Stunden, solange der Computer an ist. Ist die OLAT-Sitzung abgelaufen, öffnet sich Chrome wieder zum Einloggen.',
+      'Handy oder iPad: lernhelfer.xyz mit demselben Konto anmelden. Am iPad Teilen → „Zum Home-Bildschirm“, dann ist es wie eine App.',
+      'Benutzen: Fach öffnen, Wochenausgabe erstellen, Check-Fragen beantworten, in der Arena Punkte sammeln.',
+      'Ohne Computer: unter „Unterlagen“ PDFs selbst hochladen.']),
+    el('h3', {}, 'Was du dazu sagst'),
+    liste('ul', ['Das Uni-Passwort bleibt auf dem eigenen Computer. Ich sehe es nie, der Server auch nicht.',
+      'Der automatische OLAT-Login ist aus. Wer ihn unter „Konto“ einschaltet, liest und hakt vorher die Hinweise ab, auf eigenes Risiko.',
+      'Privates Studierendenprojekt, kein Angebot der Uni, kostenlos.',
+      'Die KI kann sich irren: Wichtiges in den Folien nachprüfen.']),
+    el('h3', {}, 'Lieber noch nicht'),
+    liste('ul', ['Bei Mac-Nutzer:innen allein einrichten lassen: Der Mac-Weg ist auf keinem echten Mac getestet. Nur gemeinsam und mit Geduld.',
+      'Den Link öffentlich posten, solange Impressum, Datenschutzerklärung und Nutzungsbedingungen fehlen.']));
 }
 // Tage mit Uhrzeiten (Wiener Tag, neueste zuerst); davor, aus der Zeit ohne Uhrzeiten, nur die Zähler je Tag
 const wienTag = z => new Date(z).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });

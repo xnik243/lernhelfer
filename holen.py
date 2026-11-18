@@ -278,12 +278,17 @@ def profil(p, unsichtbar):
                                                 ignore_default_args=["--enable-automation", "--disable-extensions"])
 
 
+ZUSTIMMUNG = 1  # Fassung der Hinweise, die man in der App abhakt (ZUSTIMMUNG in index.html)
+
+
 def schalter():
-    """Schalter „Automatisch bei OLAT einloggen“ in der App (olat.json im eigenen Speicher), ohne Datei an; None = keine Antwort."""
+    """Schalter „Automatisch bei OLAT einloggen“ in der App (olat.json im eigenen Speicher). An nur, wenn er an ist und die
+    Hinweise in der aktuellen Fassung abgehakt sind; ohne Datei aus. None = keine Antwort."""
     try:
-        return json.loads(api("GET", "olat.json", roh=True)).get("autologin", True) is not False
+        d = json.loads(api("GET", "olat.json", roh=True))
+        return d.get("autologin") is True and type(d.get("zustimmung")) is int and d["zustimmung"] >= ZUSTIMMUNG
     except HTTPError as e:
-        return True if e.code == 404 else None
+        return False if e.code == 404 else None
     except Exception:
         return None
 
@@ -352,7 +357,7 @@ def autologin(p, stand, von_hand):
     einmal ein (bzw. nach einem Fehler neu); Schalter aus = gespeicherte Zugangsdaten löschen.
     Nach einem Fehlschlag versucht er es nicht von selbst nochmal, damit die Uni den Account nicht sperrt."""
     an = schalter() if ZUGANG.exists() else False
-    stand["autologin_an"] = an = stand.get("autologin_an", True) if an is None else an
+    stand["autologin_an"] = an = stand.get("autologin_an", False) if an is None else an
     login = login_lesen()
     if not an:
         if login:

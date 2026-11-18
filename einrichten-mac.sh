@@ -1,6 +1,6 @@
 #!/bin/bash
 # Richtet den OLAT-Abgleich auf einem Mac ein. Start: den Befehl aus der App (Einrichten bzw. Konto → Mac) ins Terminal einfügen;
-# er setzt LH_REPO und LH_TOKEN (beim Lernhelfer-Server auch LH_API) und LH_APP, die Adresse der App.
+# er setzt LH_REPO (beim Lernhelfer-Server auch LH_API) und LH_APP, die Adresse der App; den Zugangsschlüssel fragt das Skript ab.
 # Braucht kein Administratorpasswort; alles landet in ~/Library/Lernhelfer, der automatische Abgleich ist ein launchd-Job.
 # Nochmal starten = aktualisieren (Python und Kurse bleiben, holen.py und Zugang werden erneuert).
 # Läuft mit dem bash 3.2 von macOS: keine Arrays, kein ${x,,}, kein mapfile.
@@ -23,6 +23,16 @@ fehler() { printf '\n \033[31mFehler: %s\033[0m\n\n' "$1" >&2; exit 1; }
 trap 'printf "\n \033[31mEtwas hat nicht geklappt (Zeile %s). Die Meldung oben und die Anleitung im Lernhelfer helfen weiter.\033[0m\n\n" "$LINENO" >&2' ERR
 
 [ "$(uname -s)" = Darwin ] || fehler 'Das ist das Mac-Programm. Für Windows gibt es in der App die Datei „Lernhelfer-PC-einrichten“.'
+# Der Zugangsschlüssel steht nicht im Befehl (sonst bliebe er im Terminal-Verlauf), sondern wird hier unsichtbar eingefügt.
+# Ältere Befehle mit LH_TOKEN='…' davor gehen weiter.
+if [ -z "${LH_TOKEN:-}" ]; then
+  printf '\n \033[33mJetzt in der App auf „Zugangsschlüssel kopieren“ tippen, hier mit ⌘ V einfügen und Enter drücken.\033[0m\n'
+  printf ' Der Schlüssel bleibt beim Einfügen unsichtbar.\n Zugangsschlüssel: '
+  IFS= read -rs LH_TOKEN || true
+  echo
+  LH_TOKEN="$(printf '%s' "$LH_TOKEN" | tr -d '[:space:]')"
+fi
+export LH_TOKEN
 case "${LH_REPO:-}${LH_TOKEN:-}" in *undefined*|'') fehler 'Bitte den ganzen Befehl aus der App kopieren (Einrichten bzw. Konto → Mac) und hier einfügen.' ;; esac
 [ -n "${LH_REPO:-}" ] && [ -n "${LH_TOKEN:-}" ] || fehler 'Bitte den ganzen Befehl aus der App kopieren (Einrichten bzw. Konto → Mac) und hier einfügen.'
 MACOS="$(sw_vers -productVersion)"
@@ -77,7 +87,7 @@ if [ -z "${LH_ORT:-}" ]; then  # fragt macOS, ob das Terminal auf den Schreibtis
   else info 'Auf den Schreibtisch durfte die Verknüpfung nicht, sie liegt im Lernhelfer-Ordner (öffnet sich gleich im Finder).'; open -R "$VERKNUEPFUNG" || true; fi
 fi
 
-schritt 4 "Erster Abgleich: Erst fragt der Lernhelfer deine OLAT-Zugangsdaten ab (Enter = überspringen, dann im $( [ -d '/Applications/Google Chrome.app' ] && echo Chrome || echo Chromium )-Fenster einloggen)."
+schritt 4 "Erster Abgleich: Im $( [ -d '/Applications/Google Chrome.app' ] && echo Chrome || echo Chromium )-Fenster, das sich gleich öffnet, einmal bei OLAT einloggen."
 info 'Mit Zugangsdaten loggt er sich künftig selbst ein. Sie bleiben verschlüsselt im Schlüsselbund dieses Macs.'
 info 'Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Bewertete Onlinetests'
 info 'startet er nie, er liest nur ihre Startseite. Gespeichert oder abgeschickt wird nie etwas.'

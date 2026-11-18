@@ -243,6 +243,21 @@ def test():
         assert probe("https://lernhelfer.example/", b"import os", sig) == b"# alt\n", "verändert → bleibt alt"
         assert probe("http://lernhelfer.example/", b"", sig) == b"# alt\n", "ohne HTTPS → bleibt alt"
         holen.BASIS, holen.ZUGANG, holen.SIGNATUR, holen.urlopen, holen.__file__ = alt
+
+    # Automatischer Login: Standard aus; an nur mit Schalter UND abgehakten Hinweisen in der aktuellen Fassung
+    def olat(antwort):
+        def api(methode, pfad, body=None, roh=False):
+            if isinstance(antwort, Exception):
+                raise antwort
+            return antwort
+        holen.api = api
+        return holen.schalter()
+    assert olat(HTTPError("u", 404, "", {}, None)) is False, "ohne olat.json aus"
+    assert olat('{"autologin": true}') is False, "alter Schalter ohne Zustimmung: aus"
+    assert olat('{"autologin": true, "zustimmung": "1"}') is False
+    assert olat('{"autologin": false, "zustimmung": 1}') is False
+    assert olat('{"autologin": true, "zustimmung": %d}' % holen.ZUSTIMMUNG) is True
+    assert olat(HTTPError("u", 500, "", {}, None)) is None, "keine Antwort"
     print("ok")
 
 

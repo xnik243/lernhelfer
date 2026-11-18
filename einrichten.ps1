@@ -66,7 +66,7 @@ try {
     -Description "Prüft alle 30 min, ob ein Abgleich fällig ist; OLAT sieht höchstens alle 12 h einen Abgleich, nur tagsüber. Log: $LH\holen.log" | Out-Null
   Write-Host '      läuft ab jetzt alle 30 Minuten, solange der PC an ist'
 
-  Schritt 5 'Erster Abgleich: Erst fragt der Lernhelfer deine OLAT-Zugangsdaten ab (Enter = überspringen, dann im Chrome-Fenster einloggen).'
+  Schritt 5 'Erster Abgleich: Im Chrome-Fenster, das sich gleich öffnet, einmal bei OLAT einloggen.'
   Write-Host '      Mit Zugangsdaten loggt er sich künftig selbst ein. Sie bleiben verschlüsselt auf diesem PC.'
   Write-Host '      Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Bewertete Onlinetests'
   Write-Host '      startet er nie, er liest nur ihre Startseite. Gespeichert oder abgeschickt wird nie etwas.'
