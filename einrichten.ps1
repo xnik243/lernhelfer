@@ -38,7 +38,7 @@ try {
   }
 
   Schritt 2 'Browser-Steuerung und PDF-Leser installieren'
-  & $Py -m pip install --quiet --upgrade --no-warn-script-location playwright pypdf
+  & $Py -m pip install --quiet --upgrade --no-warn-script-location playwright==1.64.1 pypdf==6.21.2  # feste Versionen: kein ungeprüftes neues Paket; ab und zu anheben (auch in einrichten-mac.sh)
   if ($LASTEXITCODE) { throw 'Die Pakete ließen sich nicht installieren. Internetverbindung prüfen und nochmal starten.' }
   $chrome = @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
               "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe") | Where-Object { Test-Path $_ }

@@ -6597,7 +6597,8 @@ function verbinden(neu) {
   history.replaceState(null, '', location.pathname + '#/');
   kameraZu();
   const anders = fertig() && ['openrouter', 'github', 'repo'].some(k => cfg[k] !== neu[k]);
-  if (anders && !confirm('Dieses Gerät ist schon eingerichtet. Mit dem neuen Zugang überschreiben?')) return zeichne();
+  // immer fragen: Ein fremder Link würde sonst ein frisches Gerät still mit einem fremden Speicher verbinden (und dort mitschreiben)
+  if (!confirm(`${anders ? 'Dieses Gerät ist schon eingerichtet. ' : ''}Dieses Gerät mit dem Speicher „${neu.repo || '?'}“ verbinden? Nur bestätigen, wenn der Link von dir selbst stammt.`)) return zeichne();
   speichereCfg(neu);
   for (const k of Object.keys(R)) delete R[k];
   TESTS = null; KAL = null; EIGENE_D.vergessen();
@@ -7098,7 +7099,12 @@ function kontoZeigen() {
         await api('abmelden', {}).catch(() => {});
         try { localStorage.clear(); } catch {}  // Chats und Entwürfe gehören zum Konto, nicht zum Gerät
         neuLaden('Abgemeldet.');
-      } }, 'Abmelden')),
+      } }, 'Abmelden'),
+        el('button', { class: 'knopf', type: 'button', onclick: async () => {
+          if (!confirm('Alle anderen Geräte abmelden, auch das Programm auf deinem PC oder Mac? Dieses Gerät bleibt angemeldet. Das PC-Programm musst du danach unter „Unterlagen aus OLAT“ neu verbinden.')) return;
+          await api('ueberall-abmelden', {});
+          neuLaden('Alle anderen Geräte sind abgemeldet.');
+        } }, 'Überall abmelden')),
       el('details', {}, el('summary', {}, 'Konto löschen'),
         kontoForm('Konto endgültig löschen', [el('p', { class: 'klein' }, 'Löscht dein Konto mit allen Ausgaben, Vorträgen und Kalendern. Das lässt sich nicht rückgängig machen. Ein laufender Tarif verfällt.'),
           kontoFeld('passwort', 'Dein Passwort zur Bestätigung', 'password', { autocomplete: 'current-password' })],

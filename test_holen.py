@@ -193,6 +193,53 @@ def test():
     assert holen.totp("gezd gnbv gy3t qojq gezd gnbv gy3t qojq", 59) == "287082"
     if holen.sys.platform == "win32":  # DPAPI hin und zurück
         assert holen._dpapi(holen._dpapi(b'{"a": 1}', True), False) == b'{"a": 1}'
+
+    # Dateinamen aus OLAT: nie ein Pfad, normale Namen bleiben
+    for roh, rein in (("../../holen.py", "holen.py"), ("..%2F..%2Fx.bat", "x.bat"), ("a\\b.pdf", "b.pdf"), (".versteckt", "versteckt"),
+                      ("..", "datei"), ("VO 3 – Märkte & Preise.pdf", "VO 3 – Märkte & Preise.pdf"), ("a:b?.pdf", "a-b-.pdf")):
+        assert holen.sicherer_name(roh) == rein, (roh, holen.sicherer_name(roh))
+
+    # Passwort und Code nur auf der echten Login-Seite der Uni
+    assert holen.auf_idp("https://idp.uibk.ac.at/idp/profile/SAML2/Redirect/SSO?execution=e1s1")
+    for falsch in ("https://boese.example/?idp.uibk.ac.at", "http://idp.uibk.ac.at/", "https://idp.uibk.ac.at.boese.example/",
+                   "https://boese.example/idp.uibk.ac.at"):
+        assert not holen.auf_idp(falsch), falsch
+    getippt = []
+
+    class Falsch:  # leitet auf eine fremde Seite um, die nur „idp.uibk.ac.at“ in der Adresse hat
+        url = "https://boese.example/login?von=idp.uibk.ac.at"
+        def goto(self, url): pass
+        def locator(self, _): return self
+        def get_by_text(self, _): return self
+        def count(self): return 0  # auch kein „Eingeloggt als“
+        def fill(self, *a): getippt.append(a)
+    assert holen.auto_einloggen(Falsch(), {"benutzer": "csab1234", "passwort": "geheim", "geheim": geheim}) and not getippt
+
+    # Selbst-Update nur mit gültiger Signatur (Testvektor 1 aus RFC 8032: leere Nachricht)
+    rfc = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    sig = bytes.fromhex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")
+    assert holen.signatur_gilt(b"", sig, rfc)
+    assert not holen.signatur_gilt(b"x", sig, rfc) and not holen.signatur_gilt(b"", sig[:-1] + b"\0", rfc) and not holen.signatur_gilt(b"", sig[:40], rfc)
+    assert not holen.signatur_gilt(b"", sig), "fremder Schlüssel"
+    sig_datei = Path(holen.__file__).with_name("holen.py.sig")
+    if sig_datei.exists():  # die Signatur im Repo passt zum eingetragenen Schlüssel (signiert wird der Git-Index, vor jedem Commit)
+        import subprocess
+        index = subprocess.run(["git", "show", ":holen.py"], capture_output=True, cwd=sig_datei.parent).stdout
+        assert holen.signatur_gilt(index, holen.base64.b64decode(sig_datei.read_bytes())), "holen.py.sig veraltet: node signieren.mjs"
+    with tempfile.TemporaryDirectory() as t:
+        t, alt = Path(t), (holen.BASIS, holen.ZUGANG, holen.SIGNATUR, holen.urlopen, holen.__file__)
+        holen.BASIS, holen.ZUGANG, holen.SIGNATUR, holen.__file__ = t, t / "zugang.json", rfc, str(t / "holen.py")
+
+        def probe(app, inhalt, signatur):
+            (t / "holen.py").write_bytes(b"# alt\n")
+            holen.ZUGANG.write_text(holen.json.dumps({"app": app}), "utf-8")
+            holen.urlopen = lambda url, timeout: type("A", (), {"read": lambda s: holen.base64.b64encode(signatur) if url.endswith(".sig") else inhalt})()
+            holen.aktualisieren()
+            return (t / "holen.py").read_bytes()
+        assert probe("https://lernhelfer.example/", b"", sig) == b"", "gültig signiert → übernommen"
+        assert probe("https://lernhelfer.example/", b"import os", sig) == b"# alt\n", "verändert → bleibt alt"
+        assert probe("http://lernhelfer.example/", b"", sig) == b"# alt\n", "ohne HTTPS → bleibt alt"
+        holen.BASIS, holen.ZUGANG, holen.SIGNATUR, holen.urlopen, holen.__file__ = alt
     print("ok")
 
 

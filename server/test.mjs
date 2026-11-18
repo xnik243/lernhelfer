@@ -31,6 +31,12 @@ const attrappe = createServer((req, res) => {
     if (req.url === '/chat/completions') {
       or.anfragen.push({ auth: req.headers.authorization, ...j });
       if (j.messages?.[0]?.content === 'langsam') return setTimeout(() => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"usage":{"cost":0}}'); }, 400);
+      if (j.stream && j.messages?.[0]?.content === 'abbruch') {  // Gerät bricht ab: erstes Stück mit Nummer, dann nichts mehr (kein Preis)
+        res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+        return res.end(`data: ${JSON.stringify({ id: 'gen-abbruch-1', choices: [{ delta: { content: 'Hal' } }] })}
+
+`);
+      }
       if (j.stream) {
         res.writeHead(200, { 'Content-Type': 'text/event-stream' });
         res.write(': OPENROUTER PROCESSING\n\n');
@@ -55,6 +61,7 @@ const attrappe = createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'audio/pcm;rate=24000;channels=1' });
       return res.end(Buffer.alloc(4 * 48000));
     }
+    if (req.url === '/generation?id=gen-abbruch-1') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ data: { total_cost: 0.2 } })); }
     if (req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ data: { usage: 2.5, usage_monthly: 1.5 } })); }
     or.schluessel.push({ method: req.method, url: req.url, ...j });
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -75,7 +82,7 @@ let log = '';
 const server = spawn(process.execPath, ['--no-warnings', join(import.meta.dirname, 'server.mjs')], { env: { ...process.env,
   LH_DATEN: ordner, LH_PORT: String(PORT), LH_URL: BASIS, LH_OR_URL: `http://127.0.0.1:${attrappe.address().port}`, LH_OR_KEY: 'sk-or-server',
   LH_OR_VERWALTUNG: 'verwaltung', LH_ADMIN: 'chef@example.com', LH_IBAN: 'AT00 TEST', LH_BREVO: '',
-  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_CAMPUS: `http://127.0.0.1:${campus.address().port}`, LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1' } });
+  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_CAMPUS: `http://127.0.0.1:${campus.address().port}`, LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1', LH_NACHBUCHEN_MS: '20' } });
 server.stdout.on('data', t => log += t); server.stderr.on('data', t => log += t);
 const warte = async (bis, was) => { for (let i = 0; i < 100; i++) { const x = await bis(); if (x) return x; await new Promise(ok => setTimeout(ok, 50)); } throw new Error('Zeit um: ' + was + '\n' + log); };
 await warte(() => fetch(BASIS + '/api/tarife').then(r => r.ok, () => false), 'Server startet');
@@ -139,6 +146,8 @@ try {
   for (let i = 0; i < 10; i++) await fremd('POST', '/api/anmelden', { email: 'rate@example.com', passwort: 'falsch-falsch' });
   assert.equal((await fremd('POST', '/api/anmelden', { email: 'rate@example.com', passwort: 'falsch-falsch' })).status, 429, 'Passwort-Raten gebremst');
   assert.equal((await fremd('POST', '/api/anmelden', { email: 'andere@example.com', passwort: 'falsch-falsch' })).status, 401, 'andere Adresse geht weiter');
+  for (let i = 0; i < 10; i++) await fremd('POST', `/api/anmelden?i=${i}`, { email: 'rate2@example.com', passwort: 'falsch-falsch' });
+  assert.equal((await fremd('POST', '/api/anmelden?i=x', { email: 'rate2@example.com', passwort: 'falsch-falsch' })).status, 429, 'Bremse auch mit wechselndem ?…');
   assert.equal((await anna('POST', '/api/test', {}, { Origin: 'https://boese.example' })).status, 403, 'fremde Herkunft');
 
   // Speicher wie GitHub
@@ -186,8 +195,12 @@ try {
   const basis = or.anfragen.at(-1);
   assert.equal(basis.model, 'deepseek/deepseek-v4.1-flash', 'Base: nur DeepSeek, egal was die App schickt');
   assert.deepEqual(basis.reasoning, { effort: 'max' }); assert.equal(basis.max_tokens, 120000);
-  assert.deepEqual(basis.provider, { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 } });
+  assert.deepEqual({ ...basis.provider, ignore: basis.provider.ignore.length > 5 }, { data_collection: 'deny', max_price: { prompt: 0.2, completion: 1 }, ignore: true });
   assert.equal((await anna('GET', '/api/ich')).j.genutzt, 15, '0,30 $ von 2 $');
+  // Abgebrochener Strom: Preis kommt über /generation nach; zu große Anfragen und max_tokens gedeckelt
+  await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', stream: true, messages: [{ role: 'user', content: 'abbruch' }] });
+  await warte(async () => (await anna('GET', '/api/ich')).j.genutzt === 25, 'Abbruch nachgebucht (0,20 $)');
+  assert.equal((await anna('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x'.repeat(10.5e6) }] })).status, 413, 'nur Ton/Bilder dürfen groß sein');
   assert.equal((await anna('POST', '/api/ki', { feature: 'test-foto', model: 'google/gemini-3.8-flash', messages: [] })).status, 403, 'Test-Fotos auf Eis');
   // Seiten und gesperrte Funktionen zählen, Unbekanntes nicht; ohne Konto gar nichts
   assert.equal((await anna('POST', '/api/nutzung', { was: 'seite:kalender' })).status, 200);
@@ -204,7 +217,9 @@ try {
   assert.match((await anna('GET', '/')).text, /<a class="go" href="app">/, 'auch angemeldet zuerst die Startseite');
   r = await anna('POST', '/api/test');
   assert.equal(r.j.tarif, 'ultra'); assert.equal(r.j.test, true); assert.ok(r.j.bis - Date.now() > 23.9 * 3600e3);
-  r = await anna('POST', '/api/ki', { feature: 'chat', model: 'openai/gpt-6-luna', stream: true, messages: [] });
+  r = await anna('POST', '/api/ki', { feature: 'chat', model: 'openai/gpt-6-luna', stream: true, messages: [], provider: { only: ['google-ai-studio'], ignore: [], data_collection: 'allow', sort: 'price' } });
+  assert.deepEqual(or.anfragen.at(-1).provider, { only: ['google-ai-studio'], data_collection: 'deny', ignore: or.anfragen.at(-1).provider.ignore }, 'nur only bleibt (YouTube, Ton)');
+  assert.ok(or.anfragen.at(-1).provider.ignore.includes('baidu'), 'App kann den China-Ausschluss nicht aufheben');
   assert.match(r.text, /Hallo /); assert.match(r.text, /\[DONE\]/);
   assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna', 'im Test die großen Modelle');
   assert.equal((await anna('GET', '/api/ich')).j.genutzt, 60, 'Test zählt extra: 0,30 von 0,50 $');
@@ -292,7 +307,7 @@ try {
   let m = or.anfragen.at(-1).messages;
   assert.match(m[0].content, /Originalzahlen/); assert.match(m[1].content, /niedrigsten Rang[\s\S]*Fußball/); assert.equal(m[2].content, 'APP', 'Reihenfolge: Regel, Stil, App');
   await anna('POST', '/api/ki', { feature: 'vortrag', model: 'google/gemini-4-argon', stil: false, provider: { only: ['google-ai-studio'], data_collection: 'allow' }, messages: [{ role: 'user', content: 'TON' }] });
-  assert.deepEqual(or.anfragen.at(-1).provider, { only: ['google-ai-studio'], data_collection: 'deny' }, 'jedes Modell nur ohne Training, Rest der App bleibt');
+  assert.deepEqual({ ...or.anfragen.at(-1).provider, ignore: undefined }, { only: ['google-ai-studio'], data_collection: 'deny', ignore: undefined }, 'jedes Modell nur ohne Training, only der App bleibt');
   assert.equal(or.anfragen.at(-1).messages[0].content, 'TON', 'Transkript ohne Stil'); assert.ok(!('stil' in or.anfragen.at(-1)), 'stil geht nicht an OpenRouter');
   st = await stilPut('', st.j.content.sha);
   assert.equal(st.status, 200);
@@ -357,6 +372,16 @@ try {
   assert.equal((await anna2('POST', '/api/passwort-neu', { token: await link('anna@student.uibk.ac.at', 'passwort'), passwort: 'neues-passwort-1' })).status, 200);
   assert.equal((await anna('GET', '/api/ich')).status, 401);
   assert.equal((await anna2('GET', '/api/ich')).j.email, 'anna@student.uibk.ac.at');
+  assert.equal((await mitPc('GET', gh('abgleich.json'))).status, 401, 'Passwort neu: auch der PC-Schlüssel gilt nicht mehr');
+  // Überall abmelden: andere Geräte und PC-Schlüssel weg, dieses Gerät bleibt
+  const anna3 = person();
+  assert.equal((await anna3('POST', '/api/anmelden', { email: 'anna@student.uibk.ac.at', passwort: 'neues-passwort-1' })).status, 200);
+  const pc2 = (await anna2('POST', '/api/pc')).j.token;
+  assert.equal((await mitPc('POST', '/api/ueberall-abmelden')).status, 401, 'nicht mit dem PC-Schlüssel');
+  assert.equal((await anna2('POST', '/api/ueberall-abmelden')).status, 200);
+  assert.equal((await anna3('GET', '/api/ich')).status, 401, 'anderes Gerät abgemeldet');
+  assert.equal((await fetch(BASIS + gh('abgleich.json'), { headers: { Authorization: 'Bearer ' + pc2 } })).status, 401, 'PC abgemeldet');
+  assert.equal((await anna2('GET', '/api/ich')).status, 200, 'dieses Gerät bleibt');
 
   // Alle meine Daten herunterladen: ZIP mit Konto und jeder Datei im Speicher; der PC-Schlüssel darf das nicht
   await anna2('POST', '/api/arena', { name: 'Anni' });
@@ -452,13 +477,6 @@ try {
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.model, 'deepseek/deepseek-v4.1-flash-1017');
   assert.equal((await max('POST', '/api/ki', { feature: 'ausgabe', model: 'openai/gpt-6-luna', messages: [{ role: 'user', content: 'x' }] })).status, 200);
   assert.equal(or.anfragen.at(-1).model, 'deepseek/deepseek-v4.1-flash-1017'); assert.equal(or.anfragen.at(-1).reasoning.effort, 'high');
-  // Arena: XP nur vom Server. Zahlen vom Gerät zählen nicht, Anmelde-XP einmal am Tag, Runde ohne gemessene Zeit bringt nichts,
-  // Speedrun mit Antworten vom Server (falsche kosten 5 s), Spitzname eindeutig, gesperrte Konten kommen nicht wieder rein
-  assert.equal((await max('POST', '/api/arena', { name: 'x' })).status, 400);
-  let ar = (await max('POST', '/api/arena', { name: 'Maxi', xp: 1e9, min: 50, serie: 3 })).j;
-  assert.deepEqual([ar.mit, ar.xp, ar.liste[0].name, ar.liste[0].xp, ar.liste[0].ich], [true, 0, 'Maxi', 0, true], 'XP vom Gerät zählen nicht');
-  assert.equal((await chef('POST', '/api/arena', { name: 'maxi' })).status, 409, 'Spitzname vergeben');
-  ar = (await max('POST', '/api/arena/tag', {})).j;
   // Word Power je Aufgabe: falsche IDs nicht, gesetztes Modell steht in /tarife und geht beim Transkript durch, Löschen führt zum Standard zurück
   assert.equal((await chef('POST', '/api/admin/schluessel', { LH_WP_VERGLEICH: 'kein modell' })).status, 400);
   await chef('POST', '/api/admin/schluessel', { LH_WP_VERGLEICH: 'x-ai/grok-9-mini' });
@@ -473,6 +491,13 @@ try {
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpDenken.wpText, 'xhigh');
   await chef('POST', '/api/admin/schluessel', { weg: ['LH_WP_TEXT_DENKEN'] });
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpDenken.wpText, '');
+  // Arena: XP nur vom Server. Zahlen vom Gerät zählen nicht, Anmelde-XP einmal am Tag, Runde ohne gemessene Zeit bringt nichts,
+  // Speedrun mit Antworten vom Server (falsche kosten 5 s), Spitzname eindeutig, gesperrte Konten kommen nicht wieder rein
+  assert.equal((await max('POST', '/api/arena', { name: 'x' })).status, 400);
+  let ar = (await max('POST', '/api/arena', { name: 'Maxi', xp: 1e9, min: 50, serie: 3 })).j;
+  assert.deepEqual([ar.mit, ar.xp, ar.liste[0].name, ar.liste[0].xp, ar.liste[0].ich], [true, 0, 'Maxi', 0, true], 'XP vom Gerät zählen nicht');
+  assert.equal((await chef('POST', '/api/arena', { name: 'maxi' })).status, 409, 'Spitzname vergeben');
+  ar = (await max('POST', '/api/arena/tag', {})).j;
   assert.deepEqual([ar.neu.xp, ar.neu.serie, ar.serie.tage, ar.serie.heute, ar.xp], [10, 1, 1, true, 10], 'Anmelde-XP');
   assert.equal((await max('POST', '/api/arena/tag', {})).j.neu, null, 'nur einmal am Tag');
   assert.equal((await max('POST', '/api/arena/runde', { start: 7 })).status, 400, 'nur feste Längen');
@@ -584,7 +609,7 @@ try {
   assert.equal((await max('POST', '/api/ki', foto)).status, 200);
   const fb = or.anfragen.at(-1);
   assert.equal(fb.model, 'google/gemini-3.8-flash', 'Fotos: Modell mit Bildern, nicht DeepSeek'); assert.equal(fb.max_tokens, 16000);
-  assert.equal(fb.reasoning, undefined); assert.deepEqual(fb.provider, { data_collection: 'deny' }); assert.equal(fb.messages[0].content[1].type, 'image_url');
+  assert.equal(fb.reasoning, undefined); assert.equal(fb.provider.data_collection, 'deny'); assert.ok(fb.provider.ignore.includes('baidu')); assert.equal(fb.messages[0].content[1].type, 'image_url');
   assert.equal((await max('POST', '/api/ki', { ...foto, model: 'openai/gpt-6.1-sol' })).status, 200);
   assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'auch wenn die App etwas anderes schickt');
   const ot = (await max('GET', '/api/geschuetzt/onlinetest')).j.system;

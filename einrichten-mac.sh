@@ -46,7 +46,7 @@ if "$PY" -c 'import sys; assert sys.version_info >= (3, 12)' 2>/dev/null; then i
 fi
 
 schritt 2 'Browser-Steuerung und PDF-Leser installieren'
-"$PY" -m pip install --quiet --upgrade --disable-pip-version-check --only-binary=:all: playwright pypdf truststore \
+"$PY" -m pip install --quiet --upgrade --disable-pip-version-check --only-binary=:all: playwright==1.64.1 pypdf==6.21.2 truststore \
   || fehler 'Die Pakete ließen sich nicht installieren. Internetverbindung prüfen und nochmal starten.'
 if [ -d '/Applications/Google Chrome.app' ]; then info 'Browser für OLAT: Google Chrome'
 else

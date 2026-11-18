@@ -16,8 +16,8 @@ const BASIS = (E.LH_URL || 'http://localhost:8080').replace(/\/$/, '');
 const HERKUNFT = new URL(BASIS).origin, SICHER = BASIS.startsWith('https:');
 const OR = E.LH_OR_URL || 'https://openrouter.ai/api/v1';  // der Prüfstand setzt hier eine Attrappe ein
 const ADMIN = (E.LH_ADMIN || '').trim().toLowerCase();
-const TAG = 864e5, MONAT = 30 * TAG;
-if (SICHER && !E.LH_GEHEIM) throw new Error('LH_GEHEIM fehlt (lange Zufallszeichenkette, verschlüsselt gespeicherte API-Schlüssel).');
+const TAG = 864e5, MONAT = 30 * TAG, JAHR = 365 * TAG;
+if (SICHER && !(E.LH_GEHEIM?.length >= 32)) throw new Error('LH_GEHEIM fehlt oder ist zu kurz (mindestens 32 Zeichen Zufall, verschlüsselt gespeicherte API-Schlüssel).');
 
 // Preise in Cent pro Monat: preis gilt gerade, launchPreis während des Launch-Angebots, regulaer danach (preiseSetzen, Admin-Ecke).
 // budget: Fair Use, KI-Kosten in $ pro Monat, die der Server für ein Konto höchstens trägt.
@@ -49,6 +49,10 @@ const FOTO_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000 };
 const checkKi = () => ({ model: E.LH_MODELL_CHECK || E.LH_MODELL || BASIS_KI.model, max_tokens: 8000, reasoning: { effort: 'low' } });
 const FORMEL_KI = { model: 'google/gemini-3.8-flash', max_tokens: 3000 };  // Tipp auf eine Formel: was jedes Zeichen bedeutet, für alle, schnell und günstig
 const LAUFEND = 8, LAEUFT = new Map();  // gleichzeitige KI-Anfragen pro Konto; ein Vortrag schickt seine Teile parallel
+// Jede laufende Anfrage hält 5 Cent vom Budget fest, bis ihr echter Preis gebucht ist: 8 parallele Anfragen kurz vor dem Limit überziehen
+// sonst gemeinsam. ponytail: fester Schätzwert; Vortrag-Teile kosten meist weniger, ein großer Chat mehr
+const RESERVE = 0.05;
+const GROSS = new Set(['vortrag', 'wp-transkript', 'video', 'test-foto']);  // schicken Ton, Video oder Bilder mit: bis 40 MB, alle anderen bis 10 MB
 const TEST = { stunden: 24, budget: 0.5 };  // einmal 24 Stunden Ultra, höchstens 0,50 $ KI
 const MONATE = [1, 3, 6];
 // Funktion → Mindestrang; die App schickt bei jeder KI-Anfrage mit, wofür sie ist
@@ -73,6 +77,12 @@ const WP_DENKEN = Object.fromEntries(Object.keys(WP_MODELLE).map(n => [n + '_DEN
 const modellOk = m => MODELLE.has(m) || !!m && [E.LH_MODELL, E.LH_MODELL_TRANSKRIPT, ...Object.keys(WP_MODELLE).map(n => E[n])].includes(m);
 const basisKi = () => ({ ...BASIS_KI, model: E.LH_MODELL || BASIS_KI.model, reasoning: E.LH_MODELL_DENKEN === 'none' ? undefined : { effort: E.LH_MODELL_DENKEN || 'max' } });
 const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/, DENKSTUFEN = ['max', 'xhigh', 'high', 'medium', 'low', 'none'];
+// Anbieter bei OpenRouter: nie mit den Eingaben trainieren, nie Anbieter mit Sitz in China (Kürzel laut OpenRouter, 18.11.2026; nur echte
+// Kürzel, sonst lehnt OpenRouter womöglich ab). Von der App gelten nur „only“ (YouTube und Ton kann nur Google AI Studio) und „max_price“.
+// ponytail: kein zdr: true, Google AI Studio hat keine Zero Data Retention und Vortrag, Video, Transkript brauchen es
+const CHINA = ['alibaba', 'antdigital', 'baidu', 'moonshotai', 'siliconflow', 'stepfun', 'streamlake', 'tencent', 'xiaomi', 'z-ai'];
+const anbieter = (p = {}) => ({ ...Array.isArray(p.only) && { only: p.only.map(String).slice(0, 5) }, ...p.max_price && { max_price: p.max_price },
+  data_collection: 'deny', ignore: CHINA });
 const FELDER = ['model', 'messages', 'reasoning', 'provider', 'response_format', 'stream', 'temperature', 'max_tokens', 'plugins'];  // plugins (Websuche) nur in der Admin-Ecke
 const SPEICHER = 200e6;  // Bytes pro Konto
 // Öffentlich zeigt der Löser nur Lösungswege an gleichartigen Aufgaben mit anderen Zahlen: Lernhilfe statt fertiger Prüfungsleistung
@@ -227,7 +237,7 @@ const VERSUCHE = new Map();
 // Gegen Passwort-Raten und Mail-Fluten: höchstens max Versuche in 15 Minuten, je IP, Route und (wo es passt) Adresse.
 // Großzügig, weil im Uni-WLAN viele hinter derselben IP sitzen.
 function bremse(req, max, wer = '') {
-  const t = jetzt(), schluessel = `${ip(req)}|${req.url}|${wer}`, l = (VERSUCHE.get(schluessel) || []).filter(x => t - x < 15 * 60e3);
+  const t = jetzt(), schluessel = `${ip(req)}|${req.url.split("?")[0]}|${wer}`, l = (VERSUCHE.get(schluessel) || []).filter(x => t - x < 15 * 60e3);
   if (l.length >= max) nein(429, 'Zu viele Versuche. Bitte in 15 Minuten nochmal.');
   l.push(t); VERSUCHE.set(schluessel, l);
 }
@@ -272,9 +282,11 @@ const sitzung = req => keks(req, 'lh');
 function konto(req) {
   const c = sitzung(req), b = /^Bearer ([\w-]+)$/.exec(req.headers.authorization || '')?.[1];
   if (!c && !b) return null;
-  const m = db.prepare('select konto from marken where hash = ? and art = ? and bis > ?').get(sha256(c || b), c ? 'sitzung' : 'sync', jetzt());
+  const m = db.prepare('select konto, bis from marken where hash = ? and art = ? and bis > ?').get(sha256(c || b), c ? 'sitzung' : 'sync', jetzt());
   const k = m && kontoMit(m.konto);
   if (!k || k.gesperrt) return null;
+  // PC-Schlüssel: gilt ein Jahr ab der letzten Nutzung (läuft also nur auf vergessenen PCs ab), höchstens einmal am Tag neu geschrieben
+  if (b && Math.abs(m.bis - jetzt() - JAHR) > TAG) db.prepare('update marken set bis = ? where hash = ?').run(jetzt() + JAHR, sha256(b));
   if (c && jetzt() - k.zuletzt > 3600e3) db.prepare('update konten set zuletzt = ? where id = ?').run(jetzt(), k.id);  // für die Admin-Ecke, höchstens stündlich
   const e = c && istAdmin(k) && keks(req, 'lhe');  // Admin-Ecke: eigene Marke, 12 Stunden, nur mit der Admin-Sitzung
   return Object.assign(k, { nurPc: !c,  // der PC-Schlüssel darf nur den Speicher
@@ -343,7 +355,8 @@ function darf(k, f) {
 }
 const verbraucht = (id, test) => db.prepare('select usd from verbrauch where konto = ? and monat = ?').get(id, test ? 'test' : monat())?.usd || 0;
 const buchenSql = db.prepare('insert into verbrauch (konto, monat, usd) values (?, ?, ?) on conflict (konto, monat) do update set usd = usd + excluded.usd');
-const buchen = (id, usd, test) => { if (!(usd > 0)) return; buchenSql.run(id, monat(), usd); if (test) buchenSql.run(id, 'test', usd); };
+const kiTag = () => 'ki-tag:' + new Date().toISOString().slice(0, 10);  // Summe aller Konten heute, für den Not-Aus LH_TAGESLIMIT_USD
+const buchen = (id, usd, test) => { if (!(usd > 0)) return; buchenSql.run(id, monat(), usd); if (test) buchenSql.run(id, 'test', usd); wertDazu.run(kiTag(), usd); };
 const zaehlenSql = db.prepare('insert into nutzung (konto, was, tag, n, usd) values (?, ?, ?, ?, ?) on conflict (konto, was, tag) do update set n = n + excluded.n, usd = usd + excluded.usd');
 db.exec('create table if not exists nutzung_log (konto integer not null, zeit integer not null, was text not null); create index if not exists nutzung_log_konto on nutzung_log (konto, zeit)');
 const logSql = db.prepare('insert into nutzung_log (konto, zeit, was) values (?, ?, ?)');
@@ -473,6 +486,7 @@ async function speicher(req, res, k, pfad) {
 async function ki(req, res, k) {
   const b = await liesJson(req, 40e6);  // Vortrag: bis 9 MB Ton pro Teil, als base64
   if (!(b.feature in FUNKTIONEN)) nein(400, 'Unbekannte Funktion.');
+  if (Number(req.headers['content-length']) > (GROSS.has(b.feature) ? 40e6 : 10e6)) nein(413, 'Das ist zu viel auf einmal. Bitte in kleineren Teilen schicken.');
   const s = darf(k, b.feature);
   if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
   if (b.feature === 'reflexion' && !wert('reflexion', 0) && !k.ecke) nein(403, 'Das Reflection-Feedback ist gerade nicht freigeschaltet.');  // Admin-Ecke: Schalter
@@ -480,7 +494,8 @@ async function ki(req, res, k) {
   if (b.feature === 'check') { Object.assign(b, checkKi()); delete b.provider; }
   else if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
-  b.provider = { ...b.provider, data_collection: 'deny' };  // jedes Modell nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren
+  if (b.max_tokens != null) b.max_tokens = Math.min(Number(b.max_tokens) || 16000, 120000);
+  b.provider = anbieter(b.provider);
   const stil = b.stil !== false && stilVon(k, s);  // Reihenfolge: REGEL, Stil, dann was die App schickt
   b.messages = [...stil ? [{ role: 'system', content: stilRahmen(stil) }] : [], ...Array.isArray(b.messages) ? b.messages : []];
   if (['loeser', 'training', 'probeklausur'].includes(b.feature) && !k.ecke) b.messages = [{ role: 'system', content: REGEL }, ...b.messages];
@@ -493,6 +508,10 @@ async function mitKontingent(k, s, fn) {
   if (!k.ecke && verbraucht(k.id, s.test) >= (s.test ? TEST.budget : TARIFE[s.tarif].budget))
     nein(429, s.test ? 'Das KI-Guthaben des Tests ist aufgebraucht. Mit einem Tarif geht es sofort weiter.'
       : `Dein KI-Kontingent für diesen Monat ist aufgebraucht. Am 1. geht es weiter${s.tarif === 'ultra' || s.tarif === 'ultraplus' ? '' : ', mit einem größeren Tarif sofort'}.`);
+  if (!k.ecke && LAEUFT.get(k.id) && verbraucht(k.id, s.test) + (LAEUFT.get(k.id) + 1) * RESERVE > (s.test ? TEST.budget : TARIFE[s.tarif].budget))
+    nein(429, 'Dein KI-Kontingent ist fast aufgebraucht. Warte, bis die laufenden Anfragen fertig sind.');
+  if (!k.ecke && E.LH_TAGESLIMIT_USD && wert(kiTag(), 0) >= Number(E.LH_TAGESLIMIT_USD))
+    nein(503, 'Die KI macht für heute Pause, weil heute schon sehr viel los war. Morgen geht es weiter.');  // Not-Aus für alle, falls etwas aus dem Ruder läuft
   if ((LAEUFT.get(k.id) || 0) >= LAUFEND) nein(429, 'Es laufen schon einige KI-Anfragen gleichzeitig. Warte, bis eine fertig ist.');
   LAEUFT.set(k.id, (LAEUFT.get(k.id) || 0) + 1);
   try { await fn(); } finally { LAEUFT.set(k.id, LAEUFT.get(k.id) - 1); }
@@ -524,19 +543,31 @@ async function kiWeiter(res, k, b, s) {
   }).catch(() => nein(502, 'OpenRouter ist gerade nicht erreichbar. Bitte gleich nochmal.'));
   res.writeHead(up.status, { 'Content-Type': up.headers.get('content-type') || 'application/json', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });
   // Durchreichen und dabei den Preis lesen: im Strom steht er im letzten Stück, sonst in der Antwort
-  const dec = new TextDecoder(); let rest = '', usd = 0;
+  const dec = new TextDecoder(); let rest = '', usd = 0, gen = null;
   const zeile = z => { if (z.startsWith('data: {') && z.includes('"cost"')) try { usd = JSON.parse(z.slice(6)).usage?.cost ?? usd; } catch {} };
   try {
     for await (const teil of up.body) {
       res.write(teil);
       rest += dec.decode(teil, { stream: true });
+      gen ||= /"id"\s*:\s*"(gen-[\w-]+)"/.exec(rest)?.[1];  // Nummer der Anfrage bei OpenRouter, steht gleich im ersten Stück
       if (b.stream) { const zeilen = rest.split('\n'); rest = zeilen.pop(); zeilen.forEach(zeile); }
     }
-  } catch {}  // ponytail: bricht das Gerät mitten im Strom ab, fehlt der Preis dieser Anfrage; genauer ginge es über /generation?id=
+  } catch {}
   if (b.stream) zeile(rest); else try { usd = JSON.parse(rest).usage?.cost || 0; } catch {}
   buchen(k.id, usd, s.test);
   if (up.ok) zaehlen(k.id, b.feature, usd);
+  if (up.ok && !usd && gen) nachbuchen(k.id, gen, s.test, b.feature);  // abgebrochen: kein Preis im Strom, OpenRouter rechnet trotzdem ab
   res.end();
+}
+
+// Abgebrochene Anfragen: Der Preis steht dann nur unter /generation, mit ein paar Sekunden Verzug. Läuft im Hintergrund.
+async function nachbuchen(konto, id, test, funktion) {
+  for (const mal of [1, 6, 24]) {
+    await new Promise(r => setTimeout(r, mal * (Number(E.LH_NACHBUCHEN_MS) || 5000)));
+    const usd = await fetch(`${OR}/generation?id=${encodeURIComponent(id)}`, { headers: { Authorization: 'Bearer ' + E.LH_OR_KEY } })
+      .then(r => r.ok ? r.json() : null, () => null).then(j => j?.data?.total_cost, () => null);
+    if (usd > 0) return buchen(konto, usd, test), zaehlen(konto, funktion, usd, 0);
+  }
 }
 
 // Word Power und voller Löser: Prompts liegen verschlüsselt im Datenordner (geschuetzt/, Kopie aus dem privaten Daten-Repo), der Server
@@ -933,7 +964,7 @@ async function kiJson(k, system, user, funktion = 'arena') {
   await mitKontingent(k, s, async () => {
     const up = await fetch(`${OR}/chat/completions`, { method: 'POST',
       headers: { Authorization: 'Bearer ' + E.LH_OR_KEY, 'Content-Type': 'application/json', 'X-Title': 'Lernhelfer', 'HTTP-Referer': BASIS },
-      body: JSON.stringify({ ...checkKi(), response_format: { type: 'json_object' }, provider: { data_collection: 'deny' }, usage: { include: true }, user: 'konto-' + k.id,
+      body: JSON.stringify({ ...checkKi(), response_format: { type: 'json_object' }, provider: anbieter(), usage: { include: true }, user: 'konto-' + k.id,
         messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
     }).catch(() => nein(502, 'OpenRouter ist gerade nicht erreichbar. Bitte gleich nochmal.'));
     const j = await up.json().catch(() => ({}));
@@ -1134,6 +1165,10 @@ const ROUTEN = {
     anmelden(res, k.id);
     return ich(k);
   },
+  'POST /api/ueberall-abmelden': ({ req, k }) => {  // alle anderen Geräte und das PC-Programm; diese Sitzung bleibt
+    muss(k);
+    db.prepare("delete from marken where konto = ? and art in ('sitzung', 'ecke', 'sync') and hash not in (?, ?)").run(k.id, sha256(sitzung(req) || ''), sha256(keks(req, 'lhe') || ''));
+  },
   'POST /api/abmelden': ({ req, res }) => {
     for (const x of [sitzung(req), keks(req, 'lhe')]) db.prepare('delete from marken where hash = ?').run(sha256(x || ''));
     abmelden(res);
@@ -1150,7 +1185,7 @@ const ROUTEN = {
     bremse(req, 60);
     const pw = passwortPruefen(String(b.passwort || '')), id = einloesen(b.token, 'passwort');
     db.prepare('update konten set pw = ?, bestaetigt = 1 where id = ?').run(pwHash(pw), id);  // der Link kam per Mail: Adresse damit bestätigt
-    db.prepare("delete from marken where konto = ? and art in ('sitzung', 'ecke')").run(id);  // überall abmelden
+    db.prepare("delete from marken where konto = ? and art in ('sitzung', 'ecke', 'sync')").run(id);  // überall abmelden, auch das PC-Programm
     anmelden(res, id);
     return ich({ id });
   },
@@ -1326,7 +1361,7 @@ const ROUTEN = {
   'POST /api/pc': ({ k }) => {  // Schlüssel für den OLAT-Abgleich am PC; ein neuer ersetzt den alten
     muss(k);
     db.prepare("delete from marken where konto = ? and art = 'sync'").run(k.id);
-    return { token: marke(k.id, 'sync', 3650 * TAG), api: BASIS + '/api/gh', repo: 'lernhelfer/konto' };
+    return { token: marke(k.id, 'sync', JAHR), api: BASIS + '/api/gh', repo: 'lernhelfer/konto' };
   },
   'POST /api/konto-loeschen': async ({ k, b, res }) => {
     muss(k);
@@ -1518,7 +1553,7 @@ const DATEIEN = {
   '/': ['startseite.html', 'text/html; charset=utf-8'], '/startseite.css': ['startseite.css', 'text/css; charset=utf-8'], '/startseite.js': ['startseite.js', 'text/javascript; charset=utf-8'],
   '/app': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'],
   '/skizze.css': ['skizze.css', 'text/css; charset=utf-8'],
-  '/holen.py': ['holen.py', 'text/plain; charset=utf-8'], '/einrichten.ps1': ['einrichten.ps1', 'text/plain; charset=utf-8'],
+  '/holen.py': ['holen.py', 'text/plain; charset=utf-8'], '/holen.py.sig': ['holen.py.sig', 'text/plain; charset=utf-8'], '/einrichten.ps1': ['einrichten.ps1', 'text/plain; charset=utf-8'],
   '/einrichten-mac.sh': ['einrichten-mac.sh', 'text/plain; charset=utf-8'],
   '/fonts/Archivo.woff2': ['fonts/Archivo.woff2', 'font/woff2'], '/fonts/SourceSerif4.woff2': ['fonts/SourceSerif4.woff2', 'font/woff2'],
   // Programmbibliotheken der App, selbst ausgeliefert statt von jsDelivr; die Version steht im Namen, darum darf der Browser sie lange behalten
@@ -1559,6 +1594,7 @@ async function aufraeumen() {
   const t = jetzt();
   try { sichern(); } catch (e) { console.error('Sicherung:', e.message); }
   db.prepare('delete from marken where bis < ?').run(t);
+  db.prepare("delete from werte where name like 'ki-tag:%' and name < ?").run('ki-tag:' + new Date(t - 7 * TAG).toISOString().slice(0, 10));  // Not-Aus braucht nur heute
   db.prepare("update bestellungen set status = 'verfallen' where status = 'offen' and erstellt < ?").run(t - 14 * TAG);
   db.prepare('delete from nutzung where tag < ?').run(new Date(t - 400 * TAG).toISOString().slice(0, 10));
   db.prepare('delete from nutzung_log where zeit < ?').run(t - 30 * TAG);

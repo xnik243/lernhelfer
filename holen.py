@@ -212,9 +212,13 @@ def login_speichern(login):
     roh = json.dumps(login).encode()
     if sys.platform == "win32":
         LOGIN.write_bytes(_dpapi(roh, True))
-    else:  # ponytail: steht für einen Augenblick in der Prozessliste; `security` liest -w sonst nur vom Terminal
-        subprocess.run(["security", "add-generic-password", "-U", "-s", SCHLUESSELBUND, "-a", "lernhelfer", "-w", base64.b64encode(roh).decode()],
-                       check=True, capture_output=True)
+    else:  # Befehl über stdin an `security -i`, damit der Wert nie in der Prozessliste (ps) steht; Base64 braucht keine Anführungszeichen
+        wert = base64.b64encode(roh).decode()
+        subprocess.run(["security", "-i"], input=f'add-generic-password -U -s "{SCHLUESSELBUND}" -a lernhelfer -w {wert}\n',
+                       text=True, capture_output=True)
+        if login_lesen() != login:  # ponytail: ungetestet auf echtem Mac; klappt -i nicht, wie bisher über die Argumente (kurz in ps sichtbar)
+            subprocess.run(["security", "add-generic-password", "-U", "-s", SCHLUESSELBUND, "-a", "lernhelfer", "-w", wert],
+                           check=True, capture_output=True)
 
 
 def login_loeschen():
@@ -223,11 +227,17 @@ def login_loeschen():
         subprocess.run(["security", "delete-generic-password", "-s", SCHLUESSELBUND], capture_output=True)
 
 
+def auf_idp(url):
+    """Nur die echte Login-Seite der Uni bekommt Passwort und Code: genau dieser Host, nur HTTPS (nicht „…idp.uibk.ac.at…“ irgendwo in der Adresse)."""
+    u = urlparse(url)
+    return u.scheme == "https" and u.hostname == IDP
+
+
 def auto_einloggen(seite, login):
     """Einloggen wie von Hand: Kennung und Passwort auf idp.uibk.ac.at, dann der 2FA-Code. None = geklappt, sonst der Grund.
     Ausnahmen (Netz, Zeitüberschreitung) gehen an den Aufrufer: Dabei wurde nichts Falsches abgeschickt."""
     seite.goto(SSO)
-    if IDP in seite.url:  # sonst kennt der IdP die Anmeldung noch und schickt gleich zurück zu OLAT
+    if auf_idp(seite.url):  # sonst kennt der IdP die Anmeldung noch und schickt gleich zurück zu OLAT
         if not seite.locator("#password").count():
             return "die Login-Seite der Uni sah anders aus als erwartet"
         seite.fill("#username", login["benutzer"])
@@ -235,10 +245,10 @@ def auto_einloggen(seite, login):
         with seite.expect_navigation():
             seite.click("button[name=_eventId_proceed]")
         for _ in range(30):  # bis zu 15 s auf die Code-Seite warten
-            if IDP not in seite.url or seite.locator(CODEFELD).count() or seite.locator("#password:visible").count():
+            if not auf_idp(seite.url) or seite.locator(CODEFELD).count() or seite.locator("#password:visible").count():
                 break
             seite.wait_for_timeout(500)
-        if IDP in seite.url:
+        if auf_idp(seite.url):
             if seite.locator("#password:visible").count():
                 return "Benutzerkennung oder Passwort stimmt nicht"
             # ponytail: nimmt das erste sichtbare Eingabefeld; fragt die Uni zuerst nach Security Key/Hello-PIN, gibt es keins
@@ -250,7 +260,7 @@ def auto_einloggen(seite, login):
             feld.fill(totp(login["geheim"]))
             feld.press("Enter")
             try:
-                seite.wait_for_url(lambda u: IDP not in u, timeout=30_000)
+                seite.wait_for_url(lambda u: not auf_idp(u), timeout=30_000)
             except Exception:
                 return "der 2FA-Code wurde nicht angenommen (2FA-Schlüssel prüfen)"
     seite.goto(OLAT + "/auth/MyCoursesSite/0")
@@ -283,6 +293,8 @@ def autologin_einrichten(p, stand):
 Der Lernhelfer loggt sich dann selbst bei OLAT ein, auch mit dem 2FA-Code. Kennung, Passwort und 2FA-Schlüssel bleiben
 verschlüsselt auf diesem {GERAET} ({'mit deinem Windows-Konto' if sys.platform == 'win32' else 'im Schlüsselbund'}) und gehen nirgendwohin.
 Wer an deinen entsperrten {GERAET} kommt, kommt damit auch in deinen Uni-Account: {GERAET} immer mit Passwort sperren.
+Notbremse (z. B. {GERAET} gestohlen): im Account Portal den Token löschen, den du gleich anlegst, oder das Uni-Passwort
+ändern. Dann sind die gespeicherten Daten wertlos, egal wo sie gerade sind.
 
 Den 2FA-Schlüssel bekommst du so:
   1. https://accounts.uibk.ac.at öffnen, einloggen, bei der Zwei-Faktor-Authentifizierung auf „Verwalten“, dann „Neuer Token“.
@@ -374,7 +386,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
                     continue
                 login_fehler(grund)
             except Exception as e:  # Netz, Zeitüberschreitung: nichts Falsches abgeschickt, nächstes Mal wieder automatisch
-                print("Automatischer Login unterbrochen:", e, flush=True)
+                print("Automatischer Login unterbrochen:", type(e).__name__, str(e).split("\n")[0][:200], flush=True)  # nur die erste Zeile, ohne Seiteninhalt
             finally:
                 fenster.close()
         if versuch == 2 or not sichtbar:
@@ -484,6 +496,13 @@ def oeffne(page, url):
         page.locator(".o_table_pagination .dropdown-toggle", has_text="250").wait_for()
 
 
+def sicherer_name(roh):
+    """Dateiname aus OLAT (Kartentitel, Download, Adresse) ohne Pfad: In Gruppenordnern laden auch Mitstudierende hoch, und
+    „../../holen.py“ darf nie das Programm überschreiben."""
+    n = unquote(str(roh)).replace("\\", "/").rsplit("/", 1)[-1]  # nicht Path: Windows liest „a:“ als Laufwerk
+    return re.sub(r'[\\/:*?"<>|\x00-\x1f]', "-", n).strip(". ")[:150] or "datei"
+
+
 def sync(ctx, page, fach):
     neu = []
     for q in KURSE[fach]:
@@ -499,23 +518,23 @@ def sync(ctx, page, fach):
             # Unterordner haben eigene Einträge (ordner_baum, bis 3 Ebenen tief);
             # vorhandene Dateien nicht neu geladen – geänderte Datei mit gleichem Namen: lokal löschen.
             namen = [n.strip() for n in karten.locator(".o_folder_card_title").all_inner_texts()]
-            for name in [n for n in namen if not (ziel / n).exists()]:
+            for titel in [n for n in namen if not (ziel / sicherer_name(n)).exists()]:
                 oeffne(page, url)  # OLAT lädt die Seite nach jedem Download neu
-                karten.filter(has=page.get_by_text(name, exact=True)).locator("a:has(.o_icon_actions)").click()
+                karten.filter(has=page.get_by_text(titel, exact=True)).locator("a:has(.o_icon_actions)").click()  # Karte über den Originaltitel
                 with page.expect_download() as dl:
                     page.get_by_role("link", name="Herunterladen", exact=True).last.click()
-                dl.value.save_as(ziel / name)
-                neu.append(f"{fach}: {q['name']}/{name}")
+                dl.value.save_as(ziel / sicherer_name(titel))
+                neu.append(f"{fach}: {q['name']}/{sicherer_name(titel)}")
         elif herunterladen.count():  # einzelne Datei
             with page.expect_download() as dl:
                 herunterladen.first.click()
-            name = dl.value.suggested_filename
+            name = sicherer_name(dl.value.suggested_filename)
             if not (ziel / name).exists():
                 neu.append(f"{fach}: {q['name']}/{name}")
             dl.value.save_as(ziel / name)
         elif seite.count():  # eingebettete HTML-Seite
             src = seite.first.get_attribute("src")
-            name = unquote(src.rsplit("/", 1)[-1])
+            name = sicherer_name(src.rsplit("/", 1)[-1])
             if not (ziel / name).exists():
                 neu.append(f"{fach}: {q['name']}/{name}")
             (ziel / name).write_bytes(ctx.request.get(urljoin(OLAT, src)).body())
@@ -764,17 +783,76 @@ def hochladen(stand, pfad, daten):
                 shas.pop(pfad, None)
 
 
+# Selbst-Update nur mit Signatur (Ed25519, RFC 8032): Wer GitHub oder den Server übernimmt, kann trotzdem keine fremde holen.py
+# verteilen, die gespeicherte Zugangsdaten liest. Der private Schlüssel liegt nur am PC des Entwicklers (signieren.mjs).
+SIGNATUR = "8c6bd24b77cc4aa64b4fe9086dbf723a72b10e058cd0a7ca6b09852de9a4be39"
+_P, _L = 2**255 - 19, 2**252 + 27742317777372353535851937790883648493
+_D = -121665 * pow(121666, _P - 2, _P) % _P
+
+
+def _plus(a, b):
+    (x1, y1, z1, t1), (x2, y2, z2, t2) = a, b
+    a, b, c, d = (y1 - x1) * (y2 - x2) % _P, (y1 + x1) * (y2 + x2) % _P, 2 * t1 * t2 * _D % _P, 2 * z1 * z2 % _P
+    e, f, g, h = b - a, d - c, d + c, b + a
+    return e * f % _P, g * h % _P, f * g % _P, e * h % _P
+
+
+def _mal(s, q):
+    r = (0, 1, 1, 0)
+    while s:
+        if s & 1:
+            r = _plus(r, q)
+        q, s = _plus(q, q), s >> 1
+    return r
+
+
+def _punkt(b):
+    y = int.from_bytes(b, "little")
+    vz, y = y >> 255, y & ((1 << 255) - 1)
+    if len(b) != 32 or y >= _P:
+        raise ValueError
+    xx = (y * y - 1) * pow(_D * y * y + 1, _P - 2, _P) % _P
+    x = pow(xx, (_P + 3) // 8, _P)
+    if (x * x - xx) % _P:
+        x = x * pow(2, (_P - 1) // 4, _P) % _P
+    if (x * x - xx) % _P or (x == 0 and vz):
+        raise ValueError
+    if x & 1 != vz:
+        x = _P - x
+    return x, y, 1, x * y % _P
+
+
+def signatur_gilt(daten, sig, schluessel=None):
+    """Ed25519-Prüfung nach RFC 8032 Abschnitt 6 (die Standardbibliothek kann das nicht, ein Zusatzpaket wäre selbst ein Risiko)."""
+    try:
+        a = bytes.fromhex(schluessel or SIGNATUR)
+        r, s = _punkt(sig[:32]), int.from_bytes(sig[32:], "little")
+        if len(sig) != 64 or s >= _L:
+            return False
+        h = int.from_bytes(hashlib.sha512(sig[:32] + a + daten).digest(), "little") % _L
+        links, rechts = _mal(s, _punkt((4 * pow(5, _P - 2, _P) % _P).to_bytes(32, "little"))), _plus(r, _mal(h, _punkt(a)))
+        return (links[0] * rechts[2] - rechts[0] * links[2]) % _P == 0 and (links[1] * rechts[2] - rechts[1] * links[2]) % _P == 0
+    except ValueError:
+        return False
+
+
 def aktualisieren():
-    """Installierte Kopien holen sich neue Fassungen von holen.py selbst (gilt ab dem nächsten Lauf); die Entwicklungskopie nicht."""
+    """Installierte Kopien holen sich neue Fassungen von holen.py selbst (gilt ab dem nächsten Lauf); die Entwicklungskopie nicht.
+    Nur über HTTPS und nur mit gültiger Signatur (holen.py.sig), sonst läuft die alte Fassung weiter."""
     if (BASIS / ".git").exists():
         return
     try:
-        app = (json.loads(ZUGANG.read_text("utf-8")).get("app") if ZUGANG.exists() else None) or APP  # Server-Version: von dort
-        neu = urlopen(app.rstrip("/") + "/holen.py", timeout=30).read()
+        app = ((json.loads(ZUGANG.read_text("utf-8")).get("app") if ZUGANG.exists() else None) or APP).rstrip("/")  # Server-Version: von dort
+        if not app.startswith("https://"):
+            raise ValueError(f"nur über HTTPS, nicht {app}")
+        neu = urlopen(app + "/holen.py", timeout=30).read()
+        if neu == Path(__file__).read_bytes():
+            return
+        if not signatur_gilt(neu, base64.b64decode(urlopen(app + "/holen.py.sig", timeout=30).read().strip())):
+            raise ValueError("Signatur passt nicht, die bisherige Fassung läuft weiter")
         compile(neu, "holen.py", "exec")
-        if neu != Path(__file__).read_bytes():
-            Path(__file__).write_bytes(neu)
-            print("holen.py aktualisiert.")
+        Path(__file__).write_bytes(neu)
+        print("holen.py aktualisiert.")
     except Exception as e:
         print("Aktualisierung übersprungen:", e)
 
