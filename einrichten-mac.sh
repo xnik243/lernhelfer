@@ -77,7 +77,8 @@ if [ -z "${LH_ORT:-}" ]; then  # fragt macOS, ob das Terminal auf den Schreibtis
   else info 'Auf den Schreibtisch durfte die Verknüpfung nicht, sie liegt im Lernhelfer-Ordner (öffnet sich gleich im Finder).'; open -R "$VERKNUEPFUNG" || true; fi
 fi
 
-schritt 4 "Erster Abgleich: Gleich öffnet sich $( [ -d '/Applications/Google Chrome.app' ] && echo Chrome || echo Chromium ). Dort bei OLAT einloggen."
+schritt 4 "Erster Abgleich: Erst fragt der Lernhelfer deine OLAT-Zugangsdaten ab (Enter = überspringen, dann im $( [ -d '/Applications/Google Chrome.app' ] && echo Chrome || echo Chromium )-Fenster einloggen)."
+info 'Mit Zugangsdaten loggt er sich künftig selbst ein. Sie bleiben verschlüsselt im Schlüsselbund dieses Macs.'
 info 'Danach sucht der Lernhelfer deine Kurse und lädt die Unterlagen. Bewertete Onlinetests'
 info 'startet er nie, er liest nur ihre Startseite. Gespeichert oder abgeschickt wird nie etwas.'
 ERSTER=0

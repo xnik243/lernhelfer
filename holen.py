@@ -6,19 +6,25 @@ Start von Hand: python holen.py [Fach ...]; --auto = Lauf aus der Aufgabenplanun
 Die Aufgabenplanung ruft alle 30 Minuten auf, OLAT sieht davon aber nur einen Abgleich etwa alle 12 Stunden, tagsüber und mit
 Pausen zwischen den Seiten wie beim Klicken von Hand (faellig(), pause()); dazwischen geht keine einzige Anfrage an OLAT.
 Ist die OLAT-Sitzung abgelaufen, öffnet sich Chrome (am Mac ohne Chrome: Chromium): dort selbst einloggen (SSO + Authenticator).
+Automatischer Login (Standard, abschaltbar in der App): Der nächste Start von Hand fragt einmal Kennung, Passwort und
+2FA-Schlüssel ab; danach loggt er sich unsichtbar selbst ein (siehe autologin()).
 
 Tests: Gelesen werden die Startseiten (Zeitraum, Punkte, Versuche), nach Ablauf stehen Fragen und Lösung dort. Selbsttests
 werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Bewertete Tests startet er nie. Ein Wächter im
 Browser lässt nur Lesen und genau den jeweils nächsten erlaubten Schritt durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
 """
 import base64
+import getpass
 import hashlib
+import hmac
 import html
 import json
 import logging
 import os
 import random
 import re
+import struct
+import subprocess
 import sys
 import time
 import zipfile
@@ -152,10 +158,204 @@ class Abgelaufen(Exception):
     pass
 
 
-def olat_login(p, sichtbar=True, fenster_auf=lambda: None):
-    """Erst unsichtbar mit gespeicherter Sitzung. Ist die abgelaufen, öffnet sich Chrome mit eigenem Lernhelfer-Profil
-    zum Einloggen (SSO + Authenticator); dort gespeicherte Passwörter füllt Chrome beim nächsten Mal selbst aus.
-    Wartet höchstens 10 Minuten (Playwright-TimeoutError)."""
+# Automatischer Login (Schalter in der App): Kennung, Passwort und 2FA-Schlüssel liegen nur auf diesem Computer, verschlüsselt
+# mit dem Windows-Konto (DPAPI) bzw. im Schlüsselbund des Macs; nie in zugang.json, im Stand, im Log oder im Daten-Repo.
+SSO = OLAT + "/Shibboleth.sso/Login?SAMLDS=1&target=https://lms.uibk.ac.at/shib/&entityID=https%3A%2F%2Fidp.uibk.ac.at%2Fidp%2Fshibboleth"
+IDP = "idp.uibk.ac.at"
+CODEFELD = ("input:visible:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button])"
+            ":not(#username):not(#password)")
+LOGIN = BASIS / ".olat-login"  # Windows: DPAPI-verschlüsselt, nur dieses Windows-Konto kann es lesen
+SCHLUESSELBUND = "Lernhelfer OLAT"  # Mac: Eintrag im Anmelde-Schlüsselbund
+
+
+def totp(geheim, t=None):
+    """Der 6-stellige Code der Authenticator-App: TOTP nach RFC 6238 (SHA-1, 30 Sekunden), wie an der Uni Innsbruck."""
+    g = re.sub(r"[\s=-]", "", geheim).upper()
+    h = hmac.new(base64.b32decode(g + "=" * (-len(g) % 8)), struct.pack(">Q", int((time.time() if t is None else t) // 30)), "sha1").digest()
+    o = h[-1] & 15
+    return f"{(int.from_bytes(h[o:o + 4], 'big') & 0x7FFFFFFF) % 1_000_000:06d}"
+
+
+def _dpapi(daten, verschluesseln):
+    import ctypes
+    from ctypes import wintypes
+
+    class Blob(ctypes.Structure):
+        _fields_ = [("n", wintypes.DWORD), ("p", ctypes.POINTER(ctypes.c_char))]
+    puffer = ctypes.create_string_buffer(daten, len(daten))
+    rein, raus = Blob(len(daten), ctypes.cast(puffer, ctypes.POINTER(ctypes.c_char))), Blob()
+    crypt = ctypes.WinDLL("crypt32")
+    f = crypt.CryptProtectData if verschluesseln else crypt.CryptUnprotectData
+    if not f(ctypes.byref(rein), None, None, None, None, 1, ctypes.byref(raus)):  # 1 = nie mit einem Dialog nachfragen
+        raise ctypes.WinError()
+    try:
+        return ctypes.string_at(raus.p, raus.n)
+    finally:
+        frei = ctypes.WinDLL("kernel32").LocalFree
+        frei.argtypes = [ctypes.c_void_p]
+        frei(raus.p)
+
+
+def login_lesen():
+    try:
+        if sys.platform == "win32" and LOGIN.exists():
+            return json.loads(_dpapi(LOGIN.read_bytes(), False))
+        if sys.platform == "darwin":
+            r = subprocess.run(["security", "find-generic-password", "-s", SCHLUESSELBUND, "-w"], capture_output=True, text=True)
+            return json.loads(base64.b64decode(r.stdout.strip())) if r.returncode == 0 else None
+    except (OSError, ValueError):
+        return None
+    return None
+
+
+def login_speichern(login):
+    roh = json.dumps(login).encode()
+    if sys.platform == "win32":
+        LOGIN.write_bytes(_dpapi(roh, True))
+    else:  # ponytail: steht für einen Augenblick in der Prozessliste; `security` liest -w sonst nur vom Terminal
+        subprocess.run(["security", "add-generic-password", "-U", "-s", SCHLUESSELBUND, "-a", "lernhelfer", "-w", base64.b64encode(roh).decode()],
+                       check=True, capture_output=True)
+
+
+def login_loeschen():
+    LOGIN.unlink(missing_ok=True)
+    if sys.platform == "darwin":
+        subprocess.run(["security", "delete-generic-password", "-s", SCHLUESSELBUND], capture_output=True)
+
+
+def auto_einloggen(seite, login):
+    """Einloggen wie von Hand: Kennung und Passwort auf idp.uibk.ac.at, dann der 2FA-Code. None = geklappt, sonst der Grund.
+    Ausnahmen (Netz, Zeitüberschreitung) gehen an den Aufrufer: Dabei wurde nichts Falsches abgeschickt."""
+    seite.goto(SSO)
+    if IDP in seite.url:  # sonst kennt der IdP die Anmeldung noch und schickt gleich zurück zu OLAT
+        if not seite.locator("#password").count():
+            return "die Login-Seite der Uni sah anders aus als erwartet"
+        seite.fill("#username", login["benutzer"])
+        seite.fill("#password", login["passwort"])
+        with seite.expect_navigation():
+            seite.click("button[name=_eventId_proceed]")
+        for _ in range(30):  # bis zu 15 s auf die Code-Seite warten
+            if IDP not in seite.url or seite.locator(CODEFELD).count() or seite.locator("#password:visible").count():
+                break
+            seite.wait_for_timeout(500)
+        if IDP in seite.url:
+            if seite.locator("#password:visible").count():
+                return "Benutzerkennung oder Passwort stimmt nicht"
+            # ponytail: nimmt das erste sichtbare Eingabefeld; fragt die Uni zuerst nach Security Key/Hello-PIN, gibt es keins
+            feld = seite.locator(CODEFELD).first
+            if not feld.count():
+                return "die 2FA-Seite der Uni sah anders aus als erwartet"
+            if 30 - time.time() % 30 < 3:  # keinen Code abschicken, der gleich abläuft
+                seite.wait_for_timeout(3500)
+            feld.fill(totp(login["geheim"]))
+            feld.press("Enter")
+            try:
+                seite.wait_for_url(lambda u: IDP not in u, timeout=30_000)
+            except Exception:
+                return "der 2FA-Code wurde nicht angenommen (2FA-Schlüssel prüfen)"
+    seite.goto(OLAT + "/auth/MyCoursesSite/0")
+    return None if seite.get_by_text("Eingeloggt als").count() else "OLAT hat die Anmeldung nicht angenommen"
+
+
+def profil(p, unsichtbar):
+    """Das eigene Lernhelfer-Profil (Cookies der Uni-Anmeldung bleiben darin), sichtbar zum Einloggen von Hand."""
+    return p.chromium.launch_persistent_context(PROFIL, channel=KANAL, headless=unsichtbar,
+                                                ignore_default_args=["--enable-automation", "--disable-extensions"])
+
+
+def schalter():
+    """Schalter „Automatisch bei OLAT einloggen“ in der App (olat.json im eigenen Speicher), ohne Datei an; None = keine Antwort."""
+    try:
+        return json.loads(api("GET", "olat.json", roh=True)).get("autologin", True) is not False
+    except HTTPError as e:
+        return True if e.code == 404 else None
+    except Exception:
+        return None
+
+
+def autologin_einrichten(p, stand):
+    """Einmal von Hand: Zugangsdaten abfragen, mit einem echten Login prüfen und erst dann verschlüsselt ablegen."""
+    if sys.platform not in ("win32", "darwin"):
+        print("Den automatischen Login gibt es nur unter Windows und macOS.")
+        return None
+    print(f"""
+=== Automatischer OLAT-Login ===
+Der Lernhelfer loggt sich dann selbst bei OLAT ein, auch mit dem 2FA-Code. Kennung, Passwort und 2FA-Schlüssel bleiben
+verschlüsselt auf diesem {GERAET} ({'mit deinem Windows-Konto' if sys.platform == 'win32' else 'im Schlüsselbund'}) und gehen nirgendwohin.
+Wer an deinen entsperrten {GERAET} kommt, kommt damit auch in deinen Uni-Account: {GERAET} immer mit Passwort sperren.
+
+Den 2FA-Schlüssel bekommst du so:
+  1. https://accounts.uibk.ac.at öffnen, einloggen, bei der Zwei-Faktor-Authentifizierung auf „Verwalten“, dann „Neuer Token“.
+  2. Unter dem QR-Code auf „hier“ klicken. Das kopiert den geheimen Schlüssel.
+  3. Hier einfügen. Danach zeigt der Lernhelfer einen 6-stelligen Code: den im Account Portal eingeben und „Verifizieren“.
+Deine Authenticator-App am Handy funktioniert weiter wie bisher.
+Nichts eingeben und Enter = überspringen, dann loggst du dich wie bisher selbst ein.
+""")
+    benutzer = input("Benutzerkennung (z. B. csab1234): ").strip()
+    if not benutzer:
+        return None
+    passwort = getpass.getpass("Passwort (bleibt beim Tippen unsichtbar): ")
+    geheim = getpass.getpass("2FA-Schlüssel (einfügen, bleibt unsichtbar): ").strip()
+    if geheim.startswith("otpauth://"):
+        geheim = parse_qs(urlparse(geheim).query).get("secret", [""])[0]
+    try:
+        totp(geheim)
+        assert len(re.sub(r"[\s=-]", "", geheim)) >= 16
+    except (ValueError, AssertionError):
+        print("Das sieht nicht nach einem 2FA-Schlüssel aus (Buchstaben A–Z und Ziffern 2–7). Nichts gespeichert.")
+        return None
+    while True:
+        print(f"\nCode fürs Account Portal: {totp(geheim)}  (gilt noch {30 - int(time.time() % 30)} Sekunden)")
+        antwort = input("Hat das Portal ihn angenommen (oder war der Schlüssel schon eingerichtet)? Dann „ok“, sonst Enter für den aktuellen Code: ")
+        if antwort.strip().lower() in ("ok", "j", "ja"):
+            break
+    login = {"benutzer": benutzer, "passwort": passwort, "geheim": geheim}
+    print("Teste den Login bei OLAT …", flush=True)
+    fenster = profil(p, unsichtbar=True)
+    try:
+        fenster.clear_cookies(domain=IDP)  # sonst kennt der IdP die Anmeldung noch und prüft gar nichts
+        grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
+        if grund is None:
+            fenster.storage_state(path=SITZUNG)
+    except Exception as e:
+        grund = f"unterbrochen ({type(e).__name__})"
+    finally:
+        fenster.close()
+    if grund:
+        print(f"Das hat nicht geklappt: {grund}. Nichts gespeichert, du loggst dich wie bisher selbst ein.")
+        return None
+    login_speichern(login)
+    stand.pop("autologin_fehler", None)
+    print("Gespeichert. Ab jetzt loggt sich der Lernhelfer selbst bei OLAT ein.\n")
+    return login
+
+
+def autologin(p, stand, von_hand):
+    """Zugangsdaten für den automatischen Login, solange der Schalter in der App an ist. Von Hand gestartet richtet er ihn
+    einmal ein (bzw. nach einem Fehler neu); Schalter aus = gespeicherte Zugangsdaten löschen.
+    Nach einem Fehlschlag versucht er es nicht von selbst nochmal, damit die Uni den Account nicht sperrt."""
+    an = schalter() if ZUGANG.exists() else False
+    stand["autologin_an"] = an = stand.get("autologin_an", True) if an is None else an
+    login = login_lesen()
+    if not an:
+        if login:
+            login_loeschen()
+            print("Automatischer Login ist in der App aus: gespeicherte Zugangsdaten gelöscht.")
+        stand.pop("autologin_fehler", None)
+        return None
+    if von_hand and sys.stdin and sys.stdin.isatty() and (not login or stand.get("autologin_fehler")):
+        if stand.get("autologin_fehler"):
+            print(f"Der automatische Login ging zuletzt nicht: {stand['autologin_fehler']}.")
+            if input("Zugangsdaten neu eintragen? (j/n): ").strip().lower() not in ("j", "ja"):
+                return None
+        return autologin_einrichten(p, stand)
+    return None if stand.get("autologin_fehler") else login
+
+
+def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_fehler=lambda grund: None):
+    """Erst unsichtbar mit gespeicherter Sitzung. Ist die abgelaufen und der automatische Login eingerichtet, loggt er sich
+    unsichtbar selbst ein. Sonst öffnet sich Chrome mit eigenem Lernhelfer-Profil zum Einloggen (SSO + Authenticator);
+    dort gespeicherte Passwörter füllt Chrome beim nächsten Mal selbst aus. Wartet höchstens 10 Minuten (Playwright-TimeoutError)."""
     browser = p.chromium.launch(channel=KANAL, headless=True)
     for versuch in (1, 2):
         ctx = browser.new_context(storage_state=SITZUNG if SITZUNG.exists() else None, accept_downloads=True)
@@ -164,12 +364,24 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None):
         if page.get_by_text("Eingeloggt als").count():  # OLAT zeigt die Login-Seite unter derselben URL
             return browser, ctx, page
         ctx.close()
+        if versuch == 1 and login:
+            fenster = profil(p, unsichtbar=True)
+            try:
+                grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
+                if grund is None:
+                    fenster.storage_state(path=SITZUNG)
+                    print("Automatisch bei OLAT eingeloggt.", flush=True)
+                    continue
+                login_fehler(grund)
+            except Exception as e:  # Netz, Zeitüberschreitung: nichts Falsches abgeschickt, nächstes Mal wieder automatisch
+                print("Automatischer Login unterbrochen:", e, flush=True)
+            finally:
+                fenster.close()
         if versuch == 2 or not sichtbar:
             browser.close()
             raise Abgelaufen
         fenster_auf()
-        fenster = p.chromium.launch_persistent_context(PROFIL, channel=KANAL, headless=False,
-                                                       ignore_default_args=["--enable-automation", "--disable-extensions"])
+        fenster = profil(p, unsichtbar=False)
         seite = fenster.pages[0] if fenster.pages else fenster.new_page()
         seite.goto(OLAT + "/auth/MyCoursesSite/0")
         print(f"Bitte im {BROWSER}-Fenster bei OLAT einloggen (10 Minuten Zeit) …", flush=True)
@@ -627,7 +839,8 @@ if __name__ == "__main__":
     jetzt = datetime.now()
 
     def melde(ok, text, dateien=()):
-        stand["abgleich"] = {"zeit": datetime.now().isoformat(timespec="minutes"), "ok": ok, "text": text}
+        stand["abgleich"] = {"zeit": datetime.now().isoformat(timespec="minutes"), "ok": ok, "text": text,
+                             "autologin": stand.get("autologin_an") and {"eingerichtet": bool(login_lesen()), "fehler": stand.get("autologin_fehler")}}
         try:
             for pfad, inhalt in [*dateien, ("abgleich.json", stand["abgleich"])]:
                 hochladen(stand, pfad, json.dumps(inhalt, ensure_ascii=False).encode())
@@ -639,15 +852,25 @@ if __name__ == "__main__":
         def fenster_auf():
             stand["fenster"] = datetime.now().isoformat(timespec="minutes")
             STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+
+        def login_fehler(grund):
+            print("Automatischer Login ging nicht:", grund, flush=True)
+            stand["autologin_fehler"] = grund
+            STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
         try:
             browser, ctx, page = olat_login(p, sichtbar=not auto or jetzt - datetime.fromisoformat(stand.get("fenster", "2000-01-01")) > timedelta(hours=8),
-                                            fenster_auf=fenster_auf)
+                                            fenster_auf=fenster_auf, login=autologin(p, stand, von_hand=not auto), login_fehler=login_fehler)
         except (Abgelaufen, Zeitueberschreitung) as e:
             print("OLAT-Anmeldung abgelaufen.", type(e).__name__)
             weiter(stand, 4)  # abgelaufen: in rund 4 Stunden wieder versuchen, von Hand jederzeit
             STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
-            if alt.get("ok") is not False and ZUGANG.exists():
-                melde(False, f"OLAT-Anmeldung am {GERAET} abgelaufen – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken und einloggen.")
+            text = (f"Automatischer OLAT-Login ging nicht ({stand['autologin_fehler']}) – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken"
+                    " und die Zugangsdaten neu eintragen oder selbst einloggen." if stand.get("autologin_fehler") else
+                    f"OLAT-Anmeldung am {GERAET} abgelaufen – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken und einloggen.")
+            if (alt.get("ok") is not False or alt.get("text") != text) and ZUGANG.exists():
+                melde(False, text)
+            if auto:
+                aktualisieren()  # sonst käme eine neue Fassung erst nach dem nächsten Login an
             sys.exit(0 if auto else 1)
         ctx.storage_state(path=SITZUNG)
         weiter(stand, 12)  # gleich speichern: bricht der Lauf ab, kommt OLAT trotzdem erst in 12 Stunden wieder dran

@@ -1023,6 +1023,14 @@
   .stil-form h3, .einst-teil h3 { margin: 0; font: 650 1rem/1.35 var(--sans); }
   .stil-form p, .stil-form .knopfreihe, .einst-teil p, .einst-teil .knopfreihe { margin: 0; }
   .einst-teil h3:not(:first-child) { margin-top: 8px; }
+  .schalter { display: flex; align-items: center; gap: 12px; width: fit-content; color: var(--text); font-weight: 600; cursor: pointer; }
+  .schalter input { appearance: none; flex: none; position: relative; width: 44px; height: 26px; margin: 0; border-radius: 13px; background: var(--linie); cursor: pointer; transition: background-color 0.2s; }
+  .schalter input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.4, 1); }
+  .schalter input:checked { background: var(--akzent); }
+  .schalter input:checked::after { transform: translateX(18px); }
+  .schalter input:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  .schalter input:disabled { opacity: 0.5; cursor: default; }
+  @media (prefers-reduced-motion: reduce) { .schalter input, .schalter input::after { transition: none; } }
   .vt-transkript { margin: 0; padding: 0; list-style: none; }
   .vt-transkript li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 8px 6px; border-radius: var(--r-s); }
   .vt-transkript li + li { border-top: 1px solid var(--linie); }
@@ -1938,7 +1946,7 @@ aussehen();
           <ul>
             <li><b>Es geht auch ohne.</b> Das Programm braucht es nur, damit die Unterlagen von selbst kommen. Ohne lädst du sie selbst hoch, siehe <a href="#a-ohne-pc">Mit iPad oder Mac</a>.</li>
             <li><b>Ein Ordner, sonst nichts.</b> Das Programm liegt in einem einzigen Ordner, am Mac <code>~/Library/Lernhelfer</code>, am PC <code>%LOCALAPPDATA%\Lernhelfer</code>. Dazu kommen nur der Hintergrundjob für den Abgleich und die Verknüpfung „Lernhelfer OLAT“. Am Mac braucht es kein Administratorpasswort.</li>
-            <li><b>Dein OLAT-Passwort sieht es nie.</b> Du tippst es selbst in die echte OLAT-Seite im Chrome-Fenster. Das Programm merkt sich nur die Anmeldung, und die bleibt auf deinem Computer.</li>
+            <li><b>Dein OLAT-Passwort bleibt auf deinem Computer.</b> Für den automatischen Login trägst du Kennung, Passwort und 2FA-Schlüssel einmal im Fenster des Programms ein. Es speichert sie verschlüsselt (am PC mit deinem Windows-Konto, am Mac im Schlüsselbund) und schickt sie nur an die Login-Seite der Uni, nie an den Lernhelfer. Willst du das nicht: beim Abfragen Enter drücken bzw. den Schalter unter <span class="nur-server">Konto</span><span class="nur-eigen">Einrichten</span> ausschalten, dann loggst du dich wie früher selbst im Chrome-Fenster ein.</li>
             <li><b>Es spricht nur mit OLAT und dem Lernhelfer.</b> Es lädt die Unterlagen deiner Kurse und die Startseiten der Onlinetests und schickt ihren Text in <span class="nur-server">dein Konto</span><span class="nur-eigen">deinen privaten Speicher</span>. Andere Dateien auf deinem Computer liest es nicht. Neue Fassungen von sich selbst holt es von dieser Seite.</li>
             <li><b>Der Schlüssel im Befehl bzw. in der Datei</b> öffnet nur deinen Speicher, nicht <span class="nur-server">dein Konto und nicht </span>deine Passwörter. Gib ihn trotzdem nie weiter.<span class="nur-server"> Holst du Befehl oder Datei neu, gilt der alte Schlüssel nicht mehr.</span></li>
             <li><b>Die Windows-Sperre</b> (SmartScreen, „Der Computer wurde durch Windows geschützt“) kommt, weil die Datei keine gekaufte Signatur hat, nicht weil etwas Gefährliches gefunden wurde. „Als Administrator ausführen“ ist nur der Weg daran vorbei. Das Programm braucht die Rechte nicht: Es richtet sich nur im Ordner oben ein, und der Abgleich danach läuft ohne sie.</li>
@@ -6568,7 +6576,7 @@ function macTeil(zugang, neu) {  // zugang: () => {repo, github, api} oder ein V
       el('li', {}, 'Auf „Befehl für den Mac kopieren“ tippen.'),
       el('li', {}, 'Das Terminal öffnen: ⌘ und Leertaste drücken, „Terminal“ tippen, Enter.'),
       el('li', {}, 'Mit ⌘ V einfügen und Enter drücken. Fragt macOS, ob das Terminal auf den Schreibtisch darf: „Erlauben“.'),
-      el('li', {}, 'Im Chrome-Fenster (ohne Chrome: Chromium) bei OLAT einloggen und warten, bis im Terminal „Fertig“ steht. Beim ersten Mal 5 bis 15 Minuten.')),
+      el('li', {}, 'Im Terminal einmal Benutzerkennung, Passwort und 2FA-Schlüssel eintragen, dann loggt es sich künftig selbst ein (oder mit Enter überspringen und im Chrome-Fenster selbst einloggen). Warten, bis im Terminal „Fertig“ steht. Beim ersten Mal 5 bis 15 Minuten.')),
     el('p', { class: 'meta' }, 'Der Befehl enthält deinen Zugang zum Speicher: nur auf deinem eigenen Mac einfügen. Kein Administratorpasswort nötig.')];
 }
 const ohneComputer = () => fertig() && el('p', { class: 'klein' }, 'Nur mit iPad oder Handy: ', el('a', { href: '#/unterlagen' }, 'Unterlagen selbst hochladen'),
@@ -6806,14 +6814,15 @@ function einrichtenZeigen() {
         el('li', {}, formular('gh', 'Schlüssel hier einfügen', 'Verbinden', async w => { await ghVerbinden(w); if (fertig()) { history.replaceState(null, '', location.pathname + '#/einstellungen'); start(); } }, 'password')))),
     el('section', { class: 'schritt', 'aria-labelledby': 'ei-3' }, nr('3', 'Unterlagen aus OLAT', !!ABGLEICH?.ok || Object.keys(R).length > 0),
       stand(!!ABGLEICH?.ok, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text, ABGLEICH?.ok === false),
-      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Den OLAT-Login mit Authenticator machst du selbst im Browserfenster.'),
+      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Auch beim OLAT-Login mit 2FA loggt es sich selbst ein, wenn du einmal deine Zugangsdaten am Computer einträgst.'),
+      !offenGH && ABGLEICH && autoLoginTeil(),
       WINDOWS ? [
         el('div', { class: 'knopfreihe' }, el('button', { class: `knopf${ABGLEICH ? '' : ' voll'}`, type: 'button', disabled: offenGH, onclick: pcDatei }, ABGLEICH ? 'PC-Programm neu laden' : 'PC-Programm herunterladen'),
           offenGH && el('span', { class: 'meta' }, 'Erst Schritt 2')),
         el('ol', { class: 'schritte klein' },
           el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
           el('li', {}, 'Nicht doppelklicken, sonst blockiert Windows die Datei (SmartScreen). Im Ordner Downloads mit der rechten Maustaste auf „Lernhelfer-PC-einrichten“ klicken, „Als Administrator ausführen“ wählen und mit „Ja“ bestätigen.'),
-          el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
+          el('li', {}, 'Im schwarzen Fenster einmal Benutzerkennung, Passwort und 2FA-Schlüssel eintragen, dann loggt es sich künftig selbst ein (oder mit Enter überspringen und im Chrome-Fenster selbst einloggen). Warten, bis „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))]
         : MAC ? (offenGH ? el('p', { class: 'meta' }, 'Erst Schritt 2') : macTeil(() => cfg, !ABGLEICH))
         : el('p', { class: 'klein' }, 'Auf diesem Gerät läuft das Programm nicht. Hast du einen Windows-PC oder Mac: dort xnik243.github.io/lernhelfer öffnen, bei „Schon eingerichtet?“ den Verbindungslink aus Schritt 4 einfügen und das Programm laden.'),
       ohneComputer()),
@@ -6971,7 +6980,7 @@ function pcEinrichten() {
     el('ol', { class: 'schritte klein' },
       el('li', {}, 'Fragt Chrome, ob du die Datei behalten willst: „Behalten“.'),
       el('li', {}, 'Nicht doppelklicken, sonst blockiert Windows die Datei (SmartScreen). Im Ordner Downloads mit der rechten Maustaste auf „Lernhelfer-PC-einrichten“ klicken, „Als Administrator ausführen“ wählen und mit „Ja“ bestätigen.'),
-      el('li', {}, 'Im Chrome-Fenster bei OLAT einloggen und warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
+      el('li', {}, 'Im schwarzen Fenster einmal Benutzerkennung, Passwort und 2FA-Schlüssel eintragen, dann loggt es sich künftig selbst ein (oder mit Enter überspringen und im Chrome-Fenster selbst einloggen). Warten, bis „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
   const mac = () => macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc);
   const sicher = el('p', { class: 'meta' }, el('a', { href: '#a-virus' }, 'Ist das sicher? Hier steht, was das Programm tut.'));
   if (WINDOWS) return [win(), sicher];
@@ -6981,6 +6990,34 @@ function pcEinrichten() {
     el('div', { class: 'geraete' },
       el('section', {}, el('h3', {}, 'Mac'), mac(), el('p', { class: 'meta' }, 'Hier kopiert, am Mac mit ⌘ V eingefügt: Das geht, wenn beide Geräte mit derselben Apple-ID angemeldet sind. Sonst per AirDrop oder Notizen schicken.')),
       el('section', {}, el('h3', {}, 'Windows-PC'), win(), el('p', { class: 'meta' }, 'Die Datei muss auf den PC, etwa per USB-Stick oder als Mail an dich selbst.'))), sicher];
+}
+// Automatischer OLAT-Login: der Schalter liegt in olat.json, holen.py liest ihn. Kennung, Passwort und 2FA-Schlüssel gibt man
+// nur am Computer ein, sie bleiben dort verschlüsselt. Ohne olat.json ist er an (wie in holen.py).
+const OLAT_D = datei('olat.json', () => ({ autologin: true }));
+function autoLoginTeil() {
+  const a = ABGLEICH?.autologin, zustand = el('p', { class: 'meta', 'aria-live': 'polite' });
+  const zeige = an => { zustand.textContent = !an ? 'Aus: Läuft die Sitzung ab, loggst du dich im Browserfenster selbst ein.'
+    : a?.fehler ? `Ging zuletzt nicht: ${a.fehler}. Am Computer „Lernhelfer OLAT“ doppelklicken und die Zugangsdaten neu eintragen.`
+    : a?.eingerichtet ? 'An: Der Computer loggt sich selbst bei OLAT ein, auch mit dem 2FA-Code.'
+    : 'An. Jetzt am Computer einmal „Lernhelfer OLAT“ doppelklicken, das Programm fragt dann deine Zugangsdaten ab.'; };
+  const knopf = el('input', { type: 'checkbox', role: 'switch', disabled: true, onchange: async e => {
+    const an = knopf.checked;
+    knopf.disabled = true;
+    try { (await OLAT_D.laden()).autologin = an; await OLAT_D.speichern(); zeige(an); }
+    catch (err) { knopf.checked = !an; status(err.message, true); }
+    knopf.disabled = false;
+  } });
+  OLAT_D.laden().then(d => { knopf.checked = !!d.autologin; knopf.disabled = false; zeige(knopf.checked); }).catch(() => { zustand.textContent = 'Der Schalter lässt sich gerade nicht laden.'; });
+  return el('div', { class: 'einst-teil' },
+    el('label', { class: 'schalter' }, knopf, 'Automatisch bei OLAT einloggen'),
+    zustand,
+    el('details', {}, el('summary', {}, 'So richtest du es ein'),
+      el('ol', { class: 'schritte klein' },
+        el('li', {}, 'Schalter einschalten, dann am Computer „Lernhelfer OLAT“ doppelklicken.'),
+        el('li', {}, 'Im schwarzen Fenster Benutzerkennung und Passwort eingeben.'),
+        el('li', {}, 'Auf ', el('a', { href: 'https://accounts.uibk.ac.at/', target: '_blank', rel: 'noopener' }, 'accounts.uibk.ac.at'), ' bei der Zwei-Faktor-Authentifizierung „Verwalten“ und „Neuer Token“ wählen, unter dem QR-Code auf „hier“ klicken und den Schlüssel ins Fenster einfügen.'),
+        el('li', {}, 'Den 6-stelligen Code aus dem Fenster im Account Portal eingeben. Das Programm testet den Login und speichert erst dann.')),
+      el('p', { class: 'meta' }, 'Die Zugangsdaten verlassen den Computer nie: verschlüsselt mit deinem Windows-Konto bzw. im Schlüsselbund des Macs, nicht in der App und nicht auf dem Server. Deine Authenticator-App funktioniert weiter. Ausschalten löscht sie beim nächsten Abgleich. Den Computer immer mit Passwort sperren.')));
 }
 function kontoZeigen() {
   $('ei-titel').textContent = 'Konto';
@@ -7054,8 +7091,8 @@ function kontoZeigen() {
         el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, ICH.api) }, 'Kopieren'))),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-pc' }, el('h2', { id: 'k-pc' }, 'Unterlagen aus OLAT'),
       el('p', { class: `stand${ABGLEICH?.ok ? ' ok' : ''}${ABGLEICH?.ok === false ? ' warnung' : ''}` }, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text),
-      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Den OLAT-Login mit Authenticator machst du selbst im Browserfenster.'),
-      pcEinrichten(), ohneComputer()),
+      el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Auch beim OLAT-Login mit 2FA loggt es sich selbst ein, wenn du einmal deine Zugangsdaten am Computer einträgst.'),
+      pcEinrichten(), (ICH.pc || ABGLEICH) && autoLoginTeil(), ohneComputer()),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-weg' }, el('h2', { id: 'k-weg' }, 'Abmelden'),
       el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: async () => {
         await api('abmelden', {}).catch(() => {});

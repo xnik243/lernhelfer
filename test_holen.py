@@ -187,6 +187,12 @@ def test():
         zweit = holen.sperre()
         assert zweit, "nach dem Ende wieder frei"
         zweit.close()
+    # 2FA-Code nach RFC 6238 (Testwerte aus dem Anhang B, die letzten 6 Ziffern), Leerzeichen und Kleinschreibung egal
+    geheim = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+    assert holen.totp(geheim, 59) == "287082" and holen.totp(geheim, 1111111109) == "081804"
+    assert holen.totp("gezd gnbv gy3t qojq gezd gnbv gy3t qojq", 59) == "287082"
+    if holen.sys.platform == "win32":  # DPAPI hin und zurück
+        assert holen._dpapi(holen._dpapi(b'{"a": 1}', True), False) == b'{"a": 1}'
     print("ok")
 
 
