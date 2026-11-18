@@ -2,7 +2,8 @@
 //   node server/test.mjs
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes, scryptSync } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
 import { crc32, inflateRawSync } from 'node:zlib';
 import { createServer } from 'node:http';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -149,6 +150,15 @@ try {
   for (let i = 0; i < 10; i++) await fremd('POST', `/api/anmelden?i=${i}`, { email: 'rate2@example.com', passwort: 'falsch-falsch' });
   assert.equal((await fremd('POST', '/api/anmelden?i=x', { email: 'rate2@example.com', passwort: 'falsch-falsch' })).status, 429, 'Bremse auch mit wechselndem ?…');
   assert.equal((await anna('POST', '/api/test', {}, { Origin: 'https://boese.example' })).status, 403, 'fremde Herkunft');
+  assert.equal((await fremd('POST', '/api/abmelden', {}, { Origin: '', 'Sec-Fetch-Site': 'cross-site' })).status, 403, 'fremde Seite ohne Origin');
+  assert.equal((await fremd('POST', '/api/abmelden', {}, { Origin: '', 'Sec-Fetch-Site': 'same-origin' })).status, 200, 'eigene Seite ohne Origin');
+  // Alte Passwort-Hashes (Node-Standard) gelten weiter und werden beim Anmelden auf die neuen scrypt-Werte gehoben
+  const tdb = new DatabaseSync(join(ordner, 'lernhelfer.db')), salz = randomBytes(16);
+  tdb.prepare("insert into konten (email, pw, erstellt, code) values ('alt@example.com', ?, 0, 'ALTALT')").run(salz.toString('hex') + ':' + scryptSync('altes-passwort-1', salz, 64).toString('hex'));
+  assert.equal((await person()('POST', '/api/anmelden', { email: 'alt@example.com', passwort: 'altes-passwort-1' })).status, 200, 'alter Hash gilt');
+  assert.match(tdb.prepare("select pw from konten where email = 'alt@example.com'").get().pw, /^s2:/, 'beim Anmelden neu gehasht');
+  assert.match(tdb.prepare("select pw from konten where email = 'anna@student.uibk.ac.at'").get().pw, /^s2:/, 'neue Konten mit neuen Werten');
+  tdb.prepare("delete from konten where email = 'alt@example.com'").run(); tdb.close();
 
   // Speicher wie GitHub
   let r = await anna('PUT', gh('faecher/BWL.json'), { message: 'x', content: b64('{"dateien":[]}') });

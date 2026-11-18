@@ -3,7 +3,7 @@
 // Keine Pakete, nur Node 24 (http, sqlite, crypto). Start: node server/server.mjs, Einstellungen über Umgebungsvariablen (README.md).
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -199,9 +199,18 @@ const zufall = () => randomBytes(32).toString('base64url');
 const ZEICHEN = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';  // ohne 0/O und 1/I/L, damit man Codes abtippen kann
 const code = n => Array.from({ length: n }, () => ZEICHEN[randomInt(ZEICHEN.length)]).join('');
 const eur = cent => (cent / 100).toLocaleString('de-AT', { style: 'currency', currency: 'EUR' });
-const pwHash = pw => { const salz = randomBytes(16); return salz.toString('hex') + ':' + scryptSync(pw, salz, 64).toString('hex'); };
-const ATTRAPPE = pwHash(zufall());  // gleiche Rechenzeit, ob es das Konto gibt oder nicht
-const pwOk = (pw, gespeichert) => { const [s, h] = gespeichert.split(':'); return timingSafeEqual(scryptSync(pw, Buffer.from(s, 'hex'), 64), Buffer.from(h, 'hex')); };
+// Passwörter: scrypt mit N = 2^14, r = 8, p = 5 (OWASP Password Storage Cheat Sheet: gleich stark wie N = 2^17, p = 1, braucht aber nur 16 MB
+// pro Anmeldung statt 128 MB). Asynchron, damit eine Anmeldung den Server nicht anhält. Alte Hashes (Node-Standard, p = 1) ohne „s2:“
+// gelten weiter und werden bei der nächsten Anmeldung neu geschrieben.
+const SCRYPT = { N: 2 ** 14, r: 8, p: 5 };
+const kdf = (pw, salz, o) => new Promise((ok, fehl) => scrypt(pw, salz, 64, o, (e, h) => e ? fehl(e) : ok(h)));
+const pwHash = async pw => { const salz = randomBytes(16); return 's2:' + salz.toString('hex') + ':' + (await kdf(pw, salz, SCRYPT)).toString('hex'); };
+const ATTRAPPE = await pwHash(zufall());  // gleiche Rechenzeit, ob es das Konto gibt oder nicht
+const pwAlt = gespeichert => !gespeichert.startsWith('s2:');
+const pwOk = async (pw, gespeichert) => {
+  const [s, h] = gespeichert.replace(/^s2:/, '').split(':');
+  return timingSafeEqual(await kdf(pw, Buffer.from(s, 'hex'), pwAlt(gespeichert) ? {} : SCRYPT), Buffer.from(h, 'hex'));
+};
 const blobSha = b => createHash('sha1').update(`blob ${b.length}\0`).update(b).digest('hex');  // wie Git, holen.py rechnet lokal dasselbe
 const GEHEIM = createHash('sha256').update(E.LH_GEHEIM || 'nur-zum-testen').digest();
 const verschluesseln = s => {
@@ -221,7 +230,7 @@ const SCHLUESSEL = { LH_OR_KEY: 1, LH_OR_VERWALTUNG: 1, LH_BREVO: 1, LH_PASS_WOR
   ...WP_MODELLE, ...WP_DENKEN };  // Word Power je Aufgabe, Admin-Ecke „Word Power: KI-Modelle“
 const AUS_DATEI = Object.fromEntries(Object.keys(SCHLUESSEL).map(n => [n, E[n]]));  // Löschen in der Ecke führt hierher zurück
 for (const { name, wert } of db.prepare('select name, wert from schluessel').all())
-  try { if (name in SCHLUESSEL) E[name] = entschluesseln(wert); } catch { console.error(`Gespeicherter Wert ${name} lässt sich nicht entschlüsseln (LH_GEHEIM geändert?).`); }
+  try { if (Object.hasOwn(SCHLUESSEL, name)) E[name] = entschluesseln(wert); } catch { console.error(`Gespeicherter Wert ${name} lässt sich nicht entschlüsseln (LH_GEHEIM geändert?).`); }
 const schluesselStand = () => Object.fromEntries(Object.entries(SCHLUESSEL).map(([n, geheim]) => [n, geheim ? !!E[n] : E[n] || '']));
 const json = (res, status, daten) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(daten)); };
 function lies(req, max) {
@@ -485,7 +494,7 @@ async function speicher(req, res, k, pfad) {
 /* ---------- KI: OpenRouter mit dem Server-Schlüssel, Kosten pro Konto gebucht ---------- */
 async function ki(req, res, k) {
   const b = await liesJson(req, 40e6);  // Vortrag: bis 9 MB Ton pro Teil, als base64
-  if (!(b.feature in FUNKTIONEN)) nein(400, 'Unbekannte Funktion.');
+  if (!Object.hasOwn(FUNKTIONEN, String(b.feature))) nein(400, 'Unbekannte Funktion.');
   if (Number(req.headers['content-length']) > (GROSS.has(b.feature) ? 40e6 : 10e6)) nein(413, 'Das ist zu viel auf einmal. Bitte in kleineren Teilen schicken.');
   const s = darf(k, b.feature);
   if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
@@ -1151,17 +1160,18 @@ const ROUTEN = {
     let neu; do neu = code(6); while (db.prepare('select 1 from konten where code = ?').get(neu));
     const tage = wert('neu-englisch', 0);  // Admin-Ecke: neue Konten starten so viele Tage mit Englisch statt Base
     const { lastInsertRowid: id } = db.prepare('insert into konten (email, pw, erstellt, code, geworben_von, englisch_bis) values (?, ?, ?, ?, ?, ?)')
-      .run(email, pwHash(pw), jetzt(), neu, werber?.id ?? null, tage > 0 ? jetzt() + tage * TAG : 0);
+      .run(email, await pwHash(pw), jetzt(), neu, werber?.id ?? null, tage > 0 ? jetzt() + tage * TAG : 0);
     anmelden(res, id);
     await bestaetigungSenden(id, email);
     return ich({ id });
   },
-  'POST /api/anmelden': ({ req, res, b }) => {
-    const email = String(b.email || '').trim().toLowerCase();
+  'POST /api/anmelden': async ({ req, res, b }) => {
+    const email = String(b.email || '').trim().toLowerCase(), pw = String(b.passwort || '');
     bremse(req, 10, email);
     const k = db.prepare('select * from konten where email = ?').get(email);
-    if (!pwOk(String(b.passwort || ''), k?.pw || ATTRAPPE) || !k) nein(401, 'E-Mail oder Passwort stimmt nicht.');
+    if (!await pwOk(pw, k?.pw || ATTRAPPE) || !k) nein(401, 'E-Mail oder Passwort stimmt nicht.');
     if (k.gesperrt) nein(403, 'Dieses Konto ist gesperrt. Fragen dazu an die Adresse im Impressum.');
+    if (pwAlt(k.pw)) db.prepare('update konten set pw = ? where id = ?').run(await pwHash(pw), k.id);  // auf die neuen scrypt-Werte heben
     anmelden(res, k.id);
     return ich(k);
   },
@@ -1181,10 +1191,10 @@ const ROUTEN = {
     const k = db.prepare('select * from konten where email = ?').get(email);
     if (k) await mail(k.email, 'Lernhelfer: Neues Passwort', `Hallo,\n\nhier kannst du ein neues Passwort setzen:\n${BASIS}/app#passwort=${marke(k.id, 'passwort', 3600e3)}\n\nDer Link gilt eine Stunde. Hast du nichts angefordert, ignoriere diese Mail.` + gruss);
   },  // antwortet immer gleich, damit niemand ausprobieren kann, welche Adressen ein Konto haben
-  'POST /api/passwort-neu': ({ req, res, b }) => {
+  'POST /api/passwort-neu': async ({ req, res, b }) => {
     bremse(req, 60);
     const pw = passwortPruefen(String(b.passwort || '')), id = einloesen(b.token, 'passwort');
-    db.prepare('update konten set pw = ?, bestaetigt = 1 where id = ?').run(pwHash(pw), id);  // der Link kam per Mail: Adresse damit bestätigt
+    db.prepare('update konten set pw = ?, bestaetigt = 1 where id = ?').run(await pwHash(pw), id);  // der Link kam per Mail: Adresse damit bestätigt
     db.prepare("delete from marken where konto = ? and art in ('sitzung', 'ecke', 'sync')").run(id);  // überall abmelden, auch das PC-Programm
     anmelden(res, id);
     return ich({ id });
@@ -1365,7 +1375,7 @@ const ROUTEN = {
   },
   'POST /api/konto-loeschen': async ({ k, b, res }) => {
     muss(k);
-    if (!pwOk(String(b.passwort || ''), k.pw)) nein(403, 'Das Passwort stimmt nicht.');
+    if (!await pwOk(String(b.passwort || ''), k.pw)) nein(403, 'Das Passwort stimmt nicht.');
     await kontoWeg(k);
     abmelden(res);
   },
@@ -1446,14 +1456,14 @@ const ROUTEN = {
   'POST /api/admin/schluessel': ({ k, b }) => {  // leer = unverändert; b.weg: diese Namen löschen, dann gilt wieder /etc/lernhelfer.env
     admin(k);
     for (const [n, v] of Object.entries(b)) {
-      if (!(n in SCHLUESSEL) || typeof v !== 'string' || !v.trim()) continue;
+      if (!Object.hasOwn(SCHLUESSEL, n) || typeof v !== 'string' || !v.trim()) continue;
       if (v.length > 500 || /[\r\n]/.test(v)) nein(400, `${n}: zu lang oder mit Zeilenumbruch.`);
       if ((/^LH_MODELL(_TRANSKRIPT|_CHECK)?$/.test(n) || n in WP_MODELLE) && !MODELL_ID.test(v.trim())) nein(400, 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.');
       if (/_DENKEN$/.test(n) && !DENKSTUFEN.includes(v.trim())) nein(400, 'Unbekannte Stufe fürs Nachdenken.');
       db.prepare('insert into schluessel (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(n, verschluesseln(v.trim()));
       E[n] = v.trim();
     }
-    for (const n of Array.isArray(b.weg) ? b.weg : []) if (n in SCHLUESSEL) { db.prepare('delete from schluessel where name = ?').run(n); if (AUS_DATEI[n]) E[n] = AUS_DATEI[n]; else delete E[n]; }
+    for (const n of Array.isArray(b.weg) ? b.weg : []) if (Object.hasOwn(SCHLUESSEL, String(n))) { db.prepare('delete from schluessel where name = ?').run(n); if (AUS_DATEI[n]) E[n] = AUS_DATEI[n]; else delete E[n]; }
     for (const x in PROMPTS) delete PROMPTS[x];  // neue Passwörter: Prompts neu entschlüsseln
     return schluesselStand();
   },
@@ -1601,6 +1611,7 @@ async function aufraeumen() {
   for (const k of db.prepare('select * from konten where bestaetigt = 0 and erstellt < ?').all(t - 30 * TAG)) await kontoWeg(k);  // nie bestätigt: weg nach 30 Tagen
   await campusLoeschen();  // Nachlauf, falls der Spielserver beim Löschen nicht erreichbar war
   db.prepare('delete from fehler where erledigt > 0 and erledigt < ?').run(t - 90 * TAG);
+  db.prepare('delete from fehler where erledigt = 0 and zeit < ?').run(t - 180 * TAG);  // nie erledigt: nach einem halben Jahr weg (Datenminimierung)
   for (const k of db.prepare('select id from konten where or_hash is not null or (tarif = ? and bis > ?)').all('ultraplus', t)) await apiAbgleich(k).catch(e => console.error(e.message));
   for (const k of db.prepare('select * from konten where tarif is not null and bis > ? and bis < ? and erinnert != bis').all(t, t + 3 * TAG)) {
     if (TARIFE[k.tarif].aktion || !verkauf()) continue;  // von Hand vergeben oder nichts zu kaufen: keine Mail „Verlängern“
@@ -1621,7 +1632,9 @@ createServer(async (req, res) => {
     const url = new URL(req.url, BASIS);
     if (!url.pathname.startsWith('/api/')) return statisch(req, res, url);
     preiseSetzen();  // ein Enddatum des Launch-Angebots gilt auf die Minute
-    if (req.method !== 'GET' && req.headers.origin && req.headers.origin !== HERKUNFT) nein(403, 'Anfrage von fremder Seite.');
+    // CSRF: fremde Herkunft ablehnen; ohne Origin-Kopf zählt Sec-Fetch-Site (der Browser setzt ihn, holen.py setzt keinen von beiden)
+    const herkunft = req.headers.origin || (req.headers['sec-fetch-site'] === 'cross-site' ? 'fremd' : '');
+    if (req.method !== 'GET' && herkunft && herkunft !== HERKUNFT) nein(403, 'Anfrage von fremder Seite.');
     const k = konto(req);
     const gh = url.pathname.match(/^\/api\/gh\/repos\/[^/]+\/[^/]+\/contents(?:\/(.*))?$/);
     if (gh) return await speicher(req, res, muss(k, true), gh[1] || '');

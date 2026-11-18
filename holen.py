@@ -71,6 +71,9 @@ def natur(s):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", s)]
 
 
+ZIP_MAX = 50_000_000  # entpackte Bytes Text in einer .docx/.pptx; echte Foliensätze haben ein paar MB
+
+
 def text(f):
     endung = f.suffix.lower()
     if endung == ".pdf":
@@ -79,6 +82,8 @@ def text(f):
     if endung in (".docx", ".pptx"):
         z = zipfile.ZipFile(f)
         teile = sorted((n for n in z.namelist() if re.fullmatch(r"word/document\.xml|ppt/slides/slide\d+\.xml", n)), key=natur)
+        if sum(z.getinfo(n).file_size for n in teile) > ZIP_MAX:  # Zip-Bombe aus einem Gruppenordner: nicht entpacken
+            return "(Datei zu groß zum Auslesen)"
         xml = "\n".join((f"[Folie {i}]\n" if n.startswith("ppt/") else "") + z.read(n).decode("utf-8") for i, n in enumerate(teile, 1))
         return html.unescape(re.sub(r"<[^>]+>", "", re.sub(r"</[aw]:p>", "\n", xml)))
     if endung in (".html", ".htm", ".txt"):

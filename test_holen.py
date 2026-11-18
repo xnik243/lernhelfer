@@ -14,6 +14,9 @@ def test():
         with zipfile.ZipFile(t / "s.docx", "w") as z:
             z.writestr("word/document.xml", "<w:p><w:t>Hallo</w:t></w:p><w:p><w:t>Welt &amp; Co</w:t></w:p>")
         assert holen.text(t / "s.docx").split() == ["Hallo", "Welt", "&", "Co"]
+        with zipfile.ZipFile(t / "bombe.pptx", "w", zipfile.ZIP_DEFLATED) as z:  # Zip-Bombe: wenige KB gepackt, ausgepackt zu groß
+            z.writestr("ppt/slides/slide1.xml", "0" * (holen.ZIP_MAX + 1))
+        assert (t / "bombe.pptx").stat().st_size < 1_000_000 and holen.text(t / "bombe.pptx") == "(Datei zu groß zum Auslesen)"
         (t / "s.html").write_text("<script>x()</script><p>Termin &amp; Thema</p>", "utf-8")
         assert holen.text(t / "s.html").split() == ["Termin", "&", "Thema"]
 

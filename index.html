@@ -1472,6 +1472,8 @@
 </style>
 <link rel="stylesheet" href="skizze.css" id="skizze-css">
 <script>
+// Clickjacking: GitHub Pages kann kein frame-ancestors (geht nicht als Meta-Tag). In einem fremden Rahmen zeigt die App darum nichts an.
+if (top !== self) document.documentElement.remove();
 // Das neue Design (skizze.css) und hell sind Standard; altes Design und Dunkel wählt man selbst, beides gilt für dieses Gerät
 function aussehen() {
   let alt = false, dunkel = false;
