@@ -3,30 +3,59 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campus – so funktioniert es</title>
+<title>So geht Campus</title>
 <link rel="stylesheet" href="seite.css?v=__V__">
 </head>
 <body>
 <main>
-<p><a href="./">← Ins Spiel</a> · <a href="/">Lernhelfer</a></p>
-<h1>Campus in fünf Minuten</h1>
-<p class="vor">Campus ist die gemeinsame 3D-Welt des Lernhelfers. Wer lernt, verdient Taler. Mit Talern kaufst du Blöcke, baust allein oder mit anderen, handelst im Auktionshaus und richtest deine Figur ein. Kaufen kann man Taler nicht.</p>
+<p class="meta"><a href="./">← Ins Spiel</a> · <a href="/">Lernhelfer</a></p>
+<header class="kopf">
+<div>
+<h1>So geht Campus</h1>
+<p class="vor">Campus ist die gemeinsame 3D-Welt des Lernhelfers. Wer lernt, verdient Taler. Mit Talern kaufst du Blöcke, baust auf deiner eigenen schwebenden Insel, allein oder mit anderen, handelst und richtest deine Figur ein. <mark>Kaufen kann man Taler nicht.</mark></p>
+</div>
+<img src="bilder/insel.svg?v=__V__" width="260" height="280" alt="Schwebende Insel mit Wiese, Baum, ein paar Blöcken, einer Figur mit Umhang und einer Eule">
+</header>
 
-<h2>Der Kreislauf</h2>
-<svg viewBox="0 0 720 170" role="img" aria-label="Kreislauf: lernen, Zahltag, bauen und handeln, gemeinsam Großes schaffen">
-  <defs><marker id="pf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1f3fae"/></marker></defs>
-  <g font-family="system-ui, sans-serif" font-size="15" text-anchor="middle">
-    <g><rect x="10" y="40" width="150" height="90" rx="14" fill="#e8eefc" stroke="#1f3fae"/><text x="85" y="78" font-weight="700">1 · Lernen</text><text x="85" y="100" font-size="12">Fokus, Check-Fragen,</text><text x="85" y="116" font-size="12">Karten, Probeklausur</text></g>
-    <g><rect x="195" y="40" width="150" height="90" rx="14" fill="#fdf3d0" stroke="#b8860b"/><text x="270" y="78" font-weight="700">2 · Zahltag</text><text x="270" y="100" font-size="12">Taler und Funde</text><text x="270" y="116" font-size="12">werden gutgeschrieben</text></g>
-    <g><rect x="380" y="40" width="150" height="90" rx="14" fill="#e3f4e8" stroke="#2e8b57"/><text x="455" y="78" font-weight="700">3 · Bauen</text><text x="455" y="100" font-size="12">Blöcke kaufen, Funde</text><text x="455" y="116" font-size="12">öffnen, handeln</text></g>
-    <g><rect x="565" y="40" width="145" height="90" rx="14" fill="#f3e8fb" stroke="#7a4fb0"/><text x="637" y="78" font-weight="700">4 · Gemeinsam</text><text x="637" y="100" font-size="12">Großprojekte,</text><text x="637" y="116" font-size="12">Wochenziel</text></g>
-  </g>
-  <g stroke="#1f3fae" stroke-width="2.5" fill="none" marker-end="url(#pf)"><path d="M162 85h30"/><path d="M347 85h30"/><path d="M532 85h30"/><path d="M637 132v18H85v-17"/></g>
-</svg>
+<section class="start" aria-labelledby="h-start">
+<h2 id="h-start">In vier Schritten los</h2>
+<ol>
+<li>Im <a href="/">Lernhelfer</a> anmelden und Campus öffnen. Ein zweites Passwort brauchst du nicht.</li>
+<li>Im Hub <b>Dekan Weber</b> ansprechen (Taste <kbd>E</kbd>): Er schenkt dir Taler, einen Stein-Minion, Lern-Energie und einen Abbau-Hammer.</li>
+<li>Mit <code>/is</code> oder durchs Portal auf deine eigene Insel und die ersten Blöcke setzen.</li>
+<li>Im Lernhelfer lernen: Taler, Funde und Lern-Energie kommen beim nächsten Zahltag dazu.</li>
+</ol>
+</section>
+
+<nav class="inhalt" aria-label="Inhalt">
+<b>Inhalt</b>
+<ul>
+<li><a href="#h-kreislauf">Der Kreislauf</a></li>
+<li><a href="#h-taler">Taler verdienen</a></li>
+<li><a href="#h-steuerung">Steuerung</a></li>
+<li><a href="#h-insel">Deine Insel</a></li>
+<li><a href="#h-handel">Laden, Funde, Handel</a></li>
+<li><a href="#h-figur">Figur und Cosmetics</a></li>
+<li><a href="#h-zusammen">Zusammen spielen</a></li>
+<li><a href="#h-skyblock">Minions und Fähigkeiten</a></li>
+<li><a href="#h-abenteuer">Abenteuer und Kampf</a></li>
+<li><a href="#h-orte">Duell-Arena und Katakomben</a></li>
+<li><a href="#h-extras">Musik, Wetter, Foto</a></li>
+<li><a href="#h-fair">Fair bleiben</a></li>
+</ul>
+</nav>
+
+<h2 id="h-kreislauf">Der Kreislauf</h2>
+<ol class="kreis">
+<li><b>Lernen</b><span>Fokus, Check-Fragen, Karteikarten und Probeklausur im Lernhelfer</span></li>
+<li><b>Zahltag</b><span>Taler, Funde und Lern-Energie werden gutgeschrieben</span></li>
+<li><b>Bauen</b><span>Blöcke kaufen, Funde öffnen, Minions arbeiten lassen, handeln</span></li>
+<li><b>Gemeinsam</b><span>Großprojekte und Wochenziel, dann wieder lernen</span></li>
+</ol>
 <p>Herumlaufen, anschauen und handeln geht immer. Nur Bauen und Kaufen kostet Blöcke und Taler.</p>
 
-<h2>So verdienst du Taler</h2>
-<table>
+<h2 id="h-taler">So verdienst du Taler</h2>
+<div class="tabelle"><table>
 <thead><tr><th>Im Lernhelfer</th><th>Taler</th><th>Grenze</th></tr></thead>
 <tbody>
 <tr><td>Fokus-Minute in der Arena</td><td><b data-r="fokus">1</b> je Minute</td><td>höchstens <b data-r="fokusTag">240</b> am Tag</td></tr>
@@ -35,11 +64,11 @@
 <tr><td>Probeklausur bestanden</td><td><b data-r="klausur">100</b> und 1 Bauplan</td><td>eine am Tag; mit Note 1 gibt es den goldenen Rahmen</td></tr>
 <tr><td>Tages-Challenge der Arena</td><td><b data-r="challenge">25</b></td><td>drei Challenges am Tag</td></tr>
 </tbody>
-</table>
+</table></div>
 <p><b>Lernserie:</b> jeder Tag in Folge bringt <b data-r="serie">5</b> % mehr, höchstens <b data-r="serieMax">50</b> %. <b>Prüfungszeit:</b> in den <b data-r="pruefungTage">14</b> Tagen vor einer Klausur zählt alles im Prüfungsfach doppelt.</p>
 <p class="kasten">Alle Taler zählt der Server des Lernhelfers. Im Spiel selbst entstehen keine Taler, und für Geld gibt es weder Taler noch Funde noch Cosmetics.</p>
 
-<h2>Steuerung</h2>
+<h2 id="h-steuerung">Steuerung</h2>
 <div class="zwei">
 <figure>
 <svg viewBox="0 0 340 190" role="img" aria-label="Tastatur und Maus">
@@ -48,7 +77,7 @@
     <text x="80" y="43">W</text><text x="40" y="83">A</text><text x="80" y="83">S</text><text x="120" y="83">D</text><text x="80" y="124">Leertaste: springen</text>
     <g><rect x="210" y="20" width="80" height="120" rx="38" fill="#fff" stroke="#14182a" stroke-width="1.5"/><path d="M250 20v50M210 70h80" stroke="#14182a" stroke-width="1.5"/><rect x="210" y="20" width="40" height="50" rx="0" fill="#fbdcd8" opacity=".8"/><rect x="250" y="20" width="40" height="50" fill="#d8f0df" opacity=".8"/></g>
     <text x="195" y="160" font-size="12">links halten: abbauen</text><text x="300" y="160" font-size="12">rechts: setzen</text>
-    <text x="80" y="160" font-size="12">laufen</text><text x="170" y="182" font-size="12">1–9 Leiste · E/I Inventar · M Menü · T Chat</text>
+    <text x="80" y="160" font-size="12">laufen</text><text x="170" y="182" font-size="12">1–9 Leiste · E reden und öffnen · Esc Menü</text>
   </g>
 </svg>
 <figcaption>Am Computer: ins Bild klicken, dann lenkt die Maus den Blick. Linke Maustaste gedrückt halten baut den Block im Fadenkreuz ab; härtere Blöcke dauern länger, Spitzhacke, Axt und Hammer helfen. Esc öffnet das Menü und gibt die Maus frei.</figcaption>
@@ -59,14 +88,33 @@
   <g fill="rgba(255,255,255,.45)" stroke="#fff" stroke-width="2"><circle cx="70" cy="125" r="38"/><circle cx="270" cy="125" r="38"/></g>
   <g fill="#fff"><circle cx="78" cy="115" r="15"/><circle cx="262" cy="130" r="15"/></g>
   <g font-family="system-ui, sans-serif" font-size="12" text-anchor="middle"><text x="70" y="78">laufen</text><text x="270" y="78">umsehen</text>
-  <g fill="#14182a" opacity=".65"><rect x="200" y="20" width="58" height="22" rx="7"/><rect x="264" y="20" width="58" height="22" rx="7"/></g><g fill="#fff"><text x="229" y="35">Abbau (halten)</text><text x="293" y="35">Setzen</text></g>
+  <g fill="#14182a" opacity=".65"><rect x="172" y="20" width="86" height="22" rx="7"/><rect x="264" y="20" width="58" height="22" rx="7"/></g><g fill="#fff"><text x="215" y="35">Abbau (halten)</text><text x="293" y="35">Setzen</text></g>
   <g fill="#14182a" opacity=".5"><rect x="110" y="150" width="120" height="22" rx="8"/></g><text x="170" y="165" fill="#fff">Leiste mit Blöcken</text></g>
 </svg>
 <figcaption>Am iPad: linker Daumen läuft, rechter Daumen schaut. Das Kreuz in der Mitte zeigt, welchen Block du triffst.</figcaption>
 </figure>
 </div>
+<div class="tabelle"><table>
+<thead><tr><th>Taste</th><th>Was sie tut</th></tr></thead>
+<tbody>
+<tr><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>, <kbd>Leertaste</kbd></td><td>laufen, springen</td></tr>
+<tr><td>Maus links halten / rechts</td><td>Block abbauen oder zuschlagen / Block setzen</td></tr>
+<tr><td><kbd>1</kbd>–<kbd>9</kbd>, Mausrad</td><td>Platz in der Schnellleiste wählen</td></tr>
+<tr><td><kbd>E</kbd></td><td>mit Personen reden; Truhe, Werkbank, Quest-Tafel, Altar und Schilder öffnen; schaust du auf nichts, das Inventar</td></tr>
+<tr><td><kbd>I</kbd> · <kbd>J</kbd></td><td>Inventar · Questbuch</td></tr>
+<tr><td><kbd>M</kbd> oder <kbd>Tab</kbd></td><td>SkyBlock-Menü, auch über den Campus-Stern auf Platz 9 der Leiste</td></tr>
+<tr><td><kbd>T</kbd> oder <kbd>Enter</kbd></td><td>Chat und Befehle</td></tr>
+<tr><td><kbd>F5</kbd> · <kbd>F8</kbd></td><td>Kamera: 1. Person, hinter dir, von vorn · Foto-Modus</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Menü und Einstellungen, gibt die Maus frei</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li><b>Einstellungen</b> (Esc): Tasten frei belegbar, Sichtweite 4 bis 12 Stücke, Blickwinkel, Bildrate, Auflösung, Eckenschatten, Wolken und Partikel. Diese Einstellungen gelten nur auf deinem Gerät.</li>
+<li>Auf Handy und Tablet spielst du immer quer.</li>
+</ul>
 
-<h2>Wo du bauen darfst</h2>
+<h2 id="h-insel">Deine Insel</h2>
+<figure>
 <svg viewBox="0 0 520 250" role="img" aria-label="Karte: Hub-Insel mit drei Nachbarinseln in der Mitte, eigene Inseln rundherum">
   <rect width="520" height="250" fill="#7db7e8"/>
   <g fill="#86c46f" stroke="#5a8f4a" stroke-width="2"><rect x="200" y="75" width="120" height="120"/><rect x="342" y="118" width="34" height="34"/><rect x="243" y="20" width="34" height="34"/><rect x="144" y="118" width="34" height="34"/></g>
@@ -76,52 +124,13 @@
   <g font-family="system-ui, sans-serif" font-size="12.5" text-anchor="middle">
     <text x="260" y="130" font-weight="700">Hub</text><text x="260" y="148">geschützt</text>
     <text x="52" y="95" fill="#fff" font-weight="700">Eigene Insel</text><text x="52" y="111" fill="#fff">grün: Bau-Feld</text>
-    <text x="468" y="95" fill="#fff" font-weight="700">Eigene Insel</text><text x="468" y="111" fill="#fff">16 × 16 bis 32 × 32</text>
+    <text x="468" y="95" fill="#fff" font-weight="700">Eigene Insel</text><text x="468" y="111" fill="#fff">16 × 16 bis</text><text x="468" y="126" fill="#fff">32 × 32</text>
     <text x="260" y="228" fill="#fff">Nachbarinseln: Bibliothek, Prüfungs-Zitadelle, Himmels-Garten</text>
   </g>
 </svg>
-<p>Auf deiner Insel baust nur du und wen du im Menü einträgst. Abbauen dürft ihr auf der ganzen Insel, Blöcke setzen nur im Bau-Feld: die grünen Leuchtlinien am Boden zeigen seine Grenze. Der Hub und fremde Inseln sind geschützt, im Hub wachsen nur Erz, Holz und Steine nach. Ausbauen kostet <b data-r="ausbau1">300</b> Taler (ab Stufe <b data-r="stufe1">5</b>) und später <b data-r="ausbau2">900</b> Taler und einen Bauplan (ab Stufe <b data-r="stufe2">10</b>).</p>
-
-<h2>Laden, Funde, Auktionshaus</h2>
-<ul>
-<li><b>Laden:</b> normale Blöcke für 1 bis 5 Taler, dazu jede Woche zwei Wochenblöcke, die es nur in dieser Woche gibt.</li>
-<li><b>Funde:</b> Kisten mit zufälligem Inhalt. Meist Baumaterial, selten Lichtblöcke, Sprungfeder, Laufband, Sonderfarben oder ein Cosmetic. Funde gibt es nur für bestandene Check-Fragen.</li>
-<li><b>Auktionshaus:</b> für seltene Blöcke, Baupläne und gefundene Cosmetics. Bieten oder sofort kaufen, Laufzeit 24 oder 72 Stunden. Dein Gebot wird sofort reserviert und kommt zurück, sobald dich jemand überbietet. Vom Verkaufspreis verschwinden <b data-r="gebuehr">5</b> % als Gebühr aus dem Spiel.</li>
-</ul>
-
-<h2>Figur und Cosmetics</h2>
-<p>Im Menü unter „Figur“ stellst du Hautton, Frisur, Kleidung und Farben ein. Dazu kommen acht Plätze für Cosmetics:</p>
-<svg viewBox="0 0 640 150" role="img" aria-label="Die acht Plätze: Umhang, Kopf, Rücken, Begleiter, Spur, Emote, Namensschild, Bau-Effekt">
-  <g font-family="system-ui, sans-serif" font-size="12" text-anchor="middle">
-    <g fill="#fff" stroke="#d9d6cc"><rect x="4" y="10" width="72" height="130" rx="10"/><rect x="84" y="10" width="72" height="130" rx="10"/><rect x="164" y="10" width="72" height="130" rx="10"/><rect x="244" y="10" width="72" height="130" rx="10"/><rect x="324" y="10" width="72" height="130" rx="10"/><rect x="404" y="10" width="72" height="130" rx="10"/><rect x="484" y="10" width="72" height="130" rx="10"/><rect x="564" y="10" width="72" height="130" rx="10"/></g>
-    <path d="M25 40h30l6 60H19z" fill="#3c5ab4"/><text x="40" y="128">Umhang</text>
-    <rect x="100" y="70" width="40" height="34" fill="#f0c8a0"/><path d="M96 70h48l-8-26h-32z" fill="#f6cc46"/><text x="120" y="128">Kopf</text>
-    <path d="M200 72l-30-22 6 46zM200 72l30-22-6 46z" fill="#e8eaf2" stroke="#99a"/><text x="200" y="128">Rücken</text>
-    <rect x="266" y="62" width="28" height="30" rx="6" fill="#96785a"/><circle cx="274" cy="72" r="4" fill="#fadc78"/><circle cx="286" cy="72" r="4" fill="#fadc78"/><text x="280" y="128">Begleiter</text>
-    <g fill="#fa9a3c"><rect x="336" y="86" width="12" height="12"/><rect x="354" y="72" width="10" height="10"/><rect x="370" y="60" width="8" height="8"/><rect x="382" y="50" width="6" height="6"/></g><text x="360" y="128">Spur</text>
-    <g stroke="#14182a" stroke-width="5" stroke-linecap="round"><path d="M440 96V66M440 70l-16 14M440 70l18-22"/></g><circle cx="440" cy="54" r="9" fill="#f0c8a0"/><text x="440" y="128">Emote</text>
-    <rect x="494" y="62" width="52" height="24" rx="7" fill="#14182a" stroke="#f6cc46" stroke-width="3"/><text x="520" y="79" fill="#fff" font-size="11">Name</text><text x="520" y="128">Namensschild</text>
-    <rect x="584" y="74" width="30" height="30" fill="#c49860"/><g fill="#fa78a0"><rect x="578" y="56" width="6" height="6"/><rect x="600" y="46" width="6" height="6"/><rect x="618" y="60" width="6" height="6"/></g><text x="600" y="128">Bau-Effekt</text>
-  </g>
-</svg>
-<ol>
-<li><b>Erlernt, nicht handelbar:</b> Flammenspur für 7, 30 und 100 Tage Lernserie; Umhänge ab Stufe 5, 10, 20 und 30; die Krone für Platz 1 bis 3 der Wochenwertung (7 Tage); der goldene Rahmen für eine Probeklausur mit Note 1; der Fach-Umhang für 100 bestandene Check-Fragen in einem Fach.</li>
-<li><b>Gekauft:</b> mit Talern im Laden.</li>
-<li><b>Gefunden:</b> in Funden, handelbar im Auktionshaus. Dazu Semester-Stücke, die es nach dem Semester nicht mehr gibt.</li>
-</ol>
-
-<h2>Zusammen spielen</h2>
-<ul>
-<li><b>Sprüche und Emotes:</b> Verständigt wird sich über feste Sprüche und Gesten (Taste T oder „Sprüche“). Freien Chat gibt es nicht.</li>
-<li><b>Lerngruppen:</b> eigenes Grundstück im Gruppen-Viertel, gemeinsame Kasse, Wochenwertung. Gründen kostet <b data-r="gruppe">200</b> Taler.</li>
-<li><b>Großprojekte:</b> Brücke, Campanile und eine neue Insel. Alle zahlen ein, ein Balken zeigt den Stand, und wenn er voll ist, steht das Bauwerk in der Welt.</li>
-<li><b>Wochenziel:</b> Lernen alle zusammen in einer Woche <b data-r="wochenziel">2000</b> Taler, öffnet sich ein neues Gebiet mit neuen Grundstücken.</li>
-</ul>
-
-<h2>SkyBlock-Campus: Inseln, Minions, Bazaar</h2>
-<p class="vor">Jeder hat im Campus eine eigene schwebende Insel. Sie wächst mit deinem Lernen: Lern-Energie treibt deine Minions an, und auf dem Bazaar handelst du mit anderen.</p>
-
-<h3>Deine Insel</h3>
+<figcaption>Der Hub in der Mitte ist geschützt, rundherum schwebt für jede Person eine eigene Insel.</figcaption>
+</figure>
+<p>Auf deiner Insel baust nur du und wen du einträgst. Abbauen dürft ihr auf der ganzen Insel, Blöcke setzen nur im Bau-Feld: die grünen Leuchtlinien am Boden zeigen seine Grenze. Der Hub und fremde Inseln sind geschützt, im Hub wachsen nur Erz, Holz und Steine nach. Ausbauen kostet <b data-r="ausbau1">300</b> Taler (ab Stufe <b data-r="stufe1">5</b>) und später <b data-r="ausbau2">900</b> Taler und einen Bauplan (ab Stufe <b data-r="stufe2">10</b>).</p>
 <ul>
 <li>Auf deiner Insel steht ein <b>Bruchstein-Generator</b>, der von selbst Stein liefert.</li>
 <li>Der <b>Campus-Stern</b> (Platz 9 der Leiste, Taste 9 oder M) öffnet das SkyBlock-Menü: Insel, Hub, Insel-Besuche, Fach-Skills, Sammlungen, Werkbank, Minions, Figur und Einstellungen.</li>
@@ -130,8 +139,14 @@
 <li><b>Besuchsrechte:</b> Öffentlich, Gruppe oder Privat. Besucher können auf deiner Insel nichts abbauen.</li>
 </ul>
 
+<h3>Wege im Hub</h3>
+<ul>
+<li><b>Warp-Portale</b> im Hub: Norden führt zur Prüfungs-Zitadelle, Osten zum Bibliotheks-Turm, Westen zur Minion-Werkstatt.</li>
+<li><b>Quests</b> bekommst du bei den Personen im Hub.</li>
+</ul>
+
 <h3>Befehle im Chat</h3>
-<table>
+<div class="tabelle"><table>
 <thead><tr><th>Befehl</th><th>Wirkung</th></tr></thead>
 <tbody>
 <tr><td><code>/is</code></td><td>zu deiner Insel</td></tr>
@@ -142,19 +157,59 @@
 <tr><td><code>/msg Name Text</code></td><td>eine private Nachricht senden</td></tr>
 <tr><td><code>/help</code></td><td>alle Befehle anzeigen</td></tr>
 </tbody>
-</table>
+</table></div>
 
-<h3>Steuerung und Einstellungen</h3>
+
+<h2 id="h-handel">Laden, Funde, Handel</h2>
 <ul>
-<li><b>Kamera F5</b> wechselt zwischen 1. Person, hinter dir und von vorn.</li>
-<li><b>E</b> spricht mit Personen in der Nähe und öffnet Truhen, Werkbank, Quest-Tafel, Altar, Rüstungsständer und Schilder. Schaust du auf nichts, öffnet E das Inventar.</li>
-<li><b>I</b> öffnet das Inventar, <b>J</b> das Questbuch, <b>M</b> oder <b>Tab</b> das SkyBlock-Menü (auch über den Campus-Stern neben der Leiste).</li>
-<li><b>Einstellungen</b> (Esc): Tasten frei belegbar, Sichtweite 4 bis 12 Stücke, Blickwinkel, Bildrate, Auflösung, Eckenschatten, Wolken und Partikel. Diese Einstellungen gelten nur auf deinem Gerät.</li>
-<li><b>Chat</b> mit T oder Enter. Kanäle: Hub, Insel, Gruppe. Höchstens 160 Zeichen, eine Nachricht je 1,5 Sekunden. Schimpfwörter werden mit Sternchen verdeckt.</li>
-<li>Auf Handy und Tablet spielst du immer quer.</li>
+<li><b>Laden:</b> normale Blöcke für 1 bis 5 Taler, dazu jede Woche zwei Wochenblöcke, die es nur in dieser Woche gibt.</li>
+<li><b>Funde:</b> Kisten mit zufälligem Inhalt. Meist Baumaterial, selten Lichtblöcke, Sprungfeder, Laufband, Sonderfarben oder ein Cosmetic. Funde gibt es nur für bestandene Check-Fragen.</li>
+<li><b>Auktionshaus:</b> für seltene Blöcke, Baupläne und gefundene Cosmetics. Bieten oder sofort kaufen, Laufzeit 24 oder 72 Stunden. Dein Gebot wird sofort reserviert und kommt zurück, sobald dich jemand überbietet. Vom Verkaufspreis verschwinden <b data-r="gebuehr">5</b> % als Gebühr aus dem Spiel.</li>
+</ul>
+<h3>Bazaar und Bank</h3>
+<ul>
+<li><b>Bazaar:</b> Sofortkauf und Sofortverkauf oder Kauf- und Verkaufsaufträge. Vom Handel verschwinden 1,5 % Gebühr aus dem Spiel.</li>
+<li><b>Bank</b> beim Bankier Goldbach: 1 % Zinsen täglich, aber nur, wenn du in den letzten 48 Stunden gelernt hast. Verzinst werden höchstens 20 000 Taler.</li>
 </ul>
 
-<h3>Start, Wissen und Lern-Energie</h3>
+
+<h2 id="h-figur">Figur und Cosmetics</h2>
+<p>Im Menü unter „Figur“ stellst du Hautton, Frisur, Kleidung und Farben ein. Dazu kommen acht Plätze für Cosmetics, hier je mit einem Beispiel:</p>
+<ul class="karten">
+<li><img src="bilder/umhang.svg?v=__V__" alt="Figur von hinten mit lila-goldenem Umhang" width="120" height="120"><b>Umhang</b><span>„Umhang der Stufe 20“, erlernt. Den mohnroten gibt es im Laden.</span></li>
+<li><img src="bilder/kopf.svg?v=__V__" alt="Kopf mit schwarzem Doktorhut und goldener Quaste" width="120" height="120"><b>Kopf</b><span>„Doktorhut“ im Laden. Die Krone tragen nur die Wochenbesten.</span></li>
+<li><img src="bilder/ruecken.svg?v=__V__" alt="Figur von hinten mit weißen Federflügeln" width="120" height="120"><b>Rücken</b><span>„Federflügel“, selten in Funden. Rucksack und Bücherstapel im Laden.</span></li>
+<li><img src="bilder/begleiter.svg?v=__V__" alt="Braune Eule mit leuchtend gelben Augen" width="120" height="120"><b>Begleiter</b><span>„Eule“ im Laden, sie fliegt dir nach. Fuchs und Tintenklecks in Funden.</span></li>
+<li><img src="bilder/spur.svg?v=__V__" alt="Figur, hinter der orange Glut-Würfel aufsteigen" width="120" height="120"><b>Spur</b><span>„Flammenspur“, erlernt mit 7, 30 und 100 Tagen Lernserie.</span></li>
+<li><img src="bilder/emote.svg?v=__V__" alt="Figur, die mit beiden Armen jubelt" width="120" height="120"><b>Emote</b><span>„Jubeln“ im Laden. Winken kann jede Figur von Anfang an.</span></li>
+<li><img src="bilder/schild.svg?v=__V__" alt="Kopf mit goldenem Titel Bücherwurm über dem Namen" width="120" height="120"><b>Namensschild</b><span>Titel „Bücherwurm“ im Laden, goldener Rahmen für eine Probeklausur mit Note 1.</span></li>
+<li><img src="bilder/bau.svg?v=__V__" alt="Holzblock, über dem bunte Konfetti-Würfel fliegen" width="120" height="120"><b>Bau-Effekt</b><span>„Konfetti“ beim Setzen eines Blocks, im Laden. Sternenstaub in Funden.</span></li>
+</ul>
+<p>So bekommst du sie:</p>
+<ol>
+<li><b>Erlernt, nicht handelbar:</b> Flammenspur für 7, 30 und 100 Tage Lernserie; Umhänge ab Stufe 5, 10, 20 und 30; die Krone für Platz 1 bis 3 der Wochenwertung (7 Tage); der goldene Rahmen für eine Probeklausur mit Note 1; der Fach-Umhang für 100 bestandene Check-Fragen in einem Fach.</li>
+<li><b>Gekauft:</b> mit Talern im Laden.</li>
+<li><b>Gefunden:</b> in Funden, handelbar im Auktionshaus. Dazu Semester-Stücke, die es nach dem Semester nicht mehr gibt.</li>
+</ol>
+
+<h2 id="h-zusammen">Zusammen spielen</h2>
+<ul>
+<li><b>Chat und Sprüche:</b> Mit <kbd>T</kbd> oder <kbd>Enter</kbd> schreibst du in den Kanälen Hub, Insel und Gruppe, höchstens 160 Zeichen und eine Nachricht je 1,5 Sekunden; Schimpfwörter werden mit Sternchen verdeckt. Unter „Sprüche &amp; Emotes“ gibt es zwölf feste Sprüche und die Gesten deiner Figur.</li>
+<li><b>Lerngruppen:</b> eigenes Grundstück im Gruppen-Viertel, gemeinsame Kasse, Wochenwertung. Gründen kostet <b data-r="gruppe">200</b> Taler.</li>
+<li><b>Großprojekte:</b> Brücke, Campanile und eine neue Insel. Alle zahlen ein, ein Balken zeigt den Stand, und wenn er voll ist, steht das Bauwerk in der Welt.</li>
+<li><b>Wochenziel:</b> Lernen alle zusammen in einer Woche <b data-r="wochenziel">2000</b> Taler, öffnet sich ein neues Gebiet mit neuen Grundstücken.</li>
+</ul>
+<h3>Co-op und Handel</h3>
+<ul>
+<li>Mit <code>/coop invite Name</code> (oder Menü → Grundstück) baut bis zu vier Leute mit dir auf deiner ganzen Insel. <code>/coop remove Name</code> nimmt das Recht wieder.</li>
+<li>Gefällt dir eine Insel, gib ihr im Insel-Kompass unter „Top-Inseln“ ein <b>Like</b> mit Stempel. Die beliebtesten Inseln stehen ganz oben.</li>
+<li><b>Handel</b> mit <code>/trade Name</code>: Beide legen Gegenstände und Taler hinein und setzen das Häkchen „Bereit“. Nach jeder Änderung läuft eine Sperre von 3 Sekunden, damit niemand schnell etwas austauscht.</li>
+</ul>
+
+
+<h2 id="h-skyblock">Minions und Fähigkeiten</h2>
+<p class="vor">Deine Insel wächst mit deinem Lernen: Lern-Energie treibt deine Minions an, Fähigkeiten und Sammlungen schalten Neues frei.</p>
+<h3>Wissen und Lern-Energie</h3>
 <ul>
 <li><b>Dekan Weber</b> im Hub schenkt dir zum Start 50 Taler, einen Stein-Minion I, 6 Stunden Lern-Energie und einen Abbau-Hammer.</li>
 <li><b>Wissens-Splitter</b> fallen je Fach an: Mathematik, Sprachen, Naturwissenschaften, Gesellschaft und Allgemein. Dazu kommen <b>Fokus-Kristalle</b> aus dem Lernhelfer.</li>
@@ -164,14 +219,8 @@
 <li><b>Verdichten:</b> 160 Stück ergeben 1 verdichtete Stufe, 160 verdichtete ergeben 1 super-verdichtete.</li>
 </ul>
 
-<h3>Bazaar und Bank</h3>
-<ul>
-<li><b>Bazaar:</b> Sofortkauf und Sofortverkauf oder Kauf- und Verkaufsaufträge. Vom Handel verschwinden 1,5 % Gebühr aus dem Spiel.</li>
-<li><b>Bank</b> beim Bankier Goldbach: 1 % Zinsen täglich, aber nur, wenn du in den letzten 48 Stunden gelernt hast. Verzinst werden höchstens 20 000 Taler.</li>
-</ul>
-
 <h3>Werkzeuge</h3>
-<table>
+<div class="tabelle"><table>
 <thead><tr><th>Werkzeug</th><th>Was es tut</th><th>Kosten</th></tr></thead>
 <tbody>
 <tr><td>Bau-Stab</td><td>setzt 9, 25 oder 64 Blöcke</td><td>10 Mana</td></tr>
@@ -180,18 +229,12 @@
 <tr><td>Vektor-Sprungstab</td><td>Sprung über 6 Blöcke</td><td>15 Mana</td></tr>
 <tr><td>Insel-Kompass 🧭</td><td>zeigt die Richtung zu deiner Insel</td><td>—</td></tr>
 </tbody>
-</table>
+</table></div>
 <p>Fokus-Mana lädt sich von selbst auf, 2 Punkte je Sekunde. Die Leiste über der Hotbar zeigt den Stand.</p>
 
-<h3>Wege im Hub</h3>
-<ul>
-<li><b>Warp-Portale</b> im Hub: Norden führt zur Prüfungs-Zitadelle, Osten zum Bibliotheks-Turm, Westen zur Minion-Werkstatt.</li>
-<li><b>Quests</b> bekommst du bei den Personen im Hub.</li>
-</ul>
 
-<h2>Abenteuer: Inventar, Kampf und Questbuch</h2>
-
-<h3>Inventar &amp; Truhen</h3>
+<h2 id="h-abenteuer">Abenteuer und Kampf</h2>
+<h3>Inventar und Truhen</h3>
 <ul>
 <li>Dein <b>Inventar</b> hat 36 Plätze: 27 im Rucksack und 9 in der <b>Schnellleiste</b> unten. Mit 1–9 oder dem Mausrad wählst du, was du in der Hand hältst.</li>
 <li><b>Linksklick</b> nimmt einen Stapel auf oder legt ihn ab, <b>Rechtsklick</b> nimmt die Hälfte bzw. legt ein Stück ab, <b>Umschalt + Klick</b> verschiebt sofort (am iPad: Schalter „Schnell-Verschieben“). Ziffern 1–9 über einem Platz tauschen mit der Leiste.</li>
@@ -199,14 +242,14 @@
 <li>Ist der Rucksack voll, landet Neues im <b>Beutel</b>. Das Abzeichen oben zeigt, wie viel dort liegt; ein Klick oder <code>/stash</code> holt es zurück.</li>
 </ul>
 
-<h3>Ausrüstung &amp; Verzaubern</h3>
+<h3>Ausrüstung und Verzaubern</h3>
 <ul>
 <li>Helm, Brustplatte, Beinschienen und Stiefel kommen in die vier Ausrüstungsplätze, dazu drei <b>Talismane</b>. Vier Teile eines Sets geben einen <b>Set-Bonus</b>; die Anzeigetafel rechts zeigt, welcher gerade wirkt.</li>
 <li>Seltenheit erkennst du an der Farbe: Gewöhnlich weiß, Selten blau, Episch lila, Legendär gold.</li>
 <li>Am <b>Altar im Bibliotheks-Turm</b> verzauberst du Werkzeuge, Waffen und Rüstung: Effizienz, Glück, Schärfe, Schutz, Weisheit und Telekinese. Das kostet Wissens-Splitter und Fokus-Kristalle; ein Verzauberungsbuch ersetzt die Splitter.</li>
 </ul>
 
-<h3>Kampf &amp; Prüfungs-Zitadelle</h3>
+<h3>Kampf und Prüfungs-Zitadelle</h3>
 <ul>
 <li>In der <b>Prüfungs-Zitadelle</b> (Portal im Norden des Hubs) warten Schleime, Golems und Wächter. Mit einer Klinge in der Hand schlägt die linke Maustaste zu; Bogen und Stab schießen in Blickrichtung.</li>
 <li>Die rote <b>Herz-Leiste</b> neben dem Mana zeigt dein Leben. Weiße Zahlen sind Treffer, goldene mit ✦ kritische Treffer.</li>
@@ -226,35 +269,13 @@
 <li><b>Rüstungsständer:</b> stellt eine komplette Ausrüstung aus. <b>Schild:</b> vier Zeilen à 24 Zeichen, die alle lesen können.</li>
 </ul>
 
-<h3>Co-op &amp; Handel</h3>
-<ul>
-<li>Mit <code>/coop invite Name</code> (oder Menü → Grundstück) baut bis zu vier Leute mit dir auf deiner ganzen Insel. <code>/coop remove Name</code> nimmt das Recht wieder.</li>
-<li>Gefällt dir eine Insel, gib ihr im Insel-Kompass unter „Top-Inseln“ ein <b>Like</b> mit Stempel. Die beliebtesten Inseln stehen ganz oben.</li>
-<li><b>Handel</b> mit <code>/trade Name</code>: Beide legen Gegenstände und Taler hinein und setzen das Häkchen „Bereit“. Nach jeder Änderung läuft eine Sperre von 3 Sekunden, damit niemand schnell etwas austauscht.</li>
-</ul>
-
 <h3>Questbuch</h3>
 <ul>
 <li>Das <b>Questbuch</b> (Taste J) führt in 12 Kapiteln durch Campus: vom ersten Block bis zum Sieg über den Archon. Jedes Kapitel bringt Taler und Splitter; das aktuelle Ziel steht auf der Anzeigetafel.</li>
 </ul>
 
-<h3>Textur-Pakete</h3>
-<p>Unter Einstellungen → Grafik wählst du 16x Klassik, 64x HD, 128x Ultra oder ein eigenes PNG mit 4 × 4 Kacheln. Das eigene Paket bleibt nur in deinem Browser.</p>
 
-<h3>Musik &amp; Wetter</h3>
-<ul>
-<li>Die <b>Musik</b> entsteht live im Browser und wechselt mit dem Ort: ruhig auf der Insel, belebt im Hub, düster in Zitadelle und Katakomben, treibend in der Arena. Die Lautstärke stellst du unter Einstellungen → Ton → „Musik-Lautstärke“ ein; bei 0 ist sie aus.</li>
-<li>Das <b>Wetter</b> (Klar, Sommerregen, Schneefall, Kirschblüten) stellt die Verwaltung für alle ein. Unter Einstellungen → Wetter kannst du für dein Gerät ein eigenes wählen oder bei „Auto“ bleiben. Bei Regen glänzt der Boden, bei Schnee liegt Frost auf den Blöcken.</li>
-<li>Läuft ein <b>2×-Taler-Event</b>, steht oben ein goldenes Banner mit der Restzeit. Solange zählen im Spiel verdiente Taler doppelt.</li>
-</ul>
-
-<h3>Foto-Modus (F8)</h3>
-<ul>
-<li><b>F8</b> oder der Knopf „Foto“ blendet die Oberfläche aus und löst die Kamera von deiner Figur (höchstens 16 Blöcke weit). Laufen-Tasten bewegen die Kamera, Springen hebt sie, Sprinten macht sie schneller.</li>
-<li>Unten wählst du einen <b>Filter</b> (Standard, Retro-Pixel, Goldene Stunde, Kino-Kontrast; Tasten 1–4) und die <b>Brennweite</b> für unscharfen Hintergrund (Pfeil hoch/runter). „Screenshot speichern“ oder die Eingabetaste lädt das Bild als PNG herunter. Der Mauszeiger ist frei für die Leiste; ein Klick ins Bild fängt ihn zum Umsehen, Esc gibt ihn wieder frei. F8 oder ein zweites Esc beendet den Modus.</li>
-<li>Beim ersten Besuch von Marktplatz, Zitadelle, Katakomben und Arena zeigt eine kurze <b>Kamerafahrt</b> den Ort. Die Leertaste überspringt sie.</li>
-</ul>
-
+<h2 id="h-orte">Duell-Arena und Katakomben</h2>
 <h3>Lern-Duell-Arena</h3>
 <ul>
 <li>Das <b>Arena-Portal</b> am Hub-Spawn (oder <code>/duel</code>, Menü → Duell-Arena) startet ein Lern-Duell für bis zu vier Leute. Mit <code>/duel Name</code> lädst du jemanden ein, <code>/duel solo</code> spielt allein gegen Professor Kalkulus.</li>
@@ -271,6 +292,25 @@
 <li>Nur hier gibt es <b>Meister-Kerne</b>, die Artefakte Schatten-Laterne und Runen-Herz und den <b>Folianten</b>, der am Verzauberungs-Altar eine Verzauberung von Stufe V auf <b>Stufe VI</b> hebt.</li>
 </ul>
 
+
+<h2 id="h-extras">Musik, Wetter, Foto</h2>
+<h3>Musik und Wetter</h3>
+<ul>
+<li>Die <b>Musik</b> entsteht live im Browser und wechselt mit dem Ort: ruhig auf der Insel, belebt im Hub, düster in Zitadelle und Katakomben, treibend in der Arena. Die Lautstärke stellst du unter Einstellungen → Ton → „Musik-Lautstärke“ ein; bei 0 ist sie aus.</li>
+<li>Das <b>Wetter</b> (Klar, Sommerregen, Schneefall, Kirschblüten) stellt die Verwaltung für alle ein. Unter Einstellungen → Wetter kannst du für dein Gerät ein eigenes wählen oder bei „Auto“ bleiben. Bei Regen glänzt der Boden, bei Schnee liegt Frost auf den Blöcken.</li>
+<li>Läuft ein <b>2×-Taler-Event</b>, steht oben ein goldenes Banner mit der Restzeit. Solange zählen im Spiel verdiente Taler doppelt.</li>
+</ul>
+
+<h3>Foto-Modus (F8)</h3>
+<ul>
+<li><b>F8</b> oder der Knopf „Foto“ blendet die Oberfläche aus und löst die Kamera von deiner Figur (höchstens 16 Blöcke weit). Laufen-Tasten bewegen die Kamera, Springen hebt sie, Sprinten macht sie schneller.</li>
+<li>Unten wählst du einen <b>Filter</b> (Standard, Retro-Pixel, Goldene Stunde, Kino-Kontrast; Tasten 1–4) und die <b>Brennweite</b> für unscharfen Hintergrund (Pfeil hoch/runter). „Screenshot speichern“ oder die Eingabetaste lädt das Bild als PNG herunter. Der Mauszeiger ist frei für die Leiste; ein Klick ins Bild fängt ihn zum Umsehen, Esc gibt ihn wieder frei. F8 oder ein zweites Esc beendet den Modus.</li>
+<li>Beim ersten Besuch von Marktplatz, Zitadelle, Katakomben und Arena zeigt eine kurze <b>Kamerafahrt</b> den Ort. Die Leertaste überspringt sie.</li>
+</ul>
+
+<h3>Textur-Pakete</h3>
+<p>Unter Einstellungen → Grafik wählst du 16x Klassik, 64x HD, 128x Ultra oder ein eigenes PNG mit 4 × 4 Kacheln. Das eigene Paket bleibt nur in deinem Browser.</p>
+
 <h3>Architekten-Modus (Verwaltung)</h3>
 <ul>
 <li>Nur für die Verwaltung: <code>/architect</code> schaltet den Modus ein und aus. Mit dem Stab setzt ein Linksklick <b>Pos1</b>, ein Rechtsklick <b>Pos2</b>; die Auswahl leuchtet als Rahmen, die Leiste oben zeigt Maße und Blockzahl.</li>
@@ -278,7 +318,7 @@
 <li>Eine Auswahl lässt sich als <b>Blueprint</b> speichern und als Rust-Text kopieren. Außerdem stellt die Verwaltung hier <b>freie Personen</b> mit Namen, Aussehen, Text und einer Aktion (Reise, Taler, Gegenstand) auf und schaltet Wetter und Taler-Event.</li>
 </ul>
 
-<h2>Fair bleiben</h2>
+<h2 id="h-fair">Fair bleiben</h2>
 <p>Dein Name, deine Figur, deine Bauten und deine Angebote sind für alle im Campus sichtbar. Wenn ein Bau beleidigend ist oder jemand stört: Menü → „Melden“. Die Verwaltung kann einen Bau zurücksetzen und ein Konto für Campus sperren. Auffällige Geschäfte im Auktionshaus (überhöhte Preise, einseitige Geldflüsse zwischen zwei Konten) werden der Verwaltung automatisch angezeigt.</p>
 <p class="meta">Campus ist eine eigene Welt mit eigenen Blöcken, Figuren, Namen und Tönen. Alles ist selbst gemacht; nichts stammt aus anderen Spielen.</p>
 </main>
