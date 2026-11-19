@@ -10,6 +10,25 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// Vortrag (index.html): Stimme messen an einem künstlichen Ton mit bekannter Tonhöhe und Pause, Sprache erkennen
+{
+  const app = readFileSync(join(import.meta.dirname, '..', 'index.html'), 'utf8').replace(/\r\n/g, '\n');
+  const teil = (von, bis) => app.slice(app.indexOf(von), app.indexOf(bis));
+  const { vtRahmen, vtStimmeAus, vtSprache } = new Function(`${teil('const VT_RAHMEN', 'async function vtStimme(')}${teil('const VT_SPRACHEN', 'const lautName')}return { vtRahmen, vtStimmeAus, vtSprache };`)();
+  const rate = 16000, ton = (f, s) => Array.from({ length: s * rate }, (_, i) => 0.3 * Math.sin(2 * Math.PI * f * i / rate) + 0.15 * Math.sin(4 * Math.PI * f * i / rate));
+  const still = s => Array.from({ length: Math.round(s * rate) }, (_, i) => (i * 7919 % 1000 / 1000 - 0.5) * 0.002);
+  // 2 s bei 200 Hz, 1 s still, 2 s bei 200 Hz, 0,1 s Lücke (keine Pause), 2 s bei 238 Hz (3 Halbtöne höher)
+  const pcm = Float32Array.from([...still(0.5), ...ton(200, 2), ...still(1), ...ton(200, 2), ...still(0.1), ...ton(238, 2), ...still(0.5)]);
+  const r = vtRahmen(pcm, rate), s = vtStimmeAus(r.db, r.f0);
+  assert.equal(s.pausen.length, 1, 'genau eine Pause');
+  assert.ok(Math.abs(s.pausen[0][0] - 2.5) < 0.05 && Math.abs(s.pausen[0][1] - 1) < 0.05, `Pause bei 2,5 s, 1 s lang: ${s.pausen}`);
+  assert.ok(Math.abs(s.hz - 200) < 3, `Stimmlage 200 Hz: ${s.hz}`);
+  assert.ok(s.umfang > 2.5 && s.umfang < 3.5, `Tonumfang etwa 3 Halbtöne: ${s.umfang}`);
+  assert.ok(Math.abs(s.sprechzeit - 6.1) < 0.1 && s.laengste > 4, `die kurze Lücke trennt nicht: ${s.sprechzeit}, ${s.laengste}`);
+  assert.deepEqual(['Die Zahlen sind nicht das, was wir und ich erwartet haben.', 'Je pense que les chiffres et les prix ne sont pas des données.', 'Il mercato è grande e non sono sicuro che questo sia per gli studenti.', 'El precio de los productos por eso es muy alto pero como siempre.', 'これはテストです'].map(vtSprache), ['de', 'fr', 'it', 'es', 'xx']);
+  console.log('Vortrag, Stimme und Sprache: ok');
+}
+
 const PORT = 18000 + Math.floor(Math.random() * 1000), BASIS = `http://127.0.0.1:${PORT}`;
 const ordner = mkdtempSync(join(tmpdir(), 'lernhelfer-test-'));
 const b64 = s => Buffer.from(s).toString('base64');

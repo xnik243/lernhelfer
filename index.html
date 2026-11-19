@@ -642,6 +642,15 @@
   .vt-spur { position: relative; height: 20px; margin-top: 6px; border-top: 1px solid var(--linie); }
   .vt-spur span { position: absolute; top: 5px; width: 3px; height: 12px; margin-left: -1px; border-radius: 2px; background: var(--k); }
   .vt-achse { display: flex; justify-content: space-between; margin-top: 4px; }
+  .vt-kurve { display: block; width: 100%; height: 48px; margin-top: 10px; overflow: visible; }
+  .vt-kurve path { fill: none; stroke: var(--text-2); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .vt-kurve line { stroke: var(--linie-2); stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+  .vt-name-zeit { display: inline-flex; align-items: center; gap: 10px; }
+  .vt-teile { display: flex; gap: 3px; margin-bottom: 6px; }
+  .vt-teile > span { display: grid; gap: 1px; min-width: 5.5em; padding: 8px 10px; border-radius: var(--r-s); background: var(--bg-2); font-size: 0.8125rem; }
+  .vt-teile > span:nth-child(2) { background: var(--bg-3); }
+  .vt-teile b, .vt-teile span span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vt-teile span span { color: var(--text-2); font-variant-numeric: tabular-nums; }
   .vt-filterreihe { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
   .vt-filter { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 1px solid var(--linie-2); border-radius: 999px; background: var(--bg); color: var(--text-2); font-weight: 600; font-size: 0.875rem; cursor: pointer; }
   .vt-filter::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--k); }
@@ -1925,12 +1934,13 @@ aussehen();
           <li><b>Note und Gesamteindruck</b> mit Punkten je Kriterium. Du wählst den Maßstab: <b>Sprachunterricht</b> (Standard) misst wie in mündlichen Sprachprüfungen Aufgabe, Aufbau, Wortschatz, Grammatik, Flüssigkeit und Wirkung, gemessen am Zielniveau deines Kurses (ohne Angabe B2). <b>Vortrag vor Publikum</b> misst Referate und Talks nach Aufbau, Sprache und Vortragsweise. Bei Videos kommen die Folien dazu, mit „Auch den Inhalt prüfen“ Inhalt und Belege. Die Note folgt fest aus den Punkten, der Schlüssel steht unter „Bewertungsgrundlage“.</li>
           <li><b>Sprachniveau nach GER</b> (A1 bis C2) für Spektrum, Korrektheit, Flüssigkeit, Kohärenz und Vor Publikum sprechen, jede Stufe mit Belegen aus deinem Vortrag, wo du innerhalb der Stufe stehst (knapp erreicht, sicher erreicht oder nahe an der nächsten) und drei konkrete Schritte zur nächsten Stufe, mit Formulierungen aus deinem Vortrag.</li>
           <li><b>Die wichtigsten Tipps</b>, jeweils mit einer Übung für die nächste Probe.</li>
-          <li><b>Kennzahlen:</b> Sprechtempo, wie oft äh und ähm, Füllwörter, lange Pausen.</li>
+          <li><b>Kennzahlen und Stimme:</b> Sprechtempo, Zögerlaute wie äh und ähm, Füllwörter und Pausen. Bei Videos und Aufnahmen misst die App selbst aus der Tonspur, wie lebendig deine Stimme ist (Tonhöhe, Satzmelodie, Lautstärke-Wechsel), wie viel der Zeit du sprichst und wie lang deine Strecken ohne Pause sind. Im Verlauf siehst du deine Stimmlage als Linie.</li>
+          <li><b>Spannung und Wirkung:</b> Einstieg, Publikumsbezug, Anschaulichkeit, Spannungsbogen, Stimme und Schluss, jeweils stark, ausbaufähig oder schwach, mit Beleg und Tipp, dazu wie sich die Zeit auf Einleitung, Hauptteil und Schluss verteilt. Das zählt nicht zur Note.</li>
           <li><b>Befunde mit Zeitstempel:</b> Grammatik, Wortwahl, leere Wörter und Brüche im Aufbau, mit Inhaltsprüfung auch Logikfehler und irreführende Formulierungen, jeweils mit Zitat, Erklärung und besserer Formulierung. Ein Tipp auf die Zeit spielt das Video an dieser Stelle ab.</li>
           <li><b>Das Transkript</b> Wort für Wort, mit jedem äh, und Rückfragen an den Coach.</li>
         </ul>
-        <p>Das Video bleibt auf deinem Gerät; an die KI gehen nur die Tonspur und ein paar Standbilder. YouTube-Links gehen nur bei öffentlichen Videos, weil Googles KI nicht gelistete Videos nicht öffnen kann. Ein Video vom iPad oder Handy wählst du deshalb am besten direkt als Datei. Transkript und Analyse liegen in deinem privaten Speicher und sind auf allen Geräten da.</p>
-        <p><b>Wonach bewertet wird:</b> Die KI bewertet nicht nach eigenem Ermessen. Sie bekommt mit jedem Vortrag feste Kriterien und muss jede Einstufung mit Stellen aus dem Vortrag belegen. Für die Sprache sind das die Deskriptoren des <a href="https://www.coe.int/en/web/common-european-framework-reference-languages/table-3-cefr-3.3-common-reference-levels-qualitative-aspects-of-spoken-language-use" target="_blank" rel="noopener">Gemeinsamen Europäischen Referenzrahmens</a> (Europarat, Tabelle 3) und die Skala „Addressing audiences“ aus dem <a href="https://rm.coe.int/common-european-framework-of-reference-for-languages-learning-teaching/16809ea0d4" target="_blank" rel="noopener">Begleitband von 2020</a>, für die Präsentation die fünf Dimensionen der <a href="https://www.aacu.org/value/rubrics/value-rubrics-oral-communication" target="_blank" rel="noopener">VALUE-Rubrik Oral Communication</a> (AAC&amp;U). Aussprache bewertet die App nicht, weil die Analyse das Transkript liest und die Aufnahme nicht hört. Alle Deskriptoren stehen unter jeder Analyse bei „Bewertungsgrundlage“.</p>
+        <p>Das Video bleibt auf deinem Gerät; an die KI gehen nur die Tonspur und ein paar Standbilder. YouTube-Links gehen nur bei öffentlichen Videos, weil Googles KI nicht gelistete Videos nicht öffnen kann. Ein Video vom iPad oder Handy wählst du deshalb am besten direkt als Datei, nur dann misst die App auch deine Stimme. Der Vortrag kann in jeder Sprache sein; Deutsch, Englisch, Französisch, Spanisch und Italienisch erkennt die App selbst und zählt deren Zögerlaute. Transkript und Analyse liegen in deinem privaten Speicher und sind auf allen Geräten da.</p>
+        <p><b>Wonach bewertet wird:</b> Die KI bewertet nicht nach eigenem Ermessen. Sie bekommt mit jedem Vortrag feste Kriterien und muss jede Einstufung mit Stellen aus dem Vortrag belegen. Für die Sprache sind das die Deskriptoren des <a href="https://www.coe.int/en/web/common-european-framework-reference-languages/table-3-cefr-3.3-common-reference-levels-qualitative-aspects-of-spoken-language-use" target="_blank" rel="noopener">Gemeinsamen Europäischen Referenzrahmens</a> (Europarat, Tabelle 3) und die Skala „Addressing audiences“ aus dem <a href="https://rm.coe.int/common-european-framework-of-reference-for-languages-learning-teaching/16809ea0d4" target="_blank" rel="noopener">Begleitband von 2020</a>, für die Präsentation die fünf Dimensionen der <a href="https://www.aacu.org/value/rubrics/value-rubrics-oral-communication" target="_blank" rel="noopener">VALUE-Rubrik Oral Communication</a> (AAC&amp;U). Aussprache bewertet die App nicht: Die Analyse liest das Transkript, und die Messung aus der Tonspur erfasst Tonhöhe, Lautstärke und Pausen, aber keine Laute. Alle Deskriptoren stehen unter jeder Analyse bei „Bewertungsgrundlage“.</p>
 
         <h2 id="a-pc">Der Abgleich am PC oder Mac</h2>
         <ul>
@@ -5053,8 +5063,8 @@ function wpReflexion() {
 const VT_HOEREN = 'google/gemini-4-argon';
 const VT_DENKEN = { model: 'openai/gpt-6-luna', reasoning: { effort: 'high' } };
 const VT_TRANSKRIPT = `Transkribiere diese Aufnahme eines Vortrags wortwörtlich in der gesprochenen Sprache. Nichts glätten oder verbessern:
-- jedes äh, ähm, hm, uh, um, er genau dort, wo es gesprochen wird
-- Füllwörter (also, halt, sozusagen, like, you know, basically …), Wiederholungen, Selbstkorrekturen und abgebrochene Wörter (mit -) stehen lassen
+- jeden Zögerlaut (äh, ähm, hm, uh, um, er, euh, eh, ehm …) genau dort, wo er gesprochen wird, so geschrieben, wie er in dieser Sprache üblich ist
+- Füllwörter (also, halt, sozusagen, like, you know, basically, du coup, genre, o sea, pues, cioè, tipo …), Wiederholungen, Selbstkorrekturen und abgebrochene Wörter (mit -) stehen lassen
 - Grammatikfehler und falsche Wörter NICHT korrigieren, auch kleine nicht (etwa „the company have“, „for themself“, „die Zahlen zeigt“)
 - Pausen ab 2 Sekunden als [Pause 3 s], Unverständliches als [unverständlich], Lachen, Husten, Applaus usw. in eckigen Klammern
 Eine Zeile pro Satz oder Sinnabschnitt, jede Zeile beginnt mit dem Zeitstempel ihres Anfangs: [m:ss] Text
@@ -5156,9 +5166,9 @@ const VT_KRITERIEN = [
   ['Kernbotschaft', 'Central Message', 'Die Hauptaussage ist klar, wird früh genannt, ist begründet und bleibt am Ende hängen.', true],
 ];
 const VT_MASSSTAB = {
-  kurs: { name: 'Sprachunterricht', lang: 'Präsentation im Sprachunterricht: Englisch in der Schule, im Sprachkurs oder im PS',
+  kurs: { name: 'Sprachunterricht', lang: 'Präsentation im Sprachunterricht: eine Fremdsprache wie Englisch, Französisch oder Spanisch in der Schule, im Sprachkurs oder im PS',
     grundlage: 'Kriterien mündlicher Sprachprüfungen, gemessen am Zielniveau',
-    en: ['Language class', 'Presentation in a language class: English at school, in a language course or a university seminar', 'Criteria of oral language exams, measured against the target level'],
+    en: ['Language class', 'Presentation in a language class: a foreign language such as English, French or Spanish at school, in a language course or a university seminar', 'Criteria of oral language exams, measured against the target level'],
     rolle: ziel => `Du bist eine erfahrene, faire Lehrkraft für Fremdsprachen und bewertest eine Präsentation im Sprachunterricht (Schule, Sprachkurs oder Sprach-PS an der Uni). Gemessen wird, wie gut die Person die Fremdsprache beim Präsentieren einsetzt und die Aufgabe erfüllt, gemessen am Zielniveau ${ziel} des GER. Es geht nicht darum, ob das ein Profi-Vortrag auf einer Bühne wäre: Rhetorische Kunstgriffe, Showeffekte und ein perfekter Auftritt sind kein Maßstab.`,
     anker: ziel => `gemessen am Zielniveau ${ziel}: 10 = deutlich über dem Zielniveau, kaum etwas zu verbessern (perfekt muss es dafür nicht sein); 8 bis 9 = Zielniveau sicher erreicht, nur Kleinigkeiten; 7 = Zielniveau erreicht, mit erkennbaren Schwächen; 5 bis 6 = Zielniveau knapp erreicht, mit deutlichen Schwächen; 3 bis 4 = Zielniveau nicht erreicht, aber gut verständlich; 0 bis 2 = Aufgabe verfehlt oder kaum verständlich`,
     kriterien: [
@@ -5188,10 +5198,26 @@ const VT_QUELLEN = [
 ];
 const VT_OHNE_INHALT = 'Bewerte nur Sprache und Vortragsweise, nicht den Inhalt: Ob die Argumente logisch sind, ob Aussagen stimmen oder belegt sind und wie gut die Beispiele sind, gehört nicht in die Analyse, weder in Urteil und Kriterien noch in Stärken, Tipps oder Befunde.';
 const vtKriterien = (massstab, inhalt) => (VT_MASSSTAB[massstab] || VT_MASSSTAB.kurs).kriterien.filter(k => inhalt || !k[3]);
-const vtAnalyse = (inhalt, massstab = 'kurs', ziel = '', mitWp = false) => {
+// Spannung und Wirkung: wie der Vortrag Interesse weckt und hält. Zählt nicht zur Note. [Name, englischer Name, Beschreibung, true = nur mit gemessener Stimme, Beschreibung englisch]
+const VT_WIRKUNG = [
+  ['Einstieg', 'Opening', 'Weckt der Anfang Neugier (Frage, kleine Geschichte, überraschende Zahl, Bezug zum Publikum), oder beginnt er nur mit „Heute spreche ich über …“?', false,
+    'Does the opening spark curiosity (a question, a short story, a surprising figure, a link to the audience), or does it just start with "Today I am going to talk about …"?'],
+  ['Publikumsbezug', 'Audience', 'Spricht die Person das Publikum an (du, ihr, Sie, you, vous …), stellt Fragen, knüpft an dessen Erfahrungen an?', false,
+    'Does the speaker address the audience (you, vous …), ask questions and connect to their experience?'],
+  ['Anschaulichkeit', 'Vividness', 'Gibt es Beispiele, kleine Geschichten, Vergleiche und Bilder im Kopf statt nur abstrakter Aussagen? Ob sie inhaltlich stimmen, gehört nicht hierher.', false,
+    'Are there examples, short stories, comparisons and mental images instead of only abstract statements? Whether they are factually right does not belong here.'],
+  ['Spannungsbogen', 'Momentum', 'Abwechslung, Höhepunkte und ein roter Faden: bleibt es bis zum Ende interessant, oder flacht es ab?', false,
+    'Variety, high points and a common thread: does it stay interesting to the end, or does it flatten out?'],
+  ['Stimme', 'Voice', 'Wie lebendig die Stimme klingt, nach den Messwerten der App: Tonhöhen-Schwankung, Satzmelodie, Lautstärke-Wechsel, Pausen an den richtigen Stellen.', true,
+    "How lively the voice sounds, based on the app's measurements: pitch variation, sentence melody, volume variation, pauses in the right places."],
+  ['Schluss', 'Closing', 'Klares Ende mit Kernaussage, Ausblick oder Appell, statt abrupt aufzuhören („Das war’s“, „that’s it“)?', false,
+    'A clear ending with the key message, an outlook or a call to action, instead of stopping abruptly ("that\'s it")?'],
+];
+const VT_STUFE = { stark: ['stark', 'strong', 'ok'], ausbaufaehig: ['ausbaufähig', 'could be stronger', 'warn'], schwach: ['schwach', 'weak', 'fehler'] };
+const vtAnalyse = (inhalt, massstab = 'kurs', ziel = '', mitWp = false, mitStimme = false) => {
   const M = VT_MASSSTAB[massstab] || VT_MASSSTAB.kurs, kriterien = vtKriterien(massstab, inhalt), kurs = M === VT_MASSSTAB.kurs;
-  const zielText = ziel || 'B2';
-  return `${M.rolle(zielText)} Du bekommst das wortgetreue Transkript des Vortrags mit Zeitstempeln [m:ss], inklusive aller äh und ähm, Wiederholungen, Abbrüche und Fehler, dazu Kennzahlen, die die App gezählt hat, Anlass und Vorgaben, soweit angegeben, und manchmal Standbilder aus dem Video.
+  const zielText = ziel || 'B2', wirkung = VT_WIRKUNG.filter(w => mitStimme || !w[3]);
+  return `${M.rolle(zielText)} Du bekommst das wortgetreue Transkript des Vortrags mit Zeitstempeln [m:ss], inklusive aller Zögerlaute, Wiederholungen, Abbrüche und Fehler, dazu Kennzahlen, die die App gezählt${mitStimme ? ' und aus der Tonspur gemessen' : ''} hat, Anlass und Vorgaben, soweit angegeben, und manchmal Standbilder aus dem Video. Der Vortrag kann in jeder Sprache sein.
 
 Analysiere gründlich, konkret und fair, wie eine erfahrene Lehrkraft, die gut erklärt: Stärken genauso klar benennen wie Schwächen, nichts schönreden und nichts strenger machen, als es ist.${inhalt ? '' : ' ' + VT_OHNE_INHALT} Antworte ausschließlich mit einem JSON-Objekt in genau diesem Aufbau:
 {"sprache": "Sprache des Vortrags, z. B. Englisch",
@@ -5204,6 +5230,7 @@ Analysiere gründlich, konkret und fair, wie eine erfahrene Lehrkraft, die gut e
  "reflexion": {"punkte": [{"feld": "gut", "aussage": "…", "urteil": "stimmt", "begruendung": "…"}], "uebersehen": ["…"], "fazit": "…"} oder null,
  "staerken": ["konkrete Stärke, mit Zeitstempel, wo möglich"],
  "tipps": [{"titel": "kurze Handlungsanweisung", "warum": "ein bis zwei Sätze mit Beleg aus dem Vortrag", "uebung": "konkrete Übung für die nächste Probe"}],
+ "wirkung": {"aspekte": [{"name": "Einstieg", "stufe": "stark", "zeit": "m:ss oder null", "beleg": "…", "tipp": "…"}], "teile": [{"teil": "Einleitung", "von": "0:00"}]},
  "fuellwoerter": [{"wort": "like", "anzahl": 4}],
  "befunde": [{"zeit": "m:ss", "art": "grammatik", "zitat": "…", "problem": "…", "besser": "…"}]${mitWp ? `,
  "partnerships": [{"ausdruck": "…", "status": "passt", "zeit": "m:ss oder null", "zitat": "… oder null", "kommentar": "…", "einbau": {"zeit": "m:ss", "original": "…", "neu": "…", "warum": "…"} oder null}]` : ''}}
@@ -5218,22 +5245,27 @@ ger: das Sprachniveau nach dem Gemeinsamen Europäischen Referenzrahmen für Spr
 - Gesprochen ist nicht geschrieben: Das Transkript hält jedes äh, jeden Fehlstart und jeden Versprecher fest. Auch geübte Sprecherinnen und Sprecher, Muttersprachler eingeschlossen, klingen wortwörtlich aufgeschrieben so. Das spricht nicht gegen ein höheres Niveau, solange der Satz verständlich bleibt; selbst korrigierte Fehler sprechen sogar dafür. Einige äh pro Minute (grob bis vier) sind in freier Rede normal.
 - C1 heißt nicht fehlerfrei: Fehler sind selten und fallen kaum auf. C2 heißt nicht perfekt wie ein Muttersprachler, sondern souverän, flexibel und präzise; auch auf C2 verspricht man sich gelegentlich.
 - Stufe so ein, wie es eine erfahrene, faire Prüferin für mündliche Sprachprüfungen täte (etwa Cambridge English C1 Advanced): weder streng noch großzügig.
-skalen: genau diese fünf, in dieser Reihenfolge und mit genau diesen Namen: ${GER.map(g => g.name).join(', ')}. niveau: genau eine Stufe A1, A2, B1, B2, C1 oder C2. stand: wie weit der Vortrag innerhalb dieser Stufe ist, 0 bis 100: 0 bis 33 knapp erreicht, 34 bis 66 sicher in der Stufe, 67 bis 100 nahe an der nächsten (einiges aus deren Deskriptor trifft schon zu); bei C2, wie souverän. begruendung: zwei bis drei Sätze, warum diese Stufe und dieser Stand, mit Belegen aus dem Vortrag (Zeitstempel, kurzes Zitat oder Kennzahl). naechste: was für die nächsthöhere Stufe konkret fehlt, gemessen an ihrem Deskriptor, mit einer Stelle aus dem Vortrag und wie sie auf der nächsten Stufe klingen würde (vorher → nachher, in der Sprache des Vortrags); bei C2, was noch souveräner wäre. Für Flüssigkeit zählen auch die Kennzahlen der App (Tempo, äh-Laute, Pausen). Aussprache bewertest du nicht, weil du die Aufnahme nicht hörst; schließ auch nicht aus dem Transkript darauf.
+skalen: genau diese fünf, in dieser Reihenfolge und mit genau diesen Namen: ${GER.map(g => g.name).join(', ')}. niveau: genau eine Stufe A1, A2, B1, B2, C1 oder C2. stand: wie weit der Vortrag innerhalb dieser Stufe ist, 0 bis 100: 0 bis 33 knapp erreicht, 34 bis 66 sicher in der Stufe, 67 bis 100 nahe an der nächsten (einiges aus deren Deskriptor trifft schon zu); bei C2, wie souverän. begruendung: zwei bis drei Sätze, warum diese Stufe und dieser Stand, mit Belegen aus dem Vortrag (Zeitstempel, kurzes Zitat oder Kennzahl). naechste: was für die nächsthöhere Stufe konkret fehlt, gemessen an ihrem Deskriptor, mit einer Stelle aus dem Vortrag und wie sie auf der nächsten Stufe klingen würde (vorher → nachher, in der Sprache des Vortrags); bei C2, was noch souveräner wäre. Für Flüssigkeit zählen auch die Kennzahlen der App (Tempo, Zögerlaute, Pausen${mitStimme ? ', Sprechstrecken' : ''}). Aussprache bewertest du nicht: Du hörst die Aufnahme nicht, und die Messwerte sagen nichts über Laute; schließ auch nicht aus dem Transkript darauf.
 gesamt: niveau und stand, die die fünf Skalen zusammen am besten treffen, nicht der Höchst- und nicht der Tiefstwert. warum: zwei bis drei Sätze, warum genau diese Stufe und dieser Stand, mit der stärksten und der schwächsten Skala. naechste: genau drei Schritte, die den größten Unterschied zur nächsten Stufe machen, das Wichtigste zuerst, jeder ein bis zwei Sätze mit einem Beispiel aus dem Vortrag (vorher → nachher).
 
 reflexion: nur, wenn unten eine SELBSTREFLEXION steht, sonst null. Die Person hat ihr Video noch einmal angesehen und sich selbst eingeschätzt; prüfe jede ihrer Aussagen an Transkript, Kennzahlen und Standbildern. punkte: jede Aussage einzeln, in ihrer Reihenfolge; feld ist gut, schlecht oder besser, je nachdem, wo sie steht; aussage gibt sie in wenigen Worten wieder. urteil ist genau einer dieser Werte: stimmt, teilweise, stimmt nicht. Bei gut und schlecht: ob die Belege die Einschätzung stützen. Bei besser: stimmt, wenn der Vorsatz eine der größten Schwächen trifft; teilweise, wenn er hilft, aber nicht das Wichtigste ist; stimmt nicht, wenn er an den Befunden vorbeigeht, und dann was wichtiger wäre. begruendung: immer, zwei bis drei Sätze, mit Beleg (Zeitstempel, Zitat oder Kennzahl), direkt an die Person (du). Sei ehrlich in beide Richtungen: Wer zu streng mit sich ist, hört genauso deutlich, dass etwas gar nicht schlimm war, wie jemand, der etwas übersieht. uebersehen: höchstens drei wichtige Punkte aus deiner Analyse, die in der Reflexion fehlen, je ein Satz mit Begründung. fazit: zwei Sätze, wie treffend die Selbsteinschätzung insgesamt ist.
 
 tipps: drei bis fünf, das Wichtigste zuerst. Nur Tipps, die sich aus diesem Vortrag ergeben, keine allgemeinen Ratschläge.
+
+wirkung: wie der Vortrag Interesse weckt und hält, unabhängig vom Maßstab und ohne Einfluss auf Punkte und Note. aspekte: genau diese ${wirkung.length}, in dieser Reihenfolge und mit genau diesen Namen:
+${wirkung.map(([n, en, t]) => `- ${n} (${en}): ${t}`).join('\n')}
+stufe ist genau einer dieser Werte: stark, ausbaufaehig, schwach. zeit: die Stelle, die es am besten zeigt (m:ss), oder null. beleg: ein bis zwei Sätze mit Zitat${mitStimme ? ' oder Messwert' : ''}. tipp: ein Satz, was es noch fesselnder macht, mit einer Formulierung in der Sprache des Vortrags, wo es passt; bei stark darf es eine Kleinigkeit sein.
+teile: wo Einleitung, Hauptteil und Schluss beginnen (teil genau Einleitung, Hauptteil oder Schluss; von als m:ss), aus dem Transkript. Fehlt ein Teil erkennbar, lass ihn weg.
 ${mitWp ? `
 partnerships: Die Person sollte die Word Partnerships unten (WORD PARTNERSHIPS) in diesen Vortrag einbauen; das ist ihre Probe für den Word-Power-Talk im Kurs. Je Ausdruck genau ein Eintrag, in derselben Reihenfolge, ausdruck wie angegeben.
 status ist genau einer dieser Werte: passt (benutzt, richtig und natürlich, auch gebeugt oder leicht abgewandelt), holprig (benutzt, aber unnatürlich, falsche Kollokation, falsches Register oder Bedeutung leicht daneben), falsch (benutzt, aber grammatisch oder inhaltlich falsch), fehlt (nicht benutzt). zeit und zitat: die Stelle wörtlich aus dem Transkript, bei fehlt null. kommentar: ein Satz, was gut ist oder was nicht stimmt.
 einbau: bei fehlt, holprig und falsch Pflicht, bei passt null. Such im Vortrag die EINE Stelle, an der der Ausdruck am natürlichsten passt: dort, wo die Person schon etwas Ähnliches sagt oder der Gedanke dazu passt. original: dieser Satz wörtlich aus dem Transkript. neu: derselbe Satz mit dem Ausdruck, so wenig wie möglich geändert, gleiche Aussage, im Stil und auf dem Niveau der Person, ohne neue Inhalte. warum: ein Satz, warum der Ausdruck genau dort passt (Bedeutung, Kollokation, Register). Passt der Ausdruck nirgends ohne neuen Inhalt, nimm die Stelle, an der ein halber Satz genügt, und sag das im warum.
 ` : ''}
-fuellwoerter: Wörter und Floskeln, die hier als Füller dienen (etwa also, halt, eben, sozusagen, quasi, irgendwie, eigentlich, ja, genau, okay, like, you know, basically, actually, so, I mean, kind of), mit Anzahl. Nur zählen, wo sie wirklich Füller sind. Laute wie äh, ähm, uh und um zählt die App selbst; die gehören nicht hierher.
+fuellwoerter: Wörter und Floskeln, die hier als Füller dienen (etwa also, halt, eben, sozusagen, quasi, eigentlich, genau, okay, like, you know, basically, actually, I mean, kind of, du coup, genre, en fait, bueno, o sea, pues, cioè, tipo, allora), mit Anzahl. Nur zählen, wo sie wirklich Füller sind. Zögerlaute wie äh, ähm, uh, um, euh oder eh zählt die App selbst; die gehören nicht hierher.
 
 befunde: Jede einzelne Stelle als eigener Eintrag, nichts zusammenfassen. Nur echte Fehler und deutliche Schwächen: Ist das Original auch richtig oder nur Geschmackssache, ist es kein Befund. art ist genau einer dieser Werte:
 - grammatik: Grammatik-, Kongruenz-, Zeitform-, Präpositions-, Wortstellungs- und Satzbaufehler
-- wortwahl: falsches, unpassendes oder zu umgangssprachliches Wort, falscher Fachbegriff, Germanismus im Englischen oder Anglizismus im Deutschen
+- wortwahl: falsches, unpassendes oder zu umgangssprachliches Wort, falscher Fachbegriff, Übertragung aus einer anderen Sprache (etwa Germanismus im Englischen oder Französischen, Anglizismus im Deutschen)
 - leer: Wörter oder Sätze ohne Inhalt, Floskeln, Wiederholungen, die nichts hinzufügen, unnötige Abschwächungen (ich denke mal, eigentlich, sort of)
 ${inhalt ? `- logik: Fehlschluss oder fachlicher Fehler (Korrelation als Ursache, Zirkelschluss, unzulässige Verallgemeinerung, falsches Dilemma, Widerspruch, falsche Definition)
 - irrefuehrend: Formulierung, die mehr behauptet als belegt, übertreibt, mehrdeutig oder missverständlich ist; Zahlen ohne Bezugsgröße
@@ -5241,7 +5273,7 @@ ${inhalt ? `- logik: Fehlschluss oder fachlicher Fehler (Korrelation als Ursache
 - fuellwort: Stelle, an der sich äh und Füllwörter so häufen, dass der Satz darunter leidet
 zeit: Zeitstempel der Zeile, in der die Stelle steht. zitat: wörtlich aus dem Transkript, nur der betroffene Teil. problem: ${EN ? 'auf Englisch' : 'auf Deutsch'}, was genau falsch oder schwach ist. besser: verbesserte Formulierung in der Sprache des Vortrags.
 
-Alle Erklärungen ${EN ? 'auf Englisch (britisches Englisch, einfach und klar)' : 'auf Deutsch'}, Zitate und Verbesserungen in der Sprache des Vortrags. Die Felder name bei kriterien und skalen bleiben genau wie oben angegeben auf Deutsch. Berücksichtige Anlass und Vorgaben, etwa eine Zeitvorgabe. Erfinde nichts: Was nicht im Transkript oder auf den Standbildern ist, bewertest du nicht. Offensichtlich falsch gehörte Wörter der Spracherkennung sind keine Fehler des Vortrags.
+Alle Erklärungen ${EN ? 'auf Englisch (britisches Englisch, einfach und klar)' : 'auf Deutsch'}, Zitate und Verbesserungen in der Sprache des Vortrags. Die Felder name bei kriterien, skalen und wirkung bleiben genau wie oben angegeben auf Deutsch. Berücksichtige Anlass und Vorgaben, etwa eine Zeitvorgabe. Erfinde nichts: Was nicht im Transkript oder auf den Standbildern ist, bewertest du nicht. Offensichtlich falsch gehörte Wörter der Spracherkennung sind keine Fehler des Vortrags.
 
 === BEWERTUNGSGRUNDLAGE GER ===
 Kurzfassungen der Deskriptoren aus Tabelle 3 des GER (Europarat 2001, „Qualitative Aspekte des mündlichen Sprachgebrauchs“) und der Skala „Addressing audiences“ aus dem Begleitband (Europarat 2020). Sie geben den offiziellen Wortlaut sinngemäß wieder; stufe danach ein.
@@ -5254,7 +5286,21 @@ const artName = k => (EN ? VT_ARTEN_EN : VT_ARTEN)[k] || k;
 const notenName = n => EN ? ['', 'Excellent', 'Good', 'Satisfactory', 'Sufficient', 'Insufficient'][n] : VT_NOTEN[n];
 const krName = name => { if (!EN) return name; for (const m of Object.values(VT_MASSSTAB)) { const k = m.kriterien.find(k => k[0] === name); if (k) return k[1]; } return name === 'Folien' ? 'Slides' : name; };
 const gerName = name => EN && GER.find(g => g.name === name)?.en || name;
-const VT_AEH = { de: /(?<!\p{L})(?:äh+m*|öh+m*|ehm+|hm+)(?!\p{L})/giu, en: /(?<!\p{L})(?:uh+m*|um+|erm*|ah+|hmm+)(?!\p{L})/giu };
+// Sprachen, die die App an häufigen kurzen Wörtern erkennt, mit ihren Zögerlauten und einem angenehmen Tempo (Wörter pro Minute).
+// ponytail: Tempo-Spannen sind grobe Richtwerte; jede andere Sprache (xx) zählt nur Laute, die dort kein Wort sind
+const VT_SPRACHEN = {
+  de: { woerter: /\b(der|die|das|und|ist|nicht|ich|wir)\b/gi, aeh: /(?<!\p{L})(?:äh+m*|öh+m*|ehm+|hm+)(?!\p{L})/giu, laute: ['äh', 'ähm'], tempo: [100, 140] },
+  en: { woerter: /\b(the|and|is|to|of|that)\b/gi, aeh: /(?<!\p{L})(?:uh+m*|um+|erm*|ah+|hmm+)(?!\p{L})/giu, laute: ['uh', 'um'], tempo: [120, 160] },
+  fr: { woerter: /\b(les|et|est|une|des|pas|je|nous)\b/gi, aeh: /(?<!\p{L})(?:euh+|heu+|hum+|bah)(?!\p{L})/giu, laute: ['euh'], tempo: [120, 160] },
+  es: { woerter: /\b(el|los|las|del|por|pero|muy|como)\b/gi, aeh: /(?<!\p{L})(?:eh+|ehm+|em+|mm+)(?!\p{L})/giu, laute: ['eh', 'em'], tempo: [130, 170] },
+  it: { woerter: /\b(il|che|della|sono|gli|non|questo|per)\b/gi, aeh: /(?<!\p{L})(?:eh+|ehm+|uhm+|mm+)(?!\p{L})/giu, laute: ['eh', 'ehm'], tempo: [120, 160] },
+  xx: { aeh: /(?<!\p{L})(?:äh+m*|ehm+|uhm+|hm+|mmm+)(?!\p{L})/giu, laute: ['äh', 'ehm'], tempo: [110, 150] },
+};
+const vtSprache = text => {
+  const [sp, n] = Object.entries(VT_SPRACHEN).filter(([, s]) => s.woerter).map(([k, s]) => [k, text.match(s.woerter)?.length || 0]).sort((a, b) => b[1] - a[1])[0];
+  return n >= 3 ? sp : 'xx';
+};
+const lautName = sp => VT_SPRACHEN[sp].laute.join(ue(' und ', ' and '));
 const VT = { alle: {}, sha: {}, geladen: false, job: null, fehler: null, dateien: {}, urls: {}, bilder: {}, filter: 'alle', form: null, refl: {}, bsp: {}, auf: {} };
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const vtSek = z => String(z || '').split(':').map(Number).reduce((a, b) => a * 60 + b, 0) || 0;
@@ -5356,6 +5402,105 @@ async function wavTeile(datei) {
   }
   return { dauer: ton.duration, teile };
 }
+const vtTon = datei => aacTeile(datei).catch(() => null).then(t => t || wavTeile(datei));
+// Stimme messen, ohne KI und in jeder Sprache gleich: je 20 ms Lautstärke und Tonhöhe (YIN, de Cheveigné & Kawahara 2002),
+// daraus Pausen, Sprechstrecken, Melodie, Satzenden und Lautstärke-Wechsel. Gerechnet wird im Gerät, an die KI gehen nur die Zahlen.
+const VT_RAHMEN = 0.02;
+// grobe Richtwerte zum Einordnen (Halbtöne Standardabweichung, dB zwischen Sprechstrecken); Stellschraube für die Anzeige und die KI
+const VT_RICHT = { monoton: 2, lebhaft: 3.5, gleichfoermig: 2 };
+function vtRahmen(pcm, rate) {
+  const r = rate / 2, x = new Float32Array(pcm.length >> 1);  // halbe Rate: reicht für Stimmen bis 400 Hz und spart drei Viertel der Rechnung
+  for (let i = 0; i < x.length; i++) x[i] = (pcm[2 * i] + pcm[2 * i + 1]) / 2;
+  const hop = Math.round(r * VT_RAHMEN), W = Math.round(r * 0.032), tMin = Math.floor(r / 400), tMax = Math.ceil(r / 60);
+  const n = Math.floor(x.length / hop), db = new Float32Array(n), f0 = new Float32Array(n), d = new Float32Array(tMax + 2);
+  for (let k = 0; k < n; k++) { let e = 0; for (let i = k * hop; i < (k + 1) * hop; i++) e += x[i] * x[i]; db[k] = 10 * Math.log10(e / hop + 1e-10); }
+  const s = db.filter(v => v > -90).sort();  // digitale Stille zählt nicht zum Grundrauschen
+  if (!s.length) return { db, f0 };
+  const boden = s[Math.floor(0.1 * s.length)], tor = boden + 0.25 * (s[Math.floor(0.95 * s.length)] - boden);
+  for (let k = 0; k < n; k++) {
+    const o = k * hop;
+    if (db[k] < tor || o + W + tMax + 1 > x.length) continue;
+    let summe = 0, t = 0;
+    for (let tau = 1; tau <= tMax + 1; tau++) {
+      let q = 0; for (let i = o; i < o + W; i++) { const u = x[i] - x[i + tau]; q += u * u; }
+      summe += q; d[tau] = q * tau / (summe || 1);
+    }
+    for (let tau = tMin; tau <= tMax; tau++) if (d[tau] < 0.15) { while (tau < tMax && d[tau + 1] < d[tau]) tau++; t = tau; break; }
+    if (!t) continue;
+    const a = d[t - 1], b = d[t], c = d[t + 1], nenner = a - 2 * b + c;
+    f0[k] = r / (nenner > 0 ? t + (a - c) / (2 * nenner) : t);
+  }
+  return { db, f0 };
+}
+// ponytail: Schwellen (30 % über dem Rauschen, Pause ab 0,25 s, Satzende ±1,5 Halbtöne) sind Startwerte; an echten Aufnahmen nachjustieren
+function vtStimmeAus(db, f0) {
+  const R = VT_RAHMEN, n = db.length, r1 = x => Math.round(x * 10) / 10;
+  const pz = (a, p) => a[Math.min(a.length - 1, Math.floor(p * a.length))], median = a => a.slice().sort((x, y) => x - y)[a.length >> 1];
+  const mittel = a => a.reduce((s, x) => s + x, 0) / (a.length || 1), sd = a => { const m = mittel(a); return Math.sqrt(mittel(a.map(x => (x - m) ** 2))); };
+  const s = db.filter(v => v > -90).sort();
+  if (!s.length) return null;
+  const boden = pz(s, 0.1), schwelle = boden + 0.3 * (pz(s, 0.95) - boden), an = k => db[k] > schwelle;
+  let erst = 0, letzt = n - 1;
+  while (erst < n && !an(erst)) erst++;
+  while (letzt > erst && !an(letzt)) letzt--;
+  if (erst >= n) return null;
+  // Pause: ab 0,25 s still (kürzere Lücken sind Verschlusslaute); dazwischen liegen die Sprechstrecken
+  const pausen = [], strecken = [];
+  let von = erst;
+  for (let k = erst; k <= letzt; k++) {
+    if (an(k)) continue;
+    let j = k; while (!an(j)) j++;  // an(letzt) stimmt, spätestens dort ist Schluss
+    if ((j - k) * R >= 0.25) { strecken.push([von, k]); pausen.push([r1(k * R), r1((j - k) * R)]); von = j; }
+    k = j;
+  }
+  strecken.push([von, letzt + 1]);
+  // Tonhöhe in Halbtönen um die eigene Stimmlage; Sprünge um eine Oktave sind Messfehler und fallen weg
+  const med = median(Array.from(f0).filter((f, k) => f > 0 && an(k)));
+  const st = k => f0[k] > 0 && an(k) && f0[k] > med / 1.7 && f0[k] < med * 1.7 ? 12 * Math.log2(f0[k] / med) : null;
+  const ton = [];
+  for (let k = erst; k <= letzt; k++) { const x = st(k); if (x != null) ton.push(x); }
+  const enden = { faellt: 0, gleich: 0, steigt: 0 };  // Satzmelodie: die letzte halbe Sekunde jeder Strecke gegen ihre Mitte
+  for (const [a, b] of strecken) {
+    const alle = [], ende = [];
+    for (let k = a; k < b; k++) { const x = st(k); if (x != null) { alle.push(x); if (k >= b - 0.5 / R) ende.push(x); } }
+    if ((b - a) * R < 1 || alle.length < 15 || ende.length < 4) continue;
+    const diff = median(ende) - median(alle);
+    enden[diff < -1.5 ? 'faellt' : diff > 1.5 ? 'steigt' : 'gleich']++;
+  }
+  const sprech = [];
+  for (let k = erst; k <= letzt; k++) if (an(k)) sprech.push(db[k]);
+  const laut = mittel(sprech), lautS = strecken.filter(([a, b]) => (b - a) * R >= 0.5).map(([a, b]) => { const w = []; for (let k = a; k < b; k++) if (an(k)) w.push(db[k]); return mittel(w); });
+  const proMinute = [];
+  for (let m = 0; m * 60 < n * R; m++) {
+    const t = [], l = [];
+    for (let k = Math.round(m * 60 / R); k < Math.min(n, Math.round((m + 1) * 60 / R)); k++) { if (an(k)) l.push(db[k]); const x = st(k); if (x != null) t.push(x); }
+    proMinute.push({ ton: t.length > 50 ? r1(sd(t)) : null, laut: l.length > 50 ? r1(mittel(l) - laut) : null });
+  }
+  const kurve = [], B = Math.round(0.5 / R);  // Melodie in halben Sekunden fürs Bild; Lücken sind Pausen oder stimmlose Laute
+  for (let k = 0; k < n; k += B) {
+    const w = [];
+    for (let j = k; j < Math.min(n, k + B); j++) { const x = st(j); if (x != null) w.push(x); }
+    kurve.push(w.length >= 5 ? r1(Math.max(-12, Math.min(12, median(w)))) : null);
+  }
+  const lang = strecken.map(([a, b]) => (b - a) * R), sprechzeit = lang.reduce((x, y) => x + y, 0), mitTon = ton.length >= 100, sortiert = ton.slice().sort((x, y) => x - y);
+  return { sprechzeit: r1(sprechzeit), sprechanteil: Math.round(100 * sprechzeit / ((letzt + 1 - erst) * R)), pausen, strecke: r1(mittel(lang)), laengste: r1(Math.max(...lang)),
+    hz: mitTon ? Math.round(med) : null, schwankung: mitTon ? r1(sd(ton)) : null, umfang: mitTon ? r1(pz(sortiert, 0.95) - pz(sortiert, 0.05)) : null,
+    enden, laut: lautS.length > 2 ? r1(sd(lautS)) : null, proMinute, kurve };
+}
+async function vtStimme(ton, datei) {
+  const n = Math.ceil(ton.dauer / VT_RAHMEN) + 1, db = new Float32Array(n).fill(-100), f0 = new Float32Array(n);
+  for (const t of ton.teile) {
+    let b;
+    try { b = await new OfflineAudioContext(1, 1, 16000).decodeAudioData(await t.blob.arrayBuffer()); }
+    catch (e) { if (t.format === 'aac' && datei) return vtStimme(await wavTeile(datei)); throw e; }  // rohes AAC liest nicht jeder Browser: dann der Umweg über die ganze Datei
+    const pcm = b.getChannelData(0);
+    if (b.numberOfChannels > 1) { const r = b.getChannelData(1); for (let i = 0; i < pcm.length; i++) pcm[i] = (pcm[i] + r[i]) / 2; }
+    const r = vtRahmen(pcm, b.sampleRate), o = Math.round(t.start / VT_RAHMEN);
+    if (o < n) { db.set(r.db.subarray(0, n - o), o); f0.set(r.f0.subarray(0, n - o), o); }
+    await new Promise(ok => setTimeout(ok));  // zwischen den Teilen Luft für die Anzeige
+  }
+  return vtStimmeAus(db, f0);
+}
 // Standbilder für Auftreten und Folien: alle 30 Sekunden eins, höchstens 24, längste Seite 640 px
 async function vtStandbilder(datei, dauer) {
   if (!dauer || !(datei.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(datei.name))) return [];
@@ -5387,15 +5532,19 @@ function vtZeilen(text, start = 0) {
 }
 function vtZahlen(v) {
   const text = v.zeilen.map(z => z.s).join('\n');
-  const sp = (text.match(/\b(the|and|is|to|of|that)\b/gi)?.length || 0) > (text.match(/\b(der|die|das|und|ist|nicht)\b/gi)?.length || 0) ? 'en' : 'de';
-  const rein = text.replace(/\[[^\]]*\]/g, ' '), aeh = rein.match(VT_AEH[sp]) || [], min = Math.max(v.dauer, 1) / 60;
-  const woerter = rein.split(/\s+/).filter(w => /[\p{L}\d]/u.test(w)).length - aeh.length;
+  const sp = vtSprache(text), AEH = VT_SPRACHEN[sp].aeh, zaehl = s => s.replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(w => /[\p{L}\d]/u.test(w)).length;
+  const rein = text.replace(/\[[^\]]*\]/g, ' '), aeh = rein.match(AEH) || [], min = Math.max(v.dauer, 1) / 60;
+  const woerter = zaehl(text) - aeh.length;
   const laute = {};
   for (const a of aeh) { const w = a.toLowerCase().replace(/(.)\1+/g, '$1'); laute[w] = (laute[w] || 0) + 1; }
-  const proMinute = Array.from({ length: Math.max(1, Math.ceil(v.dauer / 60)) }, () => 0);
-  for (const z of v.zeilen) proMinute[Math.min(proMinute.length - 1, Math.floor(z.t / 60))] += (z.s.match(VT_AEH[sp]) || []).length;
-  const pausen = [...text.matchAll(/\[Pause (\d+(?:[.,]\d+)?)\s*s\]/gi)].map(m => parseFloat(m[1].replace(',', '.')));
-  return { sp, woerter, tempo: Math.round(woerter / min), aeh: aeh.length, aehMin: aeh.length / min, laute, proMinute, pausen };
+  const proMinute = Array.from({ length: Math.max(1, Math.ceil(v.dauer / 60)) }, () => 0), woerterMin = proMinute.slice();
+  for (const z of v.zeilen) {
+    const m = Math.min(proMinute.length - 1, Math.floor(z.t / 60)), n = (z.s.match(AEH) || []).length;
+    proMinute[m] += n; woerterMin[m] += zaehl(z.s) - n;
+  }
+  // lange Pausen: gemessen, wenn die App die Tonspur hatte, sonst wie die Spracherkennung sie markiert hat
+  const pausen = v.stimme ? v.stimme.pausen.filter(p => p[1] >= 2).map(p => p[1]) : [...text.matchAll(/\[Pause (\d+(?:[.,]\d+)?)\s*s\]/gi)].map(m => parseFloat(m[1].replace(',', '.')));
+  return { sp, woerter, tempo: Math.round(woerter / min), aeh: aeh.length, aehMin: aeh.length / min, laute, proMinute, woerterMin, pausen };
 }
 async function vtHoeren(teile, job, dauer) {
   const stand = teile.map(() => 0);
@@ -5415,13 +5564,35 @@ async function vtHoeren(teile, job, dauer) {
   return { zeilen: fertig.flatMap(f => f.zeilen), preis: fertig.reduce((a, f) => a + f.preis, 0) };
 }
 const vtText = v => v.zeilen.map(l => `[${mmss(l.t)}] ${l.s}`).join('\n');
+const vtProzent = e => { const n = e.faellt + e.gleich + e.steigt; return n ? Object.fromEntries(Object.entries(e).map(([k, x]) => [k, Math.round(100 * x / n)])) : null; };
+const vtArtikulation = (s, z) => s?.sprechzeit > 10 ? Math.round(z.woerter / (s.sprechzeit / 60)) : null;
+const vtPausenMin = s => s.pausen.length / Math.max(1 / 60, s.sprechzeit / Math.max(1, s.sprechanteil) * 100 / 60);  // je Minute vom ersten bis zum letzten Wort
+// Messwerte für die Analyse, mit groben Richtwerten, damit die KI sie einordnen kann (ponytail: Richtwerte wie in vtStimmeAus nachjustieren)
+function vtStimmeText(s, z) {
+  if (!s) return 'Stimme: nicht gemessen (YouTube-Link oder Ton nicht lesbar). Tonhöhe, Lautstärke und genaue Pausen sind unbekannt; urteile nicht darüber, und die Wirkung-Stimme entfällt.';
+  const lang = s.pausen.filter(p => p[1] >= 2), e = vtProzent(s.enden);
+  const reihe = k => s.proMinute.map(m => m[k] == null ? '–' : komma(m[k])).join(' · ');
+  return `Stimme, von der App aus der Tonspur gemessen (Signalanalyse ohne KI, in jeder Sprache gleich):
+- Sprechanteil ${s.sprechanteil} % der Zeit; Artikulationstempo ${vtArtikulation(s, z) ?? '–'} Wörter pro Minute reiner Sprechzeit
+- Pausen ab 0,25 s: ${s.pausen.length} (${komma(vtPausenMin(s))} pro Minute), im Schnitt ${komma(s.pausen.reduce((x, p) => x + p[1], 0) / (s.pausen.length || 1))} s; ab 2 s: ${lang.map(([t, d]) => `${mmss(t)} (${komma(d)} s)`).join(', ') || 'keine'}
+- Sprechstrecken zwischen den Pausen: im Schnitt ${komma(s.strecke)} s, die längste ${komma(s.laengste)} s
+${s.hz ? `- Stimmlage ${s.hz} Hz; Tonhöhen-Schwankung ${komma(s.schwankung)} Halbtöne (Standardabweichung), Tonumfang ${komma(s.umfang)} Halbtöne (5. bis 95. Perzentil). Grobe Richtwerte für die Schwankung: unter ${komma(VT_RICHT.monoton)} eher monoton, ${komma(VT_RICHT.monoton)} bis ${komma(VT_RICHT.lebhaft)} natürlich, darüber sehr lebhaft` : '- Tonhöhe: zu wenig stimmhafte Stellen zum Messen'}
+${e ? `- Satzmelodie am Ende der Sprechstrecken: ${e.faellt} % fallend, ${e.gleich} % gleichbleibend, ${e.steigt} % steigend` : ''}
+${s.laut != null ? `- Lautstärke-Wechsel zwischen den Sprechstrecken: ${komma(s.laut)} dB (Standardabweichung; grob: unter ${komma(VT_RICHT.gleichfoermig)} dB gleichförmig, darüber übliche Betonungswechsel)` : ''}
+- Je Minute: Tonhöhen-Schwankung ${reihe('ton')} Halbtöne; Lautstärke gegenüber dem Schnitt ${reihe('laut')} dB
+Nutze die Messwerte als Beleg für Flüssigkeit, Vortragsweise und Wirkung, mit Zahl. Hall, Störgeräusche, Musik oder ein weit entferntes Mikrofon verfälschen sie; passen sie offensichtlich nicht zum Transkript, verlass dich aufs Transkript und sag das. Aussprache und Akzent leitest du daraus nicht ab.`.replace(/\n\n+/g, '\n');
+}
 async function vtAnalysieren(v, job) {
-  const z = vtZahlen(v), datei = VT.dateien[v.id];
+  const datei = VT.dateien[v.id];
+  if (!v.stimme && datei) { job.hinweis = ue('Misst Stimme und Pausen …', 'Measuring voice and pauses …'); v.stimme = await vtTon(datei).then(t => vtStimme(t, datei)).catch(() => null); }  // ältere Vorträge: mit verbundenem Video nachholen
+  const z = vtZahlen(v);
   if (!VT.bilder[v.id]?.length && datei) { job.hinweis = ue('Holt Standbilder aus dem Video …', 'Taking stills from the video …'); VT.bilder[v.id] = await vtStandbilder(datei, v.dauer); }
   const bilder = VT.bilder[v.id] || [];
   job.hinweis = ue('Analysiert … liest das Transkript', 'Analysing … reading the transcript');
   const text = `Anlass und Vorgaben: ${v.kontext || 'nicht angegeben'}
-Kennzahlen der App: Dauer ${mmss(v.dauer)} · ${z.woerter} Wörter · ${z.tempo} Wörter pro Minute · ${z.aeh} äh-Laute (${komma(z.aehMin)} pro Minute) · ${z.pausen.length} Pausen ab 2 Sekunden
+Kennzahlen der App: Dauer ${mmss(v.dauer)} · ${z.woerter} Wörter · ${z.tempo} Wörter pro Minute · ${z.aeh} Zögerlaute (${komma(z.aehMin)} pro Minute) · ${z.pausen.length} Pausen ab 2 Sekunden
+Wörter je Minute: ${z.woerterMin.join(' · ')}
+${vtStimmeText(v.stimme, z)}
 ${bilder.length ? `Dazu ${bilder.length} Standbilder aus dem Video, gleichmäßig verteilt.` : 'Keine Standbilder: das Kriterium Folien entfällt, Haltung und Blickkontakt sind nicht zu sehen.'}
 
 ${v.partnerships?.length ? `=== WORD PARTNERSHIPS ===
@@ -5434,7 +5605,7 @@ Was will ich beim nächsten Mal anders machen: ${v.reflexion.besser || '(nichts 
 
 === TRANSKRIPT ===
 ${vtText(v)}`;
-  const { text: antwort, preis } = await strom({ ...VT_DENKEN, feature: 'vortrag', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: vtAnalyse(v.inhalt, v.massstab, v.ziel, !!v.partnerships?.length) },
+  const { text: antwort, preis } = await strom({ ...VT_DENKEN, feature: 'vortrag', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: vtAnalyse(v.inhalt, v.massstab, v.ziel, !!v.partnerships?.length, !!v.stimme) },
     { role: 'user', content: [{ type: 'text', text }, ...bilder.flatMap(b => [{ type: 'text', text: `Standbild bei ${mmss(b.t)}:` }, { type: 'image_url', image_url: { url: b.url } }])] }] },
     x => { job.hinweis = ue('Schreibt die Bewertung … ', 'Writing the rating … ') + (x.match(/"zeit"/g) || []).length + ue(' Befunde', ' findings'); }, () => { job.hinweis = ue('Analysiert … denkt nach', 'Analysing … thinking'); });
   let a;
@@ -5452,6 +5623,7 @@ ${vtText(v)}`;
   v.analyse = { ...a, ger: ger?.skalen.length ? ger : null, reflexion: refl?.punkte.length ? refl : null, massstab: v.massstab || 'kurs',
     ziel: v.massstab === 'buehne' ? null : GER_STUFEN.includes(a.ziel) ? a.ziel : v.ziel || 'B2',
     punkte, note: vtNote(punkte), kriterien, staerken: liste(a.staerken), tipps: liste(a.tipps),
+    wirkung: a.wirkung ? { aspekte: liste(a.wirkung.aspekte).filter(w => w.name && VT_STUFE[w.stufe]), teile: liste(a.wirkung.teile).filter(t => t.teil && t.von != null) } : null,
     fuellwoerter: liste(a.fuellwoerter).filter(f => f.wort && f.anzahl > 0), befunde: liste(a.befunde).filter(b => b.zitat).sort((x, y) => vtSek(x.zeit) - vtSek(y.zeit)),
     partnerships: v.partnerships?.length ? liste(a.partnerships).filter(p => p.ausdruck && ['passt', 'holprig', 'falsch', 'fehlt'].includes(p.status))
       .map(p => ({ ...p, einbau: p.status !== 'passt' && p.einbau?.original && p.einbau?.neu ? p.einbau : null })) : [] };
@@ -5492,17 +5664,18 @@ function vtStart(form) {
     quelle: datei ? { art: 'datei', name: datei.name } : { art: 'youtube', url: yt }, kontext: f.kontext.value.trim(), dauer: 0, zeilen: [], analyse: null, kosten: 0 };
   if (datei) VT.dateien[id] = datei;
   vtLauf(id, async job => {
-    let teile = [{ start: 0, youtube: yt }];
+    let teile = [{ start: 0, youtube: yt }], stimme = null;
     if (datei) {
       job.hinweis = ue('Liest die Tonspur …', 'Reading the audio track …');
-      const ton = await aacTeile(datei).catch(() => null) || await wavTeile(datei);
+      const ton = await vtTon(datei);
       teile = ton.teile; v.dauer = ton.dauer;
+      stimme = vtStimme(ton, datei).catch(() => null);  // misst im Gerät, während Gemini mitschreibt
     } else if (!f.titel.value.trim()) v.titel = await ytTitel(yt) || v.titel;
     job.hinweis = ue('Transkribiert …', 'Transcribing …');
     let r;
     try { r = await vtHoeren(teile, job, v.dauer); }
     catch (e) { throw yt ? new Error(ue(`Google konnte das Video nicht öffnen (${e.message}). Nicht gelistete und private Videos gehen nicht: stell es kurz auf Öffentlich oder wähl die Datei direkt.`, `Google could not open the video (${e.message}). Unlisted and private videos do not work: set it to public for a moment or choose the file directly.`)) : e; }
-    v.zeilen = r.zeilen; v.kosten = r.preis;
+    v.zeilen = r.zeilen; v.kosten = r.preis; v.stimme = await stimme;
     if (!v.zeilen.length) throw new Error(ue('In der Aufnahme war keine Sprache zu erkennen.', 'No speech could be recognised in the recording.'));
     v.dauer ||= v.zeilen.at(-1).t + 3;  // YouTube: die Länge kennt erst das Transkript
     job.hinweis = ue('Speichert das Transkript …', 'Saving the transcript …');
@@ -5543,6 +5716,7 @@ const vtKontext = v => `Du bist Präsentations- und Sprachcoach. Beantworte Rüc
 Maßstab: ${v.analyse?.massstab === 'buehne' ? 'Vortrag vor Publikum' : `Präsentation im Sprachunterricht, gemessen am Zielniveau ${v.analyse?.ziel || 'B2'}`}. Fragt die Person, wie sie die nächste GER-Stufe erreicht, antworte mit konkreten Formulierungen aus ihrem Vortrag (vorher → nachher).
 
 Anlass und Vorgaben: ${v.kontext || 'nicht angegeben'}
+${vtStimmeText(v.stimme, vtZahlen(v))}
 
 === ANALYSE ===
 ${JSON.stringify(v.analyse)}
@@ -5698,7 +5872,13 @@ function vtGrundlage(a) {
         return [el('dt', { class: k }, GER_STUFEN[i]), el('dd', { class: k }, EN ? GER_EN[g.en][i] : t, k && ue(' ← dein Vortrag', ' ← your talk'))];
       }))];
     }),
-    el('p', {}, ue('Interaktion entfällt, weil ein Vortrag ein Monolog ist. Aussprache bewertet die App nicht: Die Analyse liest das Transkript und hört die Aufnahme nicht.', 'Interaction is left out because a talk is a monologue. The app does not rate pronunciation: the analysis reads the transcript and does not listen to the recording.')),
+    el('p', {}, ue('Interaktion entfällt, weil ein Vortrag ein Monolog ist. Aussprache bewertet die App nicht: Die Analyse liest das Transkript, und die Messung aus der Tonspur erfasst Tonhöhe, Lautstärke und Pausen, aber keine Laute.', 'Interaction is left out because a talk is a monologue. The app does not rate pronunciation: the analysis reads the transcript, and the measurement from the audio track captures pitch, volume and pauses, but not sounds.')),
+    el('h3', {}, ue('Stimme: Messung aus der Tonspur', 'Voice: measured from the audio track')),
+    el('p', {}, ue('Die App rechnet im Gerät, ohne KI: alle 20 Millisekunden Lautstärke und Tonhöhe (YIN-Verfahren nach de Cheveigné und Kawahara, 2002). Pause heißt mindestens 0,25 Sekunden still, wie in der Forschung zur Sprechflüssigkeit üblich. Die Tonhöhen-Schwankung ist die Standardabweichung in Halbtönen um deine eigene Stimmlage, darum ist sie für hohe und tiefe Stimmen vergleichbar.',
+      'The app calculates on your device, without AI: volume and pitch every 20 milliseconds (YIN method after de Cheveigné and Kawahara, 2002). A pause means at least 0.25 seconds of silence, as is usual in fluency research. Pitch variation is the standard deviation in semitones around your own pitch, so it is comparable for high and low voices.')),
+    el('h3', {}, ue('Spannung und Wirkung', 'Engagement')),
+    el('dl', {}, VT_WIRKUNG.map(([n, en, t, , tEn]) => [el('dt', {}, EN ? en : n), el('dd', {}, EN ? tEn : t)])),
+    el('p', {}, ue('Diese Einschätzung zählt nicht zur Note.', 'This assessment is not part of the grade.')),
     massstaebe.map(m => [el('h3', {}, EN ? `${VT_MASSSTAB[m].en[0]}: ${VT_MASSSTAB[m].en[2]}` : `${VT_MASSSTAB[m].name}: ${VT_MASSSTAB[m].grundlage}`),
       el('dl', {}, VT_MASSSTAB[m].kriterien.map(([n, en, t, inhalt]) => [el('dt', {}, EN ? en : n), el('dd', {}, EN ? KRIT_EN[en] : `${t} (${en})`, inhalt && ue(' Nur mit Inhaltsprüfung.', ' Only with content check.'))]))]),
     el('h3', {}, ue('Von den Punkten zur Note', 'From points to grade')),
@@ -5736,11 +5916,11 @@ function vtSeite(v) {
     !job && vtReflexionTeil(v), vtTranskript(v, z, null, zeit)];
 
   const zahl = (wert, name, hinweis) => el('div', { class: 'vt-zahl' }, el('b', {}, wert), el('span', {}, name), hinweis && el('span', { class: 'meta' }, hinweis));
-  const [tMin, tMax] = z.sp === 'en' ? [120, 160] : [100, 140];
+  const [tMin, tMax] = VT_SPRACHEN[z.sp].tempo, laute = lautName(z.sp);
   const fw = [...Object.entries(z.laute).map(([wort, anzahl]) => ({ wort, anzahl })), ...a.fuellwoerter].sort((x, y) => y.anzahl - x.anzahl);
   const fwSumme = a.fuellwoerter.reduce((s, f) => s + (+f.anzahl || 0), 0);
   const zaehle = art => a.befunde.filter(b => b.art === art).length;
-  const max = Math.max(1, ...z.proMinute), spitze = z.proMinute.indexOf(Math.max(...z.proMinute));
+  const max = Math.max(1, ...z.proMinute), spitze = z.proMinute.indexOf(Math.max(...z.proMinute)), kurve = vtKurve(v.stimme);
   if (VT.filter !== 'alle' && !zaehle(VT.filter)) VT.filter = 'alle';
   const befundListe = el('ol', { class: 'vt-befunde' });
   const filter = ['alle', ...Object.keys(VT_ARTEN).filter(zaehle)].map(k => el('button', { type: 'button', class: 'vt-filter', 'data-art': k, 'aria-pressed': String(VT.filter === k),
@@ -5789,18 +5969,20 @@ function vtSeite(v) {
     el('section', { class: 'vt-zahlen', 'aria-label': 'Kennzahlen' },
       zahl(mmss(v.dauer), ue('Dauer', 'Duration'), null),
       zahl(z.tempo, ue('Wörter pro Minute', 'Words per minute'), z.tempo < tMin ? ue('eher langsam', 'rather slow') : z.tempo > tMax ? ue('eher schnell', 'rather fast') : ue('angenehmes Tempo', 'comfortable pace')),
-      zahl(z.aeh, z.sp === 'en' ? ue('uh und um', 'uh and um') : ue('äh und ähm', 'äh and ähm'), komma(z.aehMin) + ue(' pro Minute', ' per minute')),
+      zahl(z.aeh, laute, komma(z.aehMin) + ue(' pro Minute', ' per minute')),
       zahl(fwSumme, ue('Füllwörter', 'Filler words'), a.fuellwoerter[0] && ue('am häufigsten „', 'most often "') + a.fuellwoerter.slice().sort((x, y) => y.anzahl - x.anzahl)[0].wort + ue('“', '"')),
       zahl(z.pausen.length, ue('Pausen ab 2 s', 'Pauses of 2 s or more'), z.pausen.length ? ue('längste ', 'longest ') + komma(Math.max(...z.pausen)) + ' s' : null),
       zahl(a.befunde.length, ue('Befunde', 'Findings'), zaehle('grammatik') + ue(' Grammatik', ' grammar') + (v.inhalt ? `, ${zaehle('logik') + zaehle('irrefuehrend')}` + ue(' Logik', ' logic') : `, ${zaehle('wortwahl')}` + ue(' Wortwahl', ' word choice')))),
+    vtStimmeTeil(v, z, !!yt),
     a.partnerships?.length > 0 && vtPartnerships(v, a, zeit),
     a.tipps.length > 0 && el('section', { class: 'block' }, el('h2', {}, ue('Die wichtigsten Tipps', 'Top tips')),
       el('ol', { class: 'vt-tipps' }, a.tipps.map(t => el('li', {}, el('h3', {}, t.titel), el('p', {}, t.warum), t.uebung && el('p', { class: 'vt-uebung' }, el('b', {}, ue('Übung: ', 'Exercise: ')), t.uebung))))),
     a.staerken.length > 0 && el('section', { class: 'block' }, el('h2', {}, ue('Das war gut', 'What went well')), el('ul', { class: 'vt-staerken' }, a.staerken.map(s => el('li', {}, s)))),
-    el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, ue('Verlauf', 'Timeline')), el('p', { class: 'meta' }, ue(`Balken: ${z.sp === 'en' ? 'uh und um' : 'äh und ähm'} pro Minute · Striche: Befunde`, `Bars: ${z.sp === 'en' ? 'uh and um' : 'äh and ähm'} per minute · ticks: findings`))),
-      el('p', { class: 'sr' }, z.aeh ? ue(`Die meisten ${z.sp === 'en' ? 'uh und um' : 'äh'} in Minute ${spitze + 1}: ${z.proMinute[spitze]}.`, `Most ${z.sp === 'en' ? 'uh and um' : 'äh'} in minute ${spitze + 1}: ${z.proMinute[spitze]}.`) : ue('Keine äh-Laute.', 'No uh sounds.')),
+    a.wirkung?.aspekte.length > 0 && vtWirkung(v, a.wirkung, zeit),
+    el('section', { class: 'block' }, el('div', { class: 'block-kopf' }, el('h2', {}, ue('Verlauf', 'Timeline')), el('p', { class: 'meta' }, ue(`Balken: ${laute} pro Minute${kurve ? ' · Linie: Stimmlage, Lücken sind Pausen' : ''} · Striche: Befunde`, `Bars: ${laute} per minute${kurve ? ' · line: pitch, gaps are pauses' : ''} · ticks: findings`))),
+      el('p', { class: 'sr' }, z.aeh ? ue(`Die meisten ${laute} in Minute ${spitze + 1}: ${z.proMinute[spitze]}.`, `Most ${laute} in minute ${spitze + 1}: ${z.proMinute[spitze]}.`) : ue('Keine Zögerlaute.', 'No hesitation sounds.')),
       el('div', { class: 'vt-verlauf', 'aria-hidden': 'true' },
-        el('div', { class: 'vt-saeulen' }, z.proMinute.map(x => el('span', { style: `height:${Math.round(x / max * 100)}%` }))),
+        el('div', { class: 'vt-saeulen' }, z.proMinute.map(x => el('span', { style: `height:${Math.round(x / max * 100)}%` }))), kurve,
         el('div', { class: 'vt-spur' }, a.befunde.map(b => el('span', { 'data-art': b.art, style: `left:${Math.min(100, vtSek(b.zeit) / Math.max(v.dauer, 1) * 100).toFixed(2)}%` })))),
       el('div', { class: 'vt-achse meta', 'aria-hidden': 'true' }, el('span', {}, '0:00'), el('span', {}, mmss(v.dauer)))),
     el('section', { class: 'block' }, el('h2', {}, ue('Befunde', 'Findings')),
@@ -5812,6 +5994,46 @@ function vtSeite(v) {
         vorschlaege: EN ? ['Write me a stronger opening.', 'How can I structure the talk better?', 'Which sentences should I rephrase before the next rehearsal?']
           : ['Schreib mir einen stärkeren Einstieg.', 'Wie baue ich den Vortrag besser auf?', 'Welche Sätze sollte ich vor der nächsten Probe umformulieren?'] })),
     el('details', { class: 'quellen' }, el('summary', {}, r ? ue('Reflexion ändern und neu bewerten', 'Change reflection and re-rate') : ue('Reflexion nachholen und neu bewerten', 'Add reflection and re-rate')), vtReflexionTeil(v))];
+}
+// Stimmlage als Linie über die ganze Zeit: Mitte ist die eigene übliche Tonhöhe, ±8 Halbtöne nach oben und unten, Lücken sind Pausen
+function vtKurve(s) {
+  if (!s?.hz || s.kurve.length < 2) return null;
+  const mk = (t, a, ...k) => { const e = document.createElementNS('http://www.w3.org/2000/svg', t); for (const [x, y] of Object.entries(a)) e.setAttribute(x, y); e.append(...k); return e; };
+  let d = '', davor = false;
+  s.kurve.forEach((y, i) => { if (y == null) { davor = false; return; } const p = `${i},${-Math.max(-8, Math.min(8, y))}`; d += davor ? `L${p}` : `M${p}h.4`; davor = true; });
+  return mk('svg', { class: 'vt-kurve', viewBox: `0 -8 ${s.kurve.length} 16`, preserveAspectRatio: 'none' }, mk('line', { x1: 0, x2: s.kurve.length, y1: 0, y2: 0 }), mk('path', { d }));
+}
+function vtStimmeTeil(v, z, yt) {
+  const s = v.stimme;
+  if (!s) return el('p', { class: 'meta' }, yt ? ue('Stimme nicht gemessen: Bei YouTube-Links bekommt die App die Tonspur nicht. Wähl die Datei direkt, dann misst sie Tonhöhe, Lautstärke und Pausen.', 'Voice not measured: with YouTube links the app does not get the audio track. Choose the file directly and it measures pitch, volume and pauses.')
+    : ue('Stimme nicht gemessen. Verbinde oben das Video und bewerte neu, dann misst die App auch Tonhöhe, Lautstärke und Pausen.', 'Voice not measured. Connect the video above and re-rate, then the app also measures pitch, volume and pauses.'));
+  const zahl = (wert, name, hinweis) => el('div', { class: 'vt-zahl' }, el('b', {}, wert), el('span', {}, name), hinweis && el('span', { class: 'meta' }, hinweis));
+  const e = vtProzent(s.enden), art = vtArtikulation(s, z);
+  return el('section', { class: 'block' },
+    el('div', { class: 'block-kopf' }, el('h2', {}, ue('Stimme und Pausen', 'Voice and pauses')), el('p', { class: 'meta' }, ue('Gemessen aus der Tonspur, ohne KI', 'Measured from the audio track, without AI'))),
+    el('div', { class: 'vt-zahlen' },
+      s.schwankung != null && zahl(komma(s.schwankung), ue('Melodie in Halbtönen', 'Melody in semitones'), s.schwankung < VT_RICHT.monoton ? ue('eher monoton', 'rather monotone') : s.schwankung > VT_RICHT.lebhaft ? ue('sehr lebhaft', 'very lively') : ue('natürlich', 'natural')),
+      e && zahl(`${e.faellt} %`, ue('der Sätze enden fallend', 'of sentences end falling'), e.steigt >= 25 ? ue(`${e.steigt} % steigend: klingt oft unsicher`, `${e.steigt}% rising: often sounds unsure`) : ue(`${e.steigt} % steigend`, `${e.steigt}% rising`)),
+      s.laut != null && zahl(`${komma(s.laut)} dB`, ue('Lautstärke-Wechsel', 'volume variation'), s.laut < VT_RICHT.gleichfoermig ? ue('eher gleichförmig', 'rather even') : ue('abwechslungsreich', 'varied')),
+      zahl(`${s.sprechanteil} %`, ue('der Zeit gesprochen', 'of the time speaking'), ue(`${komma(vtPausenMin(s))} Pausen pro Minute`, `${komma(vtPausenMin(s))} pauses per minute`)),
+      art && zahl(art, ue('Wörter pro Sprechminute', 'words per speaking minute'), ue('Pausen nicht mitgezählt', 'pauses left out')),
+      zahl(`${komma(s.laengste)} s`, ue('längste Strecke ohne Pause', 'longest stretch without a pause'), ue(`im Schnitt ${komma(s.strecke)} s`, `${komma(s.strecke)} s on average`))),
+    el('p', { class: 'meta' }, ue('Hall, Hintergrundgeräusche oder Musik können die Messung verfälschen. Aussprache misst die App nicht.', 'Echo, background noise or music can distort the measurement. The app does not measure pronunciation.')));
+}
+const VT_TEILE = { Einleitung: 'Introduction', Hauptteil: 'Main part', Schluss: 'Conclusion' };
+function vtWirkung(v, w, zeit) {
+  const teile = w.teile.map(t => ({ ...t, s: vtSek(t.von) })).filter(t => VT_TEILE[t.teil] && t.s < v.dauer).sort((x, y) => x.s - y.s);
+  const dauer = (t, i) => Math.max(0, (teile[i + 1]?.s ?? v.dauer) - t.s), ort = x => /^\d+:\d\d$/.test(x || '') && zeit(vtSek(x));
+  return el('section', { class: 'block' },
+    el('div', { class: 'block-kopf' }, el('h2', {}, ue('Spannung und Wirkung', 'Engagement')), el('p', { class: 'meta' }, ue('Wie dein Vortrag Interesse weckt und hält · zählt nicht zur Note', 'How your talk catches and holds interest · not part of the grade'))),
+    teile.length > 1 && [el('div', { class: 'vt-teile' }, teile.map((t, i) => el('span', { style: `flex:${Math.max(1, dauer(t, i))}`, title: `${EN ? VT_TEILE[t.teil] : t.teil} ${mmss(dauer(t, i))}` },
+      el('b', {}, EN ? VT_TEILE[t.teil] : t.teil), el('span', {}, `${mmss(dauer(t, i))} · ${Math.round(100 * dauer(t, i) / Math.max(1, v.dauer))} %`)))),
+      el('p', { class: 'meta' }, ue('Faustregel: Einleitung etwa 10 bis 15 % der Zeit, Schluss 5 bis 10 %.', 'Rule of thumb: introduction about 10 to 15% of the time, conclusion 5 to 10%.'))],
+    el('ul', { class: 'vt-abgleich' }, w.aspekte.map(x => {
+      const [wort, word, art] = VT_STUFE[x.stufe];
+      return el('li', {}, el('div', { class: 'vt-b-kopf' }, el('span', { class: 'vt-name-zeit' }, el('b', {}, EN ? VT_WIRKUNG.find(k => k[0] === x.name)?.[1] || x.name : x.name), ort(x.zeit)), el('span', { class: `pille ${art}` }, EN ? word : wort)),
+        x.beleg && el('p', {}, x.beleg), x.tipp && el('p', { class: 'vt-besser' }, el('b', {}, ue('Tipp: ', 'Tip: ')), x.tipp));
+    })));
 }
 // Word Partnerships im Probevideo: welche drin sind (mit Stelle), welche holpern, und wo die fehlenden am natürlichsten gepasst hätten
 const VT_WP = { passt: ['eingebaut', 'used well', 'ok'], holprig: ['holprig', 'awkward', 'warn'], falsch: ['falsch benutzt', 'used wrongly', 'fehler'], fehlt: ['fehlt', 'missing', ''] };
@@ -5904,7 +6126,7 @@ function vtSkala(v, g, zeit) {
 function vtTranskript(v, z, a, zeit) {
   const marken = new Map();
   for (const b of a?.befunde || []) { const i = v.zeilen.findLastIndex(l => l.t <= vtSek(b.zeit) + 0.5); if (i >= 0) marken.set(i, [...new Set([...(marken.get(i) || []), b.art])]); }
-  const laut = new RegExp(`${VT_AEH[z.sp].source}|\\[[^\\]]*\\]`, 'giu');
+  const laut = new RegExp(`${VT_SPRACHEN[z.sp].aeh.source}|\\[[^\\]]*\\]`, 'giu');
   const markiert = s => { const t = []; let rest = 0; for (const m of s.matchAll(laut)) { t.push(s.slice(rest, m.index), el(m[0][0] === '[' ? 'span' : 'mark', { class: m[0][0] === '[' ? 'vt-klammer' : 'vt-aeh' }, m[0])); rest = m.index + m[0].length; } t.push(s.slice(rest)); return t; };
   return el('section', { class: 'block' },
     el('div', { class: 'block-kopf' }, el('h2', {}, ue('Transkript', 'Transcript')), el('button', { class: 'knopf', type: 'button', onclick: () => speichern(vtText(v), `${v.titel}.txt`, 'text/plain;charset=utf-8') }, ue('Als .txt laden', 'Download as .txt'))),
