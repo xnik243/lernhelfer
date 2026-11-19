@@ -471,9 +471,10 @@ def kursart(kurs, knoten_titel):
     return "ps" if re.match(r"(\d{4}[WS]\d+\s+)?PS\b", kurs) or re.search(r"\bPS\b|proseminar|aufgabe", knoten_titel, re.I) else "folien"
 
 
-def kurse_finden(page, jetzt=None, alt=None):
+def kurse_finden(page, jetzt=None, alt=None, ids=None):
     """Baut kurse.json aus „Meine Kurse → Aktiv“: Ordner (bis 3 Unterordner-Ebenen), Dokumente und Seiten oben im Kurs.
-    Klausurarchiv, Foren, Abgaben, Videos und Tests (die liest tests()) bleiben draußen. `alt`: bisherige kurse.json."""
+    Klausurarchiv, Foren, Abgaben, Videos und Tests (die liest tests()) bleiben draußen. `alt`: bisherige kurse.json;
+    `ids` bekommt {Fach: {Kurs: LV-Art}} aller Kurse, auch solcher ohne Dateien."""
     jetzt = jetzt or datetime.now()
     page.goto(OLAT + "/auth/MyCoursesSite/0/My/0")
     page.wait_for_load_state("networkidle")
@@ -482,6 +483,9 @@ def kurse_finden(page, jetzt=None, alt=None):
       .map(a => [a.href.match(/RepositoryEntry\/(\d+)/)[1], a.innerText.trim()])).entries()]""")
     neu = {}
     for kurs, titel, fach, typ in faecher_zuordnen(kurse, jetzt, alt):
+        neu.setdefault(fach, [])
+        if ids is not None:  # auch Kurse ohne eine einzige Datei: ein PS-Kurs hat oft nur Tests und Bewertungen, die liest tests()
+            ids.setdefault(fach, {})[kurs] = typ
         alle = knoten(page, kurs)
         wurzel = alle[0]["titel"] if alle else None
         for k in alle:
@@ -736,8 +740,9 @@ def testliste(fach):
     return aus
 
 
-def tests(browser, fach):
-    """Onlinetests und Selbsttests eines Fachs nach material/<Fach>/Tests – in eigener Sitzung mit Testschutz."""
+def tests(browser, fach, kurs_ids=None):
+    """Onlinetests, Selbsttests und Bewertungen eines Fachs nach material/<Fach>/Tests – in eigener Sitzung mit Testschutz.
+    `kurs_ids` ({Kurs: LV-Art}): auch Kurse ohne Dateien, etwa ein PS-Kurs, in dem nur die Punkte der PS-Tests stehen."""
     frei, neu = {}, []
 
     def waechter(route):
@@ -753,9 +758,10 @@ def tests(browser, fach):
     ziel = MATERIAL / fach / TESTS
     ziel.mkdir(parents=True, exist_ok=True)
     # Art der Lehrveranstaltung je Kurs (VO, PS …) aus den Namen in kurse.json, für die Bewertungen
-    arten = {q["url"].split("/")[0]: q["name"].split()[0] for q in KURSE[fach] if re.match(r"(VO|PS|UE|VU|SE|UV|KS) ", q["name"])}
+    arten = {q["url"].split("/")[0]: q["name"].split()[0] for q in KURSE.get(fach, []) if re.match(r"(VO|PS|UE|VU|SE|UV|KS) ", q["name"])}
+    arten.update({k: t for k, t in (kurs_ids or {}).items() if t})
     namen = set()  # „Onlinetest 1“ in VO und PS desselben Fachs: sonst überschreiben sie sich bei jedem Abgleich gegenseitig
-    for kurs in sorted({q["url"].split("/")[0] for q in KURSE[fach]}):
+    for kurs in sorted({q["url"].split("/")[0] for q in KURSE.get(fach, [])} | set(kurs_ids or {})):
         for k in knoten(page, kurs):
             # ponytail: Altklausuren (Klausurarchiv) übersprungen – eigener Prüfungsmodus, falls gewünscht
             if k["icon"] not in ("o_iqtest_icon", "o_iqself_icon", "o_ms_icon") or k["eltern"] == "Klausurarchiv":
@@ -1013,9 +1019,10 @@ if __name__ == "__main__":
         STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
         if KURSE is None or "--kurse" in sys.argv or kurse_suchen(stand, jetzt):
             try:
-                KURSE = kurse_finden(page, jetzt, KURSE)
+                ids = {}
+                KURSE = kurse_finden(page, jetzt, KURSE, ids)
                 KURSDATEI.write_text(json.dumps(KURSE, ensure_ascii=False, indent=2), "utf-8")
-                stand["kurse_semester"] = semester(jetzt)
+                stand["kurse_semester"], stand["kurs_ids"] = semester(jetzt), ids
                 print("Gefundene Kurse:", *(f"  {f}: {', '.join(q['name'] for q in l)}" for f, l in KURSE.items()), sep="\n")
             except Exception as e:  # gibt es schon Kurse, gleicht er mit denen ab, statt ganz auszufallen; nächster Versuch in einer Woche
                 if KURSE is None:
@@ -1030,7 +1037,7 @@ if __name__ == "__main__":
         faecher = [a for a in sys.argv[1:] if not a.startswith("--")] or list(KURSE)
         neu = [n for f in faecher for n in sync(ctx, page, f)]
         ctx.storage_state(path=SITZUNG)
-        neu += [n for f in faecher for n in tests(browser, f)]
+        neu += [n for f in faecher for n in tests(browser, f, stand.get("kurs_ids", {}).get(f))]
         browser.close()
     tests_alle = [t for f in KURSE for t in testliste(f)]
     melde(True, f"{len(neu)} neue Unterlagen" if neu else "Nichts Neues in OLAT",

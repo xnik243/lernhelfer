@@ -1345,6 +1345,10 @@
   .legende i.ges { height: 4px; background: var(--text); }
   .legende i.kurs { width: 9px; height: 9px; border: 1.5px solid var(--text-3); border-radius: 50%; background: none; }
   .lv-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+  .lv-gruppe + .lv-gruppe { margin-top: 28px; }
+  .lv-gruppe > h3 { margin: 0 0 10px; font: 650 1rem/1.3 var(--sans); color: var(--text-2); }
+  .noten-abgleich { margin: 0 0 16px; padding: 10px 14px; border-left: 3px solid var(--akzent); background: var(--akzent-flaeche); font-size: 0.9rem; text-wrap: pretty; }
+  .lv-teil-ein { margin-top: 4px; padding: 6px 0; border: 0; background: none; color: var(--akzent-text); font: 600 0.8125rem/1.2 var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
   .lv-karte { display: grid; gap: 8px; align-content: start; padding: 16px 18px; border: 1px solid var(--linie); border-top: 3px solid var(--fach, var(--linie-2)); border-radius: var(--r-l); }
   .lv-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .lv-kopf h3 { margin: 0; font: 650 1rem/1.3 var(--sans); overflow-wrap: anywhere; }
@@ -3324,6 +3328,10 @@ function ultraWerbung(a) {
 //   eintraege: [{ id, lv, titel, datum, punkte, max, schnitt (in Punkten), olat (Test), weg }] }
 // Erledigte bewertete Onlinetests kommen mit ihren Punkten aus OLAT von selbst dazu; gelöscht bleiben sie weg.
 const SCHLUESSEL = [50, 62.5, 75, 87.5];  // ab … % Note 4, 3, 2, 1, solange die Lehrveranstaltung keinen eigenen hat
+const PROGNOSE_AB = 0.3;  // Anteil der Gesamtpunkte, der bewertet sein muss, bevor eine Note hochgerechnet wird
+// Gruppen auf der Notenseite nach Art der Lehrveranstaltung (Name endet auf „PS“, „VO“ …); was keine Art im Namen hat, kommt zu „Weitere“
+const LV_GRUPPEN = [['Proseminare und Übungen', /\s(PS|UE|VU|SE|UV|KS)$/], ['Vorlesungen', /\sVO$/]];
+let NOTE_VOR = null;  // Vorschlag fürs Eintragen-Formular aus einem Teil einer Karte: { lv, titel, max }
 const NOTEN_NAMEN = ['', 'Sehr gut', 'Gut', 'Befriedigend', 'Genügend', 'Nicht genügend'];
 let NOTEN = null, NOTEN_P = null, NOTE_ID = null;  // NOTE_ID: der Eintrag, der gerade im Formular steht
 const zahl = s => s == null || String(s).trim() === '' ? null : Number(String(s).trim().replace(',', '.'));
@@ -3373,7 +3381,9 @@ function lvStand(name) {
   // mit Schema aus dem Syllabus: nur zählende Punkte (beste n von m, Obergrenzen) und was in jedem Teil noch zu holen ist
   const teile = b?.teile.map(t => teilStand(t, e, fach)) || null, sonst = teile ? e.filter(x => !teile.some(t => t.da.includes(x))) : e;
   const p = (teile ? summe(teile, 'p') : 0) + summe(sonst, 'punkte');
-  return { name, c, s, e, p, m, stand, fach, b, teile, note: c.note || noteAus(stand, s),
+  // Prognose erst, wenn genug bewertet ist: 21 von 21 Onlinetest-Punkten sind keine 1, solange 169 Punkte (PS-Tests, Klausur) fehlen
+  const anteil = c.gesamt > 0 ? m / c.gesamt : null, frueh = !c.note && stand != null && anteil != null && anteil < PROGNOSE_AB;
+  return { name, c, s, e, p, m, stand, fach, b, teile, anteil, frueh, note: c.note || (frueh ? null : noteAus(stand, s)),
     offen: teile ? summe(teile, 'offen') : c.gesamt ? Math.max(0, c.gesamt - m) : null,
     du: sm ? 100 * summe(mitS, 'punkte') / sm : null, schnitt: sm ? 100 * summe(mitS, 'schnitt') / sm : null };
 }
@@ -3382,7 +3392,8 @@ function lvStand(name) {
 const LV_ART = /\s(VO|PS|UE|VU|SE|UV|KS)$/;  // Fächer wie „BWL VO“ sind schon eine Lehrveranstaltung
 const bewLvs = () => Object.values(NOTEN?.bewertung || {}).flatMap(b => b.lvs || []);
 const norm = s => String(s || '').toLowerCase().replace(/[-–_\s]+/g, ' ').trim();
-const trifft = (t, titel) => !!t.suche && norm(titel).includes(norm(t.suche));
+// ohne Suchwort (Mitarbeit, Diskussionsbeitrag) zählt ein Eintrag, der den Namen des Teils trägt, wie „Ergebnis eintragen“ ihn vorschlägt
+const trifft = (t, titel) => !!(t.suche || t.titel) && norm(titel).includes(norm(t.suche || t.titel));
 const kommendeTests = fach => (TESTS ? [...TESTS, ...erwarteteTests()] : [])
   .filter(x => x.fach === fach && x.art === 'test' && !x.uebung && (x.erwartet || ['offen', 'bald'].includes(teststand(x).gruppe)))
   .sort((a, b) => (a.bis || '9').localeCompare(b.bis || '9'));
@@ -3490,7 +3501,12 @@ function lvKarte(l) {
   // je Teilleistung: zählende Punkte, Regel und was noch zu holen ist
   const teile = l.teile?.length > 0 && el('ul', { class: 'lv-teile' }, l.teile.map(t => el('li', { 'data-z': t.offen > 0 ? 'offen' : 'fertig' },
     el('div', {}, el('b', {}, t.titel), el('span', { class: 'meta' }, [el('span', { class: 'lv-teil-punkte' }, `${dez(t.p)}${t.max != null ? ` / ${dez(t.max)}` : ''}`), t.zaehlen && t.anzahl ? `beste ${t.zaehlen} von ${t.anzahl}` : t.zaehlen ? `die besten ${t.zaehlen}` : t.anzahl > 1 && `${t.anzahl} ×${t.je != null ? ` ${dez(t.je)}` : ''}`,
-      t.da.length > 0 && `${t.da.length} eingetragen`].filter(Boolean).flatMap((x, i) => i ? [' · ', x] : [x]))),
+      t.da.length > 0 && `${t.da.length} eingetragen`].filter(Boolean).flatMap((x, i) => i ? [' · ', x] : [x])),
+      // Onlinetests kommen aus OLAT; PS-Tests, Klausuren und Präsentationen gibt es dort oft nicht: hier mit passendem Namen eintragen
+      t.art !== 'onlinetest' && t.offen > 0 && el('button', { class: 'lv-teil-ein', type: 'button', onclick: () => {
+        NOTE_ID = null; NOTE_VOR = { lv: l.name, titel: `${t.suche || t.titel}${t.anzahl > 1 ? ` ${t.da.length + 1}` : ''}`, max: t.je ?? t.max };
+        notenZeigen(); const f = $('noten-form'); f.scrollIntoView({ block: 'center' }); f.elements.punkte.focus({ preventScroll: true });
+      } }, 'Ergebnis eintragen')),
     el('span', { class: 'lv-teil-noch' }, t.offen > 0 ? [`+${dez(t.offen)} möglich`, t.termin?.datum && el('span', { class: 'meta' }, `nächster ${kurz(t.termin.datum)}`)] : t.da.length ? 'fertig' : '–'))));
   const form = el('form', { class: 'lv-einst', onsubmit: e => {
     e.preventDefault();
@@ -3502,10 +3518,11 @@ function lvKarte(l) {
     el('label', {}, 'Endnote', el('select', { name: 'note' }, ['', 1, 2, 3, 4, 5].map(n => el('option', { value: n, selected: (l.c.note || '') === n }, n ? `${n}, ${NOTEN_NAMEN[n]}` : 'noch offen')))),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf' }, 'Speichern')));
   return el('article', { class: 'lv-karte', 'data-fach': l.fach || null },
-    el('div', { class: 'lv-kopf' }, el('h3', {}, l.name), el('span', { class: 'note-gross', role: 'img', 'aria-label': l.note ? `Note ${l.note}` : 'noch keine Note' }, l.note ? String(l.note) : '–')),
+    el('div', { class: 'lv-kopf' }, el('h3', {}, l.name), el('span', { class: 'note-gross', role: 'img', 'aria-label': l.note ? `Note ${l.note}` : l.frueh ? 'für eine Prognose zu früh' : 'noch keine Note' }, l.note ? String(l.note) : '–')),
     el('p', { class: 'meta' }, l.c.note ? `Endnote: ${NOTEN_NAMEN[l.c.note]}`
       : [g > 0 ? `${dez(l.p)} von ${dez(g)} Punkten sicher` : l.stand != null && `${dez(l.p)} von ${dez(l.m)} Punkten`, l.offen > 0 && `${dez(l.offen)} noch zu holen`,
-        l.stand != null ? `bisher ${dez(l.stand, 0)} %, bleibt es so: ${NOTEN_NAMEN[noteAus(l.stand, l.s)]}` : 'noch keine Ergebnisse'].filter(Boolean).join(' · ')),
+        l.stand == null ? 'noch keine Ergebnisse' : l.frueh ? `erst ${dez(100 * l.anteil, 0)} % der Punkte bewertet, für eine Prognose zu früh`
+          : `bisher ${dez(l.stand, 0)} %, bleibt es so: ${NOTEN_NAMEN[noteAus(l.stand, l.s)]}`].filter(Boolean).join(' · ')),
     fehlt && el('ul', { class: 'lv-noten' }, fehlt),
     teile && [el('h4', { class: 'lv-zwischen' }, 'Wo du noch Punkte holst'), teile],
     l.b?.bedingung && el('p', { class: 'klein' }, el('b', {}, 'Achtung: '), l.b.bedingung),
@@ -3514,7 +3531,7 @@ function lvKarte(l) {
       R[l.fach] && el('p', { class: 'meta' }, 'Steht in der ', el('a', { href: `#/${encodeURIComponent(l.fach)}` }, `Ausgabe ${l.fach}`), ' unter Stammdaten.'), form));
 }
 function notenForm() {
-  const b = NOTE_ID && NOTEN.eintraege.find(e => e.id === NOTE_ID);
+  const b = NOTE_ID && NOTEN.eintraege.find(e => e.id === NOTE_ID), v = b || NOTE_VOR;
   const fehler = el('p', { class: 'fehlertext', role: 'alert', hidden: true });
   const feld = (text, name, extra) => el('label', { class: 'feld' }, text, el('input', { name, autocomplete: 'off', ...extra }));
   return el('form', { class: 'schritt', id: 'noten-form', novalidate: true, onsubmit: e => {
@@ -3525,20 +3542,20 @@ function notenForm() {
       : !Number.isFinite(punkte) ? 'Bitte deine Punkte als Zahl angeben.' : s && !Number.isFinite(sz) ? 'Den Kursschnitt bitte als Zahl, etwa 6,5 oder 65 %.' : '';
     if (warum) { fehler.textContent = warum; fehler.hidden = false; return; }
     const neu = { ...b, hand: b?.olat ? true : undefined, id: b?.id || crypto.randomUUID(), lv: d.lv.trim(), titel: d.titel.trim() || 'Ohne Titel', datum: d.datum || HEUTE, punkte, max, schnitt: s ? (proz ? sz * max / 100 : sz) : null };
-    notenAendern(() => { const i = NOTEN.eintraege.findIndex(x => x.id === neu.id); if (i < 0) NOTEN.eintraege.push(neu); else NOTEN.eintraege[i] = neu; NOTE_ID = null; });
+    notenAendern(() => { const i = NOTEN.eintraege.findIndex(x => x.id === neu.id); if (i < 0) NOTEN.eintraege.push(neu); else NOTEN.eintraege[i] = neu; NOTE_ID = null; NOTE_VOR = null; });
   } },
     el('div', { class: 'noten-form' },
-      feld('Lehrveranstaltung', 'lv', { list: 'lv-liste', value: b?.lv || '', placeholder: 'Mathematik PS' }),
+      feld('Lehrveranstaltung', 'lv', { list: 'lv-liste', value: v?.lv || '', placeholder: 'Mathematik PS' }),
       el('datalist', { id: 'lv-liste' }, [...new Set([...notenLVs().map(l => l.name), ...Object.keys(R).flatMap(f => [`${f} PS`, `${f} VO`])])].map(x => el('option', { value: x }))),
-      feld('Was', 'titel', { value: b?.titel || '', placeholder: 'z. B. Zwischentest 1' }),
+      feld('Was', 'titel', { value: v?.titel || '', placeholder: 'z. B. PS-Test 1' }),
       feld('Datum', 'datum', { type: 'date', value: b?.datum || HEUTE }),
       feld('Deine Punkte', 'punkte', { inputmode: 'decimal', value: feldWert(b?.punkte) }),
-      feld('Möglich', 'max', { inputmode: 'decimal', value: feldWert(b?.max) }),
+      feld('Möglich', 'max', { inputmode: 'decimal', value: feldWert(v?.max) }),
       el('label', { class: 'feld' }, el('span', {}, 'Kursschnitt ', el('span', { class: 'opt' }, 'optional')),
         el('input', { name: 'schnitt', inputmode: 'decimal', autocomplete: 'off', placeholder: '6,5 oder 65 %', value: feldWert(b?.schnitt) }))),
     el('p', { class: 'klein' }, 'Zählt ein Teil mit Prozent statt Punkten, trag ihn als Anteil ein: 20 von 25 für einen Teil mit 25 %. Minuspunkte gehen auch.'),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, b ? 'Speichern' : 'Eintragen'),
-      b && el('button', { class: 'knopf', type: 'button', onclick: () => { NOTE_ID = null; notenZeigen(); } }, 'Abbrechen')),
+      v && el('button', { class: 'knopf', type: 'button', onclick: () => { NOTE_ID = null; NOTE_VOR = null; notenZeigen(); } }, 'Abbrechen')),
     fehler);
 }
 async function notenZeigen() {
@@ -3561,7 +3578,11 @@ async function notenZeigen() {
       kachel('Punkte insgesamt', M ? `${dez(100 * P / M, 0)} %` : '–', `${dez(P)} von ${dez(M)} möglichen Punkten`),
       kachel('Gegen den Kursschnitt', abst == null ? '–' : `${abst >= 0 ? '+' : '−'}${dez(Math.abs(abst), 0)}`, abst == null ? 'Schreib bei einem Eintrag den Kursschnitt dazu' : `Prozentpunkte ${abst >= 0 ? 'über' : 'unter'} dem Schnitt`),
       ects > 0 && kachel('Positiv abgeschlossen', `${dez(ects)} ECTS`, 'mit eingetragener Endnote')),
-    lvs.length > 0 && teil('Lehrveranstaltungen', 'Was du hast, was dir für jede Note fehlt und wo es noch Punkte gibt', el('div', { class: 'lv-karten' }, lvs.map(lvKarte))),
+    lvs.length > 0 && teil('Lehrveranstaltungen', 'Was du hast, was dir für jede Note fehlt und wo es noch Punkte gibt', [
+      ABGLEICH?.ok === false && el('p', { class: 'noten-abgleich' }, el('b', {}, 'Ergebnisse aus OLAT fehlen noch. '),
+        `Der letzte Abgleich ging nicht: ${ABGLEICH.text} Bis dahin fehlen hier etwa die Punkte der PS-Tests; du kannst sie auch selbst eintragen.`),
+      [...LV_GRUPPEN.map(([titel, re]) => [titel, lvs.filter(l => re.test(l.name))]), ['Weitere', lvs.filter(l => !LV_GRUPPEN.some(([, re]) => re.test(l.name)))]]
+        .filter(([, l]) => l.length).map(([titel, l]) => el('section', { class: 'lv-gruppe' }, el('h3', {}, titel), el('div', { class: 'lv-karten' }, l.map(lvKarte))))]),
     pruefungenTeil(teil),
     teil('Verlauf', 'Jeder Punkt ein Eintrag, in Prozent der möglichen Punkte', notenVerlauf(lvs)),
     vergleich.length > 0 && teil('Du gegen den Kursschnitt', 'Nur Einträge, bei denen der Schnitt dabeisteht', el('div', { class: 'vergleich' }, vergleich.map(l =>

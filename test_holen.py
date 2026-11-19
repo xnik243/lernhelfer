@@ -113,6 +113,14 @@ def test():
     assert [f for _, _, f, _ in holen.faecher_zuordnen(meine, jetzt)] == ["Bürgerliches Recht I", "Strafrecht", "Bürgerliches Recht I", "BWL", "BWL"]
     assert holen.faecher_zuordnen(meine, jetzt, {"Recht": [{"url": "1/CourseNode/9"}]})[0][2:] == ("Recht", "VO")
     assert holen.faecher_zuordnen(meine, jetzt, {"Bürgerl: R": [{"url": "1/CourseNode/9"}]})[0][2] == "Bürgerliches Recht I"
+    # Ein PS-Kurs ohne Dateien (nur Tests und Bewertungen) bleibt drin, damit tests() ihn besucht
+    class OhneDateien:
+        def goto(self, url): pass
+        def wait_for_load_state(self, *_): pass
+        def wait_for_timeout(self, ms): pass
+        def evaluate(self, js): return [] if "o_tree" in js else [["7", "2026W433001 PS Mathematik für WiWi"]]
+    ids = {}
+    assert holen.kurse_finden(OhneDateien(), jetzt, None, ids) == {"Mathematik": []} and ids == {"Mathematik": {"7": "PS"}}
     # Kurse wöchentlich neu suchen, von Hand gepflegte kurse.json nie
     assert not holen.kurse_suchen({}, jetzt) and holen.kurse_suchen({"kurse_semester": "2026W"}, jetzt)
     assert not holen.kurse_suchen({"kurse_semester": "2026W", "kurse_zeit": "2026-10-10T09:00"}, jetzt)
