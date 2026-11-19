@@ -412,15 +412,16 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         fenster.close()
 
 
-FACHNAMEN = {"BWL": r"betriebswirt", "VWL": r"volkswirt", "Mathematik": r"mathemati", "Statistik": r"statisti",
-             "Englisch": r"englisch|english", "Recht": r"recht", "Rechnungswesen": r"rechnungswesen|buchhalt",
-             "Wirtschaftsinformatik": r"wirtschaftsinformatik"}
+FACHNAMEN = {"BWL": r"betriebswirt|\bbwl\b", "VWL": r"volkswirt|\bvwl\b", "Mathematik": r"mathemati", "Statistik": r"statisti",
+             "Englisch": r"englisch|english", "Recht": r"\brecht|(?<!ge)recht(s)?\b",  # Strafrecht, des Privatrechts; nicht Gerechtigkeit, aufrechte
+             "Rechnungswesen": r"rechnungswesen|buchhalt", "Wirtschaftsinformatik": r"wirtschaftsinformatik"}
 NICHT_LADEN = re.compile(r"video|aufzeichnung|livestream|einstieg", re.I)  # Dokument-Knoten ohne Text
 FUELLE = re.compile(r"^(?:(?:einführung|grundlagen|grundzüge|grundbegriffe|überblick)\s+(?:in|zu|zur|zum|über)?\s*(?:die|das|den|der|des|dem)?\s+)+", re.I)
 
 
 def semester(jetzt):
-    """Semesterkürzel wie in den LFU-Kurstiteln: Oktober 2026 bis Februar 2027 = 2026W, März bis September = S."""
+    """Semesterkürzel wie in den LFU-Kurstiteln: September 2026 bis Februar 2027 = 2026W (im September stehen schon die Kurse
+    fürs Wintersemester), März bis August = S."""
     return f"{jetzt.year}S" if 3 <= jetzt.month <= 8 else f"{jetzt.year - (jetzt.month <= 2)}W"
 
 
@@ -432,9 +433,36 @@ def kursfach(titel, jetzt):
     for fach, muster in FACHNAMEN.items():
         if re.search(muster, titel, re.I):
             return fach
-    rest = re.sub(r"^\d{4}[WS]\d+\s+(?:[A-Z]{2}\s+)?", "", titel) if code else ""
+    return kursname(titel) if code else None
+
+
+def kursname(titel):
+    """Fach nach dem Kurstitel selbst: ohne Code, LV-Art und „Einführung in die …“, nur bis zum ersten Doppelpunkt bzw.
+    Gedankenstrich, höchstens vier Wörter. Wird Ordnername: „Physik I: Mechanik“ ginge unter Windows gar nicht."""
+    rest = re.sub(r"^\d{4}[WS]\d+\s+(?:[A-Z]{2}\s+)?", "", titel)
     rest = FUELLE.sub("", rest) or rest  # sonst landen „Einführung in die Soziologie“ und „… die Politikwissenschaft“ im selben Fach
-    return " ".join(rest.split()[:3]).rstrip(":-–") or None  # ponytail: unbekanntes Fach heißt nach den ersten Wörtern
+    rest = re.split(r":|\s[–-]\s", rest)[0]
+    return re.sub(r'[\\/:*?"<>|]', "-", " ".join(rest.split()[:4])).strip(" .-–") or None
+
+
+def faecher_zuordnen(kurse, jetzt, alt=None):
+    """[(Kurs, Titel, Fach, LV-Art)] für die Kurse aus „Meine Kurse“. Ein Kurzname wie „Recht“ würfe im Jus-Studium alle Kurse
+    in ein Fach: Steht darin eine LV-Art doppelt (zwei VO), heißen diese Kurse nach ihrem Titel. Kurse aus `alt` (bisherige
+    kurse.json) behalten ihr Fach, damit Lernstand und Ausgaben in der App nicht plötzlich unter neuem Namen stehen."""
+    bekannt = {q["url"].split("/")[0]: f for f, liste in (alt or {}).items() for q in liste if not re.search(r'[\\/:*?"<>|]', f)}  # „Physik I: …“ ging nie
+    liste = [(k, t, f, (re.match(r"\d{4}[WS]\d+\s+([A-Z]{2})\b", t) or [None, ""])[1]) for k, t in kurse if (f := kursfach(t, jetzt))]
+    arten = {}
+    for _, _, f, typ in liste:
+        arten.setdefault(f, []).append(typ)
+    doppelt = {f for f, a in arten.items() if len(a) > len(set(a))}
+    return [(k, t, bekannt.get(k) or (f in doppelt and kursname(t)) or f, typ) for k, t, f, typ in liste]
+
+
+def kurse_suchen(stand, jetzt):
+    """Selbst gefundene Kurse jede Woche neu suchen: neue Kurse, neue Bausteine und Unterordner. Eine von Hand gepflegte
+    kurse.json (kein „kurse_semester“ im Stand) bleibt, wie sie ist."""
+    return "kurse_semester" in stand and (stand["kurse_semester"] != semester(jetzt)
+                                          or jetzt - datetime.fromisoformat(stand.get("kurse_zeit", "2000-01-01")) > timedelta(days=7))
 
 
 def kursart(kurs, knoten_titel):
@@ -443,9 +471,9 @@ def kursart(kurs, knoten_titel):
     return "ps" if re.match(r"(\d{4}[WS]\d+\s+)?PS\b", kurs) or re.search(r"\bPS\b|proseminar|aufgabe", knoten_titel, re.I) else "folien"
 
 
-def kurse_finden(page, jetzt=None):
-    """Baut kurse.json aus „Meine Kurse → Aktiv“: Ordner (eine Unterordner-Ebene), Dokumente und Seiten oben im Kurs.
-    Klausurarchiv, Foren, Abgaben, Videos und Tests (die liest tests()) bleiben draußen."""
+def kurse_finden(page, jetzt=None, alt=None):
+    """Baut kurse.json aus „Meine Kurse → Aktiv“: Ordner (bis 3 Unterordner-Ebenen), Dokumente und Seiten oben im Kurs.
+    Klausurarchiv, Foren, Abgaben, Videos und Tests (die liest tests()) bleiben draußen. `alt`: bisherige kurse.json."""
     jetzt = jetzt or datetime.now()
     page.goto(OLAT + "/auth/MyCoursesSite/0/My/0")
     page.wait_for_load_state("networkidle")
@@ -453,11 +481,7 @@ def kurse_finden(page, jetzt=None):
       .filter(a => a.innerText.trim() && a.innerText.trim() !== 'Öffnen')
       .map(a => [a.href.match(/RepositoryEntry\/(\d+)/)[1], a.innerText.trim()])).entries()]""")
     neu = {}
-    for kurs, titel in kurse:
-        fach = kursfach(titel, jetzt)
-        if not fach:
-            continue
-        typ = (re.match(r"\d{4}[WS]\d+\s+([A-Z]{2})\b", titel) or [None, ""])[1]
+    for kurs, titel, fach, typ in faecher_zuordnen(kurse, jetzt, alt):
         alle = knoten(page, kurs)
         wurzel = alle[0]["titel"] if alle else None
         for k in alle:
@@ -513,41 +537,57 @@ def sicherer_name(roh):
     return re.sub(r'[\\/:*?"<>|\x00-\x1f]', "-", n).strip(". ")[:150] or "datei"
 
 
+def fehlertext(e):
+    """Erste Zeile einer Ausnahme fürs Log, ohne Seiteninhalt; leere Meldung (assert) = Name der Ausnahme."""
+    return (str(e).splitlines() or [type(e).__name__])[0][:200]
+
+
 def sync(ctx, page, fach):
+    """Neue Dateien aller Einträge eines Fachs. Ein kaputter Eintrag (in OLAT gelöscht, Zeitüberschreitung) hält den Rest
+    nicht auf, sonst käme bis zum nächsten Abgleich gar nichts in der App an."""
     neu = []
     for q in KURSE[fach]:
-        ziel = MATERIAL / fach / q["name"]
-        ziel.mkdir(parents=True, exist_ok=True)
-        url = f"{OLAT}/auth/RepositoryEntry/{q['url']}"
-        oeffne(page, url)
-        main = page.locator("#o_main_center_content_inner")
-        herunterladen = main.locator("a:visible", has_text="Herunterladen")
-        seite = main.locator("iframe[src*='/m/']:not([src*='viewer.html'])")  # HTML-Seite, kein PDF-Betrachter
-        karten = main.locator(".o_folder_card:not(:has(.o_filetype_folder))")
-        if main.locator(".o_folder_card").count():  # Ordner
-            # Unterordner haben eigene Einträge (ordner_baum, bis 3 Ebenen tief);
-            # vorhandene Dateien nicht neu geladen – geänderte Datei mit gleichem Namen: lokal löschen.
-            namen = [n.strip() for n in karten.locator(".o_folder_card_title").all_inner_texts()]
-            for titel in [n for n in namen if not (ziel / sicherer_name(n)).exists()]:
-                oeffne(page, url)  # OLAT lädt die Seite nach jedem Download neu
-                karten.filter(has=page.get_by_text(titel, exact=True)).locator("a:has(.o_icon_actions)").click()  # Karte über den Originaltitel
-                with page.expect_download() as dl:
-                    page.get_by_role("link", name="Herunterladen", exact=True).last.click()
-                dl.value.save_as(ziel / sicherer_name(titel))
-                neu.append(f"{fach}: {q['name']}/{sicherer_name(titel)}")
-        elif herunterladen.count():  # einzelne Datei
+        try:
+            neu += eintrag_laden(ctx, page, fach, q)
+        except Exception as e:
+            print(f"{fach}: {q['name']} nicht geladen ({fehlertext(e)})", flush=True)
+    return neu
+
+
+def eintrag_laden(ctx, page, fach, q):
+    neu = []
+    ziel = MATERIAL / fach / q["name"]
+    ziel.mkdir(parents=True, exist_ok=True)
+    url = f"{OLAT}/auth/RepositoryEntry/{q['url']}"
+    oeffne(page, url)
+    main = page.locator("#o_main_center_content_inner")
+    herunterladen = main.locator("a:visible", has_text="Herunterladen")
+    seite = main.locator("iframe[src*='/m/']:not([src*='viewer.html'])")  # HTML-Seite, kein PDF-Betrachter
+    karten = main.locator(".o_folder_card:not(:has(.o_filetype_folder))")
+    if main.locator(".o_folder_card").count():  # Ordner
+        # Unterordner haben eigene Einträge (ordner_baum, bis 3 Ebenen tief);
+        # vorhandene Dateien nicht neu geladen – geänderte Datei mit gleichem Namen: lokal löschen.
+        namen = [n.strip() for n in karten.locator(".o_folder_card_title").all_inner_texts()]
+        for titel in [n for n in namen if not (ziel / sicherer_name(n)).exists()]:
+            oeffne(page, url)  # OLAT lädt die Seite nach jedem Download neu
+            karten.filter(has=page.get_by_text(titel, exact=True)).locator("a:has(.o_icon_actions)").click()  # Karte über den Originaltitel
             with page.expect_download() as dl:
-                herunterladen.first.click()
-            name = sicherer_name(dl.value.suggested_filename)
-            if not (ziel / name).exists():
-                neu.append(f"{fach}: {q['name']}/{name}")
-            dl.value.save_as(ziel / name)
-        elif seite.count():  # eingebettete HTML-Seite
-            src = seite.first.get_attribute("src")
-            name = sicherer_name(src.rsplit("/", 1)[-1])
-            if not (ziel / name).exists():
-                neu.append(f"{fach}: {q['name']}/{name}")
-            (ziel / name).write_bytes(ctx.request.get(urljoin(OLAT, src)).body())
+                page.get_by_role("link", name="Herunterladen", exact=True).last.click()
+            dl.value.save_as(ziel / sicherer_name(titel))
+            neu.append(f"{fach}: {q['name']}/{sicherer_name(titel)}")
+    elif herunterladen.count():  # einzelne Datei
+        with page.expect_download() as dl:
+            herunterladen.first.click()
+        name = sicherer_name(dl.value.suggested_filename)
+        if not (ziel / name).exists():
+            neu.append(f"{fach}: {q['name']}/{name}")
+        dl.value.save_as(ziel / name)
+    elif seite.count():  # eingebettete HTML-Seite
+        src = seite.first.get_attribute("src")
+        name = sicherer_name(src.rsplit("/", 1)[-1])
+        if not (ziel / name).exists():
+            neu.append(f"{fach}: {q['name']}/{name}")
+        (ziel / name).write_bytes(ctx.request.get(urljoin(OLAT, src)).body())
     return neu
 
 
@@ -631,27 +671,31 @@ def test_lesen(page, frei, startknopf):
                 leer.append(i)
             frage = page.locator(".o_assessmentitem_wrapper").first  # mit Kopf: Status und Punkte der Frage
             fragen.append(f"Frage {i + 1}\n" + frage.evaluate(LESEN_JS))
+        fragen = "\n\n".join(fragen)
         # 'Unterbrechen' schickt die Felder der angezeigten Frage mit – darum auf einer Frage ohne Antwort unterbrechen
         if not leer:
             print("Alle Fragen haben schon Antworten: Test bleibt ohne Unterbrechen offen.", flush=True)
-            return "\n\n".join(fragen)
-        if leer[-1] != links.count() - 1:
-            zeige(leer[-1])
-        frei.clear()
-        unterbrechen = page.locator("a.o_sel_suspend_test")
-        assert unterbrechen.count() == 1 and unterbrechen.inner_text().strip() == "Test unterbrechen"
-        frei[None] = unterbrechen.get_attribute("id")
-        unterbrechen.evaluate("a => a.click()")
-        dialog = page.locator(".modal-dialog", has=page.get_by_text("Wollen Sie wirklich unterbrechen?"))
-        dialog.wait_for()
-        ok = dialog.locator("a.btn", has_text=re.compile(r"^\s*Ok\s*$"))
-        assert dialog.locator("h4").inner_text().strip() == "Test unterbrechen" and ok.count() == 1
-        frei.clear()
-        pfad, cid = ereignis(ok)
-        frei[cid] = pfad
-        ok.evaluate("a => a.click()")
-        page.locator("a.o_sel_start_qti21assessment").wait_for()  # zurück auf der Startseite = unterbrochen
-        return "\n\n".join(fragen)
+            return fragen
+        try:
+            if leer[-1] != links.count() - 1:
+                zeige(leer[-1])
+            frei.clear()
+            unterbrechen = page.locator("a.o_sel_suspend_test")
+            assert unterbrechen.count() == 1 and unterbrechen.inner_text().strip() == "Test unterbrechen"
+            frei[None] = unterbrechen.get_attribute("id")
+            unterbrechen.evaluate("a => a.click()")
+            dialog = page.locator(".modal-dialog", has=page.get_by_text("Wollen Sie wirklich unterbrechen?"))
+            dialog.wait_for()
+            ok = dialog.locator("a.btn", has_text=re.compile(r"^\s*Ok\s*$"))
+            assert dialog.locator("h4").inner_text().strip() == "Test unterbrechen" and ok.count() == 1
+            frei.clear()
+            pfad, cid = ereignis(ok)
+            frei[cid] = pfad
+            ok.evaluate("a => a.click()")
+            page.locator("a.o_sel_start_qti21assessment").wait_for()  # zurück auf der Startseite = unterbrochen
+        except Exception as e:  # manche Selbsttests lassen sich nicht unterbrechen: bleibt offen (unbewertet), die Fragen sind gelesen
+            print(f"Selbsttest ohne Unterbrechen offen gelassen ({fehlertext(e)})", flush=True)
+        return fragen
     finally:
         frei.clear()
 
@@ -710,12 +754,16 @@ def tests(browser, fach):
     ziel.mkdir(parents=True, exist_ok=True)
     # Art der Lehrveranstaltung je Kurs (VO, PS …) aus den Namen in kurse.json, für die Bewertungen
     arten = {q["url"].split("/")[0]: q["name"].split()[0] for q in KURSE[fach] if re.match(r"(VO|PS|UE|VU|SE|UV|KS) ", q["name"])}
+    namen = set()  # „Onlinetest 1“ in VO und PS desselben Fachs: sonst überschreiben sie sich bei jedem Abgleich gegenseitig
     for kurs in sorted({q["url"].split("/")[0] for q in KURSE[fach]}):
         for k in knoten(page, kurs):
             # ponytail: Altklausuren (Klausurarchiv) übersprungen – eigener Prüfungsmodus, falls gewünscht
             if k["icon"] not in ("o_iqtest_icon", "o_iqself_icon", "o_ms_icon") or k["eltern"] == "Klausurarchiv":
                 continue
             name = re.sub(r'[\\/:*?"<>|]', "-", k["titel"])
+            if name in namen:
+                name += f" ({arten.get(kurs) or kurs})"
+            namen.add(name)
             datei, fragen = ziel / f"{name}.txt", ziel / f"{name} – Fragen.txt"
             if k["icon"] == "o_iqself_icon" and datei.exists():  # Selbsttests ändern sich nicht
                 continue
@@ -735,7 +783,7 @@ def tests(browser, fach):
                     # nach Abschluss stehen Fragen samt Lösung auf der Startseite; Fragen-Dateien älterer Fassungen gehen weg
                     fragen.unlink(missing_ok=True)
             except Exception as e:  # ein Test soll den Rest nicht aufhalten
-                print(f"{fach}: {k['titel']} nicht lesbar ({e})", flush=True)
+                print(f"{fach}: {k['titel']} nicht lesbar ({fehlertext(e)})", flush=True)
                 continue
             if not datei.exists() or datei.read_text("utf-8") != t:
                 neu.append(f"{fach}: {TESTS}/{datei.name}")
@@ -963,12 +1011,17 @@ if __name__ == "__main__":
         ctx.storage_state(path=SITZUNG)
         weiter(stand, 12)  # gleich speichern: bricht der Lauf ab, kommt OLAT trotzdem erst in 12 Stunden wieder dran
         STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
-        # Selbst gefundene Kurse jedes Semester neu suchen; eine von Hand gepflegte kurse.json bleibt, wie sie ist
-        if KURSE is None or "--kurse" in sys.argv or stand.get("kurse_semester", semester(jetzt)) != semester(jetzt):
-            KURSE = kurse_finden(page, jetzt)
-            KURSDATEI.write_text(json.dumps(KURSE, ensure_ascii=False, indent=2), "utf-8")
-            stand["kurse_semester"] = semester(jetzt)
-            print("Gefundene Kurse:", *(f"  {f}: {', '.join(q['name'] for q in l)}" for f, l in KURSE.items()), sep="\n")
+        if KURSE is None or "--kurse" in sys.argv or kurse_suchen(stand, jetzt):
+            try:
+                KURSE = kurse_finden(page, jetzt, KURSE)
+                KURSDATEI.write_text(json.dumps(KURSE, ensure_ascii=False, indent=2), "utf-8")
+                stand["kurse_semester"] = semester(jetzt)
+                print("Gefundene Kurse:", *(f"  {f}: {', '.join(q['name'] for q in l)}" for f, l in KURSE.items()), sep="\n")
+            except Exception as e:  # gibt es schon Kurse, gleicht er mit denen ab, statt ganz auszufallen; nächster Versuch in einer Woche
+                if KURSE is None:
+                    raise
+                print("Kurse neu suchen ging nicht, es bleibt bei den bisherigen:", fehlertext(e), flush=True)
+            stand["kurse_zeit"] = jetzt.isoformat(timespec="minutes")
             if "--kurse" in sys.argv:
                 STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
                 sys.exit()

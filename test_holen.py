@@ -99,8 +99,26 @@ def test():
                         ("Mathematik", "Mathematik"), ("Tech Labs - Informatik in der Praxis", None),
                         ("2025W432001 VO Grundlagen der Volkswirtschaft", None), ("2026W400100 VU Einführung in die Soziologie", "Soziologie"),
                         ("2026W400200 VO Einführung in die Politikwissenschaft", "Politikwissenschaft"), ("2026W401000 VO Grundlagen der Psychologie", "Psychologie"),
-                        ("2026W401100 VU Einführung in Python", "Python"), ("2026W403000 VO Allgemeine Pädagogik", "Allgemeine Pädagogik")]:
-        assert holen.kursfach(titel, jetzt) == fach, titel
+                        ("2026W401100 VU Einführung in Python", "Python"), ("2026W403000 VO Allgemeine Pädagogik", "Allgemeine Pädagogik"),
+                        # andere Studien: Recht nur als Wort, Namen ohne Doppelpunkt (Windows-Ordner) und nicht mitten im Wort abgeschnitten
+                        ("2026W700100 VO Bürgerliches Recht I", "Recht"), ("2026W700400 VO Grundzüge des Privatrechts", "Recht"),
+                        ("2026W800100 VO Gerechtigkeitstheorien", "Gerechtigkeitstheorien"), ("2026W500100 SE Aufrechte Haltung im Sport", "Aufrechte Haltung im Sport"),
+                        ("2026W612000 VO Physik I: Mechanik und Wärme", "Physik I"), ("2026W650100 VO Allgemeine und Anorganische Chemie", "Allgemeine und Anorganische Chemie"),
+                        ("2026W300101 PR Anatomie des Menschen – Präparierkurs", "Anatomie des Menschen"),
+                        ("2026W900100 VO Wirtschafts- und Sozialgeschichte I/II", "Wirtschafts- und Sozialgeschichte I-II"), ("2026W436308 PS Grundzüge der BWL", "BWL")]:
+        assert holen.kursfach(titel, jetzt) == fach, (titel, holen.kursfach(titel, jetzt))
+    # Kurzname fasst nur zusammen, solange keine LV-Art doppelt ist (Jus: zwei VO); bekannte Kurse behalten ihr Fach
+    meine = [("1", "2026W700100 VO Bürgerliches Recht I"), ("2", "2026W700200 VO Strafrecht"), ("3", "2026W700300 PS Bürgerliches Recht I"),
+             ("4", "2026W436307 VO Einführung in die Betriebswirtschaft"), ("5", "2026W436308 PS Grundzüge der BWL"), ("6", "2025W1 VO Alt")]
+    assert [f for _, _, f, _ in holen.faecher_zuordnen(meine, jetzt)] == ["Bürgerliches Recht I", "Strafrecht", "Bürgerliches Recht I", "BWL", "BWL"]
+    assert holen.faecher_zuordnen(meine, jetzt, {"Recht": [{"url": "1/CourseNode/9"}]})[0][2:] == ("Recht", "VO")
+    assert holen.faecher_zuordnen(meine, jetzt, {"Bürgerl: R": [{"url": "1/CourseNode/9"}]})[0][2] == "Bürgerliches Recht I"
+    # Kurse wöchentlich neu suchen, von Hand gepflegte kurse.json nie
+    assert not holen.kurse_suchen({}, jetzt) and holen.kurse_suchen({"kurse_semester": "2026W"}, jetzt)
+    assert not holen.kurse_suchen({"kurse_semester": "2026W", "kurse_zeit": "2026-10-10T09:00"}, jetzt)
+    assert holen.kurse_suchen({"kurse_semester": "2026W", "kurse_zeit": "2026-10-06T09:00"}, jetzt)
+    assert holen.kurse_suchen({"kurse_semester": "2026S", "kurse_zeit": "2026-10-13T09:00"}, jetzt)
+    assert holen.fehlertext(AssertionError()) == "AssertionError" and holen.fehlertext(ValueError("a\nb")) == "a"
     assert holen.kursart("2026W436307 PS Einführung", "Folien") == "ps" and holen.kursart("Mathematik", "Ressourcen VO") == "folien"
     assert holen.kursart("Mathematik", "Syllabus") == "syllabus" and holen.kursart("Mathematik", "Ressourcen PS") == "ps"
 
