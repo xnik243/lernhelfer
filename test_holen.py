@@ -287,5 +287,50 @@ def test():
     print("ok")
 
 
+def test_anzeige():
+    """Fortschrittsanzeige: print() in Stücken wird nicht vom Balken zerschnitten, Balken passt immer in eine Zeile."""
+    import io
+    import os
+    import re
+    os.environ["COLUMNS"] = "60"
+    a = holen.Anzeige()
+    a.raus, a.an = io.StringIO(), True
+    def sichtbar():  # wie das Konsolenfenster: ohne Farbcodes, \r fängt die Zeile neu an
+        roh = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]|\x1b\][^\x07]*\x07", "", a.raus.getvalue())
+        return "\n".join(z.split("\r")[-1] for z in roh.split("\n"))
+    a.write("Frage: ")  # wie input(): Zeile offen, kein Balken dazwischen
+    a.schritt("Unterlagen", 4)
+    a.write("ja\n")
+    assert "Frage: ja\n" in sichtbar()
+    a.plus(), a.plus(), a.jetzt("BWL · " + "sehr langer Ordnername " * 5)
+    a._zeichnen()
+    letzte = sichtbar().split("\n")[-1]
+    assert "2/4" in letzte and "━" * 12 + "─" * 12 in letzte and len(letzte) <= 59 and letzte.endswith("…"), letzte
+    a.warnung("BWL: X nicht geladen")
+    assert "! BWL: X nicht geladen\n" in sichtbar() and a.gezeigt, "Warnung über dem Balken, Balken wieder da"
+    a.neu(["BWL: VO/vo1.pdf"])
+    a.ok("Unterlagen geprüft")
+    assert sichtbar().endswith("+ BWL · VO/vo1.pdf\n  ✓ Unterlagen geprüft\n") and a.titel is None
+    holen.Anzeige().neu(["BWL: x"])  # ohne Konsole (Log): keine Zeile, die Liste kommt wie bisher am Ende
+    print("ok anzeige")
+
+
+def test_zugang():
+    """Abgelehnter Schlüssel (neues PC-Programm geladen): klare Meldung vor OLAT statt Traceback am Ende."""
+    with tempfile.TemporaryDirectory() as t:
+        holen.ZUGANG = Path(t) / "zugang.json"
+        holen.ZUGANG.write_text('{"api": "https://x/api/gh", "repo": "r", "token": "t"}', "utf-8")
+        for fehler, erwartet in ((HTTPError("u", 401, "", {}, None), "PC-Programm neu laden"), (HTTPError("u", 404, "", {}, None), None),
+                                 (OSError("offline"), None)):
+            def api(*_, fehler=fehler, **__):
+                raise fehler
+            holen.api = api
+            grund = holen.zugang_kaputt()
+            assert (erwartet in grund) if erwartet else grund is None, grund
+    print("ok zugang")
+
+
 if __name__ == "__main__":
     test()
+    test_anzeige()
+    test_zugang()

@@ -13,6 +13,7 @@ Tests: Gelesen werden die Startseiten (Zeitraum, Punkte, Versuche), nach Ablauf 
 werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Bewertete Tests startet er nie. Ein Wächter im
 Browser lässt nur Lesen und genau den jeweils nächsten erlaubten Schritt durch – nie Speichern, Beenden oder Abbrechen, siehe erlaubt().
 """
+import atexit
 import base64
 import getpass
 import hashlib
@@ -23,9 +24,11 @@ import logging
 import os
 import random
 import re
+import shutil
 import struct
 import subprocess
 import sys
+import threading
 import time
 import zipfile
 from datetime import datetime, timedelta
@@ -65,6 +68,135 @@ TESTS = "Tests"  # material/<Fach>/Tests: Startseiten der Onlinetests, Fragen de
 # Knöpfe, die im Test vor jedem Klick aus der Seite entfernt werden („Test unterbrechen“ bleibt, ist aber bis zum Schluss gesperrt)
 GEFAHR = ".o_sel_assessment_item_submit, .o_sel_end_testpart, .o_sel_cancel_test, .o_sel_next_question"
 logging.getLogger("pypdf").setLevel(logging.ERROR)  # harmlose Warnungen bei schief gebauten PDFs
+TAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+
+
+class Anzeige:
+    """Fortschritt im Konsolenfenster (Doppelklick auf „Lernhelfer OLAT“): Kopf mit Logo, Balken mit Drehrad und Zeit, ✓-Zeilen,
+    neue Dateien sofort, im Windows Terminal auch Fortschritt am Taskleisten-Symbol. Übernimmt sys.stdout nur bei echter
+    Konsole; ins Log (--auto) und in test_holen.py geht alles wie bisher. Andere print()-Zeilen landen über dem Balken."""
+    RAD = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    BLAU, GRUEN, ROT, GRAU, AUS = "\x1b[38;5;69m", "\x1b[38;5;78m", "\x1b[38;5;203m", "\x1b[38;5;244m", "\x1b[0m"
+
+    def __init__(self):
+        self.an, self.raus, self.leiste, self.stufe = False, None, False, None
+        self.titel, self.detail, self.wert, self.gesamt = None, "", 0, 0
+        self.start = self.seit = time.monotonic()
+        self.offen = self.gezeigt = False  # offen: angefangene Zeile ohne Zeilenende, dann nicht dazwischenzeichnen
+        self.lock = threading.RLock()
+
+    def einschalten(self):
+        if not (sys.stdout and sys.stdout.isatty()):
+            return
+        if sys.platform == "win32":
+            os.system("")  # schaltet in der alten Windows-Konsole die Farben ein
+        self.raus, self.an, self.leiste = sys.stdout, True, bool(os.environ.get("WT_SESSION"))
+        sys.stdout = sys.stderr = self
+        atexit.register(self.schluss)
+        threading.Thread(target=self._drehen, daemon=True).start()
+        j, gelb, aus = datetime.now(), "\x1b[48;5;227m", self.AUS
+        self.write(f"\n  {gelb}      {aus}   \x1b[1mLernhelfer{aus}\n"  # das Logo: gelbes Feld, schwarzes L, blauer Haken
+                   f"  {gelb}  \x1b[1;38;5;16mL\x1b[38;5;26m✓  {aus}   {self.GRAU}OLAT-Abgleich · {TAGE[j.weekday()]}, {j.day}. {MONATE[j.month - 1]} · {j:%H:%M}{aus}\n"
+                   f"  {gelb}      {aus}\n\n")
+
+    def write(self, s):
+        with self.lock:
+            if self.gezeigt:
+                self.raus.write("\r\x1b[2K")
+                self.gezeigt = False
+            self.raus.write(s)
+            if s:
+                self.offen = not s.endswith("\n")
+            self._zeichnen()
+            self.raus.flush()
+        return len(s)
+
+    def flush(self):
+        self.raus.flush()
+
+    def __getattr__(self, name):  # isatty, encoding, fileno … wie die echte Konsole
+        return getattr(self.raus, name)
+
+    def _drehen(self):
+        while True:
+            time.sleep(0.1)
+            with self.lock:
+                self._zeichnen()
+
+    def _zeichnen(self):
+        if not self.an or self.titel is None or self.offen:
+            return
+        t = time.monotonic()
+        s = int(t - self.seit)
+        teile = [(f"  {self.RAD[int(t * 10) % len(self.RAD)]} ", self.BLAU), (f"{self.titel}  ", "")]
+        if self.gesamt:
+            voll = round(24 * min(self.wert / self.gesamt, 1))
+            teile += [("━" * voll, self.BLAU), ("─" * (24 - voll), self.GRAU), (f" {self.wert}/{self.gesamt}  ", "")]
+        teile += [(f"{s // 60}:{s % 60:02d}", self.GRAU), (f"   {self.detail}" if self.detail else "", self.GRAU)]
+        zeile, platz = "", shutil.get_terminal_size().columns - 1  # nie umbrechen, sonst löscht \r nur die letzte Zeile
+        for text, farbe in teile:
+            if len(text) > platz:
+                text = text[:platz - 1] + "…" if platz > 0 else ""
+            platz -= len(text)
+            zeile += f"{farbe}{text}{self.AUS}" if farbe and text else text
+        stufe = f"1;{100 * self.wert // self.gesamt}" if self.gesamt else "3;0"
+        if self.leiste and stufe != self.stufe:  # Windows Terminal: Fortschritt am Taskleisten-Symbol
+            zeile, self.stufe = f"\x1b]9;4;{stufe}\x07" + zeile, stufe
+        self.raus.write("\r\x1b[2K\x1b[?25l" + zeile)
+        self.raus.flush()
+        self.gezeigt = True
+
+    def schritt(self, titel, gesamt=0):
+        """Neuer Abschnitt: Balken (gesamt > 0) oder nur Drehrad, ersetzt den bisherigen ohne eigene Zeile."""
+        with self.lock:
+            self.titel, self.gesamt, self.wert, self.detail, self.seit = titel, gesamt, 0, "", time.monotonic()
+            self._zeichnen()
+
+    def jetzt(self, detail):
+        self.detail = detail
+
+    def plus(self):
+        self.wert += 1
+
+    def ok(self, text, zeichen="✓", farbe=None):
+        """Abschnitt fertig: Balken weg, eine bleibende Zeile. Nur in der Konsole, das Log bleibt wie bisher."""
+        if self.an:
+            with self.lock:
+                self.titel = None
+                self.write(f"  {farbe or self.GRUEN}{zeichen}{self.AUS} {text}\x1b[?25h\n")
+
+    def melden(self, text):
+        """✓-Zeile in der Konsole, im Log der Text wie bisher."""
+        self.ok(text.rstrip(".")) if self.an else print(text, flush=True)
+
+    def fehler(self, text, log=""):
+        self.ok(text, "✗", self.ROT) if self.an else print(text, log, flush=True)
+
+    def warnung(self, text):
+        self.write(f"    {self.ROT}!{self.AUS} {text}\n") if self.an else print(text, flush=True)
+
+    def neu(self, dateien):
+        for n in dateien if self.an else ():
+            fach, _, rest = n.partition(": ")
+            self.write(f"    {self.GRUEN}+{self.AUS} {fach} {self.GRAU}·{self.AUS} {rest}\n")
+
+    def kasten(self, zeilen):
+        b = max(map(len, zeilen)) + 4
+        self.write("\n" + "\n".join([f"  {self.BLAU}╭{'─' * b}╮{self.AUS}", *(f"  {self.BLAU}│{self.AUS}  {z:<{b - 2}}{self.BLAU}│{self.AUS}" for z in zeilen),
+                                     f"  {self.BLAU}╰{'─' * b}╯{self.AUS}"]) + "\n")
+
+    def schluss(self):
+        with self.lock:
+            self.titel = None
+            if self.gezeigt:
+                self.raus.write("\r\x1b[2K")
+                self.gezeigt = False
+            self.raus.write("\x1b[?25h" + ("\x1b]9;4;0;0\x07" if self.leiste else ""))
+            self.raus.flush()
+
+
+ANZEIGE = Anzeige()
 
 
 def natur(s):
@@ -380,10 +512,13 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
     dort gespeicherte Passwörter füllt Chrome beim nächsten Mal selbst aus. Wartet höchstens 10 Minuten (Playwright-TimeoutError)."""
     browser = p.chromium.launch(channel=KANAL, headless=True)
     for versuch in (1, 2):
+        ANZEIGE.schritt("Verbinde mit OLAT")
         ctx = browser.new_context(storage_state=SITZUNG if SITZUNG.exists() else None, accept_downloads=True)
         page = ctx.new_page()
         page.goto(OLAT + "/auth/MyCoursesSite/0")
         if page.get_by_text("Eingeloggt als").count():  # OLAT zeigt die Login-Seite unter derselben URL
+            if versuch == 1:
+                ANZEIGE.ok("Bei OLAT eingeloggt")
             return browser, ctx, page
         ctx.close()
         if versuch == 1 and login:
@@ -392,7 +527,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
                 grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
                 if grund is None:
                     fenster.storage_state(path=SITZUNG)
-                    print("Automatisch bei OLAT eingeloggt.", flush=True)
+                    ANZEIGE.melden("Automatisch bei OLAT eingeloggt.")
                     continue
                 login_fehler(grund)
             except Exception as e:  # Netz, Zeitüberschreitung: nichts Falsches abgeschickt, nächstes Mal wieder automatisch
@@ -407,7 +542,9 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         seite = fenster.pages[0] if fenster.pages else fenster.new_page()
         seite.goto(OLAT + "/auth/MyCoursesSite/0")
         print(f"Bitte im {BROWSER}-Fenster bei OLAT einloggen (10 Minuten Zeit) …", flush=True)
+        ANZEIGE.schritt("Warte auf deinen Login")
         seite.get_by_text("Eingeloggt als").wait_for(timeout=600_000)
+        ANZEIGE.melden("Eingeloggt. Das Fenster schließt sich, der Abgleich läuft unsichtbar weiter.")
         fenster.storage_state(path=SITZUNG)
         fenster.close()
 
@@ -551,10 +688,14 @@ def sync(ctx, page, fach):
     nicht auf, sonst käme bis zum nächsten Abgleich gar nichts in der App an."""
     neu = []
     for q in KURSE[fach]:
+        ANZEIGE.jetzt(f"{fach} · {q['name']}")
         try:
-            neu += eintrag_laden(ctx, page, fach, q)
+            dazu = eintrag_laden(ctx, page, fach, q)
+            ANZEIGE.neu(dazu)
+            neu += dazu
         except Exception as e:
-            print(f"{fach}: {q['name']} nicht geladen ({fehlertext(e)})", flush=True)
+            ANZEIGE.warnung(f"{fach}: {q['name']} nicht geladen ({fehlertext(e)})")
+        ANZEIGE.plus()
     return neu
 
 
@@ -773,6 +914,7 @@ def tests(browser, fach, kurs_ids=None):
             datei, fragen = ziel / f"{name}.txt", ziel / f"{name} – Fragen.txt"
             if k["icon"] == "o_iqself_icon" and datei.exists():  # Selbsttests ändern sich nicht
                 continue
+            ANZEIGE.jetzt(f"{fach} · {k['titel']}")
             pause(page)
             page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
             page.wait_for_load_state("networkidle")
@@ -789,10 +931,11 @@ def tests(browser, fach, kurs_ids=None):
                     # nach Abschluss stehen Fragen samt Lösung auf der Startseite; Fragen-Dateien älterer Fassungen gehen weg
                     fragen.unlink(missing_ok=True)
             except Exception as e:  # ein Test soll den Rest nicht aufhalten
-                print(f"{fach}: {k['titel']} nicht lesbar ({fehlertext(e)})", flush=True)
+                ANZEIGE.warnung(f"{fach}: {k['titel']} nicht lesbar ({fehlertext(e)})")
                 continue
             if not datei.exists() or datei.read_text("utf-8") != t:
                 neu.append(f"{fach}: {TESTS}/{datei.name}")
+                ANZEIGE.neu(neu[-1:])
                 datei.write_text(t, "utf-8")
     ctx.close()
     return neu
@@ -933,6 +1076,23 @@ def olat_erlaubt():
         return True
 
 
+def zugang_kaputt():
+    """Text, wenn der Speicher den Schlüssel aus zugang.json ablehnt (401/403): dann gar nicht erst zu OLAT, die Dateien kämen
+    ohnehin nicht an. Netzfehler, fehlende Datei usw.: None, der Abgleich läuft wie bisher."""
+    try:
+        api("GET", "abgleich.json", roh=True)
+    except HTTPError as e:
+        if e.code in (401, 403):
+            server = json.loads(ZUGANG.read_text("utf-8")).get("api")
+            return (f"Der Schlüssel dieses PC-Programms gilt nicht mehr: In der App wurde inzwischen ein neues PC-Programm geladen "
+                    f"(oder überall abgemeldet). Am {GERAET} die App öffnen, unter Konto „PC-Programm neu laden“ und die Datei ausführen."
+                    if server else "GitHub lehnt den Schlüssel ab (abgelaufen oder gelöscht). In der App unter Einrichten einen neuen "
+                                   "GitHub-Schlüssel eintragen und das PC-Programm neu laden.")
+    except Exception:
+        pass
+    return None
+
+
 def sperre():
     """Nur ein Abgleich gleichzeitig: Aufgabe bzw. launchd und der Doppelklick teilen Sitzung, Chrome-Profil und Stand.
     Gibt die offene Sperrdatei zurück (bis zum Ende behalten) oder None, wenn schon einer läuft."""
@@ -960,12 +1120,15 @@ if __name__ == "__main__":
     if auto:
         sys.stdout = sys.stderr = open(BASIS / "holen.log", "a", encoding="utf-8", buffering=1)
         print(f"--- {datetime.now():%d.%m.%Y %H:%M}")
+    else:
+        ANZEIGE.einschalten()
     SPERRE = sperre()
     for i in range(0 if auto else 240):  # von Hand: bis zu 20 Minuten warten, bis der Lauf im Hintergrund fertig ist
         if SPERRE:
             break
         if not i:
             print("Gerade gleicht der Lernhelfer im Hintergrund ab. Warte, bis er fertig ist …", flush=True)
+            ANZEIGE.schritt("Warte auf den Abgleich im Hintergrund")
         time.sleep(5)
         SPERRE = sperre()
     if not SPERRE:
@@ -975,6 +1138,11 @@ if __name__ == "__main__":
         print("Der Abgleich mit OLAT ist gerade pausiert (Lernhelfer-Server). Er läuft von selbst wieder, sobald er freigegeben ist.", flush=True)
         if auto:
             aktualisieren()  # neue Fassungen kommen trotzdem an, ohne OLAT zu berühren
+        sys.exit(0 if auto else 1)
+    if grund := zugang_kaputt():
+        ANZEIGE.fehler(grund)
+        if auto:
+            aktualisieren()
         sys.exit(0 if auto else 1)
     stand = json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}
     alt = stand.get("abgleich", {})
@@ -1003,7 +1171,8 @@ if __name__ == "__main__":
             browser, ctx, page = olat_login(p, sichtbar=not auto or jetzt - datetime.fromisoformat(stand.get("fenster", "2000-01-01")) > timedelta(hours=8),
                                             fenster_auf=fenster_auf, login=autologin(p, stand, von_hand=not auto), login_fehler=login_fehler)
         except (Abgelaufen, Zeitueberschreitung) as e:
-            print("OLAT-Anmeldung abgelaufen.", type(e).__name__)
+            ANZEIGE.fehler("OLAT-Anmeldung abgelaufen. Starte den Abgleich neu und logge dich ein." if ANZEIGE.an else "OLAT-Anmeldung abgelaufen.",
+                           type(e).__name__)
             weiter(stand, 4)  # abgelaufen: in rund 4 Stunden wieder versuchen, von Hand jederzeit
             STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
             text = (f"Automatischer OLAT-Login ging nicht ({stand['autologin_fehler']}) – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken"
@@ -1019,11 +1188,15 @@ if __name__ == "__main__":
         STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
         if KURSE is None or "--kurse" in sys.argv or kurse_suchen(stand, jetzt):
             try:
+                ANZEIGE.schritt("Suche deine Kurse")
                 ids = {}
                 KURSE = kurse_finden(page, jetzt, KURSE, ids)
                 KURSDATEI.write_text(json.dumps(KURSE, ensure_ascii=False, indent=2), "utf-8")
                 stand["kurse_semester"], stand["kurs_ids"] = semester(jetzt), ids
-                print("Gefundene Kurse:", *(f"  {f}: {', '.join(q['name'] for q in l)}" for f, l in KURSE.items()), sep="\n")
+                if ANZEIGE.an:
+                    ANZEIGE.ok(f"Kurse gefunden: {', '.join(KURSE)}")
+                else:
+                    print("Gefundene Kurse:", *(f"  {f}: {', '.join(q['name'] for q in l)}" for f, l in KURSE.items()), sep="\n")
             except Exception as e:  # gibt es schon Kurse, gleicht er mit denen ab, statt ganz auszufallen; nächster Versuch in einer Woche
                 if KURSE is None:
                     raise
@@ -1035,11 +1208,27 @@ if __name__ == "__main__":
         if auto:
             aktualisieren()
         faecher = [a for a in sys.argv[1:] if not a.startswith("--")] or list(KURSE)
+        ANZEIGE.schritt("Unterlagen", sum(len(KURSE.get(f, [])) for f in faecher))
         neu = [n for f in faecher for n in sync(ctx, page, f)]
+        ANZEIGE.ok("Unterlagen geprüft" + (f" · {len(neu)} neu" if neu else ""))
         ctx.storage_state(path=SITZUNG)
-        neu += [n for f in faecher for n in tests(browser, f, stand.get("kurs_ids", {}).get(f))]
+        ANZEIGE.schritt("Tests und Punkte", len(faecher))
+        neu_tests = []
+        for f in faecher:
+            neu_tests += tests(browser, f, stand.get("kurs_ids", {}).get(f))
+            ANZEIGE.plus()
+        ANZEIGE.ok("Tests und Punkte gelesen" + (f" · {len(neu_tests)} neu oder geändert" if neu_tests else ""))
+        neu += neu_tests
         browser.close()
+    ANZEIGE.schritt("Lade alles in deine App")
     tests_alle = [t for f in KURSE for t in testliste(f)]
     melde(True, f"{len(neu)} neue Unterlagen" if neu else "Nichts Neues in OLAT",
           [(f"faecher/{f}.json", fach_json(f, hochgeladene(f))) for f in faecher] + [("onlinetests.json", tests_alle)])
-    print("\n".join(neu) or "Nichts Neues in OLAT.", "\nFertig – auf dem iPad die App neu laden.", sep="\n")
+    if ANZEIGE.an:
+        ANZEIGE.ok("In deine App hochgeladen")
+        d = int(time.monotonic() - ANZEIGE.start)
+        ANZEIGE.kasten([f"Fertig in {d // 60}:{d % 60:02d} Minuten",
+                        ("1 neue Datei" if len(neu) == 1 else f"{len(neu)} neue Dateien") if neu else "Nichts Neues in OLAT",
+                        "Auf dem iPad die App neu laden."])
+    else:
+        print("\n".join(neu) or "Nichts Neues in OLAT.", "\nFertig – auf dem iPad die App neu laden.", sep="\n")
