@@ -113,7 +113,7 @@ for _ in 1 2 3; do  # direkt nach bootout meldet launchd manchmal noch „Input/
   sleep 2
 done
 [ -n "$GELADEN" ] || launchctl load -w "$PLIST" 2>/dev/null || fehler 'Der automatische Abgleich ließ sich nicht einschalten. Bitte nochmal starten.'
-info 'läuft ab jetzt beim Anmelden und alle 30 Minuten, solange der Mac wach ist'
+info 'gleicht etwa alle 12 Stunden mit OLAT ab, nur zwischen 7 und 23 Uhr, solange der Mac wach ist'
 info 'Meldet macOS „Hintergrundobjekt hinzugefügt“: Das ist der Abgleich, bitte eingeschaltet lassen.'
 
 [ "$ERSTER" = 0 ] || fehler "Der erste Abgleich ist nicht durchgelaufen. Nochmal versuchen: „Lernhelfer OLAT“ doppelklicken ($VERKNUEPFUNG)."

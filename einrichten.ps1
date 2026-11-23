@@ -64,7 +64,7 @@ try {
     -ExecutionTimeLimit (New-TimeSpan -Hours 1) -MultipleInstances IgnoreNew
   Register-ScheduledTask -TaskName $Aufgabe -Action $aktion -Trigger $ausloeser -Settings $einstellung -Force `
     -Description "Prüft alle 30 min, ob ein Abgleich fällig ist; OLAT sieht höchstens alle 12 h einen Abgleich, nur tagsüber. Log: $LH\holen.log" | Out-Null
-  Write-Host '      läuft ab jetzt alle 30 Minuten, solange der PC an ist'
+  Write-Host '      gleicht etwa alle 12 Stunden mit OLAT ab, nur zwischen 7 und 23 Uhr, solange der PC an ist'
 
   Schritt 5 'Erster Abgleich: Im Chrome-Fenster, das sich gleich öffnet, einmal bei OLAT einloggen.'
   Write-Host '      Mit Zugangsdaten loggt er sich künftig selbst ein. Sie bleiben verschlüsselt auf diesem PC.'

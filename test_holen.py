@@ -287,31 +287,121 @@ def test():
     print("ok")
 
 
+def vt(text, breite):
+    """Mini-Terminal: \\r, \\n, ESC[nA, ESC[K, ESC[J; andere Steuerzeichen werden übergangen. → (Zeilen, Umbrüche)"""
+    import re
+    zeilen, r, c, i, umbrueche = [""], 0, 0, 0, 0
+    while i < len(text):
+        if text[i] == "\x1b":
+            m = re.match(r"\x1b\[([0-9;?]*)([A-Za-z])|\x1b\][^\x07]*\x07", text[i:])
+            if m.group(2) == "A":
+                r = max(0, r - int(m.group(1) or 1))
+            elif m.group(2) in ("K", "J"):
+                zeilen[r] = zeilen[r][:c]
+                if m.group(2) == "J":
+                    del zeilen[r + 1:]
+            i += len(m.group(0))
+            continue
+        ch = text[i]
+        if ch == "\r":
+            c = 0
+        elif ch == "\n":
+            r, c = r + 1, 0
+        else:
+            if c >= breite:
+                r, c, umbrueche = r + 1, 0, umbrueche + 1
+                zeilen += [""] * (r + 1 - len(zeilen))
+            z = zeilen[r].ljust(c)
+            zeilen[r] = z[:c] + ch + z[c + 1:]
+            c += 1
+        zeilen += [""] * (r + 1 - len(zeilen))
+        i += 1
+    return zeilen, umbrueche
+
+
 def test_anzeige():
-    """Fortschrittsanzeige: print() in Stücken wird nicht vom Balken zerschnitten, Balken passt immer in eine Zeile."""
+    """Konsolen-Anzeige: Live-Bereich bricht nie um, Fragen und Warnungen bleiben ganz, alte Konsole nur cp850, ohne Konsole still."""
     import io
     import os
     import re
-    os.environ["COLUMNS"] = "60"
-    a = holen.Anzeige()
-    a.raus, a.an = io.StringIO(), True
-    def sichtbar():  # wie das Konsolenfenster: ohne Farbcodes, \r fängt die Zeile neu an
-        roh = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]|\x1b\][^\x07]*\x07", "", a.raus.getvalue())
-        return "\n".join(z.split("\r")[-1] for z in roh.split("\n"))
-    a.write("Frage: ")  # wie input(): Zeile offen, kein Balken dazwischen
-    a.schritt("Unterlagen", 4)
+    os.environ["LINES"] = "30"
+    ohne = lambda s: re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07", "", s)
+
+    def neu(spalten, alt=False):
+        os.environ["COLUMNS"] = str(spalten)
+        a = holen.Anzeige()
+        a.raus, a.an, a.alt = io.StringIO(), True, alt
+        return a
+
+    for sp in (30, 40, 60, 72, 100, 140):  # jede Zeile des Bereichs passt, auch mit Emoji im Namen und in der Pause
+        a = neu(sp)
+        a.schritt("Unterlagen", 31, hinweis="geladen wird nur, was neu ist", faecher=["Mathematik", "VWL", "BWL", "Englisch", "Statistik"])
+        a.jetzt("12 Dateien, 11 schon da · lädt " + "x" * 90 + ".pdf (1 von 1)", "VWL · PS Übungsblätter 🎓")
+        a.wert, a.z["pausen"], a.z["pause_s"] = 14, 3, 9.5
+        a.fund("VWL", "PS / Blatt05.pdf", groesse_b=310_000)
+        for _ in range(2):
+            for s, b in a._bereich():
+                assert len(ohne(s)) == b <= sp - 1, (sp, ohne(s))
+            a.pause(3000)
+        a.schritt("Warte auf deinen Login", frist=600, hinweis="Kein Stress, das Fenster wartet bis zu 10 Minuten.")
+        for s, b in a._bereich():
+            assert len(ohne(s)) == b <= sp - 1, (sp, ohne(s))
+        a.karte({}, {"naechster": "2026-11-23T23:40"})
+        bild, umbrueche = vt(a.raus.getvalue(), sp)
+        assert sp < 60 or not umbrueche, (sp, bild)  # bleibende Zeilen dürfen nur in schmalen Fenstern umbrechen
+
+    a = neu(100)
+    a.write("Frage: ")  # wie input(): Zeile offen, kein Bereich dazwischen
+    a.schritt("Verbinde mit OLAT")
     a.write("ja\n")
-    assert "Frage: ja\n" in sichtbar()
-    a.plus(), a.plus(), a.jetzt("BWL · " + "sehr langer Ordnername " * 5)
-    a._zeichnen()
-    letzte = sichtbar().split("\n")[-1]
-    assert "2/4" in letzte and "━" * 12 + "─" * 12 in letzte and len(letzte) <= 59 and letzte.endswith("…"), letzte
     a.warnung("BWL: X nicht geladen")
-    assert "! BWL: X nicht geladen\n" in sichtbar() and a.gezeigt, "Warnung über dem Balken, Balken wieder da"
-    a.neu(["BWL: VO/vo1.pdf"])
-    a.ok("Unterlagen geprüft")
-    assert sichtbar().endswith("+ BWL · VO/vo1.pdf\n  ✓ Unterlagen geprüft\n") and a.titel is None
-    holen.Anzeige().neu(["BWL: x"])  # ohne Konsole (Log): keine Zeile, die Liste kommt wie bisher am Ende
+    bild = [z for z in vt(a.raus.getvalue(), 100)[0] if z.strip()]
+    assert "Frage: ja" in bild and "! BWL: X nicht geladen" in bild[-3] and "Verbinde mit OLAT" in bild[-2], bild
+
+    a = neu(100)  # höchstens 3 Fundzeilen je Ordner, dann eine Sammelzeile
+    a.schritt("Unterlagen", 2, faecher=["BWL"])
+    for i in range(5):
+        a.fund("BWL", f"VO Folien / f{i}.pdf", groesse_b=1_200_000)
+    a.plus()
+    a.ok("Unterlagen")
+    bild = vt(a.raus.getvalue(), 100)[0]
+    assert sum("+ BWL" in z for z in bild) == 4 and any("… und 2 weitere in VO Folien" in z and "2,4 MB" in z for z in bild), bild
+    assert not any("Unterlagen " in z and "┄" in z for z in bild), "Bereich nach ok() weg"
+
+    for sp in (80, 100, 120):  # Kurszeile: langer Titel wird gekürzt, die Angabe rechts bleibt
+        a = neu(sp)
+        a.kurs("Mathematik", "VO", "Mathematik für Wirtschaftswissenschaften und noch viel mehr Text", 4, 1, 3)
+        assert "4 Ordner · 1 Dokument · 3 Tests" in ohne(a.raus.getvalue()), (sp, ohne(a.raus.getvalue()))
+
+    a = neu(100)  # Bereich weg vor einer Frage (input/getpass schreiben an write() vorbei): Cursor wieder sichtbar
+    a.schritt("Prüfe deine App")
+    a.schritt(None)
+    s = a.raus.getvalue()
+    assert s.rfind("\x1b[?25h") > s.rfind("\x1b[?25l") >= 0, repr(s)
+
+    a = neu(100, alt=True)  # alte Windows-Konsole: alles in Codepage 850
+    a._kopf()
+    a.schritt("Unterlagen", 3, hinweis="„x“ …", faecher=["Mathematik"])
+    a.jetzt("lädt „x“ …", "Mathematik · VO")
+    a.fund("Mathematik", "VO / a.pdf", groesse_b=2_400_000)
+    a._zeichnen()
+    a.zeile("fertig", "grau")
+    a.fund("Mathematik", "Test „T“", art="neu", name="T")
+    a.karte({"zeit": "2026-11-20T09:12"}, {})
+    a.schritt("x")
+    a.schluss()
+    ohne(a.raus.getvalue()).encode("cp850")
+    assert "Abgebrochen bei x" in a.raus.getvalue()
+
+    b = holen.Anzeige()  # ohne Konsole (Log, Tests): raus ist None, jede Ausgabe würde scheitern
+    b.schritt("x", 2)
+    b.fund("BWL", "a / b.pdf", groesse_b=5)
+    b.kurs("BWL", "VO", "t", 1, 0, 0)
+    b.zeile("x")
+    b.plus()
+    b.ok("x")
+    b.karte({}, {})
+    assert b.funde == {"BWL": 1}
     print("ok anzeige")
 
 

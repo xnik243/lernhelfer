@@ -1848,7 +1848,7 @@ aussehen();
         </div>
 
         <h2 id="a-ohne-pc">Mit iPad oder Mac, ohne Windows-PC</h2>
-        <p>Den Lernhelfer selbst nutzt du auf jedem Gerät im Browser. Nur das automatische Holen der Unterlagen aus OLAT braucht einen Computer. Der Grund: OLAT öffnet sich nur mit deinem Uni-Login und dem Authenticator. Das erledigt ein kleines Programm in einem echten Browser auf deinem Computer, und es muss danach im Hintergrund weiterlaufen, damit die Anmeldung nicht abläuft. Ein iPad erlaubt solche Hintergrundprogramme nicht. Eine Schnittstelle, über die der Lernhelfer ohne Login an die Dateien käme, bietet die Universität nicht an, und deine Uni-Zugangsdaten soll kein fremder Server speichern.</p>
+        <p>Den Lernhelfer selbst nutzt du auf jedem Gerät im Browser. Nur das automatische Holen der Unterlagen aus OLAT braucht einen Computer. Der Grund: OLAT öffnet sich nur mit deinem Uni-Login und dem Authenticator. Das erledigt ein kleines Programm in einem echten Browser auf deinem Computer, das etwa alle 12 Stunden von selbst im Hintergrund startet und sich dabei bei OLAT anmeldet. Ein iPad erlaubt solche Hintergrundprogramme nicht. Eine Schnittstelle, über die der Lernhelfer ohne Login an die Dateien käme, bietet die Universität nicht an, und deine Uni-Zugangsdaten soll kein fremder Server speichern.</p>
         <h3>Mit einem Mac: automatisch, wie am Windows-PC</h3>
         <ol>
           <li>Den Lernhelfer am Mac öffnen<span class="nur-server"> und anmelden</span><span class="nur-eigen"> und einrichten bzw. mit dem Verbindungslink aus Schritt 4 verbinden</span>. Dann <span class="nur-eigen">unter Einrichten bei Schritt 3</span><span class="nur-server">oben auf dieser Seite oder unter <a href="#/start">Start</a></span> auf <b>Befehl für den Mac kopieren</b> tippen.</li>
@@ -1857,7 +1857,7 @@ aussehen();
           <li>Es öffnet sich Chrome (fehlt Chrome: Chromium) mit der OLAT-Anmeldung. Ganz normal einloggen, mit Authenticator. Steht im Terminal „Fertig“, kann es zu. Beim ersten Mal dauert alles 5 bis 15 Minuten.</li>
           <li>Meldet macOS „Hintergrundobjekt hinzugefügt“: Das ist der Abgleich. Unter Systemeinstellungen, Allgemein, Anmeldeobjekte muss er eingeschaltet bleiben.</li>
         </ol>
-        <p>Warum ein Befehl im Terminal und keine Datei zum Doppelklicken? Programme aus dem Internet blockiert der Mac, solange sie keine kostenpflichtige Signatur von Apple haben. Ein Befehl, den du selbst einfügst, braucht das nicht. Er lädt nur Python, die Browser-Steuerung und das Abgleich-Programm in den Ordner <code>~/Library/Lernhelfer</code>, prüft jede Datei und richtet den Abgleich alle 30 Minuten ein.</p>
+        <p>Warum ein Befehl im Terminal und keine Datei zum Doppelklicken? Programme aus dem Internet blockiert der Mac, solange sie keine kostenpflichtige Signatur von Apple haben. Ein Befehl, den du selbst einfügst, braucht das nicht. Er lädt nur Python, die Browser-Steuerung und das Abgleich-Programm in den Ordner <code>~/Library/Lernhelfer</code>, prüft jede Datei und richtet den automatischen Abgleich ein (etwa alle 12 Stunden).</p>
         <h3>Nur mit iPad oder Handy: Unterlagen selbst hochladen</h3>
         <p>Ohne Computer holst du die Dateien selbst aus OLAT und gibst sie dem Lernhelfer. Das dauert ein paar Minuten pro Woche; alles andere geht wie gewohnt: Wochenausgabe, Übungen, Karteikarten, Prüfungstraining.</p>
         <ol>
@@ -1948,7 +1948,7 @@ aussehen();
 
         <h2 id="a-pc">Der Abgleich am PC oder Mac</h2>
         <ul>
-          <li>Solange der Computer an ist (der Mac: wach), hält er alle 30 Minuten die OLAT-Anmeldung wach und holt höchstens alle 12 Stunden neue Unterlagen. Unten auf der Seite Heute steht, wann zuletzt abgeglichen wurde.</li>
+          <li>Solange der Computer an ist (der Mac: wach), holt er etwa alle 12 Stunden neue Unterlagen, nur zwischen 7 und 23 Uhr und mit kurzen Pausen zwischen den Seiten wie beim Klicken von Hand. Dazwischen schaut er alle 30 Minuten nur auf dem Computer selbst nach, ob es so weit ist; OLAT bekommt davon nichts mit. Unten auf der Seite Heute steht, wann zuletzt abgeglichen wurde.</li>
           <li>War der Computer lange aus, ist die OLAT-Anmeldung abgelaufen. Dann öffnet sich nach dem Einschalten Chrome mit der OLAT-Anmeldung, einfach einloggen. Oder auf dem Desktop bzw. Schreibtisch <b>Lernhelfer OLAT</b> doppelklicken.</li>
           <li>Sofort abgleichen, etwa wenn gerade neue Folien hochgeladen wurden: ebenfalls <b>Lernhelfer OLAT</b> doppelklicken.</li>
           <li>Neue Kurse sucht der Lernhelfer zu Beginn jedes Semesters selbst unter „Meine Kurse“ in OLAT. Was du zusätzlich unter <a href="#/unterlagen">Unterlagen</a> hochlädst, bleibt beim Abgleich erhalten.</li>

@@ -21,6 +21,7 @@ import hmac
 import html
 import json
 import logging
+import math
 import os
 import random
 import re
@@ -30,6 +31,7 @@ import subprocess
 import sys
 import threading
 import time
+import unicodedata
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -70,44 +72,136 @@ GEFAHR = ".o_sel_assessment_item_submit, .o_sel_end_testpart, .o_sel_cancel_test
 logging.getLogger("pypdf").setLevel(logging.ERROR)  # harmlose Warnungen bei schief gebauten PDFs
 TAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+# Konsole: gebaut wird mit modernen Zeichen, die alte Windows-Konsole (Rasterschrift, nur Codepage 850) bekommt Ersatz
+ALT = str.maketrans("✓✗━┄╭╮╰╯…„“–", "■×═·┌┐└┘.»«-")
+FACH_WIN = {"Mathematik": 80, "VWL": 214, "BWL": 183, "Englisch": 218}  # Fachfarben der App als 256er-Farben
+FACH_ECHT = {"Mathematik": "94;234;212", "VWL": "251;191;36", "BWL": "196;181;253", "Englisch": "249;168;212"}
+FACH_MAC = {"Mathematik": 37, "VWL": 172, "BWL": 141, "Englisch": 205}  # Terminal.app ist oft hell
+ERSATZ_WIN, ERSATZ_MAC = (117, 156, 210, 223, 151, 181), (74, 71, 167, 137, 103, 132)  # andere Fächer, stabil je Name
+TESTICONS = ("o_iqtest_icon", "o_iqself_icon", "o_ms_icon")
+
+
+def uhr(s):
+    s = int(s)
+    return f"{s // 60}:{s % 60:02d}"
+
+
+def groesse(b):
+    return f"{b / 1e6:.1f} MB".replace(".", ",") if b >= 1e6 else f"{max(1, round(b / 1e3))} KB"
+
+
+def anzahl(n, eins, mehr):
+    return f"{n} {eins if n == 1 else mehr}"
+
+
+def bytes_von(p):
+    """Dateigröße nur für die Anzeige: ein Virenscanner kann die Datei schon weggeräumt haben."""
+    try:
+        return p.stat().st_size
+    except OSError:
+        return None
+
+
+def wann(dt, jetzt=None):
+    """heute / gestern / morgen / Wochentag (bis 6 Tage) / 12.11."""
+    tage = (dt.date() - (jetzt or datetime.now()).date()).days
+    return {0: "heute", -1: "gestern", 1: "morgen"}.get(tage) or (TAGE[dt.weekday()] if abs(tage) < 7 else f"{dt:%d.%m.}")
+
+
+def grund(e):
+    t = fehlertext(e)
+    if "imeout" in t:
+        return "OLAT hat nicht rechtzeitig geantwortet"
+    return "keine Verbindung zu OLAT" if "net::" in t else t
+
+
+def _sauber(s):
+    """Jede Zelle genau ein Zeichen breit: ohne Steuerzeichen, breite Zeichen (Emoji, CJK) werden zu „?“."""
+    s = unicodedata.normalize("NFC", str(s))
+    return "".join("?" if unicodedata.east_asian_width(c) in "WF" else c for c in s
+                   if unicodedata.category(c) not in ("Cc", "Cf", "Mn", "Me"))
 
 
 class Anzeige:
-    """Fortschritt im Konsolenfenster (Doppelklick auf „Lernhelfer OLAT“): Kopf mit Logo, Balken mit Drehrad und Zeit, ✓-Zeilen,
-    neue Dateien sofort, im Windows Terminal auch Fortschritt am Taskleisten-Symbol. Übernimmt sys.stdout nur bei echter
-    Konsole; ins Log (--auto) und in test_holen.py geht alles wie bisher. Andere print()-Zeilen landen über dem Balken."""
-    RAD = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-    BLAU, GRUEN, ROT, GRAU, AUS = "\x1b[38;5;69m", "\x1b[38;5;78m", "\x1b[38;5;203m", "\x1b[38;5;244m", "\x1b[0m"
+    """Konsolenfenster beim Abgleich von Hand („Lernhelfer OLAT“, Einrichten): Kopf mit Logo und letztem Lauf, darunter ein
+    Logbuch (✓-Zeilen, Kurse, Funde) und ganz unten ein Live-Bereich: auf der Spur fährt das Logo als Chip mit, Funde bleiben
+    als Marken in Fachfarbe liegen, Pausen zwischen OLAT-Seiten sind sichtbar. Am Ende eine Karte mit Abzeichen.
+    Übernimmt sys.stdout nur bei echter Konsole; ins Log (--auto) und in test_holen.py geht alles wie bisher, die Methoden
+    schreiben dann nichts (außer melden/warnung/fehler, die wie früher print() machen). Andere print()-Zeilen landen über dem Bereich."""
+    RAD, RAD_ALT = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏", "░▒▓█▓▒"
+    BLAU, GRUEN, ROT, GRAU, DUNKEL = "\x1b[38;5;69m", "\x1b[38;5;78m", "\x1b[38;5;203m", "\x1b[38;5;244m", "\x1b[38;5;240m"
+    FETT, AUS, CHIP = "\x1b[1m", "\x1b[0m", "\x1b[48;5;{}m\x1b[1;38;5;16m"
 
     def __init__(self):
-        self.an, self.raus, self.leiste, self.stufe = False, None, False, None
-        self.titel, self.detail, self.wert, self.gesamt = None, "", 0, 0
-        self.start = self.seit = time.monotonic()
-        self.offen = self.gezeigt = False  # offen: angefangene Zeile ohne Zeilenende, dann nicht dazwischenzeichnen
+        self.an, self.raus, self.alt, self.echt, self.mac, self.leiste = False, None, False, False, False, False
         self.lock = threading.RLock()
+        self.start = time.monotonic()
+        self.offen = False  # angefangene Zeile ohne Zeilenende (Eingabe-Frage): dann nicht dazwischenzeichnen
+        self.bild, self.breiten, self.osc, self.stufe = None, [], None, None
+        self.z = {"pausen": 0, "pause_s": 0.0, "stellen": 0, "gesehen": 0, "gelesen": 0, "tests": 0, "bytes": 0, "fehler": 0}
+        self.funde, self.tests_neu, self.testnamen, self.groesster = {}, {}, [], None
+        self.verdeckt, self.pro_stelle, self.geschickt, self.alle_faecher = None, 0, [], []
+        self.pop_bis = self.pop_n = 0
+        self.schritt(None)
 
+    # ---------- Ausgabe ----------
     def einschalten(self):
         if not (sys.stdout and sys.stdout.isatty()):
             return
         if sys.platform == "win32":
-            os.system("")  # schaltet in der alten Windows-Konsole die Farben ein
-        self.raus, self.an, self.leiste = sys.stdout, True, bool(os.environ.get("WT_SESSION"))
+            os.system("")  # schaltet in der alten Windows-Konsole Farben und Steuerzeichen ein
+        self.raus, self.an = sys.stdout, True
+        pty = False  # Windows Terminal als Standardterminal (Doppelklick): kein WT_SESSION, aber ein Pseudo-Konsolenfenster
+        if sys.platform == "win32" and not os.environ.get("WT_SESSION"):
+            try:
+                import ctypes
+                puffer = ctypes.create_unicode_buffer(64)
+                ctypes.windll.user32.GetClassNameW(ctypes.windll.kernel32.GetConsoleWindow(), puffer, 64)
+                pty = puffer.value == "PseudoConsoleWindow"
+            except Exception:
+                pass
+        vscode = os.environ.get("TERM_PROGRAM") == "vscode"
+        self.leiste = bool(os.environ.get("WT_SESSION")) or (pty and not vscode)
+        self.alt = sys.platform == "win32" and not self.leiste and not vscode
+        self.echt = self.leiste or os.environ.get("COLORTERM") in ("truecolor", "24bit")
+        self.mac = sys.platform == "darwin"
         sys.stdout = sys.stderr = self
         atexit.register(self.schluss)
         threading.Thread(target=self._drehen, daemon=True).start()
-        j, gelb, aus = datetime.now(), "\x1b[48;5;227m", self.AUS
-        self.write(f"\n  {gelb}      {aus}   \x1b[1mLernhelfer{aus}\n"  # das Logo: gelbes Feld, schwarzes L, blauer Haken
-                   f"  {gelb}  \x1b[1;38;5;16mL\x1b[38;5;26m✓  {aus}   {self.GRAU}OLAT-Abgleich · {TAGE[j.weekday()]}, {j.day}. {MONATE[j.month - 1]} · {j:%H:%M}{aus}\n"
-                   f"  {gelb}      {aus}\n\n")
+        self._kopf()
+
+    def _kopf(self):
+        j = datetime.now()
+        try:
+            st = json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}
+            a = st.get("abgleich") or {}
+            t = datetime.fromisoformat(a["zeit"])
+            drei = f"zuletzt {wann(t)} {t:%H:%M} · " + (a.get("text", "") if a.get("ok") is not False else "ging nicht: " + a.get("text", ""))
+            drei += f" · dauerte {uhr(st['dauer'])}" if st.get("dauer") and a.get("ok") is not False else ""
+        except Exception:
+            drei = f"erster Abgleich auf diesem {GERAET} · dauert ein paar Minuten"
+        g, aus = self.CHIP.format(227), self.AUS
+        haken = "\x1b[38;5;26m▄▀ " if self.alt else "\x1b[38;5;26m✓  "
+        platz = shutil.get_terminal_size().columns - 13
+        drei = self._kuerzen([(drei, self.GRAU)], platz)[0]
+        self.write(f"\n  {g}      {aus}   {self.FETT}Lernhelfer{aus}\n"  # das Logo: gelbes Feld, schwarzes L, blauer Haken
+                   f"  {g}  L{haken}{aus}   {self.GRAU}OLAT-Abgleich · {TAGE[j.weekday()]}, {j.day}. {MONATE[j.month - 1]} · {j:%H:%M}{aus}\n"
+                   f"  {g}      {aus}   {drei}\n\n")
+
+    def _raus(self, s):
+        """Einzige Stelle, die in die echte Konsole schreibt."""
+        if self.alt:
+            s = s.translate(ALT).encode("cp850", "replace").decode("cp850")
+        self.raus.write(s)
 
     def write(self, s):
         with self.lock:
-            if self.gezeigt:
-                self.raus.write("\r\x1b[2K")
-                self.gezeigt = False
-            self.raus.write(s)
+            self._weg()
+            self._raus(s)
             if s:
                 self.offen = not s.endswith("\n")
+            if self.offen:
+                self._raus("\x1b[?25h")  # Eingabe: Cursor sichtbar
             self._zeichnen()
             self.raus.flush()
         return len(s)
@@ -118,6 +212,17 @@ class Anzeige:
     def __getattr__(self, name):  # isatty, encoding, fileno … wie die echte Konsole
         return getattr(self.raus, name)
 
+    def _hoch(self):
+        """Zeilen über dem Cursor im Live-Bereich, auch wenn das Fenster inzwischen schmaler ist und neu umbrochen hat."""
+        sp = max(1, shutil.get_terminal_size().columns)
+        return sum(max(1, -(-b // sp)) for b in self.breiten) - 1
+
+    def _weg(self):
+        if self.breiten:
+            h = self._hoch()
+            self._raus("\r" + (f"\x1b[{h}A" if h > 0 else "") + "\x1b[J")
+            self.breiten, self.bild = [], None
+
     def _drehen(self):
         while True:
             time.sleep(0.1)
@@ -125,74 +230,349 @@ class Anzeige:
                 self._zeichnen()
 
     def _zeichnen(self):
-        if not self.an or self.titel is None or self.offen:
+        if not self.an or self.offen:
             return
-        t = time.monotonic()
-        s = int(t - self.seit)
-        teile = [(f"  {self.RAD[int(t * 10) % len(self.RAD)]} ", self.BLAU), (f"{self.titel}  ", "")]
-        if self.gesamt:
-            voll = round(24 * min(self.wert / self.gesamt, 1))
-            teile += [("━" * voll, self.BLAU), ("─" * (24 - voll), self.GRAU), (f" {self.wert}/{self.gesamt}  ", "")]
-        teile += [(f"{s // 60}:{s % 60:02d}", self.GRAU), (f"   {self.detail}" if self.detail else "", self.GRAU)]
-        zeile, platz = "", shutil.get_terminal_size().columns - 1  # nie umbrechen, sonst löscht \r nur die letzte Zeile
-        for text, farbe in teile:
-            if len(text) > platz:
-                text = text[:platz - 1] + "…" if platz > 0 else ""
-            platz -= len(text)
-            zeile += f"{farbe}{text}{self.AUS}" if farbe and text else text
-        stufe = f"1;{100 * self.wert // self.gesamt}" if self.gesamt else "3;0"
-        if self.leiste and stufe != self.stufe:  # Windows Terminal: Fortschritt am Taskleisten-Symbol
-            zeile, self.stufe = f"\x1b]9;4;{stufe}\x07" + zeile, stufe
-        self.raus.write("\r\x1b[2K\x1b[?25l" + zeile)
+        try:
+            zeilen = self._bereich() if self.titel else []
+        except Exception:
+            return  # ponytail: die Anzeige darf den Abgleich nie stoppen; dann fällt ein Bild aus
+        bild = "\n".join(t for t, _ in zeilen)
+        if bild == self.bild:
+            return
+        if not zeilen:  # Bereich weg: Cursor wieder an (input() und getpass schreiben an write() vorbei), Titel und Taskleiste zurück
+            self._weg()
+            self._raus(self._titel_osc() + "\x1b[?25h")
+            self.raus.flush()
+            self.bild = ""
+            return
+        h = self._hoch() if self.breiten else 0
+        s = "\r" + (f"\x1b[{h}A" if h > 0 else "") + "\x1b[?25l" + "\x1b[K\n".join(t for t, _ in zeilen) + "\x1b[K\x1b[J"
+        if self.echt:
+            s = "\x1b[?2026h" + s + "\x1b[?2026l"  # Windows Terminal: das Bild auf einmal zeigen, ohne Flackern
+        self._raus(self._titel_osc() + s)
         self.raus.flush()
-        self.gezeigt = True
+        self.bild, self.breiten = bild, [b for _, b in zeilen]
 
-    def schritt(self, titel, gesamt=0):
-        """Neuer Abschnitt: Balken (gesamt > 0) oder nur Drehrad, ersetzt den bisherigen ohne eigene Zeile."""
+    def _titel_osc(self):
+        """Fenstertitel mit Fortschritt; im Windows Terminal auch am Taskleisten-Symbol."""
+        s = ""
+        titel = (f"Lernhelfer · {self.titel}" + (f" {self.wert}/{self.gesamt}" if self.gesamt else "")) if self.titel else "Lernhelfer"
+        if titel != self.osc:
+            s, self.osc = f"\x1b]0;{titel}\x07", titel
+        stufe = (f"1;{100 * min(self.wert, self.gesamt) // self.gesamt}" if self.gesamt else "3;0") if self.titel else "0;0"
+        if self.leiste and stufe != self.stufe:
+            s, self.stufe = s + f"\x1b]9;4;{stufe}\x07", stufe
+        return s
+
+    def _kuerzen(self, teile, platz):
+        """[(Text, Farbe)] → (Zeile mit Farben, sichtbare Breite); was nicht passt, wird mit … abgeschnitten."""
+        aus, breite = "", 0
+        for text, farbe in teile:
+            text = _sauber(text)
+            if len(text) > platz - breite:
+                rest = platz - breite
+                text = text[:rest - 1] + "…" if rest > 0 else ""
+            breite += len(text)
+            aus += f"{farbe}{text}{self.AUS}" if farbe and text else text
+        return aus, breite
+
+    def _farbe(self, fach, hg=False):
+        art = 48 if hg else 38
+        if self.echt and fach in FACH_ECHT:
+            return f"\x1b[{art};2;{FACH_ECHT[fach]}m"
+        tabelle, ersatz = (FACH_MAC, ERSATZ_MAC) if self.mac else (FACH_WIN, ERSATZ_WIN)
+        return f"\x1b[{art};5;{tabelle.get(fach) or ersatz[sum(map(ord, fach or '')) % len(ersatz)]}m"
+
+    def _kante(self):
+        return min(shutil.get_terminal_size().columns - 1, 96)
+
+    # ---------- Live-Bereich ----------
+    def _bereich(self):
+        groesse_t = shutil.get_terminal_size()
+        sp, t = groesse_t.columns, time.monotonic()
+        n = int(t * 10)
+        pause = t < self.pause_bis
+        rad = (self.RAD_ALT[(n // 3) % len(self.RAD_ALT)] if self.alt else self.RAD[n % len(self.RAD)])
+        lauf = uhr(t - self.start)
+        if sp < 40 or groesse_t.lines < 8:  # winziges Fenster: eine Zeile wie früher
+            return [self._kuerzen([("  ", ""), ("·" if pause else rad, self.BLAU), (" " + self.titel, self.FETT),
+                                   (f"  {self.wert}/{self.gesamt}" if self.gesamt else "", ""), (f"  {lauf}", self.GRAU),
+                                   (f"   {self.ort} {self.tun}", self.GRAU)], sp - 1)]
+        # Z1: Titel, Spur mit Logo-Chip, Zähler, Zeit
+        links = f"  {self.titel}   "
+        zahl = f"  {self.wert}/{self.gesamt}" if self.gesamt else ""
+        if self.frist:
+            zeit = f"   noch {uhr(max(0, self.frist - (t - self.seit)))}   {lauf}"
+        else:
+            zeit = f"   {lauf}" + (f" · davon {uhr(self.z['pause_s'] - max(0, self.pause_bis - t))} Pause" if self.z["pausen"] else "")
+        w = min(40, sp - 1 - len(links) - len(zahl) - len(zeit))
+        if w < 12 and not self.frist:
+            zeit = f"   {lauf}"
+            w = min(40, sp - 1 - len(links) - len(zahl) - len(zeit))
+        z1 = [(links, self.FETT), *(self._spur(w, n, t, pause) if w >= 12 else []), (zahl, ""), (zeit, self.GRAU)]
+        # Z2: was gerade passiert; in einer Pause steht das Rad und ein Balken leert sich
+        if pause:
+            rest = self.pause_bis - t
+            voll = max(0, min(5, math.ceil(5 * rest / max(self.pause_dauer, 0.1))))
+            z2 = [("   · ", self.DUNKEL), (self.ort, self.FETT), ("  Pause ", self.GRAU), ("■" * voll, self.BLAU),
+                  ("·" * (5 - voll), self.DUNKEL), (f" {rest:.1f} s".replace(".", ",") + " · wie beim Klicken von Hand", self.GRAU)]
+        else:
+            z2 = [("   ", ""), (rad, self.BLAU), (" ", ""), (self.ort, self.FETT), (("  " if self.ort else "") + self.tun, self.GRAU)]
+        zeilen = [self._kuerzen(z1, sp - 1), self._kuerzen(z2, sp - 1)]
+        # Z3: Neues je Fach und ein Hinweis zur Phase
+        if sp >= 72 and (self.faecher or self.hinweis):
+            zeilen.append(self._z3(sp))
+        return zeilen
+
+    def _spur(self, w, n, t, pause):
+        chip = self.CHIP.format(229 if pause and (n // 5) % 2 else 227)
+        chip_text = f"+{min(self.pop_n, 9)} " if t < self.pop_bis else " L "
+        laenge = w - 3
+        if not self.gesamt:  # Dauer unbekannt: der Chip pendelt
+            laenge = min(16, w) - 3
+            p = abs((n // 2) % (2 * laenge) - laenge)
+            return [("┄" * p, self.DUNKEL), (chip_text, chip), ("┄" * (laenge - p), self.DUNKEL)]
+        ziel = round(min(self.wert / self.gesamt, 1) * laenge)
+        self.pos = ziel if ziel < self.pos else min(ziel, self.pos + 1)  # gleitet, nie vor dem echten Fortschritt
+        zellen = [("━", self.BLAU)] * self.pos
+        for anteil, fach in self.marken:
+            i = min(int(anteil * laenge), self.pos - 1)
+            if i >= 0:
+                zellen[i] = ("■", self._farbe(fach))
+        return [*zellen, (chip_text, chip), ("┄" * (laenge - self.pos), self.DUNKEL)]
+
+    def _z3(self, sp):
+        kante = self._kante()
+        hinweis = (self.hinweis, self.GRAU) if self.hinweis else ("", "")
+        if not self.faecher:
+            return self._kuerzen([("   ", ""), hinweis], sp - 1)
+        for ohne_null, mit_hinweis in ((False, True), (True, True), (True, False)):
+            teile = [("   Neu", self.GRAU)]
+            for f in self.faecher:
+                k = self.funde.get(f, 0) + self.tests_neu.get(f, 0)
+                if k or not ohne_null:
+                    teile += [("  ■", self._farbe(f)), (f" {f} ", ""), (str(k), self.FETT if k else self.GRAU)]
+            breite = sum(len(_sauber(x)) for x, _ in teile)
+            h = len(self.hinweis) if mit_hinweis and self.hinweis else 0
+            if breite + (h + 2 if h else 0) <= kante:
+                if h:
+                    teile += [(" " * (kante - breite - h), ""), hinweis]
+                return self._kuerzen(teile, sp - 1)
+        return self._kuerzen(teile, sp - 1)
+
+    # ---------- Zustand ----------
+    def schritt(self, titel, gesamt=0, hinweis="", frist=0, faecher=None):
+        """Neuer Abschnitt im Live-Bereich (Spur, wenn gesamt > 0, sonst pendelt der Chip); None räumt ihn weg."""
         with self.lock:
-            self.titel, self.gesamt, self.wert, self.detail, self.seit = titel, gesamt, 0, "", time.monotonic()
+            self.titel, self.gesamt, self.wert, self.hinweis, self.frist = titel, gesamt, 0, hinweis, frist
+            self.faecher = list(faecher or [])
+            if self.faecher:
+                self.alle_faecher = list(dict.fromkeys(self.alle_faecher + self.faecher))
+            self.ort = self.tun = ""
+            self.pos, self.marken, self.seit, self.pause_bis, self.pause_dauer = 0, [], time.monotonic(), 0, 0
             self._zeichnen()
 
-    def jetzt(self, detail):
-        self.detail = detail
+    def jetzt(self, tun, ort=None):
+        """Was gerade passiert (Z2); `ort` bleibt stehen, bis ein neuer kommt."""
+        self.tun = tun
+        if ort is not None:
+            self.ort = ort
+        self.pause_bis = 0
+
+    def pause(self, ms):
+        self.pause_dauer, self.pause_bis = ms / 1000, time.monotonic() + ms / 1000
+        self.z["pausen"] += 1
+        self.z["pause_s"] += ms / 1000
 
     def plus(self):
-        self.wert += 1
+        with self.lock:
+            self._verdeckt_zeile()
+            self.wert += 1
+            self.pro_stelle = 0
 
-    def ok(self, text, zeichen="✓", farbe=None):
-        """Abschnitt fertig: Balken weg, eine bleibende Zeile. Nur in der Konsole, das Log bleibt wie bisher."""
+    # ---------- Logbuch ----------
+    def _rechts(self, teile, rechts):
+        """Bleibende Zeile, `rechts` (grau) an der Kante; passt beides nicht, kommt die Zeile ohne rechten Teil."""
+        kante = self._kante()
+        s, b = self._kuerzen(teile, 10_000)
+        if rechts and b + 2 + len(rechts) <= kante:
+            s += " " * (kante - b - len(rechts)) + f"{self.GRAU}{rechts}{self.AUS}"
+        self.write(s + "\n")
+
+    def zeile(self, text, grau="", zeichen="✓", farbe=None):
+        if self.an:
+            self._rechts([("  ", ""), (zeichen, farbe or self.GRUEN), (" " + text, ""), (" · " + grau if grau else "", self.GRAU)],
+                         uhr(time.monotonic() - self.start))
+
+    def ok(self, text, grau=""):
+        """Abschnitt fertig: Bereich weg, eine bleibende ✓-Zeile. Nur in der Konsole, das Log bleibt wie bisher."""
+        with self.lock:
+            self._verdeckt_zeile()
+            self.titel = None
+            self.zeile(text, grau)
+
+    def melden(self, text, konsole=None, grau=""):
+        """✓-Zeile in der Konsole, im Log der Text wie bisher."""
+        self.ok(konsole or text.rstrip("."), grau) if self.an else print(text, flush=True)
+
+    def fehler(self, text, log=""):
         if self.an:
             with self.lock:
                 self.titel = None
-                self.write(f"  {farbe or self.GRUEN}{zeichen}{self.AUS} {text}\x1b[?25h\n")
+                self.zeile(text, zeichen="✗", farbe=self.ROT)
+        else:
+            print(text, log, flush=True)  # Log Zeichen für Zeichen wie bisher
 
-    def melden(self, text):
-        """✓-Zeile in der Konsole, im Log der Text wie bisher."""
-        self.ok(text.rstrip(".")) if self.an else print(text, flush=True)
+    def warnung(self, text, konsole=None, zaehlt=False):
+        """Etwas ging nicht, der Lauf geht weiter. `zaehlt`: kommt in der Karte als Stelle, die nicht ging."""
+        if not self.an:
+            return print(text, flush=True)
+        self.z["fehler"] += zaehlt
+        self.write(f"    {self.ROT}!{self.AUS} {_sauber(konsole or text)}\n")
 
-    def fehler(self, text, log=""):
-        self.ok(text, "✗", self.ROT) if self.an else print(text, log, flush=True)
+    def kurs(self, fach, typ, titel, ordner, dokumente, tests):
+        if self.gesamt:
+            self.marken.append(((self.wert + 0.5) / self.gesamt, fach))
+        if not self.an:
+            return
+        info = " · ".join(anzahl(k, w, ww) for k, w, ww in
+                          ((ordner, "Ordner", "Ordner"), (dokumente, "Dokument", "Dokumente"), (tests, "Test", "Tests")) if k) or "keine Unterlagen"
+        vorne = [("    ", ""), ("■", self._farbe(fach)), (f" {_sauber(fach):<13} ", ""), (f"{typ or '':<3} ", self.FETT)]
+        tw = max(10, min(44, self._kante() - sum(len(x) for x, _ in vorne) - 2 - len(info)))
+        titel = _sauber(titel)
+        titel = titel if len(titel) <= tw else titel[:tw - 1] + "…"
+        self._rechts([*vorne, (titel, "")], info)
 
-    def warnung(self, text):
-        self.write(f"    {self.ROT}!{self.AUS} {text}\n") if self.an else print(text, flush=True)
+    def fund(self, fach, was, art="", groesse_b=None, name=None):
+        """Neue Datei (art leer) oder neuer/geänderter Test: Zeile im Logbuch, +1 auf dem Chip, Marke auf der Spur."""
+        with self.lock:
+            if art:
+                self.tests_neu[fach] = self.tests_neu.get(fach, 0) + 1
+                self.testnamen.append(f"{name or was} ({fach})")
+            else:
+                self.funde[fach] = self.funde.get(fach, 0) + 1
+                self.z["bytes"] += groesse_b or 0
+                if groesse_b and (not self.groesster or groesse_b > self.groesster[1]):
+                    self.groesster = (was.rsplit(" / ", 1)[-1], groesse_b)
+            t = time.monotonic()
+            self.pop_n = self.pop_n + 1 if t < self.pop_bis else 1
+            self.pop_bis = t + 1.2
+            if self.gesamt:
+                self.marken.append((min(self.wert + 0.5, self.gesamt) / self.gesamt, fach))
+            if not self.an:
+                return
+            self.pro_stelle += 1
+            if self.pro_stelle > 3 and not art:  # höchstens 3 Zeilen je Ordner, der Rest als Sammelzeile
+                v = self.verdeckt or {"fach": fach, "stelle": was.split(" / ")[0], "n": 0, "bytes": 0}
+                v["n"] += 1
+                v["bytes"] += groesse_b or 0
+                self.verdeckt = v
+                return
+            self._rechts([("    ", ""), ("+", self._farbe(fach) + self.FETT), (f" {fach:<13} ", ""), (was, "")],
+                         art or (groesse(groesse_b) if groesse_b else ""))
 
-    def neu(self, dateien):
-        for n in dateien if self.an else ():
-            fach, _, rest = n.partition(": ")
-            self.write(f"    {self.GRUEN}+{self.AUS} {fach} {self.GRAU}·{self.AUS} {rest}\n")
+    def _verdeckt_zeile(self):
+        v, self.verdeckt = self.verdeckt, None
+        if v and self.an:
+            self._rechts([("    ", ""), ("+", self._farbe(v["fach"]) + self.FETT), (f" {v['fach']:<13} ", ""),
+                          (f"… und {v['n']} weitere in {v['stelle']}", "")], groesse(v["bytes"]) if v["bytes"] else "")
 
-    def kasten(self, zeilen):
-        b = max(map(len, zeilen)) + 4
-        self.write("\n" + "\n".join([f"  {self.BLAU}╭{'─' * b}╮{self.AUS}", *(f"  {self.BLAU}│{self.AUS}  {z:<{b - 2}}{self.BLAU}│{self.AUS}" for z in zeilen),
-                                     f"  {self.BLAU}╰{'─' * b}╯{self.AUS}"]) + "\n")
+    def hoch(self, pfad, geschickt):
+        self.geschickt.append((pfad, geschickt))
+        self.plus()
+
+    # ---------- Schluss ----------
+    def karte(self, vorher, stand):
+        """Schlusskarte: Kennzahlen, je Fach, ein Abzeichen, Statistik, nächster automatischer Lauf."""
+        if not self.an:
+            return
+        with self.lock:
+            self.schritt(None)
+            dateien, tests = sum(self.funde.values()), sum(self.tests_neu.values())
+            g, aus = self.CHIP.format(227), self.AUS
+            haken = "\x1b[38;5;26m▄▀ " if self.alt else "\x1b[38;5;26m✓  "
+            logo = [[(f"{g}      {aus}", "LOGO")], [(f"{g}  L{haken}{aus}", "LOGO")], [(f"{g}      {aus}", "LOGO")]]
+            if dateien or tests:
+                zwei = " · ".join(x for x in (dateien and ("1 neue Unterlage" if dateien == 1 else f"{dateien} neue Unterlagen"),
+                                              tests and (f"{tests} Test" + ("s" if tests > 1 else "") + " neu oder geändert"),
+                                              self.z["bytes"] and groesse(self.z["bytes"])) if x)
+                drei = "Auf dem iPad die App neu laden, dann ist alles da."
+            else:
+                zwei, drei = f"Nichts Neues in OLAT · {anzahl(self.z['gesehen'], 'Datei', 'Dateien')} geprüft", "Deine App ist schon auf dem neuesten Stand."
+            innen = [[], [*logo[0], ("   ", ""), (f"Fertig in {uhr(time.monotonic() - self.start)}", self.FETT)],
+                     [*logo[1], ("   ", ""), (zwei, "")], [*logo[2], ("   ", ""), (drei, self.GRAU)], []]
+            if dateien or tests:
+                for f in self.alle_faecher:
+                    k, tt = self.funde.get(f, 0), self.tests_neu.get(f, 0)
+                    perlen = ("■" * min(k + tt, 10) + ("+" if k + tt > 10 else "")) if k + tt else "·"
+                    text = " · ".join(x for x in (k and f"{k} neu", tt and (f"{tt} Test" + ("s" if tt > 1 else ""))) if x) or "nichts Neues"
+                    innen.append([(f"{f:<12} ", ""), (f"{perlen:<12}", self._farbe(f) if k + tt else self.DUNKEL), (" " + text, self.GRAU)])
+                innen.append([])
+            abzeichen = self._abzeichen(vorher, dateien, tests)
+            innen += [[(f" {abzeichen[0]} ", self.CHIP.format(227)), ("  " + abzeichen[1], self.GRAU)], [],
+                      [(f"{self.z['stellen']} Ordner und Dokumente · {anzahl(self.z['gesehen'], 'Datei', 'Dateien')} geprüft · "
+                        f"{anzahl(self.z['pausen'], 'Pause', 'Pausen')}, zusammen {uhr(self.z['pause_s'])}", self.GRAU)]]
+            if self.z["fehler"]:
+                k = self.z["fehler"]
+                innen.append([("! ", self.ROT), (f"{k} Stelle{'n' if k > 1 else ''} ging{'en' if k > 1 else ''} nicht, "
+                                                 "der nächste Abgleich versucht es wieder", "")])
+            if stand.get("naechster") and not (BASIS / ".git").exists():
+                d = datetime.fromisoformat(stand["naechster"])
+                if d.hour < 7:
+                    d = d.replace(hour=7, minute=0)
+                elif d.hour >= 23 or (sys.platform == "win32" and d.hour == 22 and d.minute > 30):  # Aufgabe prüft nur zur vollen und halben Stunde
+                    d = (d + timedelta(days=1)).replace(hour=7, minute=0)
+                innen.append([(f"Von selbst wieder: {wann(d)} ab {d:%H:%M}, wenn der {GERAET} an ist", self.GRAU)])
+            innen.append([])
+            breite = min(max(sum(6 if f == "LOGO" else len(_sauber(x)) for x, f in z) for z in innen),
+                         shutil.get_terminal_size().columns - 11)  # Rahmen und Ränder: 10 Zellen, nie umbrechen
+            zeilen = [f"  {self.BLAU}╭{'─' * (breite + 6)}╮{aus}"]
+            for z in innen:
+                s, b = self._karten_inhalt(z, breite)
+                zeilen.append(f"  {self.BLAU}│{aus}   {s}{' ' * (breite - b)}   {self.BLAU}│{aus}")
+            zeilen.append(f"  {self.BLAU}╰{'─' * (breite + 6)}╯{aus}")
+            self.write("\n" + "\n".join(zeilen) + "\n")
+            self.osc = None
+            fertig = f"fertig, {dateien + tests} neu" if dateien or tests else "nichts Neues"
+            self._raus(f"\x1b]0;Lernhelfer · {fertig}\x07")
+
+    def _karten_inhalt(self, z, platz):
+        """Eine Kartenzeile; ein Teil mit Farbe "LOGO" ist das fertige Logo-Feld (6 Zellen)."""
+        s, b = "", 0
+        for x, f in z:
+            if f == "LOGO":
+                if b + 6 <= platz:
+                    s, b = s + x, b + 6
+            else:
+                t, w = self._kuerzen([(x, f)], platz - b)
+                s, b = s + t, b + w
+        return s, b
+
+    def _abzeichen(self, vorher, dateien, tests):
+        if not vorher.get("zeit"):
+            return "Erster Fang", (f"dein Semester ist jetzt in der App: {anzahl(self.z['gesehen'], 'Datei', 'Dateien')} aus "
+                                   f"{self.z['stellen']} Ordnern und Dokumenten")
+        if dateien >= 10:
+            return "Volle Tasche", f"{dateien} neue Dateien in einem Lauf"
+        if tests:
+            return "Testleser", ", ".join(self.testnamen)
+        if dateien and self.groesster:
+            return "Größter Fund", f"{self.groesster[0]}, {groesse(self.groesster[1])}"
+        if dateien:
+            return "Neues dabei", f"{dateien} neue Unterlage" + ("n" if dateien > 1 else "")
+        t = datetime.fromisoformat(vorher["zeit"])
+        return "Auf dem Stand", f"nichts Neues seit {wann(t)} {t:%H:%M}. Mehr Zeit zum Lernen."
 
     def schluss(self):
+        """Programmende (auch Abbruch, Strg+C): Bereich weg, bei Abbruch eine ✗-Zeile, Cursor und Taskleiste zurück."""
         with self.lock:
+            titel, ort = self.titel, self.ort
             self.titel = None
-            if self.gezeigt:
-                self.raus.write("\r\x1b[2K")
-                self.gezeigt = False
-            self.raus.write("\x1b[?25h" + ("\x1b]9;4;0;0\x07" if self.leiste else ""))
+            self._weg()
+            if titel:
+                self._raus(f"  {self.ROT}✗{self.AUS} Abgebrochen bei {titel}" + (f" · {_sauber(ort)}" if ort else "")
+                           + f" · {uhr(time.monotonic() - self.start)}\n\x1b]0;Lernhelfer · abgebrochen\x07")
+            self._raus("\x1b[?25h" + ("\x1b]9;4;0;0\x07" if self.leiste else ""))
             self.raus.flush()
 
 
@@ -227,18 +607,21 @@ def text(f):
 def fach_json(fach, hochgeladen=()):
     """Alle geladenen Dateien eines Fachs samt Text, Folien zuerst; in der App Hochgeladenes kommt unverändert ans Ende."""
     dateien = []
-    for q in sorted(KURSE[fach], key=lambda q: ARTEN.index(q["art"])):
-        ordner = MATERIAL / fach / q["name"]
-        for f in sorted(ordner.iterdir() if ordner.exists() else [], key=lambda f: natur(f.name)):
-            try:
-                t = text(f)
-            except Exception as e:  # kaputte Datei soll den Rest nicht aufhalten
-                t = f"(Text nicht lesbar: {e})"
-            dateien.append({"datei": f"{q['name']}/{f.name}", "art": q["art"], "text": t})
+    alle = [(q, f) for q in sorted(KURSE[fach], key=lambda q: ARTEN.index(q["art"]))
+            for f in sorted((MATERIAL / fach / q["name"]).iterdir() if (MATERIAL / fach / q["name"]).exists() else [], key=lambda f: natur(f.name))]
+    for i, (q, f) in enumerate(alle, 1):
+        ANZEIGE.jetzt(f"liest den Text aus „{f.name}“ ({i} von {len(alle)})", fach)
+        ANZEIGE.z["gelesen"] += 1
+        try:
+            t = text(f)
+        except Exception as e:  # kaputte Datei soll den Rest nicht aufhalten
+            t = f"(Text nicht lesbar: {e})"
+        dateien.append({"datei": f"{q['name']}/{f.name}", "art": q["art"], "text": t})
     for f in sorted((MATERIAL / fach / TESTS).glob("*.txt"), key=lambda f: natur(f.name)):
         dateien.append({"datei": f"{TESTS}/{f.name}", "art": "test", "text": f.read_text("utf-8")})
     if fach == "Mathematik" and "mathe4wiwi" in zusatzquellen():
         dateien += mathe4wiwi(datetime.now())
+    ANZEIGE.plus()
     return {"dateien": dateien + list(hochgeladen)}  # ohne Zeitstempel: unveränderte Fächer werden nicht neu hochgeladen
 
 
@@ -288,7 +671,9 @@ def weiter(stand, stunden):
 
 def pause(page):
     """2 bis 5 Sekunden zwischen zwei Seiten, wie beim Klicken von Hand; schont OLAT."""
-    page.wait_for_timeout(random.uniform(2000, 5000))
+    ms = random.uniform(2000, 5000)
+    ANZEIGE.pause(ms)
+    page.wait_for_timeout(ms)
 
 
 class Abgelaufen(Exception):
@@ -373,10 +758,12 @@ def auf_idp(url):
 def auto_einloggen(seite, login):
     """Einloggen wie von Hand: Kennung und Passwort auf idp.uibk.ac.at, dann der 2FA-Code. None = geklappt, sonst der Grund.
     Ausnahmen (Netz, Zeitüberschreitung) gehen an den Aufrufer: Dabei wurde nichts Falsches abgeschickt."""
+    ANZEIGE.jetzt("Sitzung abgelaufen, ich logge dich selbst ein", "Uni-Login")
     seite.goto(SSO)
     if auf_idp(seite.url):  # sonst kennt der IdP die Anmeldung noch und schickt gleich zurück zu OLAT
         if not seite.locator("#password").count():
             return "die Login-Seite der Uni sah anders aus als erwartet"
+        ANZEIGE.jetzt("Kennung und Passwort")
         seite.fill("#username", login["benutzer"])
         seite.fill("#password", login["passwort"])
         with seite.expect_navigation():
@@ -393,13 +780,16 @@ def auto_einloggen(seite, login):
             if not feld.count():
                 return "die 2FA-Seite der Uni sah anders aus als erwartet"
             if 30 - time.time() % 30 < 3:  # keinen Code abschicken, der gleich abläuft
+                ANZEIGE.jetzt("wartet 3 s auf einen frischen 2FA-Code")
                 seite.wait_for_timeout(3500)
+            ANZEIGE.jetzt("trägt den 2FA-Code ein")
             feld.fill(totp(login["geheim"]))
             feld.press("Enter")
             try:
                 seite.wait_for_url(lambda u: not auf_idp(u), timeout=30_000)
             except Exception:
                 return "der 2FA-Code wurde nicht angenommen (2FA-Schlüssel prüfen)"
+    ANZEIGE.jetzt("zurück zu OLAT")
     seite.goto(OLAT + "/auth/MyCoursesSite/0")
     return None if seite.get_by_text("Eingeloggt als").count() else "OLAT hat die Anmeldung nicht angenommen"
 
@@ -510,15 +900,19 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
     """Erst unsichtbar mit gespeicherter Sitzung. Ist die abgelaufen und der automatische Login eingerichtet, loggt er sich
     unsichtbar selbst ein. Sonst öffnet sich Chrome mit eigenem Lernhelfer-Profil zum Einloggen (SSO + Authenticator);
     dort gespeicherte Passwörter füllt Chrome beim nächsten Mal selbst aus. Wartet höchstens 10 Minuten (Playwright-TimeoutError)."""
+    ANZEIGE.schritt("Verbinde mit OLAT")
+    ANZEIGE.jetzt(f"startet {BROWSER} unsichtbar", "OLAT")
     browser = p.chromium.launch(channel=KANAL, headless=True)
     for versuch in (1, 2):
-        ANZEIGE.schritt("Verbinde mit OLAT")
+        if versuch == 2:
+            ANZEIGE.schritt("Verbinde mit OLAT")
+        ANZEIGE.jetzt("öffnet lms.uibk.ac.at", "OLAT")
         ctx = browser.new_context(storage_state=SITZUNG if SITZUNG.exists() else None, accept_downloads=True)
         page = ctx.new_page()
         page.goto(OLAT + "/auth/MyCoursesSite/0")
         if page.get_by_text("Eingeloggt als").count():  # OLAT zeigt die Login-Seite unter derselben URL
             if versuch == 1:
-                ANZEIGE.ok("Bei OLAT eingeloggt")
+                ANZEIGE.ok("Bei OLAT eingeloggt", "deine gespeicherte Anmeldung gilt noch")
             return browser, ctx, page
         ctx.close()
         if versuch == 1 and login:
@@ -527,11 +921,11 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
                 grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
                 if grund is None:
                     fenster.storage_state(path=SITZUNG)
-                    ANZEIGE.melden("Automatisch bei OLAT eingeloggt.")
+                    ANZEIGE.melden("Automatisch bei OLAT eingeloggt.", "Automatisch eingeloggt", "Kennung, Passwort und 2FA-Code, ohne dein Handy")
                     continue
                 login_fehler(grund)
             except Exception as e:  # Netz, Zeitüberschreitung: nichts Falsches abgeschickt, nächstes Mal wieder automatisch
-                print("Automatischer Login unterbrochen:", type(e).__name__, str(e).split("\n")[0][:200], flush=True)  # nur die erste Zeile, ohne Seiteninhalt
+                ANZEIGE.warnung(" ".join(["Automatischer Login unterbrochen:", type(e).__name__, str(e).split("\n")[0][:200]]))  # nur die erste Zeile, ohne Seiteninhalt
             finally:
                 fenster.close()
         if versuch == 2 or not sichtbar:
@@ -542,7 +936,8 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         seite = fenster.pages[0] if fenster.pages else fenster.new_page()
         seite.goto(OLAT + "/auth/MyCoursesSite/0")
         print(f"Bitte im {BROWSER}-Fenster bei OLAT einloggen (10 Minuten Zeit) …", flush=True)
-        ANZEIGE.schritt("Warte auf deinen Login")
+        ANZEIGE.schritt("Warte auf deinen Login", frist=600, hinweis="Kein Stress, das Fenster wartet bis zu 10 Minuten.")
+        ANZEIGE.jetzt("dort mit Uni-Kennung und Authenticator-App einloggen", f"{BROWSER}-Fenster")
         seite.get_by_text("Eingeloggt als").wait_for(timeout=600_000)
         ANZEIGE.melden("Eingeloggt. Das Fenster schließt sich, der Abgleich läuft unsichtbar weiter.")
         fenster.storage_state(path=SITZUNG)
@@ -613,31 +1008,42 @@ def kurse_finden(page, jetzt=None, alt=None, ids=None):
     Klausurarchiv, Foren, Abgaben, Videos und Tests (die liest tests()) bleiben draußen. `alt`: bisherige kurse.json;
     `ids` bekommt {Fach: {Kurs: LV-Art}} aller Kurse, auch solcher ohne Dateien."""
     jetzt = jetzt or datetime.now()
+    ANZEIGE.jetzt("liest „Meine Kurse“", "OLAT")
     page.goto(OLAT + "/auth/MyCoursesSite/0/My/0")
     page.wait_for_load_state("networkidle")
     kurse = page.evaluate(r"""() => [...new Map([...document.querySelectorAll('#o_main_center_content_inner a[href*="RepositoryEntry/"]')]
       .filter(a => a.innerText.trim() && a.innerText.trim() !== 'Öffnen')
       .map(a => [a.href.match(/RepositoryEntry\/(\d+)/)[1], a.innerText.trim()])).entries()]""")
     neu = {}
-    for kurs, titel, fach, typ in faecher_zuordnen(kurse, jetzt, alt):
+    liste = faecher_zuordnen(kurse, jetzt, alt)
+    ANZEIGE.zeile("Meine Kurse gelesen", f"{anzahl(len(kurse), 'Kurs', 'Kurse')}, {len(liste)} aus diesem Semester ({semester(jetzt)})")
+    ANZEIGE.gesamt = len(liste)
+    for kurs, titel, fach, typ in liste:
         neu.setdefault(fach, [])
         if ids is not None:  # auch Kurse ohne eine einzige Datei: ein PS-Kurs hat oft nur Tests und Bewertungen, die liest tests()
             ids.setdefault(fach, {})[kurs] = typ
+        kurz = re.sub(r"^\d{4}[WS]\d+\s+(?:[A-Z]{2}\s+)?", "", titel)
+        ANZEIGE.jetzt("liest den Kursbaum", f"{fach} · {typ} {kurz}".replace("  ", " "))
         alle = knoten(page, kurs)
         wurzel = alle[0]["titel"] if alle else None
+        ordner = dokumente = 0
         for k in alle:
             if k["eltern"] in ("Klausurarchiv", "Abgaben") or not k["titel"]:
                 continue
             url = f"{kurs}/CourseNode/{k['id']}"
             if k["icon"] == "o_bc_icon":
                 eintraege = ordner_baum(page, url, k["titel"])
+                ordner += len(eintraege)
             elif (k["icon"] is None and not NICHT_LADEN.search(k["titel"])) or (k["icon"] == "o_sp_icon" and k["eltern"] == wurzel):
                 eintraege = [(k["titel"], url)]
+                dokumente += 1
             else:
                 continue
             for name, adresse in eintraege:
                 neu.setdefault(fach, []).append({"name": re.sub(r'[\\/:*?"<>|]', "-", f"{typ} {name}".strip()),  # wird Ordnername
                                                  "art": kursart(titel, name), "url": adresse})
+        ANZEIGE.kurs(fach, typ, kurz, ordner, dokumente, sum(k["icon"] in TESTICONS and k["eltern"] != "Klausurarchiv" for k in alle))
+        ANZEIGE.plus()
     for fach, liste in neu.items():  # gleiche Namen (z. B. zweimal „Syllabus“) bekommen eine Nummer
         gesehen = {}
         for q in liste:
@@ -653,6 +1059,7 @@ def ordner_baum(page, url, name, pfad=(), tiefe=3):
     adresse = url + (f"/path%3D~~{'~~'.join(quote(p) for p in pfad)}/0" if pfad else "")
     if not tiefe:
         return [(name, adresse)]
+    ANZEIGE.jetzt(f"Ordner „{pfad[-1] if pfad else name}“ (Ebene {len(pfad) + 1} von 3)")
     pause(page)
     page.goto(f"{OLAT}/auth/RepositoryEntry/{adresse}")
     page.wait_for_load_state("networkidle")
@@ -688,13 +1095,12 @@ def sync(ctx, page, fach):
     nicht auf, sonst käme bis zum nächsten Abgleich gar nichts in der App an."""
     neu = []
     for q in KURSE[fach]:
-        ANZEIGE.jetzt(f"{fach} · {q['name']}")
+        ANZEIGE.jetzt("öffnet in OLAT", f"{fach} · {q['name']}")
+        ANZEIGE.z["stellen"] += 1
         try:
-            dazu = eintrag_laden(ctx, page, fach, q)
-            ANZEIGE.neu(dazu)
-            neu += dazu
+            neu += eintrag_laden(ctx, page, fach, q)
         except Exception as e:
-            ANZEIGE.warnung(f"{fach}: {q['name']} nicht geladen ({fehlertext(e)})")
+            ANZEIGE.warnung(f"{fach}: {q['name']} nicht geladen ({fehlertext(e)})", f"{fach} · {q['name']} nicht geladen: {grund(e)}", zaehlt=True)
         ANZEIGE.plus()
     return neu
 
@@ -713,26 +1119,44 @@ def eintrag_laden(ctx, page, fach, q):
         # Unterordner haben eigene Einträge (ordner_baum, bis 3 Ebenen tief);
         # vorhandene Dateien nicht neu geladen – geänderte Datei mit gleichem Namen: lokal löschen.
         namen = [n.strip() for n in karten.locator(".o_folder_card_title").all_inner_texts()]
-        for titel in [n for n in namen if not (ziel / sicherer_name(n)).exists()]:
+        fehlt = [n for n in namen if not (ziel / sicherer_name(n)).exists()]
+        ANZEIGE.z["gesehen"] += len(namen)
+        lage = (f"{anzahl(len(namen), 'Datei', 'Dateien')}, {len(namen) - len(fehlt)} schon da" if fehlt else
+                f"alle {len(namen)} Dateien schon da" if len(namen) > 1 else "die Datei ist schon da" if namen
+                else "nur Unterordner, die kommen als Nächstes")
+        ANZEIGE.jetzt(lage)
+        for i, titel in enumerate(fehlt, 1):
+            ANZEIGE.jetzt(f"{lage} · lädt {titel} ({i} von {len(fehlt)})")
             oeffne(page, url)  # OLAT lädt die Seite nach jedem Download neu
             karten.filter(has=page.get_by_text(titel, exact=True)).locator("a:has(.o_icon_actions)").click()  # Karte über den Originaltitel
             with page.expect_download() as dl:
                 page.get_by_role("link", name="Herunterladen", exact=True).last.click()
             dl.value.save_as(ziel / sicherer_name(titel))
             neu.append(f"{fach}: {q['name']}/{sicherer_name(titel)}")
+            ANZEIGE.fund(fach, f"{q['name']} / {sicherer_name(titel)}", groesse_b=bytes_von(ziel / sicherer_name(titel)))
     elif herunterladen.count():  # einzelne Datei
+        ANZEIGE.z["gesehen"] += 1
+        ANZEIGE.jetzt("lädt die Datei")
         with page.expect_download() as dl:
             herunterladen.first.click()
         name = sicherer_name(dl.value.suggested_filename)
-        if not (ziel / name).exists():
+        ist_neu = not (ziel / name).exists()
+        if ist_neu:
             neu.append(f"{fach}: {q['name']}/{name}")
         dl.value.save_as(ziel / name)
+        if ist_neu:
+            ANZEIGE.fund(fach, f"{q['name']} / {name}", groesse_b=bytes_von(ziel / name))
     elif seite.count():  # eingebettete HTML-Seite
+        ANZEIGE.z["gesehen"] += 1
+        ANZEIGE.jetzt("liest die Seite")
         src = seite.first.get_attribute("src")
         name = sicherer_name(src.rsplit("/", 1)[-1])
-        if not (ziel / name).exists():
+        ist_neu = not (ziel / name).exists()
+        if ist_neu:
             neu.append(f"{fach}: {q['name']}/{name}")
         (ziel / name).write_bytes(ctx.request.get(urljoin(OLAT, src)).body())
+        if ist_neu:
+            ANZEIGE.fund(fach, f"{q['name']} / {name}", groesse_b=bytes_von(ziel / name))
     return neu
 
 
@@ -774,8 +1198,10 @@ LEER_JS = r"""() => ![...document.querySelectorAll('.o_assessmentitem_wrapper :i
 
 def knoten(page, kurs):
     """Alle Kursbausteine; Strukturknoten werden per Adresse geöffnet, damit der Baum aufklappt."""
-    alle, offen = {}, [""]
+    alle, offen, seite = {}, [""], 0
     while offen:
+        seite += 1
+        ANZEIGE.jetzt(f"liest den Kursbaum, Seite {seite}")
         pause(page)
         page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}{offen.pop()}")
         page.wait_for_load_state("networkidle")
@@ -810,7 +1236,9 @@ def test_lesen(page, frei, startknopf):
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(800)
 
-        for i in range(links.count()):
+        anzahl = links.count()
+        for i in range(anzahl):
+            ANZEIGE.jetzt(f"sieht die Fragen an (Frage {i + 1} von {anzahl})")
             zeige(i)
             if page.evaluate(LEER_JS):
                 leer.append(i)
@@ -903,6 +1331,7 @@ def tests(browser, fach, kurs_ids=None):
     arten.update({k: t for k, t in (kurs_ids or {}).items() if t})
     namen = set()  # „Onlinetest 1“ in VO und PS desselben Fachs: sonst überschreiben sie sich bei jedem Abgleich gegenseitig
     for kurs in sorted({q["url"].split("/")[0] for q in KURSE.get(fach, [])} | set(kurs_ids or {})):
+        ANZEIGE.jetzt("liest den Kursbaum", fach + (f" · {arten[kurs]}" if arten.get(kurs) else ""))
         for k in knoten(page, kurs):
             # ponytail: Altklausuren (Klausurarchiv) übersprungen – eigener Prüfungsmodus, falls gewünscht
             if k["icon"] not in ("o_iqtest_icon", "o_iqself_icon", "o_ms_icon") or k["eltern"] == "Klausurarchiv":
@@ -914,7 +1343,8 @@ def tests(browser, fach, kurs_ids=None):
             datei, fragen = ziel / f"{name}.txt", ziel / f"{name} – Fragen.txt"
             if k["icon"] == "o_iqself_icon" and datei.exists():  # Selbsttests ändern sich nicht
                 continue
-            ANZEIGE.jetzt(f"{fach} · {k['titel']}")
+            ANZEIGE.jetzt({"o_ms_icon": "liest die Bewertung", "o_iqself_icon": "sieht die Fragen an"}.get(k["icon"], "liest die Startseite"),
+                          f"{fach} · {k['titel']}")
             pause(page)
             page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
             page.wait_for_load_state("networkidle")
@@ -931,11 +1361,15 @@ def tests(browser, fach, kurs_ids=None):
                     # nach Abschluss stehen Fragen samt Lösung auf der Startseite; Fragen-Dateien älterer Fassungen gehen weg
                     fragen.unlink(missing_ok=True)
             except Exception as e:  # ein Test soll den Rest nicht aufhalten
-                ANZEIGE.warnung(f"{fach}: {k['titel']} nicht lesbar ({fehlertext(e)})")
+                ANZEIGE.warnung(f"{fach}: {k['titel']} nicht lesbar ({fehlertext(e)})", f"{fach} · {k['titel']} nicht lesbar: {grund(e)}", zaehlt=True)
                 continue
+            ANZEIGE.z["tests"] += 1
             if not datei.exists() or datei.read_text("utf-8") != t:
+                vorher = datei.read_text("utf-8") if datei.exists() else None
+                art = ("neu" if vorher is None else "Ergebnis ist da" if "Testresultate" in t and "Testresultate" not in vorher
+                       else "Punkte geändert" if k["icon"] == "o_ms_icon" else "geändert")
                 neu.append(f"{fach}: {TESTS}/{datei.name}")
-                ANZEIGE.neu(neu[-1:])
+                ANZEIGE.fund(fach, f"Test „{k['titel']}“", art=art, name=k["titel"])
                 datei.write_text(t, "utf-8")
     ctx.close()
     return neu
@@ -953,6 +1387,7 @@ def api(methode, pfad, body=None, roh=False):
 
 def hochgeladene(fach):
     """Was die App unter „Unterlagen“ ins Fach hochgeladen hat; der Abgleich überschreibt die Datei und nimmt das mit."""
+    ANZEIGE.jetzt("holt, was du in der App selbst hochgeladen hast", fach)
     try:
         d = json.loads(api("GET", f"faecher/{fach}.json", roh=True))
     except HTTPError as e:
@@ -971,14 +1406,16 @@ def hochladen(stand, pfad, daten):
         stand["ziel"], stand["sha"] = ziel, {}
     shas = stand["sha"]
     if shas.get(pfad) == hashlib.sha1(b"blob %d\0" % len(daten) + daten).hexdigest():
-        return
+        ANZEIGE.jetzt(f"{pfad} unverändert", "App")
+        return ANZEIGE.hoch(pfad, False)
+    ANZEIGE.jetzt(f"schickt {pfad} · {groesse(len(daten))}", "App")
     for versuch in (1, 2):
         body = {"message": f"OLAT-Abgleich {datetime.now():%d.%m.%Y %H:%M}: {pfad}", "content": base64.b64encode(daten).decode()}
         if shas.get(pfad):
             body["sha"] = shas[pfad]
         try:
             shas[pfad] = api("PUT", pfad, body)["content"]["sha"]
-            return
+            return ANZEIGE.hoch(pfad, True)
         except HTTPError as e:  # 409/422: Datei gibt es schon in anderer Fassung (erster Lauf, anderes Gerät) → aktuelle holen
             if e.code not in (409, 422) or versuch == 2:
                 raise
@@ -1123,18 +1560,27 @@ if __name__ == "__main__":
     else:
         ANZEIGE.einschalten()
     SPERRE = sperre()
+    gewartet = False
     for i in range(0 if auto else 240):  # von Hand: bis zu 20 Minuten warten, bis der Lauf im Hintergrund fertig ist
         if SPERRE:
             break
         if not i:
             print("Gerade gleicht der Lernhelfer im Hintergrund ab. Warte, bis er fertig ist …", flush=True)
-            ANZEIGE.schritt("Warte auf den Abgleich im Hintergrund")
+            ANZEIGE.schritt("Warte auf den Abgleich im Hintergrund", frist=1200)
+            ANZEIGE.jetzt("wartet, bis er fertig ist", "Hintergrund")
+            gewartet = True
         time.sleep(5)
         SPERRE = sperre()
     if not SPERRE:
+        ANZEIGE.schritt(None)
         print("Es läuft schon ein Abgleich.")
         sys.exit(0 if auto else 1)
+    if gewartet:
+        ANZEIGE.ok("Hintergrund-Abgleich fertig, jetzt du")
+    ANZEIGE.schritt("Prüfe deine App")
+    ANZEIGE.jetzt("fragt deinen Speicher, ob der Schlüssel noch gilt", "App")
     if not olat_erlaubt():
+        ANZEIGE.schritt(None)
         print("Der Abgleich mit OLAT ist gerade pausiert (Lernhelfer-Server). Er läuft von selbst wieder, sobald er freigegeben ist.", flush=True)
         if auto:
             aktualisieren()  # neue Fassungen kommen trotzdem an, ohne OLAT zu berühren
@@ -1144,6 +1590,7 @@ if __name__ == "__main__":
         if auto:
             aktualisieren()
         sys.exit(0 if auto else 1)
+    ANZEIGE.schritt(None)  # vor autologin(): dessen Fragen laufen ohne Live-Bereich
     stand = json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}
     alt = stand.get("abgleich", {})
     jetzt = datetime.now()
@@ -1157,6 +1604,9 @@ if __name__ == "__main__":
         finally:
             STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
 
+    def aufzaehlung(namen):
+        return namen[0] if len(namen) == 1 else ", ".join(namen[:-1]) + " und " + namen[-1]
+
     with sync_playwright() as p:
         # Login-Fenster aus der Aufgabenplanung höchstens alle 8 Stunden (z. B. morgens nach dem Einschalten), sonst nervt es
         def fenster_auf():
@@ -1164,7 +1614,7 @@ if __name__ == "__main__":
             STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
 
         def login_fehler(grund):
-            print("Automatischer Login ging nicht:", grund, flush=True)
+            ANZEIGE.warnung(f"Automatischer Login ging nicht: {grund}")
             stand["autologin_fehler"] = grund
             STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
         try:
@@ -1186,49 +1636,71 @@ if __name__ == "__main__":
         ctx.storage_state(path=SITZUNG)
         weiter(stand, 12)  # gleich speichern: bricht der Lauf ab, kommt OLAT trotzdem erst in 12 Stunden wieder dran
         STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+        alte_ids = {k for d in stand.get("kurs_ids", {}).values() for k in d}
         if KURSE is None or "--kurse" in sys.argv or kurse_suchen(stand, jetzt):
             try:
-                ANZEIGE.schritt("Suche deine Kurse")
+                ANZEIGE.schritt("Suche deine Kurse", hinweis="zum ersten Mal: dauert etwas länger" if KURSE is None else "einmal pro Woche: neue Kurse und Ordner")
                 ids = {}
                 KURSE = kurse_finden(page, jetzt, KURSE, ids)
                 KURSDATEI.write_text(json.dumps(KURSE, ensure_ascii=False, indent=2), "utf-8")
                 stand["kurse_semester"], stand["kurs_ids"] = semester(jetzt), ids
                 if ANZEIGE.an:
-                    ANZEIGE.ok(f"Kurse gefunden: {', '.join(KURSE)}")
+                    neu_dabei = [f"{f} {t or ''}".strip() for f, d in ids.items() for k, t in d.items() if alte_ids and k not in alte_ids]
+                    ANZEIGE.ok(f"{anzahl(sum(map(len, ids.values())), 'Kurs', 'Kurse')} in {anzahl(len(KURSE), 'Fach', 'Fächern')}",
+                               f"{sum(map(len, KURSE.values()))} Ordner und Dokumente" + (f" · neu dabei: {', '.join(neu_dabei)}" if neu_dabei else ""))
                 else:
                     print("Gefundene Kurse:", *(f"  {f}: {', '.join(q['name'] for q in l)}" for f, l in KURSE.items()), sep="\n")
             except Exception as e:  # gibt es schon Kurse, gleicht er mit denen ab, statt ganz auszufallen; nächster Versuch in einer Woche
                 if KURSE is None:
                     raise
-                print("Kurse neu suchen ging nicht, es bleibt bei den bisherigen:", fehlertext(e), flush=True)
+                ANZEIGE.warnung(f"Kurse neu suchen ging nicht, es bleibt bei den bisherigen: {fehlertext(e)}")
             stand["kurse_zeit"] = jetzt.isoformat(timespec="minutes")
             if "--kurse" in sys.argv:
                 STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+                ANZEIGE.schritt(None)  # planmäßiges Ende, kein „Abgebrochen“
                 sys.exit()
+        elif stand.get("kurse_semester") and stand.get("kurse_zeit"):
+            k = datetime.fromisoformat(stand["kurse_zeit"])  # wie kurse_suchen(): nach 7 Tagen oder ab dem neuen Semester
+            d = min(k + timedelta(days=7), datetime(k.year + (k.month >= 9), 3, 1) if semester(k).endswith("W") else datetime(k.year, 9, 1))
+            w = wann(d, jetzt)
+            ANZEIGE.zeile("Kurse wie gespeichert", " · ".join(KURSE) + " · sucht "
+                          + ({"heute": f"heute ab {d:%H:%M}", "morgen": "morgen"}.get(w) or f"am {w}") + " wieder neu")
+        else:
+            ANZEIGE.zeile("Kurse aus kurse.json", " · ".join(KURSE))
         if auto:
             aktualisieren()
         faecher = [a for a in sys.argv[1:] if not a.startswith("--")] or list(KURSE)
-        ANZEIGE.schritt("Unterlagen", sum(len(KURSE.get(f, [])) for f in faecher))
+        ANZEIGE.schritt("Unterlagen", sum(len(KURSE.get(f, [])) for f in faecher), hinweis="geladen wird nur, was neu ist", faecher=faecher)
         neu = [n for f in faecher for n in sync(ctx, page, f)]
-        ANZEIGE.ok("Unterlagen geprüft" + (f" · {len(neu)} neu" if neu else ""))
+        z = ANZEIGE.z
+        gefunden = sum(ANZEIGE.funde.values())  # wie die Karte: auch Dateien aus einem Ordner, der danach abbrach
+        ANZEIGE.ok("Unterlagen", f"{z['stellen']} Ordner und Dokumente geprüft, {anzahl(z['gesehen'], 'Datei', 'Dateien')}, "
+                   + (f"{gefunden} neu" + (f" ({groesse(z['bytes'])})" if z["bytes"] else "") if gefunden else "nichts Neues"))
         ctx.storage_state(path=SITZUNG)
-        ANZEIGE.schritt("Tests und Punkte", len(faecher))
+        ANZEIGE.schritt("Tests und Punkte", len(faecher), hinweis="Testschutz an: nur lesen, nichts abschicken", faecher=faecher)
         neu_tests = []
         for f in faecher:
             neu_tests += tests(browser, f, stand.get("kurs_ids", {}).get(f))
             ANZEIGE.plus()
-        ANZEIGE.ok("Tests und Punkte gelesen" + (f" · {len(neu_tests)} neu oder geändert" if neu_tests else ""))
+        ANZEIGE.ok("Tests und Punkte", f"{z['tests']} gelesen, " + (f"{len(neu_tests)} neu oder geändert" if neu_tests else "nichts geändert")
+                   + ", keine Antwort abgeschickt")
         neu += neu_tests
         browser.close()
-    ANZEIGE.schritt("Lade alles in deine App")
+    ANZEIGE.schritt("Lese deine Dateien", len(faecher), hinweis="nur der Text geht in die App, die Dateien bleiben am PC")
     tests_alle = [t for f in KURSE for t in testliste(f)]
-    melde(True, f"{len(neu)} neue Unterlagen" if neu else "Nichts Neues in OLAT",
-          [(f"faecher/{f}.json", fach_json(f, hochgeladene(f))) for f in faecher] + [("onlinetests.json", tests_alle)])
+    dateien = [(f"faecher/{f}.json", fach_json(f, hochgeladene(f))) for f in faecher] + [("onlinetests.json", tests_alle)]
+    ANZEIGE.ok(f"Text aus {anzahl(ANZEIGE.z['gelesen'], 'Datei', 'Dateien')} gelesen")
+    stand["dauer"] = int(time.monotonic() - ANZEIGE.start)
+    ANZEIGE.schritt("Lade alles in deine App", len(dateien) + 1)
+    melde(True, anzahl(len(neu), "neue Unterlage", "neue Unterlagen") if neu else "Nichts Neues in OLAT", dateien)
     if ANZEIGE.an:
-        ANZEIGE.ok("In deine App hochgeladen")
-        d = int(time.monotonic() - ANZEIGE.start)
-        ANZEIGE.kasten([f"Fertig in {d // 60}:{d % 60:02d} Minuten",
-                        ("1 neue Datei" if len(neu) == 1 else f"{len(neu)} neue Dateien") if neu else "Nichts Neues in OLAT",
-                        "Auf dem iPad die App neu laden."])
+        name = lambda pfad: pfad.removeprefix("faecher/").removesuffix(".json") if pfad.startswith("faecher/") else "Tests"
+        geschickt = [name(pf) for pf, g in ANZEIGE.geschickt if g and pf != "abgleich.json"]
+        gleich = [name(pf) for pf, g in ANZEIGE.geschickt if not g and pf != "abgleich.json"]
+        if geschickt:
+            ANZEIGE.ok("In deine App geladen", f"{aufzaehlung(geschickt)} neu" + (f", {aufzaehlung(gleich)} unverändert" if gleich else ""))
+        else:
+            ANZEIGE.ok("Deine App war schon auf dem Stand")
+        ANZEIGE.karte(alt, stand)
     else:
         print("\n".join(neu) or "Nichts Neues in OLAT.", "\nFertig – auf dem iPad die App neu laden.", sep="\n")
