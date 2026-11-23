@@ -1595,6 +1595,7 @@ const DATEIEN = {
   '/': ['startseite.html', 'text/html; charset=utf-8'], '/startseite.css': ['startseite.css', 'text/css; charset=utf-8'], '/startseite.js': ['startseite.js', 'text/javascript; charset=utf-8'],
   '/app': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'],
   '/skizze.css': ['skizze.css', 'text/css; charset=utf-8'],
+  '/presentation/': ['presentation/index.html', 'text/html; charset=utf-8'],  // Folien stehen verschlüsselt darin (presentation/bauen.mjs)
   '/holen.py': ['holen.py', 'text/plain; charset=utf-8'], '/holen.py.sig': ['holen.py.sig', 'text/plain; charset=utf-8'], '/einrichten.ps1': ['einrichten.ps1', 'text/plain; charset=utf-8'],
   '/einrichten-mac.sh': ['einrichten-mac.sh', 'text/plain; charset=utf-8'],
   '/fonts/Archivo.woff2': ['fonts/Archivo.woff2', 'font/woff2'], '/fonts/SourceSerif4.woff2': ['fonts/SourceSerif4.woff2', 'font/woff2'],
@@ -1607,7 +1608,7 @@ function statisch(req, res, url) {
   // Alle starten auf der Startseite (angemeldet führt „Anmelden“ ohne Login aufs Dashboard); Einladungen (?ref=) gehen gleich in die App
   if (pfad === '/' && url.search) { res.writeHead(302, { Location: '/app' + url.search }); return res.end(); }
   // Lernhof: das gebaute Spiel und seine Erklärseite, nur aus dem Ordner game/
-  if (pfad === '/game') { res.writeHead(302, { Location: '/game/' }); return res.end(); }
+  if (pfad === '/game' || pfad === '/presentation') { res.writeHead(302, { Location: pfad + '/' }); return res.end(); }
   const g = pfad === '/game/' ? [, 'index.html', 'html'] : pfad === '/game/info' ? [, 'info.html', 'html'] : /^\/game\/((?:assets\/|bilder\/)?[\w-]+(?:\.[\w-]+)*\.(js|css|png))$/.exec(pfad);
   if (g && ['GET', 'HEAD'].includes(req.method) && existsSync(join(APP, 'game', g[1]))) {
     res.writeHead(200, { 'Content-Type': { html: 'text/html; charset=utf-8', js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', png: 'image/png' }[g[2]],
