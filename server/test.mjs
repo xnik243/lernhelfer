@@ -477,7 +477,9 @@ try {
   assert.ok(Math.abs(r.bis - Date.now() - 60 * 864e5) < 60e3);
   await ute('POST', '/api/bestaetigen', { token: await link('ute@example.com', 'bestaetigen') });
   assert.equal((await ute('POST', '/api/ki', { feature: 'thema', model: 'openai/gpt-6-luna', reasoning: { effort: 'xhigh' }, messages: [{ role: 'user', content: 'x' }] })).status, 200);
-  assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'Thema: Modell vom Server'); assert.deepEqual(or.anfragen.at(-1).reasoning, { effort: 'low' });
+  assert.equal(or.anfragen.at(-1).model, 'openai/gpt-6-luna', 'Thema: Modell aus der Liste'); assert.deepEqual(or.anfragen.at(-1).reasoning, { effort: 'low' }, 'Thema: immer wenig Nachdenken');
+  await ute('POST', '/api/ki', { feature: 'thema', model: 'google/gemini-4-argon', messages: [{ role: 'user', content: 'x' }] });
+  assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'Thema: nicht in der Liste → Vorauswahl');
   assert.equal((await ute('PUT', gh('themen/t1.json'), { content: b64('{}') })).status, 201, 'Ultra (Start) speichert Themen');
   const K = (await chef('GET', '/api/admin')).j.kennzahlen;
   assert.equal(K.start, 1); assert.equal(K.startEndet, 0);
@@ -537,6 +539,20 @@ try {
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpDenken.wpText, 'xhigh');
   await chef('POST', '/api/admin/schluessel', { weg: ['LH_WP_TEXT_DENKEN'] });
   assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.wpDenken.wpText, '');
+  // Modelle zur Auswahl: nur geprüft über admin/modelle; was aus der Liste fliegt, geht nicht mehr; Thema nimmt die Vorauswahl
+  for (const liste of [[], [{ name: 'A', model: 'kein modell', denken: 'low' }], [{ name: 'A', model: 'x-ai/grok-9', denken: 'ultra' }], [{ name: 'A', model: 'x-ai/grok-9', denken: 'low' }, { name: 'A', model: 'x-ai/grok-8', denken: 'low' }]])
+    assert.equal((await chef('POST', '/api/admin/modelle', { liste })).status, 400, JSON.stringify(liste));
+  await chef('POST', '/api/admin/schluessel', { LH_MODELLE: '[{"name":"x","model":"a/b","denken":"low"}]' });
+  assert.equal((await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle.liste.length, 4, 'Liste nicht über den freien Weg');
+  assert.equal((await chef('POST', '/api/admin/modelle', { liste: [{ name: 'Grok', model: 'x-ai/grok-9', denken: 'none' }], thema: 'x-ai/grok-9' })).status, 200);
+  let mo = (await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle;
+  assert.deepEqual([mo.liste.map(x => x.name), mo.thema], [['Grok'], 'x-ai/grok-9']);
+  assert.equal((await ute('POST', '/api/ki', { feature: 'chat', model: 'openai/gpt-6.1-sol', messages: [{ role: 'user', content: 'x' }] })).status, 400, 'aus der Liste genommen');
+  await ute('POST', '/api/ki', { feature: 'thema', model: 'openai/gpt-6.1-sol', messages: [{ role: 'user', content: 'x' }] });
+  assert.equal(or.anfragen.at(-1).model, 'x-ai/grok-9', 'Thema: Vorauswahl aus der Ecke');
+  await chef('POST', '/api/admin/schluessel', { weg: ['LH_MODELLE', 'LH_MODELL_THEMA'] });
+  mo = (await fetch(BASIS + '/api/tarife').then(r => r.json())).modelle;
+  assert.deepEqual([mo.liste.length, mo.thema], [4, 'google/gemini-3.8-flash'], 'Löschen = Vorgabe');
   // Arena: XP nur vom Server. Zahlen vom Gerät zählen nicht, Anmelde-XP einmal am Tag, Runde ohne gemessene Zeit bringt nichts,
   // Speedrun mit Antworten vom Server (falsche kosten 5 s), Spitzname eindeutig, gesperrte Konten kommen nicht wieder rein
   assert.equal((await max('POST', '/api/arena', { name: 'x' })).status, 400);

@@ -246,3 +246,11 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 :is(.t-werte, .t-mehr) { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }
 .t-liste a { border-bottom: 0; background: var(--strich-waagrecht) bottom / 100% 6px no-repeat; }
 .t-ablauf li + li::before { background: var(--tinte); }
+
+/* Admin-Ecke: der aktive Reiter mit Textmarker statt Linie, Zahlen im Kreis */
+.admin-reiter { border-bottom: 0; background: var(--bg) var(--strich-waagrecht) bottom / 100% 6px no-repeat; }
+.admin-reiter [aria-selected=true] { border-bottom-color: transparent; }
+.admin-reiter [aria-selected=true]::after { content: ''; position: absolute; inset: auto 8px 9px; height: 0.62em; z-index: -1; background: var(--marker) center / 100% 100% no-repeat; }
+.admin-reiter [role=tab] { position: relative; z-index: 0; }
+.admin-todo { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; }
+.admin-todo li + li { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }

@@ -1185,6 +1185,48 @@
   .beta-wahl input { width: auto; margin: 0; }
   .pille.gelb { background: var(--warn-flaeche); color: var(--text); }
   .admin-wer { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+  /* Admin-Ecke: Reiter oben (bleiben beim Scrollen stehen), Zu tun, Konten zum Antippen */
+  .admin-reiter { position: sticky; top: 0; z-index: 5; display: flex; gap: 2px; margin: 4px -4px 0; padding: 0 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--linie); background: var(--bg); }
+  .admin-reiter::-webkit-scrollbar { display: none; }
+  .admin-reiter [role=tab] { display: inline-flex; flex: none; align-items: center; gap: 7px; min-height: 46px; margin-bottom: -1px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+    background: none; color: var(--text-2); font: 600 0.9375rem/1 var(--sans); cursor: pointer; transition: color 0.15s; }
+  @media (hover: hover) { .admin-reiter [role=tab]:hover { color: var(--text); } }
+  .admin-reiter [aria-selected=true] { border-bottom-color: var(--akzent); color: var(--text); }
+  .admin-reiter [role=tab]:focus-visible { outline: 2px solid var(--akzent); outline-offset: -4px; }
+  .admin-zahl { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--akzent-flaeche); color: var(--akzent-text); font: 700 0.75rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .admin-tafel { scroll-margin-top: 54px; }
+  .admin-tafel:focus { outline: none; }
+  .admin-tafel > h2:first-child { margin-top: 24px; }
+  .admin-todo { display: grid; margin: 0; padding: 0; list-style: none; border: 1px solid var(--linie); border-radius: var(--r-l); }
+  .admin-todo li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; line-height: 1.4; }
+  .admin-todo li + li { border-top: 1px solid var(--linie); }
+  @media (max-width: 560px) { .admin-todo li { grid-template-columns: auto minmax(0, 1fr); } .admin-todo li > :last-child:not(:empty) { grid-column: 2; justify-self: start; } }
+  .admin-konto { padding: 0; border: 0; background: none; color: var(--akzent-text); font: inherit; font-weight: 600; text-align: left; text-decoration: underline 1px; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; cursor: pointer; }
+  @media (hover: hover) { .admin-konto:hover { text-decoration-color: currentColor; } }
+  @media (min-width: 760px) { .admin .tabelle :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: var(--bg); } }
+  .knopf.loeschen { color: var(--fehler); }
+  .konto-fuss { justify-content: space-between; margin-top: 24px; }
+  /* Modelle zur Auswahl: eine Zeile je Modell, schmal als Karte */
+  .wahl-form, .wahl-zeilen { display: grid; gap: 10px; }
+  .wahl-zeile { display: grid; grid-template-columns: minmax(9em, 1fr) minmax(15em, 2.2fr) 8em 4em auto; gap: 10px; align-items: start; }
+  .wahl-zeile > * { min-width: 0; }
+  .wahl-id { display: grid; gap: 4px; }
+  .wahl-id code { padding-top: 9px; overflow-wrap: anywhere; }
+  .wahl-kopf { color: var(--text-3); font: 600 0.8125rem/1.3 var(--sans); }
+  .wahl-standard { padding-bottom: 10px; border-bottom: 1px solid var(--linie); }
+  .wahl-standard > :is(b, .meta) { padding-top: 9px; }
+  .wahl-thema { display: inline-flex; align-items: center; justify-self: center; gap: 8px; min-height: 42px; font-size: 0.875rem; cursor: pointer; }
+  .wahl-thema input { width: 18px; height: 18px; margin: 0; accent-color: var(--akzent); }
+  .wahl-thema span { display: none; }
+  @media (max-width: 760px) {
+    .wahl-kopf { display: none; }
+    .wahl-zeile { grid-template-columns: minmax(0, 1fr) auto; padding: 4px 0 14px; border-bottom: 1px solid var(--linie); }
+    .wahl-zeile > :is(:first-child, .wahl-id) { grid-column: 1 / -1; }
+    .wahl-thema { justify-self: start; }
+    .wahl-thema span { display: inline; }
+  }
+  .t-los { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; }
+  .t-modell { width: auto; max-width: 15em; min-height: 42px; font-size: 0.875rem; }
 
   /* Thema lernen: Eingabe, Liste und die Bausteine einer Antwort */
   .thema { max-width: 900px; }
@@ -7662,51 +7704,31 @@ async function adminZeigen() {
     await adminZeigen();
     scrollTo(0, y); s.querySelectorAll('.tabelle-rahmen').forEach((t, i) => { t.scrollLeft = x[i] || 0; });
   };
-  const gilt = k => k.tarif && k.bis > jetzt ? k.tarif : k.englisch_bis > jetzt ? 'englisch' : 'base';  // was gerade gilt, in der Auswahl vorausgewählt
-  const setzen = k => {
-    const beta = JSON.parse(k.beta || '[]');
-    const haken = el('fieldset', { class: 'beta-wahl', hidden: gilt(k) !== 'beta' }, el('legend', {}, 'Sieht in Beta'),
-      BEREICHE.map(v => el('label', {}, el('input', { type: 'checkbox', name: 'bereich', value: v, checked: beta.includes(v) }), ANSICHTEN[v])));
-    return el('form', { onsubmit: e => { e.preventDefault(); const f = e.target.elements;
-      tun('admin/tarif', { konto: k.id, tarif: f.tarif.value, tage: +f.tage.value, bereiche: [...e.target.querySelectorAll('[name=bereich]:checked')].map(x => x.value) })({ currentTarget: f.knopf }); } },
-      el('div', { class: 'admin-setzen' }, el('select', { name: 'tarif', 'aria-label': 'Tarif', onchange: e => { haken.hidden = e.target.value !== 'beta'; } },
-        Object.keys(T).map(t => el('option', { value: t, selected: t === gilt(k) }, T[t].name))),
-        el('input', { name: 'tage', type: 'number', min: 0, value: 30, 'aria-label': 'Tage' }), el('button', { class: 'knopf', name: 'knopf' }, 'Setzen')), haken);
-  };
+  ADMIN = d;
   const offen = d.bestellungen.filter(b => b.status !== 'bezahlt'), bezahlt = d.bestellungen.filter(b => b.status === 'bezahlt');
   const betrag = b => euro(b.betrag) + (b.rabatt ? ` (−${euro(b.rabatt)})` : '');
   const anteil = (a, b) => b ? `${Math.round(100 * a / b)} %` : '–';
   const kostet = usd => `${euro(-Math.round(usd * G.kurs * 100) || 0)} (${geld(usd)})`;
   const fix = Math.round(G.fixkosten * 100), komma = x => String(x).replace('.', ',');
   const nutzung = d.funktionen.filter(x => x.art !== 'Gesperrt angetippt');  // meistgenutzt zuerst, wie der Server sortiert
-  const enAktion = k => k.englisch_bis > jetzt && k.englisch_bis < jetzt + 3 * 365 * 864e5;  // länger: Rolle per Haken, steht in der Spalte Rolle
-  const stand = k => [k.tarif && k.bis > jetzt ? `${T[k.tarif].name} bis ${tag(k.bis)}` : k.test_bis > jetzt ? `Ultra-Test bis ${zeitpunkt(k.test_bis)}` : enAktion(k) ? null : k.test_bis ? 'Base, Test genutzt' : 'Base',
-    enAktion(k) && `Englisch bis ${tag(k.englisch_bis)}`, k.manual_bis > jetzt && `Manual Access bis ${tag(k.manual_bis)}`].filter(Boolean).join(', ');
   // Neu dabei: wer neu ist, wer automatisch Ultra (Start) hat und ob die Person die App überhaupt schon benutzt
   const vor = x => { const n = Math.floor((jetzt - x) / 864e5); return n < 1 ? 'heute' : n === 1 ? 'gestern' : `vor ${n} Tagen`; };
-  const istNeu = k => jetzt - k.erstellt < 7 * 864e5, start = k => k.tarif === 'start' && k.bis > jetzt;
-  const marken = k => [istNeu(k) && el('span', { class: 'pille akzent' }, 'neu'), start(k) && el('span', { class: 'pille gelb' }, 'Start-Ultra'),
-    !k.zuletzt && el('span', { class: 'pille' }, 'nie benutzt'), !k.bestaetigt && el('span', { class: 'pille' }, 'unbestätigt')].filter(Boolean);
   const rolle = k => el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: k.englisch_bis > jetzt, 'aria-label': `Word Power für ${k.email}`,
     onchange: e => tun('admin/tarif', { konto: k.id, tarif: 'englisch', tage: e.target.checked ? 3650 : 0 })({ currentTarget: e.target }) }), 'Word Power');
+  const wer = k => el('span', { class: 'admin-wer' }, el('button', { class: 'admin-konto', type: 'button', title: 'Konto öffnen: Nutzung, Tarif von Hand, Sperren, Löschen', onclick: () => kontoNutzung(k.id) }, k.email),
+    k.gesperrt ? el('span', { class: 'pille fehler' }, 'gesperrt') : '', ...kontoMarken(k));
   const neuListe = d.konten.filter(k => jetzt - k.erstellt < 14 * 864e5);
-  const startForm = el('form', { class: 'werte-form', onsubmit: async e => {
+  const speichern = body => async e => {  // Formular mit Werten aus der Ecke
     e.preventDefault();
-    const f = e.target.elements;
-    f.knopf.disabled = true;
-    try { await api('admin/werte', { 'neu-ultra': f.an.checked ? f.tage.value : '0' }); } catch (err) { alert(err.message); }
+    e.target.elements.knopf.disabled = true;
+    try { await api('admin/werte', body(e.target.elements)); } catch (err) { alert(err.message); }
     adminZeigen();
-  } },
+  };
+  const startForm = el('form', { class: 'werte-form', onsubmit: speichern(f => ({ 'neu-ultra': f.an.checked ? f.tage.value : '0' })) },
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.neuUltra > 0 }), 'Neue Konten bekommen automatisch Ultra (Start)'),
     el('label', {}, 'für so viele Tage', el('input', { name: 'tage', type: 'number', min: 1, step: 1, value: d.neuUltra || 60 })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
-  const werte = el('form', { class: 'werte-form', onsubmit: async e => {
-    e.preventDefault();
-    const f = e.target.elements;
-    f.knopf.disabled = true;
-    try { await api('admin/werte', { fixkosten: f.fixkosten.value, kurs: f.kurs.value }); } catch (err) { alert(err.message); }
-    adminZeigen();
-  } },
+  const werte = el('form', { class: 'werte-form', onsubmit: speichern(f => ({ fixkosten: f.fixkosten.value, kurs: f.kurs.value })) },
     el('label', {}, 'Fixkosten pro Monat in €', el('input', { name: 'fixkosten', type: 'text', inputmode: 'decimal', value: komma(G.fixkosten) })),
     el('label', {}, '1 $ KI kostet dich in €', el('input', { name: 'kurs', type: 'text', inputmode: 'decimal', value: komma(G.kurs) })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
@@ -7727,13 +7749,7 @@ async function adminZeigen() {
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'launch', checked: d.launchEin }), 'Launch-Angebot läuft: Launch-Preise, keine Rabatte dazu'),
     el('label', {}, el('span', {}, 'Endet nach diesem Tag ', el('span', { class: 'opt' }, 'leer: bis du es ausschaltest')), el('input', { name: 'launchBis', type: 'date', value: L.tag || '' })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Preise speichern'));
-  const englisch = el('form', { class: 'werte-form', onsubmit: async e => {
-    e.preventDefault();
-    const f = e.target.elements;
-    f.knopf.disabled = true;
-    try { await api('admin/werte', { 'neu-englisch': f.an.checked ? f.tage.value : '0' }); } catch (err) { alert(err.message); }
-    adminZeigen();
-  } },
+  const englisch = el('form', { class: 'werte-form', onsubmit: speichern(f => ({ 'neu-englisch': f.an.checked ? f.tage.value : '0' })) },
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.neuEnglisch > 0 }), 'Neue Konten bekommen Englisch statt Base'),
     el('label', {}, 'für so viele Tage', el('input', { name: 'tage', type: 'number', min: 1, step: 1, value: d.neuEnglisch || 180 })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
@@ -7748,162 +7764,252 @@ async function adminZeigen() {
     el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.reflexion }), 'Reflection-Feedback zeigen'),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
   const A = d.arena, P = A.preise;
-  const arenaPreise = el('form', { class: 'werte-form', onsubmit: async e => {
-    e.preventDefault();
-    const f = e.target.elements;
-    f.knopf.disabled = true;
-    try { await api('admin/werte', { 'arena-art': f.art.value, 'arena-p1': f.p1.value, 'arena-p2': f.p2.value, 'arena-p3': f.p3.value, 'arena-min': f.min.value }); } catch (err) { alert(err.message); }
-    adminZeigen();
-  } },
+  const arenaPreise = el('form', { class: 'werte-form', onsubmit: speichern(f => ({ 'arena-art': f.art.value, 'arena-p1': f.p1.value, 'arena-p2': f.p2.value, 'arena-p3': f.p3.value, 'arena-min': f.min.value })) },
     el('label', {}, 'Preis', el('select', { name: 'art' }, [[0, 'keine Preise'], [1, 'Tage Ultra'], [2, 'Rabatt in % auf einen Monat']].map(([w, n]) => el('option', { value: w, selected: P.art === w }, n)))),
     ['p1', 'p2', 'p3'].map((n, i) => el('label', {}, `Platz ${i + 1}`, el('input', { name: n, type: 'number', min: 0, step: 1, value: P.werte[i] }))),
     el('label', {}, 'ab so vielen XP in der Woche', el('input', { name: 'min', type: 'number', min: 0, step: 1, value: P.min })),
     el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
   const arenaKnopf = (text, body, frage) => el('button', { class: 'knopf', type: 'button', onclick: e => (!frage || confirm(frage)) && tun('admin/arena', body)(e) }, text);
+  const ankuendigung = el('form', { class: 'werte-form ank-form', onsubmit: async e => {
+    e.preventDefault();
+    const f = e.target.elements, leer = e.submitter?.name === 'weg';
+    e.target.querySelectorAll('button').forEach(k => { k.disabled = true; });
+    try { await api('admin/ankuendigung', { text: leer ? '' : f.text.value }); TARIFE = await api('tarife'); ankuendigungZeigen(); } catch (err) { alert(err.message); }
+    adminZeigen();
+  } },
+    el('label', {}, 'Steht oben in der App, für alle (auch ohne Konto)', el('textarea', { name: 'text', rows: 3, maxlength: 600, placeholder: 'Etwa: Der OLAT-Abgleich ist bis Montag pausiert. Alles andere geht wie immer.' }, d.ankuendigung?.text || '')),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', name: 'knopf' }, d.ankuendigung ? 'Ändern' : 'Anzeigen'), d.ankuendigung && el('button', { class: 'knopf', name: 'weg' }, 'Entfernen')));
+  const olat = el('form', { class: 'werte-form', onsubmit: async e => {
+    e.preventDefault();
+    const aus = e.target.elements.aus.checked;
+    if (aus && !confirm('Den Abgleich mit OLAT auf allen Geräten pausieren? Jedes Gerät hört damit bei seinem nächsten Lauf auf, OLAT zu öffnen, bis du ihn wieder freigibst.')) return;
+    e.target.elements.knopf.disabled = true;
+    try { await api('admin/werte', { 'olat-aus': aus ? 1 : 0 }); } catch (err) { alert(err.message); }
+    adminZeigen();
+  } },
+    el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'aus', checked: d.olatAus }), 'OLAT-Abgleich auf allen Geräten pausieren'),
+    el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
+
+  // Zu tun: was auf dich wartet, mit Sprung in den passenden Reiter
+  const gemeldet = offen.filter(b => b.status === 'gemeldet'), unbestaetigt = neuListe.filter(k => !k.bestaetigt);
+  const fehlt = SCHLUESSEL_FELDER.filter(([n]) => ['LH_OR_KEY', 'LH_BREVO'].includes(n) && !d.schluessel[n]).map(x => x[1]);
+  const mehr = (n, eins, viele) => `${n} ${n === 1 ? eins : viele}`;
+  const zuTun = [
+    gemeldet.length && [gemeldet.length, `${mehr(gemeldet.length, 'Zahlung ist', 'Zahlungen sind')} als bezahlt gemeldet. Am Konto nachsehen, dann „Geld ist da“.`, 'geld'],
+    offen.length > gemeldet.length && [offen.length - gemeldet.length, `${mehr(offen.length - gemeldet.length, 'Bestellung wartet', 'Bestellungen warten')} noch auf das Geld.`, 'geld'],
+    d.fehler.length && [d.fehler.length, `${mehr(d.fehler.length, 'Fehlerbericht ist', 'Fehlerberichte sind')} offen, gleich hier darunter.`],
+    fehlt.length && [fehlt.length, `Es fehlt: ${fehlt.join(', ')}. Ohne ${fehlt.length === 1 ? 'ihn' : 'sie'} gehen KI bzw. Mails nicht.`, 'einstellungen'],
+    unbestaetigt.length && [unbestaetigt.length, `${mehr(unbestaetigt.length, 'neues Konto hat', 'neue Konten haben')} die E-Mail noch nicht bestätigt. Bis dahin schreibt die KI für sie nichts.`, 'konten'],
+    K.startEndet && [K.startEndet, `Bei ${mehr(K.startEndet, 'Konto endet', 'Konten endet')} Ultra (Start) in den nächsten 7 Tagen.`, 'konten'],
+    d.olatAus && ['!', 'Der OLAT-Abgleich ist auf allen Geräten pausiert.', 'einstellungen'],
+  ].filter(Boolean);
+  const reiterName = n => ADMIN_REITER.find(([x]) => x === n)[1];
+  const zahl = { uebersicht: zuTun.length, konten: K.neu7, geld: offen.length };
+  const aktiv = ADMIN_REITER.some(([n]) => n === location.hash.split('/')[2]) ? location.hash.split('/')[2] : 'uebersicht';
+  const pfeile = e => {  // Pfeiltasten wandern durch die Reiter
+    const i = ADMIN_REITER.findIndex(([n]) => n === e.target.id?.slice(3)), w = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (i < 0 || !w) return;
+    e.preventDefault();
+    const [n] = ADMIN_REITER[(i + w + ADMIN_REITER.length) % ADMIN_REITER.length];
+    adminReiter(n); $('ar-' + n).focus();
+  };
+  const tafel = (n, ...inhalt) => el('section', { id: 'ap-' + n, class: 'admin-tafel', role: 'tabpanel', 'aria-labelledby': 'ar-' + n, hidden: n !== aktiv, tabindex: -1 }, ...inhalt);
+
   s.replaceChildren(
-    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Admin-Ecke'),
+    el('header', { class: 'ausgabe-kopf admin-kopf' }, el('h1', {}, 'Admin-Ecke'),
       el('p', { class: 'unterzeile' }, el('span', {}, `Stand ${zeitpunkt(jetzt)}`), el('span', {}, 'Bleibt 12 Stunden nach dem Öffnen offen')),
       el('div', { class: 'knopfreihe' },
         el('button', { class: 'knopf', type: 'button', onclick: e => { e.currentTarget.disabled = true; adminZeigen(); } }, 'Aktualisieren'),
         el('button', { class: 'knopf', type: 'button', onclick: async e => { e.currentTarget.disabled = true; ICH = await api('ecke-zu', {}).catch(() => ICH); eckeWechsel(); } }, 'Ecke sperren'))),
-    el('h2', {}, 'Neu dabei'),
-    el('div', { class: 'kacheln' },
-      kachel('Neu in 7 Tagen', K.neu7, `${K.neu30} in 30 Tagen, ${K.konten} insgesamt`),
-      kachel('Mit Start-Ultra', K.start, K.startEndet ? `${K.startEndet} enden in 7 Tagen` : d.neuUltra > 0 ? `neue Konten: ${d.neuUltra} Tage` : 'für neue Konten aus'),
-      kachel('Noch nie benutzt', K.nieAktiv, `${K.aktiv7} aktiv in 7 Tagen`)),
-    neuListe.length ? tabelle(['Wer', 'Registriert', 'Zuletzt aktiv', 'Tarif', 'Rolle'], neuListe.map(k => [
-      el('span', { class: 'admin-wer' }, k.email, ...marken(k)), vor(k.erstellt), k.zuletzt ? vor(k.zuletzt) : 'noch nie', stand(k), rolle(k)]))
-      : el('p', { class: 'leer' }, 'In den letzten 14 Tagen hat sich niemand neu registriert.'),
-    el('p', { class: 'klein' }, d.neuUltra > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuUltra} Tage Ultra (Start), danach Base. Verlängern oder beenden: unten bei „Tarif von Hand“. Ultra (Start) zählt wie Ultra, auch beim KI-Kontingent (6 $ im Monat je Konto).`
-      : 'Aus: Neue Konten starten mit Base.'),
-    startForm,
-    el('h2', {}, 'Für alle'),
-    el('form', { class: 'werte-form ank-form', onsubmit: async e => {
-      e.preventDefault();
-      const f = e.target.elements, leer = e.submitter?.name === 'weg';
-      e.target.querySelectorAll('button').forEach(k => { k.disabled = true; });
-      try { await api('admin/ankuendigung', { text: leer ? '' : f.text.value }); TARIFE = await api('tarife'); ankuendigungZeigen(); } catch (err) { alert(err.message); }
-      adminZeigen();
-    } },
-      el('label', {}, 'Ankündigung oben in der App, für alle (auch ohne Konto)', el('textarea', { name: 'text', rows: 3, maxlength: 600, placeholder: 'Etwa: Der OLAT-Abgleich ist bis Montag pausiert. Alles andere geht wie immer.' }, d.ankuendigung?.text || '')),
-      el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', name: 'knopf' }, d.ankuendigung ? 'Ändern' : 'Anzeigen'), d.ankuendigung && el('button', { class: 'knopf', name: 'weg' }, 'Entfernen'))),
-    el('p', { class: 'meta' }, d.ankuendigung ? `Sichtbar seit ${zeitpunkt(d.ankuendigung.zeit)}. Wer sie wegklickt, sieht sie erst wieder, wenn du sie änderst.` : 'Gerade keine Ankündigung.'),
-    el('form', { class: 'werte-form', onsubmit: async e => {
-      e.preventDefault();
-      const aus = e.target.elements.aus.checked;
-      if (aus && !confirm('Den Abgleich mit OLAT auf allen Geräten pausieren? Jedes Gerät hört damit bei seinem nächsten Lauf auf, OLAT zu öffnen, bis du ihn wieder freigibst.')) return;
-      e.target.elements.knopf.disabled = true;
-      try { await api('admin/werte', { 'olat-aus': aus ? 1 : 0 }); } catch (err) { alert(err.message); }
-      adminZeigen();
-    } },
-      el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'aus', checked: d.olatAus }), 'OLAT-Abgleich auf allen Geräten pausieren'),
-      el('button', { class: 'knopf', name: 'knopf' }, 'Speichern')),
-    el('p', { class: 'meta' }, d.olatAus ? 'Pausiert: Die Programme am PC und Mac öffnen OLAT nicht, auch nicht von Hand. Schreib eine Ankündigung dazu, damit niemand denkt, es sei kaputt.'
-      : 'Läuft. Für den Notfall, etwa wenn der ZID darum bittet: wirkt auf jedem Gerät ab seinem nächsten Lauf (ältere Programme erst nach ihrem nächsten Abgleich, dann haben sie die neue Fassung).'),
-    schluesselForm(d.schluessel),
-    el('h2', {}, 'KI-Modelle'),
-    el('p', { class: 'klein' }, 'Gilt sofort für alle Konten. Wer selbst ein anderes Modell ausgewählt hat, behält es; neue und Base-Konten nehmen den Standard.'),
-    modellKarte(modelle(), async neu => {
-      await api('admin/schluessel', { LH_MODELL: neu.model, LH_MODELL_DENKEN: neu.denken, LH_MODELL_TRANSKRIPT: neu.transkript, LH_MODELL_CHECK: neu.check, weg: [!neu.transkript && 'LH_MODELL_TRANSKRIPT', !neu.check && 'LH_MODELL_CHECK'].filter(Boolean) });
-      TARIFE = await api('tarife');
-    }),
-    el('h2', { id: 'admin-wp-modelle' }, 'Word Power: KI-Modelle'),
-    el('p', { class: 'klein' }, 'Ein eigenes Modell für jeden Schritt von Word Power. Leer lassen heißt: die Vorgabe (steht grau im Feld). Jede ID wird beim Tippen gegen OpenRouter geprüft: ob es das Modell gibt, ob es die Aufgabe kann und was ein Lauf ungefähr kostet. Gespeichert wird nur, wenn alles passt; es gilt ab der nächsten Anfrage für alle.'),
-    wpModellKarte(),
-    el('h2', {}, 'Volle Werkzeuge'),
-    el('p', { class: 'klein' }, 'Nur für dich, solange die Ecke offen ist: Word Power mit Hausaufgaben-Entwurf (nur über den Knopf hier; über die Seitenleiste siehst du Word Power wie alle anderen) und der Löser mit den Originalzahlen. Alle anderen bekommen nur das Transkript. Löser und Test-Fotos sind auf Eis: Nur wer von dir unten bei „Tarif von Hand“ den Zusatz Manual Access bekommt, sieht sie, und dann nur als Lösungsweg an Übungsaufgaben mit anderen Zahlen.'),
-    el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower/voll' }, 'Word Power, voll'), el('a', { class: 'knopf voll', href: '#/onlinetests' }, 'Onlinetests mit vollem Löser')),
-    el('h2', {}, 'Preise und Launch-Angebot'),
-    el('p', { class: 'meta' }, TARIFE.verkauf ? 'Verkauf an: Die Tarifseite ist für alle sichtbar.' : 'Verkauf aus: Niemand sieht Preise, die Tarifseite, den Ultra-Test oder den Freunde-Rabatt, und Bestellen geht nicht.'),
-    el('p', { class: 'klein' }, L.aktiv ? `Das Launch-Angebot läuft${L.tag ? ` bis ${new Date(L.tag + 'T12:00').toLocaleDateString('de-AT')}` : ', bis du es ausschaltest'}: Die Tarifseite zeigt die Launch-Preise mit „später …“, Freundes-Rabatte und Gutscheine werden nicht abgezogen und bleiben für danach.`
-      : 'Kein Launch-Angebot: Es gelten die regulären Preise, Freundes-Rabatte und Gutscheine werden abgezogen.'),
-    preise,
-    el('h2', {}, 'Aktion Englisch'),
-    el('p', { class: 'klein' }, 'Kostenlos: alles aus Base, dazu Vortrag analysieren und YouTube-Talks für Word Power transkribieren. Der Hausaufgaben-Entwurf bleibt bei dir. In der Seitenleiste stehen nur Word Power, Vortrag und Unterlagen oben, alles andere eingeklappt darunter. Einzelne Konten: unten bei „Tarif von Hand“ Englisch wählen. Für Testerinnen und Tester gibt es dort Beta: Rechte wie Ultra, zu sehen nur die Bereiche, die du anhakst.'),
-    el('p', { class: 'meta' }, d.neuEnglisch > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuEnglisch} Tage Englisch. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.` : `Aus: Neue Konten starten mit Base. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.`),
-    englisch,
-    el('h3', {}, 'Extras in Word Power'),
-    el('p', { class: 'klein' }, 'Glossar, Trainer und Time Log: Ablage und Übung nur mit dem, was man selbst einträgt. Reflection-Feedback: Die KI liest eine fertige Reflection und sagt, ob sie lang genug ist, ob sie reflektiert statt zusammenfasst und wo Sprachfehler stehen; sie schreibt keinen Satz um. Beides ist aus, bis du es einschaltest; du selbst siehst alles in der Ecke immer. Sind beide aus, steht über Word Power keine Leiste mit Teilen.'),
-    el('p', { class: 'meta' }, `Glossar, Trainer, Time Log: ${d.wpExtras ? 'an für alle' : 'aus'} · Reflection-Feedback: ${d.reflexion ? 'an für alle mit Pro, Ultra oder Englisch' : 'aus'}`),
-    extras,
-    el('h2', {}, 'Auf einen Blick'),
-    el('div', { class: 'kacheln' },
-      kachel('Konten', K.konten, `+${K.neu7} in 7 Tagen, +${K.neu30} in 30 Tagen`),
-      kachel('Aktiv in 7 Tagen', K.aktiv7, `${K.aktiv30} in 30 Tagen`),
-      kachel('Zahlende jetzt', Object.values(K.zahlend).reduce((a, b) => a + b, 0), Object.entries(K.zahlend).map(([t, n]) => `${T[t].name} ${n}`).join(', ')),
-      kachel('Im Gratis-Test', K.imTest, `${K.testGenutzt} haben ihn genutzt`),
-      kachel('Mit Englisch', K.englisch, d.neuEnglisch > 0 ? `neue Konten bekommen ${d.neuEnglisch} Tage` : 'Aktion für neue Konten aus'),
-      kachel('Monatsumsatz (MRR)', euro(K.mrr), 'laufende Tarife mal Monatspreis'),
-      kachel(`Gewinn im ${MONAT}`, euro(G.gewinn.monat), `seit Start ${euro(G.gewinn.gesamt)}`)),
-    el('h2', {}, 'Vom Konto zur Zahlung'),
-    el('div', { class: 'kacheln' }, [['Registriert', K.konten], ['E-Mail bestätigt', K.bestaetigt], ['Gratis-Test genutzt', K.testGenutzt], ['Mindestens einmal bezahlt', K.kunden]]
-      .map(([n, x]) => kachel(n, x, `${anteil(x, K.konten)} der Konten`))),
-    el('h2', {}, 'Funktionen nach Nutzung'),
-    el('p', { class: 'klein' }, `Letzte 30 Tage, ${K.aktiv30} aktive ${K.aktiv30 === 1 ? 'Konto' : 'Konten'}. Konten: wie viele verschiedene Konten etwas genutzt haben. Nutzungen: KI-Anfragen, Speichervorgänge oder Seitenaufrufe.`),
-    el('div', { class: 'kacheln breit' }, [['Am meisten genutzt', nutzung.filter(x => x.k30).slice(0, 5)], ['Am wenigsten genutzt', nutzung.slice(-5).reverse()]].map(([titel, l]) =>
-      el('div', { class: 'kachel' }, el('p', { class: 'meta' }, titel), l.length ? el('ol', { class: 'rangliste' }, l.map(x => el('li', {}, `${x.name}: ${x.k30} ${x.k30 === 1 ? 'Konto' : 'Konten'} `, el('span', {}, `(${x.art})`))))
-        : el('p', { class: 'leer' }, 'Noch nichts.')))),
-    tabelle(['Bereich', 'Art', 'Konten 7 T', 'Konten 30 T', 'Anteil der aktiven', 'Nutzungen 30 T', 'KI-Kosten 30 T'], d.funktionen.map(x => [x.name, x.art, String(x.k7), String(x.k30),
-      el('span', {}, el('span', { class: 'anteil', 'aria-hidden': 'true' }, el('i', { style: `width: ${K.aktiv30 ? Math.min(100, Math.round(100 * x.k30 / K.aktiv30)) : 0}%` })), anteil(x.k30, K.aktiv30)),
-      String(x.n30), x.usd30 ? geld(x.usd30) : '–'])),
-    el('h2', {}, 'Arena'),
-    el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen), Lernmethoden mit vom Server gestellter Aufgabe und KI-Urteil (6 am Tag zählen) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
-    el('p', { class: 'meta' }, P.art ? `Gerade: Platz 1 bis 3 bekommen ${P.werte.join(', ')} ${P.art === 1 ? 'Tage Ultra' : '% Rabatt'}, ab ${P.min} XP.${P.art === 2 && !TARIFE.verkauf ? ' Achtung: Der Verkauf ist aus, Rabatte nützen gerade niemandem.' : ''}` : 'Gerade keine Preise.'),
-    arenaPreise,
-    el('h3', {}, `Mitmachende (${A.teilnehmer.length})`),
-    A.teilnehmer.length ? tabelle(['Spitzname', 'Konto', 'XP diese Woche', 'XP gesamt', 'Serie', 'Stand', ''], A.teilnehmer.map(x => [x.name, x.email, String(x.woche), String(x.gesamt), String(x.serie),
-      x.aus ? 'gesperrt' : 'dabei',
-      el('div', { class: 'knopfreihe' },
-        x.aus ? arenaKnopf('Entsperren', { konto: x.konto, sperren: false }) : [arenaKnopf('Entfernen', { konto: x.konto, entfernen: true }, `${x.name} aus der Bestenliste nehmen? Mitmachen geht danach wieder.`),
-          arenaKnopf('Sperren', { konto: x.konto, sperren: true }, `${x.name} sperren? Dann erscheint das Konto nicht mehr in der Bestenliste und kann nicht wieder mitmachen.`)],
-        x.woche > 0 && arenaKnopf('XP der Woche löschen', { konto: x.konto, xp: true }, `Alle XP von ${x.name} aus dieser Woche löschen?`))]))
-      : el('p', { class: 'leer' }, 'Noch niemand.'),
-    el('h3', {}, 'Gewinner'),
-    A.gewinner.length ? tabelle(['Woche ab', 'Platz', 'Spitzname', 'XP', 'Preis'], A.gewinner.map(g => [new Date(g.woche + 'T12:00').toLocaleDateString('de-AT'), `${g.platz}.`, g.name, String(g.xp), g.preis]))
-      : el('p', { class: 'leer' }, 'Noch keine Woche abgerechnet.'),
-    el('h2', {}, `Fehlerberichte (${d.fehler.length})`),
-    d.fehler.length ? tabelle(['Wann', 'Von', 'Seite', 'Beschreibung', 'Meldungen', 'Gerät', ''], d.fehler.map(f => [zeitpunkt(f.zeit), f.kontakt || '–', f.seite || '–',
-      el('span', { class: 'umbruch' }, f.text || '–'), el('span', { class: 'umbruch' }, f.meldung || '–'), el('span', { class: 'umbruch' }, f.geraet || '–'),
-      el('button', { class: 'knopf', type: 'button', onclick: tun('admin/fehler', { id: f.id }) }, 'Erledigt')]))
-      : el('p', { class: 'leer' }, 'Keine offenen. Neue kommen auch per Mail.'),
-    el('h2', {}, 'Geld'),
-    tabelle(['', `Im ${MONAT}`, `Seit Start (${G.laufzeit} ${G.laufzeit === 1 ? 'Monat' : 'Monate'})`], [
-      ['Einnahmen', euro(G.einnahmen.monat), euro(G.einnahmen.gesamt)],
-      ['KI über den Server', kostet(G.ki.monat), kostet(G.ki.gesamt)],
-      ['Ultra+-Schlüssel', kostet(G.api.monat), kostet(G.api.gesamt)],
-      ['Fixkosten', euro(-fix || 0), euro(-fix * G.laufzeit || 0)],
-      [el('b', {}, 'Gewinn'), el('b', {}, euro(G.gewinn.monat)), el('b', {}, euro(G.gewinn.gesamt))]]),
-    el('p', { class: 'meta' }, `Einnahmen vor PayPal-Gebühren, Rabatte schon abgezogen (bisher ${euro(G.rabatte)}). KI-Kosten kommen in Dollar und werden mit deinem Wert umgerechnet.`),
-    werte,
-    el('h2', {}, 'Letzte sechs Monate'),
-    tabelle(['Monat', 'Neue Konten', 'Einnahmen', 'KI-Kosten', 'Gewinn'], d.verlauf.map(v => [
-      new Date(v.monat + '-15').toLocaleDateString('de-AT', { month: 'long', year: 'numeric' }), String(v.neu), euro(v.einnahmen), kostet(v.kiUsd), euro(v.gewinn)])),
-    el('h2', {}, 'Offene Zahlungen'),
-    offen.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Stand', ''], offen.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b),
-      b.status === 'gemeldet' ? `bezahlt gemeldet ${tag(b.gemeldet)}` : `offen seit ${tag(b.erstellt)}`,
-      el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: tun('admin/bezahlt', { id: b.id }) }, 'Geld ist da'),
-        el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`${b.zweck} stornieren?`) && tun('admin/storno', { id: b.id })(e) }, 'Storno'))]))
-      : el('p', { class: 'leer' }, 'Keine. Geht eine Zahlung ein, erst hier „Geld ist da“ tippen, dann ist der Tarif sofort frei.'),
-    el('h2', {}, 'Bezahlt in den letzten 60 Tagen'),
-    bezahlt.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Am'], bezahlt.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b), tag(b.bezahlt)]))
-      : el('p', { class: 'leer' }, 'Noch nichts.'),
-    el('h2', {}, `Konten (${d.konten.length})`),
-    el('input', { type: 'search', class: 'konten-suche', placeholder: 'Suchen: Adresse, Tarif, „unbestätigt“, „gesperrt“ …', 'aria-label': 'Konten durchsuchen',
-      oninput: e => { const q = e.target.value.trim().toLowerCase(); e.target.nextElementSibling.querySelectorAll('tbody tr').forEach(r => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); } }),
-    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Konto', 'Tarif', 'Rolle', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
-      el('span', { class: 'admin-wer' }, k.email + (k.gesperrt ? ' (gesperrt)' : ''), ...marken(k)), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k), rolle(k),
-      geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
-      `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`, setzen(k),
-      k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])),
-    vorstellenTeil());
+    el('div', { class: 'admin-reiter', role: 'tablist', 'aria-label': 'Bereiche der Admin-Ecke', onkeydown: pfeile },
+      ADMIN_REITER.map(([n, name]) => el('button', { type: 'button', role: 'tab', id: 'ar-' + n, 'aria-controls': 'ap-' + n, 'aria-selected': String(n === aktiv), tabindex: n === aktiv ? 0 : -1, onclick: () => adminReiter(n) },
+        name, zahl[n] ? el('span', { class: 'admin-zahl', 'aria-label': `(${zahl[n]})` }, String(zahl[n])) : ''))),
+
+    tafel('uebersicht',
+      el('h2', {}, 'Zu tun'),
+      zuTun.length ? el('ul', { class: 'admin-todo' }, zuTun.map(([n, text, ziel]) => el('li', {}, el('b', { class: 'admin-zahl' }, String(n)), el('span', {}, text),
+        ziel ? el('button', { class: 'knopf', type: 'button', onclick: () => adminReiter(ziel) }, `${reiterName(ziel)} öffnen`) : el('span'))))
+        : el('p', { class: 'leer' }, 'Nichts offen: keine Zahlungen, keine Fehlerberichte, alle Schlüssel da.'),
+      d.fehler.length > 0 && [el('h2', {}, `Fehlerberichte (${d.fehler.length})`),
+        tabelle(['Wann', 'Von', 'Seite', 'Beschreibung', 'Meldungen', 'Gerät', ''], d.fehler.map(f => [zeitpunkt(f.zeit), f.kontakt || '–', f.seite || '–',
+          el('span', { class: 'umbruch' }, f.text || '–'), el('span', { class: 'umbruch' }, f.meldung || '–'), el('span', { class: 'umbruch' }, f.geraet || '–'),
+          el('button', { class: 'knopf', type: 'button', onclick: tun('admin/fehler', { id: f.id }) }, 'Erledigt')])),
+        el('p', { class: 'meta' }, 'Neue kommen auch per Mail.')],
+      el('h2', {}, 'Neu dabei'),
+      neuListe.length ? tabelle(['Wer', 'Registriert', 'Zuletzt aktiv', 'Tarif', 'Rolle'], neuListe.map(k => [wer(k), vor(k.erstellt), k.zuletzt ? vor(k.zuletzt) : 'noch nie', kontoStand(k), rolle(k)]))
+        : el('p', { class: 'leer' }, 'In den letzten 14 Tagen hat sich niemand neu registriert.'),
+      el('p', { class: 'meta' }, d.neuUltra > 0 ? `Neue Konten bekommen gerade ${d.neuUltra} Tage Ultra (Start), danach Base. Ändern im Reiter Konten; verlängern oder beenden im Konto unter „Tarif von Hand“.`
+        : 'Neue Konten starten gerade mit Base. Ultra (Start) für neue Konten schaltest du im Reiter Konten ein.'),
+      el('h2', {}, 'Auf einen Blick'),
+      el('div', { class: 'kacheln' },
+        kachel('Konten', K.konten, `+${K.neu7} in 7 Tagen, +${K.neu30} in 30 Tagen`),
+        kachel('Aktiv in 7 Tagen', K.aktiv7, `${K.aktiv30} in 30 Tagen`),
+        kachel('Noch nie benutzt', K.nieAktiv, 'registriert, nie geöffnet'),
+        kachel('Mit Start-Ultra', K.start, K.startEndet ? `${K.startEndet} enden in 7 Tagen` : d.neuUltra > 0 ? `neue Konten: ${d.neuUltra} Tage` : 'für neue Konten aus'),
+        kachel('Zahlende jetzt', Object.values(K.zahlend).reduce((a, b) => a + b, 0), Object.entries(K.zahlend).map(([t, n]) => `${T[t].name} ${n}`).join(', ')),
+        kachel('Im Gratis-Test', K.imTest, `${K.testGenutzt} haben ihn genutzt`),
+        kachel('Mit Englisch', K.englisch, d.neuEnglisch > 0 ? `neue Konten bekommen ${d.neuEnglisch} Tage` : 'Aktion für neue Konten aus'),
+        kachel('Monatsumsatz (MRR)', euro(K.mrr), 'laufende Tarife mal Monatspreis'),
+        kachel(`Gewinn im ${MONAT}`, euro(G.gewinn.monat), `seit Start ${euro(G.gewinn.gesamt)}`)),
+      el('h2', {}, 'Vom Konto zur Zahlung'),
+      el('div', { class: 'kacheln' }, [['Registriert', K.konten], ['E-Mail bestätigt', K.bestaetigt], ['Gratis-Test genutzt', K.testGenutzt], ['Mindestens einmal bezahlt', K.kunden]]
+        .map(([n, x]) => kachel(n, x, `${anteil(x, K.konten)} der Konten`)))),
+
+    tafel('konten',
+      el('h2', {}, `Alle Konten (${d.konten.length})`),
+      el('p', { class: 'meta' }, 'Adresse antippen: Nutzung Tag für Tag, Tarif von Hand (Beta, Englisch, Manual Access), Bestätigen, Sperren, Löschen.'),
+      el('input', { type: 'search', class: 'konten-suche', placeholder: 'Suchen: Adresse, Tarif, „unbestätigt“, „gesperrt“ …', 'aria-label': 'Konten durchsuchen',
+        oninput: e => { const q = e.target.value.trim().toLowerCase(); e.target.nextElementSibling.querySelectorAll('tbody tr').forEach(r => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); } }),
+      tabelle(['Konto', 'Registriert', 'Zuletzt aktiv', 'Tarif', 'Rolle', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher'], d.konten.map(k => [
+        wer(k), tag(k.erstellt), tag(k.zuletzt), kontoStand(k), rolle(k),
+        geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
+        `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`])),
+      el('h2', {}, 'Für neue Konten'),
+      el('h3', {}, 'Ultra (Start)'),
+      el('p', { class: 'klein' }, d.neuUltra > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuUltra} Tage Ultra (Start), danach Base. Ultra (Start) zählt wie Ultra, auch beim KI-Kontingent (6 $ im Monat je Konto).`
+        : 'Aus: Neue Konten starten mit Base.'),
+      startForm,
+      el('h3', {}, 'Aktion Englisch'),
+      el('p', { class: 'klein' }, 'Kostenlos: alles aus Base, dazu Vortrag analysieren und YouTube-Talks für Word Power transkribieren. Der Hausaufgaben-Entwurf bleibt bei dir. In der Seitenleiste stehen nur Word Power, Vortrag und Unterlagen oben, alles andere eingeklappt darunter. Einzelne Konten: im Konto unter „Tarif von Hand“ Englisch wählen; dort gibt es für Testerinnen und Tester auch Beta: Rechte wie Ultra, zu sehen nur die Bereiche, die du anhakst.'),
+      el('p', { class: 'meta' }, d.neuEnglisch > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuEnglisch} Tage Englisch. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.` : `Aus. Gerade ${K.englisch} ${K.englisch === 1 ? 'Konto' : 'Konten'} mit Englisch.`),
+      englisch,
+      vorstellenTeil(d.neuUltra)),
+
+    tafel('geld',
+      el('h2', {}, 'Offene Zahlungen'),
+      offen.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Stand', ''], offen.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b),
+        b.status === 'gemeldet' ? `bezahlt gemeldet ${tag(b.gemeldet)}` : `offen seit ${tag(b.erstellt)}`,
+        el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: tun('admin/bezahlt', { id: b.id }) }, 'Geld ist da'),
+          el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`${b.zweck} stornieren?`) && tun('admin/storno', { id: b.id })(e) }, 'Storno'))]))
+        : el('p', { class: 'leer' }, 'Keine. Geht eine Zahlung ein, erst hier „Geld ist da“ tippen, dann ist der Tarif sofort frei.'),
+      el('h2', {}, 'Bezahlt in den letzten 60 Tagen'),
+      bezahlt.length ? tabelle(['Zweck', 'Konto', 'Tarif', 'Betrag', 'Am'], bezahlt.map(b => [b.zweck, b.email, `${T[b.tarif].name}, ${b.monate} Mon.`, betrag(b), tag(b.bezahlt)]))
+        : el('p', { class: 'leer' }, 'Noch nichts.'),
+      el('h2', {}, 'Einnahmen und Kosten'),
+      tabelle(['', `Im ${MONAT}`, `Seit Start (${G.laufzeit} ${G.laufzeit === 1 ? 'Monat' : 'Monate'})`], [
+        ['Einnahmen', euro(G.einnahmen.monat), euro(G.einnahmen.gesamt)],
+        ['KI über den Server', kostet(G.ki.monat), kostet(G.ki.gesamt)],
+        ['Ultra+-Schlüssel', kostet(G.api.monat), kostet(G.api.gesamt)],
+        ['Fixkosten', euro(-fix || 0), euro(-fix * G.laufzeit || 0)],
+        [el('b', {}, 'Gewinn'), el('b', {}, euro(G.gewinn.monat)), el('b', {}, euro(G.gewinn.gesamt))]]),
+      el('p', { class: 'meta' }, `Einnahmen vor PayPal-Gebühren, Rabatte schon abgezogen (bisher ${euro(G.rabatte)}). KI-Kosten kommen in Dollar und werden mit deinem Wert umgerechnet.`),
+      werte,
+      el('h2', {}, 'Letzte sechs Monate'),
+      tabelle(['Monat', 'Neue Konten', 'Einnahmen', 'KI-Kosten', 'Gewinn'], d.verlauf.map(v => [
+        new Date(v.monat + '-15').toLocaleDateString('de-AT', { month: 'long', year: 'numeric' }), String(v.neu), euro(v.einnahmen), kostet(v.kiUsd), euro(v.gewinn)])),
+      el('h2', {}, 'Preise und Launch-Angebot'),
+      el('p', { class: 'meta' }, TARIFE.verkauf ? 'Verkauf an: Die Tarifseite ist für alle sichtbar.' : 'Verkauf aus: Niemand sieht Preise, die Tarifseite, den Ultra-Test oder den Freunde-Rabatt, und Bestellen geht nicht.'),
+      el('p', { class: 'klein' }, L.aktiv ? `Das Launch-Angebot läuft${L.tag ? ` bis ${new Date(L.tag + 'T12:00').toLocaleDateString('de-AT')}` : ', bis du es ausschaltest'}: Die Tarifseite zeigt die Launch-Preise mit „später …“, Freundes-Rabatte und Gutscheine werden nicht abgezogen und bleiben für danach.`
+        : 'Kein Launch-Angebot: Es gelten die regulären Preise, Freundes-Rabatte und Gutscheine werden abgezogen.'),
+      preise),
+
+    tafel('nutzung',
+      el('h2', {}, 'Funktionen nach Nutzung'),
+      el('p', { class: 'klein' }, `Letzte 30 Tage, ${K.aktiv30} aktive ${K.aktiv30 === 1 ? 'Konto' : 'Konten'}. Konten: wie viele verschiedene Konten etwas genutzt haben. Nutzungen: KI-Anfragen, Speichervorgänge oder Seitenaufrufe.`),
+      el('div', { class: 'kacheln breit' }, [['Am meisten genutzt', nutzung.filter(x => x.k30).slice(0, 5)], ['Am wenigsten genutzt', nutzung.slice(-5).reverse()]].map(([titel, l]) =>
+        el('div', { class: 'kachel' }, el('p', { class: 'meta' }, titel), l.length ? el('ol', { class: 'rangliste' }, l.map(x => el('li', {}, `${x.name}: ${x.k30} ${x.k30 === 1 ? 'Konto' : 'Konten'} `, el('span', {}, `(${x.art})`))))
+          : el('p', { class: 'leer' }, 'Noch nichts.')))),
+      tabelle(['Bereich', 'Art', 'Konten 7 T', 'Konten 30 T', 'Anteil der aktiven', 'Nutzungen 30 T', 'KI-Kosten 30 T'], d.funktionen.map(x => [x.name, x.art, String(x.k7), String(x.k30),
+        el('span', {}, el('span', { class: 'anteil', 'aria-hidden': 'true' }, el('i', { style: `width: ${K.aktiv30 ? Math.min(100, Math.round(100 * x.k30 / K.aktiv30)) : 0}%` })), anteil(x.k30, K.aktiv30)),
+        String(x.n30), x.usd30 ? geld(x.usd30) : '–']))),
+
+    tafel('ki',
+      el('h2', {}, 'Zur Auswahl'),
+      el('p', { class: 'klein' }, 'Zwischen diesen Modellen wählen Pro und Ultra: bei der Wochenausgabe, im Chat, bei Videos und bei Thema lernen. Base schreibt immer mit dem Standard. Bei Thema lernen denkt jedes Modell nur kurz nach (low), damit die erste Erklärung nach Sekunden dasteht; was dort vorausgewählt ist, legst du mit dem Haken bei „Thema“ fest, ohne Haken ist es Gemini 3.8 Flash. Jede ID wird beim Tippen gegen OpenRouter geprüft, mit dem Preis einer Wochenausgabe. Gilt ab dem nächsten Laden der App.'),
+      wahlKarte(),
+      el('h2', {}, 'Standard, Transkript und Prüfen'),
+      el('p', { class: 'klein' }, 'Gilt sofort für alle Konten. Wer selbst ein anderes Modell ausgewählt hat, behält es; neue und Base-Konten nehmen den Standard.'),
+      modellKarte(modelle(), async neu => {
+        await api('admin/schluessel', { LH_MODELL: neu.model, LH_MODELL_DENKEN: neu.denken, LH_MODELL_TRANSKRIPT: neu.transkript, LH_MODELL_CHECK: neu.check, weg: [!neu.transkript && 'LH_MODELL_TRANSKRIPT', !neu.check && 'LH_MODELL_CHECK'].filter(Boolean) });
+        TARIFE = await api('tarife');
+      }),
+      el('h2', { id: 'admin-wp-modelle' }, 'Word Power'),
+      el('p', { class: 'klein' }, 'Ein eigenes Modell für jeden Schritt von Word Power. Leer lassen heißt: die Vorgabe (steht grau im Feld). Jede ID wird beim Tippen gegen OpenRouter geprüft: ob es das Modell gibt, ob es die Aufgabe kann und was ein Lauf ungefähr kostet. Gespeichert wird nur, wenn alles passt; es gilt ab der nächsten Anfrage für alle.'),
+      wpModellKarte()),
+
+    tafel('arena',
+      el('h2', {}, 'Preise der Woche'),
+      el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen), Lernmethoden mit vom Server gestellter Aufgabe und KI-Urteil (6 am Tag zählen) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
+      el('p', { class: 'meta' }, P.art ? `Gerade: Platz 1 bis 3 bekommen ${P.werte.join(', ')} ${P.art === 1 ? 'Tage Ultra' : '% Rabatt'}, ab ${P.min} XP.${P.art === 2 && !TARIFE.verkauf ? ' Achtung: Der Verkauf ist aus, Rabatte nützen gerade niemandem.' : ''}` : 'Gerade keine Preise.'),
+      arenaPreise,
+      el('h2', {}, `Mitmachende (${A.teilnehmer.length})`),
+      A.teilnehmer.length ? tabelle(['Spitzname', 'Konto', 'XP diese Woche', 'XP gesamt', 'Serie', 'Stand', ''], A.teilnehmer.map(x => [x.name, x.email, String(x.woche), String(x.gesamt), String(x.serie),
+        x.aus ? 'gesperrt' : 'dabei',
+        el('div', { class: 'knopfreihe' },
+          x.aus ? arenaKnopf('Entsperren', { konto: x.konto, sperren: false }) : [arenaKnopf('Entfernen', { konto: x.konto, entfernen: true }, `${x.name} aus der Bestenliste nehmen? Mitmachen geht danach wieder.`),
+            arenaKnopf('Sperren', { konto: x.konto, sperren: true }, `${x.name} sperren? Dann erscheint das Konto nicht mehr in der Bestenliste und kann nicht wieder mitmachen.`)],
+          x.woche > 0 && arenaKnopf('XP der Woche löschen', { konto: x.konto, xp: true }, `Alle XP von ${x.name} aus dieser Woche löschen?`))]))
+        : el('p', { class: 'leer' }, 'Noch niemand.'),
+      el('h2', {}, 'Gewinner'),
+      A.gewinner.length ? tabelle(['Woche ab', 'Platz', 'Spitzname', 'XP', 'Preis'], A.gewinner.map(g => [new Date(g.woche + 'T12:00').toLocaleDateString('de-AT'), `${g.platz}.`, g.name, String(g.xp), g.preis]))
+        : el('p', { class: 'leer' }, 'Noch keine Woche abgerechnet.')),
+
+    tafel('einstellungen',
+      el('h2', {}, 'Ankündigung'),
+      ankuendigung,
+      el('p', { class: 'meta' }, d.ankuendigung ? `Sichtbar seit ${zeitpunkt(d.ankuendigung.zeit)}. Wer sie wegklickt, sieht sie erst wieder, wenn du sie änderst.` : 'Gerade keine Ankündigung.'),
+      el('h2', {}, 'OLAT-Abgleich'),
+      olat,
+      el('p', { class: 'meta' }, d.olatAus ? 'Pausiert: Die Programme am PC und Mac öffnen OLAT nicht, auch nicht von Hand. Schreib eine Ankündigung dazu, damit niemand denkt, es sei kaputt.'
+        : 'Läuft. Für den Notfall, etwa wenn der ZID darum bittet: wirkt auf jedem Gerät ab seinem nächsten Lauf (ältere Programme erst nach ihrem nächsten Abgleich, dann haben sie die neue Fassung).'),
+      el('h2', {}, 'Extras in Word Power'),
+      el('p', { class: 'klein' }, 'Glossar, Trainer und Time Log: Ablage und Übung nur mit dem, was man selbst einträgt. Reflection-Feedback: Die KI liest eine fertige Reflection und sagt, ob sie lang genug ist, ob sie reflektiert statt zusammenfasst und wo Sprachfehler stehen; sie schreibt keinen Satz um. Beides ist aus, bis du es einschaltest; du selbst siehst alles in der Ecke immer. Sind beide aus, steht über Word Power keine Leiste mit Teilen.'),
+      el('p', { class: 'meta' }, `Glossar, Trainer, Time Log: ${d.wpExtras ? 'an für alle' : 'aus'} · Reflection-Feedback: ${d.reflexion ? 'an für alle mit Pro, Ultra oder Englisch' : 'aus'}`),
+      extras,
+      el('h2', {}, 'Volle Werkzeuge'),
+      el('p', { class: 'klein' }, 'Nur für dich, solange die Ecke offen ist: Word Power mit Hausaufgaben-Entwurf (nur über den Knopf hier; über die Seitenleiste siehst du Word Power wie alle anderen) und der Löser mit den Originalzahlen. Alle anderen bekommen nur das Transkript. Löser und Test-Fotos sind auf Eis: Nur wer von dir im Konto unter „Tarif von Hand“ den Zusatz Manual Access bekommt, sieht sie, und dann nur als Lösungsweg an Übungsaufgaben mit anderen Zahlen.'),
+      el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/wordpower/voll' }, 'Word Power, voll'), el('a', { class: 'knopf voll', href: '#/onlinetests' }, 'Onlinetests mit vollem Löser')),
+      el('h2', {}, 'Schlüssel und Zahlungsdaten'),
+      schluesselForm(d.schluessel)));
+}
+// Reiter wechseln ohne neu zu laden; die Adresse merkt ihn fürs Neuladen und für „Aktualisieren“
+const ADMIN_REITER = [['uebersicht', 'Übersicht'], ['konten', 'Konten'], ['geld', 'Geld'], ['nutzung', 'Nutzung'], ['ki', 'KI-Modelle'], ['arena', 'Arena'], ['einstellungen', 'Einstellungen']];
+let ADMIN = null;  // letzter Stand der Ecke, fürs Konto-Fenster
+function adminReiter(name) {
+  for (const [n] of ADMIN_REITER) {
+    const r = $('ar-' + n);
+    r.setAttribute('aria-selected', String(n === name)); r.tabIndex = n === name ? 0 : -1;
+    $('ap-' + n).hidden = n !== name;
+  }
+  history.replaceState(null, '', name === 'uebersicht' ? '#/admin' : `#/admin/${name}`);
+  const t = $('ap-' + name);
+  if (t.getBoundingClientRect().top < 0) t.scrollIntoView();
+}
+// Was gerade gilt und Marken wie „neu“ oder „Start-Ultra“; in der Liste und im Konto-Fenster gleich
+const enAktion = k => k.englisch_bis > Date.now() && k.englisch_bis < Date.now() + 3 * 365 * 864e5;  // länger: Rolle per Haken, steht in der Spalte Rolle
+function kontoStand(k) {
+  const T = TARIFE.tarife, jetzt = Date.now(), tag = x => new Date(x).toLocaleDateString('de-AT');
+  return [k.tarif && k.bis > jetzt ? `${T[k.tarif].name} bis ${tag(k.bis)}` : k.test_bis > jetzt ? `Ultra-Test bis ${zeitpunkt(k.test_bis)}` : enAktion(k) ? null : k.test_bis ? 'Base, Test genutzt' : 'Base',
+    enAktion(k) && `Englisch bis ${tag(k.englisch_bis)}`, k.manual_bis > jetzt && `Manual Access bis ${tag(k.manual_bis)}`].filter(Boolean).join(', ');
+}
+const kontoMarken = k => { const jetzt = Date.now(); return [jetzt - k.erstellt < 7 * 864e5 && el('span', { class: 'pille akzent' }, 'neu'), k.tarif === 'start' && k.bis > jetzt && el('span', { class: 'pille gelb' }, 'Start-Ultra'),
+  !k.zuletzt && el('span', { class: 'pille' }, 'nie benutzt'), !k.bestaetigt && el('span', { class: 'pille' }, 'unbestätigt')].filter(Boolean); };
+// Tarif von Hand, im Konto-Fenster: Tarif für n Tage, bei Beta die sichtbaren Bereiche
+function tarifForm(k) {
+  const T = TARIFE.tarife, jetzt = Date.now(), beta = JSON.parse(k.beta || '[]');
+  const gilt = k.tarif && k.bis > jetzt ? k.tarif : k.englisch_bis > jetzt ? 'englisch' : 'base';  // was gerade gilt, vorausgewählt
+  const haken = el('fieldset', { class: 'beta-wahl', hidden: gilt !== 'beta' }, el('legend', {}, 'Sieht in Beta'),
+    BEREICHE.map(v => el('label', {}, el('input', { type: 'checkbox', name: 'bereich', value: v, checked: beta.includes(v) }), ANSICHTEN[v])));
+  return el('form', { onsubmit: async e => {
+    e.preventDefault();
+    const f = e.target.elements;
+    f.knopf.disabled = true;
+    try { const r = await api('admin/tarif', { konto: k.id, tarif: f.tarif.value, tage: +f.tage.value, bereiche: [...e.target.querySelectorAll('[name=bereich]:checked')].map(x => x.value) }); if (r.warnung) alert('Freigeschaltet, aber: ' + r.warnung); }
+    catch (err) { alert(err.message); }
+    await adminZeigen(); kontoNutzung(k.id);
+  } },
+    el('div', { class: 'admin-setzen' }, el('select', { name: 'tarif', 'aria-label': 'Tarif', onchange: e => { haken.hidden = e.target.value !== 'beta'; } },
+      Object.keys(T).map(t => el('option', { value: t, selected: t === gilt }, T[t].name))),
+      el('input', { name: 'tage', type: 'number', min: 0, value: 30, 'aria-label': 'Tage' }), el('span', { class: 'meta' }, 'Tage'), el('button', { class: 'knopf', name: 'knopf' }, 'Setzen')), haken);
 }
 // Nur für den Admin: Spickzettel, wie man den Lernhelfer anderen zeigt und mit ihnen einrichtet (Stand 18.11.2026)
-function vorstellenTeil() {
+function vorstellenTeil(neuUltra) {
   const liste = (tag, punkte) => el(tag, { class: 'schritte klein' }, punkte.map(p => el('li', {}, p)));
   return el('details', { class: 'quellen' }, el('summary', {}, 'So stellst du den Lernhelfer anderen vor'),
     el('h3', {}, 'Vorher bei dir'),
     liste('ul', ['Einmal selbst „Abgleich starten“ und im Chrome-Fenster bei OLAT einloggen, damit deine eigene Ausgabe für die Vorführung frisch ist.',
-      'Neue Konten haben nur Base: Wochenausgabe, Formeln erklären, Check-Fragen, Arena. Karteikarten, Kalender, Noten, Vortrag und Videos sind Pro, Probeklausur und Chat Ultra. Mehr zeigen: oben bei „Tarif von Hand“ Beta vergeben (bis 6 $ KI im Monat je Konto, Base bis 2 $).']),
+      neuUltra > 0 ? `Neue Konten haben ${neuUltra} Tage Ultra (Start), also alles, auch Thema lernen, Probeklausur und Chat (bis 6 $ KI im Monat je Konto). Danach Base: Wochenausgabe, Formeln erklären, Check-Fragen, Arena.`
+        : 'Neue Konten haben nur Base: Wochenausgabe, Formeln erklären, Check-Fragen, Arena. Karteikarten, Kalender, Noten, Vortrag und Videos sind Pro, Thema lernen, Probeklausur und Chat Ultra. Mehr zeigen: im Konto unter „Tarif von Hand“ Beta vergeben (bis 6 $ KI im Monat je Konto, Base bis 2 $).']),
     el('h3', {}, 'Schritt für Schritt mit der Person'),
     liste('ol', ['Konto: lernhelfer.xyz öffnen, „Anmelden“, Konto mit E-Mail und Passwort anlegen, Haken setzen. Dann die Bestätigungsmail anklicken, sonst schreibt die KI nichts.',
       'PC-Programm (nur Windows-PC oder Mac): am Computer lernhelfer.xyz öffnen, einloggen, unter Start bzw. Konto „PC-Programm herunterladen“. Chrome fragt: „Behalten“.',
@@ -7945,9 +8051,16 @@ async function kontoNutzung(id) {
       if (frage && !confirm(frage)) return;
       e.currentTarget.disabled = true;
       try { await api('admin/konto-setzen', { konto: id, ...body }); } catch (err) { return alert(err.message); }
-      await kontoNutzung(id); adminZeigen();
+      await adminZeigen(); kontoNutzung(id);
     };
     return text ? el('button', { class: 'knopf', type: 'button', onclick: los }, text) : los;
+  };
+  const k = ADMIN?.konten.find(x => x.id === id);
+  const loeschen = async e => {
+    if (!confirm(`Konto ${n.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`)) return;
+    e.currentTarget.disabled = true;
+    try { await api('admin/konto-loeschen', { konto: id }); } catch (err) { e.target.disabled = false; return alert(err.message); }
+    d.close(); adminZeigen();
   };
   d.replaceChildren(el('div', { class: 'innen breit' },
     el('h2', { id: 'm-titel' }, n.email),
@@ -7962,6 +8075,8 @@ async function kontoNutzung(id) {
       el('button', { class: 'knopf', type: 'button', onclick: e => { const neu = prompt('Neue E-Mail-Adresse (danach muss sie neu bestätigt werden; die Mail geht gleich raus):', n.email); if (neu && neu.trim() !== n.email) aktion('', { email: neu })(e); } }, 'Adresse ändern'),
       n.gesperrt ? aktion('Entsperren', { gesperrt: false })
         : aktion('Sperren', { gesperrt: true }, `${n.email} sperren? Das Konto wird überall abgemeldet, der PC-Schlüssel gilt nicht mehr, und Anmelden geht erst wieder, wenn du entsperrst. Daten bleiben erhalten.`)),
+    k && [el('h3', {}, 'Tarif von Hand'), el('p', { class: 'meta admin-wer' }, `Gerade: ${kontoStand(k)}`, ...kontoMarken(k)), tarifForm(k)],
+    el('h3', {}, 'Nutzung'),
     n.nutzung.length ? tabelle(['Bereich', 'Art', '30 Tage', 'Gesamt', 'KI-Kosten', 'Zuletzt'], n.nutzung.map(x => [x.name, x.art, String(x.n30), String(x.n), x.usd ? geld(x.usd) : '–',
       new Date(x.zuletzt + 'T12:00').toLocaleDateString('de-AT')])) : el('p', { class: 'leer' }, 'Noch nichts genutzt.'),
     n.tage.length > 0 && [el('h3', {}, 'Die letzten 30 Tage'), el('p', { class: 'meta' }, 'Uhrzeiten in Wiener Zeit; gleiche Schritte direkt hintereinander zusammengefasst.'),
@@ -7969,7 +8084,8 @@ async function kontoNutzung(id) {
         el('b', {}, new Date(x.tag + 'T12:00').toLocaleDateString('de-AT', { weekday: 'short', day: 'numeric', month: 'short' })), ' ',
         x.zeiten ? zeitenListe(x.zeiten) : x.liste.map(y => `${y.name}${y.n > 1 ? ` ×${y.n}` : ''}`).join(', '))))],
     el('h3', {}, 'Mails der letzten 30 Tage'), mails,
-    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen'))));
+    el('div', { class: 'knopfreihe konto-fuss' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen'),
+      !n.ich && el('button', { class: 'knopf loeschen', type: 'button', onclick: loeschen }, 'Konto löschen'))));
   if (!d.open) d.showModal();
   try {
     const m = await api('admin/mails', { konto: id });
@@ -7988,9 +8104,11 @@ const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/;
 const DENKSTUFEN = [['max', 'max'], ['xhigh', 'xhigh'], ['high', 'high'], ['medium', 'medium'], ['low', 'low'], ['none', 'aus']];
 const transkriptModell = vorgabe => modelle().transkript || vorgabe;
 const nurGoogle = m => m.startsWith('google/') ? { provider: { only: ['google-ai-studio'] } } : {};  // YouTube-Links nimmt nur Google selbst
-function standardModell() {
+const denkenVon = d => d && d !== 'none' ? { reasoning: { effort: d } } : {};
+function standardModell() {  // Server-Version: der Standard, dann die Liste aus der Admin-Ecke; eigene Version: der Standard vor den eingebauten
   const m = modelle(), name = `Standard · ${m.model.split('/').pop()}`;
-  const rest = Object.entries(MODELLE).filter(([k, v]) => !k.startsWith('Standard · ') && v.model !== m.model);
+  const rest = (SERVER && m.liste ? m.liste.map(x => [x.name, { model: x.model, ...denkenVon(x.denken) }]) : Object.entries(MODELLE).filter(([k]) => !k.startsWith('Standard · ')))
+    .filter(([, v]) => v.model !== m.model);
   for (const k of Object.keys(MODELLE)) delete MODELLE[k];
   Object.assign(MODELLE, { [name]: { model: m.model, ...m.denken !== 'none' && { reasoning: { effort: m.denken } } } }, Object.fromEntries(rest));
   BASIS_MODELL = name;
@@ -8019,6 +8137,57 @@ function modellKarte(m, speichern) {
       el('span', { class: 'meta' }, 'Prüft die Antworten auf Check-Fragen, für alle Tarife, mit wenig Nachdenken.')),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll' }, 'Als Standard setzen'),
       el('a', { class: 'knopf', href: 'https://openrouter.ai/models', target: '_blank', rel: 'noopener' }, 'Modelle auf OpenRouter')), hinweis);
+}
+// Modelle zur Auswahl ab Pro: Name, OpenRouter-ID (live geprüft, mit Preis einer Wochenausgabe), Nachdenken; dazu die Vorauswahl bei Thema lernen
+const WAHL_PRUEFUNG = { kontext: 128000, lauf: 'eine Wochenausgabe', kosten: [90000, 30000] };
+function wahlKarte() {
+  const m = modelle(), hinweis = el('p', { class: 'klein', role: 'status' }), zeilen = el('div', { class: 'wahl-zeilen' });
+  const stufen = (wert, name) => el('select', { 'aria-label': `${name}: Nachdenken` }, DENKSTUFEN.map(([w, t]) => el('option', { value: w, selected: wert === w }, t)));
+  const thema = (model, name) => el('label', { class: 'wahl-thema' }, el('input', { type: 'radio', name: 'wahl-thema', value: model, checked: m.thema === model, 'aria-label': `${name} bei Thema lernen vorausgewählt` }),
+    el('span', { class: 'nur-schmal' }, 'Vorauswahl bei Thema lernen'));
+  const zeile = (x = { name: '', model: '', denken: 'low' }) => {
+    const name = el('input', { value: x.name, maxlength: 40, placeholder: 'Name in der App', 'aria-label': 'Name in der App', autocomplete: 'off' });
+    const id = el('input', { value: x.model, placeholder: 'anbieter/modell', 'aria-label': 'OpenRouter-ID', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
+    const info = el('span', { class: 'meta', role: 'status' }), radio = thema(x.model, x.name || 'Neues Modell');
+    let nr = 0, warte;
+    const pruefen = async () => {
+      const n = ++nr;
+      radio.firstChild.value = id.value.trim();
+      info.textContent = 'Prüfe …'; info.className = 'meta';
+      const r = await wpModellPruefen(WAHL_PRUEFUNG, id.value.trim());
+      if (n === nr) { info.textContent = r.text; info.className = r.ok ? 'meta' : 'fehlertext'; }
+      return r.ok;
+    };
+    id.oninput = () => { clearTimeout(warte); warte = setTimeout(pruefen, 400); };
+    const z = el('div', { class: 'wahl-zeile' }, name, el('div', { class: 'wahl-id' }, id, info), stufen(x.denken, x.name || 'Neues Modell'), radio,
+      el('button', { class: 'knopf', type: 'button', 'aria-label': `${x.name || 'Modell'} entfernen`, onclick: () => { z.remove(); hinweis.textContent = 'Entfernt. Gilt erst nach dem Speichern.'; } }, 'Entfernen'));
+    Object.assign(z, { pruefen, wert: () => ({ name: name.value.trim(), model: id.value.trim(), denken: z.querySelector('select').value }) });
+    if (x.model) pruefen();
+    return z;
+  };
+  zeilen.append(...(m.liste || []).map(x => zeile(x)));
+  return el('form', { class: 'wahl-form', onsubmit: async e => {
+    e.preventDefault();
+    const knopf = e.submitter, alle = [...zeilen.children], liste = alle.map(z => z.wert());
+    if (!liste.length) { hinweis.textContent = 'Mindestens ein Modell muss in der Liste bleiben.'; return; }
+    knopf.disabled = true; hinweis.textContent = 'Prüfe alle …';
+    const ok = await Promise.all(alle.map(z => z.pruefen())), falsch = alle.findIndex((z, i) => !ok[i] || !liste[i].name);
+    if (falsch >= 0) { hinweis.textContent = `Nicht gespeichert: ${liste[falsch].name || 'Ein Modell ohne Namen'} passt so nicht (rot markiert).`; alle[falsch].querySelector('input').focus(); knopf.disabled = false; return; }
+    try {
+      await api('admin/modelle', { liste, thema: e.target.querySelector('[name=wahl-thema]:checked')?.value || '' });
+      TARIFE = await api('tarife'); standardModell(); modellWahl();
+      hinweis.textContent = `Gespeichert. Zur Auswahl: ${liste.map(x => x.name).join(', ')}. Bei Thema lernen vorausgewählt: ${modelle().thema}.`;
+    } catch (err) { hinweis.textContent = err.message; }
+    knopf.disabled = false;
+  } },
+    el('div', { class: 'wahl-zeile wahl-kopf', 'aria-hidden': 'true' }, ['Name in der App', 'OpenRouter-ID', 'Nachdenken', 'Thema', ''].map(t => el('span', {}, t))),
+    el('div', { class: 'wahl-zeile wahl-standard' }, el('b', {}, 'Standard'),
+      el('div', { class: 'wahl-id' }, el('code', {}, m.model), el('span', { class: 'meta' }, 'Steht immer vorn und ist das einzige Modell für Base. Einstellen weiter unten.')),
+      el('span', { class: 'meta' }, DENKSTUFEN.find(([w]) => w === m.denken)?.[1] || m.denken), thema(m.model, 'Standard'), el('span')),
+    zeilen,
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => { const z = zeile(); zeilen.append(z); z.querySelector('input').focus(); } }, 'Modell hinzufügen'),
+      el('button', { class: 'knopf voll' }, 'Auswahl speichern'), el('a', { class: 'knopf', href: 'https://openrouter.ai/models', target: '_blank', rel: 'noopener' }, 'Modelle auf OpenRouter')),
+    hinweis);
 }
 // Word Power: Modell je Aufgabe, jede ID live gegen die Modellliste von OpenRouter geprüft
 let OR_LISTE = null;
@@ -8235,7 +8404,19 @@ async function videoZeigen(id) {
 // sobald es vollständig ist, der Kern steht also nach Sekunden da. Bezug zu den eigenen Folien: Stichwortsuche im Gerät, nur die besten
 // vier Stellen gehen mit (spart Token). Ein Thema liegt in themen/<id>.json, die Liste in themen.json.
 // ponytail: Stichwortsuche statt Vektorsuche; umstellen, wenn die Treffer messbar danebenliegen
-const THEMA_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000, reasoning: { effort: 'low' } };  // der Server erzwingt dasselbe (THEMA_KI)
+const THEMA_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000, reasoning: { effort: 'low' } };  // der Server nimmt das gewählte Modell, immer mit wenig Nachdenken
+// Wählbar ist alles aus der Auswahl der Admin-Ecke (MODELLE); vorausgewählt das, was die Ecke für Thema lernen festlegt
+const themaVorgabe = () => (SERVER && modelle().thema) || THEMA_KI.model;
+function themaModelle() {
+  const l = Object.entries(MODELLE).map(([name, v]) => ({ name, model: v.model })), vor = themaVorgabe();
+  return l.some(x => x.model === vor) ? l : [{ name: `Schnell · ${vor.split('/').pop()}`, model: vor }, ...l];
+}
+const themaModell = () => { const l = themaModelle(), w = merk('thema-modell'); return (l.find(x => x.model === w) || l.find(x => x.model === themaVorgabe()) || l[0]).model; };
+const themaModellWahl = () => {
+  const l = themaModelle(), w = themaModell();
+  return l.length < 2 ? '' : el('select', { class: 't-modell', 'aria-label': 'Modell', title: 'Welches Modell erklärt', onchange: e => merk('thema-modell', e.target.value) },
+    l.map(x => el('option', { value: x.model, selected: x.model === w }, x.name)));
+};
 const THEMA_AUFTRAG = `Du bist der Lernhelfer, ein Tutor für Studierende. Du erklärst so, dass es sitzt: erst der Kern, dann ein Bild im Kopf, dann die Genauigkeit, dann üben. Du antwortest nie mit Fließtext, sondern mit Bausteinen, die die App als Schaubilder, Regler, Schritte und Übungen zeichnet.
 
 Ausgabe: nur JSON-Objekte, eines pro Zeile, nichts davor, nichts danach, keine Codeblöcke.
@@ -8322,6 +8503,14 @@ function jsonObjekte(text, ab) {
   return { objekte, weiter: start >= 0 ? start : i };
 }
 
+// Viele Modelle schreiben LaTeX mit einfachem Backslash: „\(“ oder „\cdot“ lässt JSON.parse scheitern, „\frac“ wird still zu Seitenvorschub + „rac“.
+// Darum: ungültige Escapes verdoppeln und Steuerzeichen vor Buchstaben (\f \b \t \r) zurück in LaTeX-Befehle. Ganz kaputt: null
+const T_LATEX = { '\f': '\\f', '\b': '\\b', '\t': '\\t', '\r': '\\r' };
+const tText = (k, v) => typeof v === 'string' ? v.replace(/[\f\b\t\r](?=[a-zA-Z])/g, c => T_LATEX[c]) : v;
+function jsonLesen(o) {
+  try { return JSON.parse(o, tText); } catch { /* reparieren */ }
+  try { return JSON.parse(o.replace(/\\(["\\/bfnrt]|u[0-9a-fA-F]{4})|\\/g, (x, gut) => gut ? x : '\\\\'), tText); } catch { return null; }
+}
 async function themaRunde(t, frage, auftrag) {
   if (THEMA.job) return;
   const runde = { frage, bloecke: [], quellen: [] };
@@ -8334,11 +8523,14 @@ async function themaRunde(t, frage, auftrag) {
   const lesen = () => {
     const r = jsonObjekte(roh, pos);
     pos = r.weiter;
-    for (const o of r.objekte) { let b; try { b = JSON.parse(o); } catch { continue; } themaObjekt(job, b, quellen); }  // kaputtes Objekt: weglassen
+    for (const o of r.objekte) {  // kaputtes Objekt: weglassen; packt ein Modell alles in ein Objekt mit Liste, zählen deren Einträge
+      const b = jsonLesen(o);
+      for (const x of b?.typ ? [b] : Object.values(b || {}).find(v => Array.isArray(v) && v.some(y => y?.typ)) || []) themaObjekt(job, x, quellen);
+    }
   };
   try {
     quellen = await themaQuellen(`${t.titel} ${frage} ${t.plan || ''}`, t.fach);
-    await strom({ feature: 'thema', ...THEMA_KI, messages: [{ role: 'system', content: THEMA_AUFTRAG }, { role: 'user', content: themaNachricht(t, auftrag, quellen) }] }, x => { roh = x; lesen(); });
+    await strom({ feature: 'thema', ...THEMA_KI, model: themaModell(), messages: [{ role: 'system', content: THEMA_AUFTRAG }, { role: 'user', content: themaNachricht(t, auftrag, quellen) }] }, x => { roh = x; lesen(); });
     if (!runde.bloecke.length) throw new Error('Die Antwort kam ohne Inhalt an. Bitte nochmal fragen.');
     t.titel ||= frage.slice(0, 60);
     await themaSichern(t);
@@ -8577,7 +8769,7 @@ function themaFeld(gross) {
       gross && faecher.length > 1 ? el('div', { class: 't-fachwahl', role: 'group', 'aria-label': 'Fach' }, ['', ...faecher].map(f => el('button', {
         type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.fach === f),
         onclick: e => { THEMA.fach = f; for (const k of e.currentTarget.parentNode.children) k.setAttribute('aria-pressed', String(k === e.currentTarget)); } }, f || 'Alle Fächer'))) : el('span'),
-      el('button', { class: 'knopf voll', disabled: !!THEMA.job }, THEMA.job ? 'Erklärt gerade …' : 'Erklär’s mir')));
+      el('div', { class: 't-los' }, themaModellWahl(), el('button', { class: 'knopf voll', disabled: !!THEMA.job }, THEMA.job ? 'Erklärt gerade …' : 'Erklär’s mir'))));
 }
 // Vor der nächsten Einheit (heute später oder morgen): was laut Ausgabe drankommt, in zwei Minuten vorbereitet
 function themaVorlauf() {
@@ -8623,7 +8815,7 @@ function themaEnde(t) {
       el('div', { class: 'vorschlaege' }, THEMA_ARTEN.map(([name, auftrag]) => el('button', { class: 'vorschlag', type: 'button', onclick: () => themaRunde(t, name, auftrag) }, name)),
         !r.bloecke.some(b => b.typ === 'offen') && el('button', { class: 'vorschlag', type: 'button', onclick: () => themaZurueck(t) }, 'Erklär’s mir zurück')),
       el('form', { class: 't-feld', onsubmit: e => { e.preventDefault(); const q = feld.value.trim(); if (q) themaRunde(t, q, `Rückfrage: ${q}`); } },
-        el('label', { for: id, class: 'sr' }, 'Rückfrage'), feld, el('div', { class: 't-feld-fuss' }, el('span'), el('button', { class: 'knopf voll' }, 'Fragen'))),
+        el('label', { for: id, class: 'sr' }, 'Rückfrage'), feld, el('div', { class: 't-feld-fuss' }, el('span'), el('div', { class: 't-los' }, themaModellWahl(), el('button', { class: 'knopf voll' }, 'Fragen')))),
       el('div', { class: 't-fuss' }, el('button', { class: 'knopf', type: 'button', onclick: () => themaWeg(t) }, 'Thema löschen')))];
 }
 async function themaZeigen(id) {
@@ -9590,8 +9782,9 @@ function modellWahl() {
   const nur = SERVER && !!ICH && TARIFE?.tarife[ICH.tarif]?.rang === 0 && !ICH.ecke;  // Base und Englisch
   $('modell').disabled = nur;
   $('modell').value = nur ? BASIS_MODELL : MODELLE[merk('modell')] ? merk('modell') : Object.keys(MODELLE)[0];
-  $('modell-hinweis').textContent = nur ? `In ${TARIFE.tarife[ICH.tarif].name} schreibt ${modelle().model}. Ab Pro wählst du auch GPT-6 Luna, MiMo oder Sol.`
-    : `Der Standard ist ${modelle().model}. GPT-6 Luna schreibt am gründlichsten, MiMo ist am schnellsten.`;
+  const andere = Object.keys(MODELLE).filter(x => x !== BASIS_MODELL).join(', ');
+  $('modell-hinweis').textContent = nur ? `In ${TARIFE.tarife[ICH.tarif].name} schreibt ${modelle().model}.${andere ? ` Ab Pro wählst du auch: ${andere}.` : ''}`
+    : SERVER ? `Der Standard ist ${modelle().model}.` : `Der Standard ist ${modelle().model}. GPT-6 Luna schreibt am gründlichsten, MiMo ist am schnellsten.`;
   if (!SERVER && $('modelle-teil') && !$('modelle-teil').firstChild) $('modelle-teil').append(el('details', { class: 'quellen' }, el('summary', {}, 'Eigenes Standard- und Transkript-Modell'),
     modellKarte(modelle(), async neu => { merk('modelle', JSON.stringify(neu)); merk('modell', `Standard · ${neu.model.split('/').pop()}`); })));
 }

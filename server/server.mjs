@@ -51,8 +51,10 @@ const FOTO_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000 };
 // Antwort auf eine Check-Frage prüfen, für alle: Prüf-Modell aus der Admin-Ecke, sonst das Standard-Modell; wenig Nachdenken, damit es schnell geht
 const checkKi = () => ({ model: E.LH_MODELL_CHECK || E.LH_MODELL || BASIS_KI.model, max_tokens: 8000, reasoning: { effort: 'low' } });
 const FORMEL_KI = { model: 'google/gemini-3.8-flash', max_tokens: 3000 };  // Tipp auf eine Formel: was jedes Zeichen bedeutet, für alle, schnell und günstig
-// Thema lernen: schnell soll es sein (erste Bausteine nach Sekunden) und oft genutzt wird es, darum ein schnelles, günstiges Modell mit wenig Nachdenken
-const THEMA_KI = () => ({ model: E.LH_MODELL_THEMA || 'google/gemini-3.8-flash', max_tokens: 16000, reasoning: { effort: 'low' } });
+// Thema lernen: schnell soll es sein (erste Bausteine nach Sekunden), darum mit jedem Modell nur wenig Nachdenken.
+// Modell: was die Person aus der Liste gewählt hat, sonst die Vorauswahl aus der Admin-Ecke (ohne Eintrag Gemini Flash, schnell und günstig)
+const themaModell = () => E.LH_MODELL_THEMA || 'google/gemini-3.8-flash';
+const THEMA_KI = m => ({ model: wahlOk(m) ? m : themaModell(), max_tokens: 16000, reasoning: { effort: 'low' } });
 const LAUFEND = 8, LAEUFT = new Map();  // gleichzeitige KI-Anfragen pro Konto; ein Vortrag schickt seine Teile parallel
 // Jede laufende Anfrage hält 5 Cent vom Budget fest, bis ihr echter Preis gebucht ist: 8 parallele Anfragen kurz vor dem Limit überziehen
 // sonst gemeinsam. ponytail: fester Schätzwert; Vortrag-Teile kosten meist weniger, ein großer Chat mehr
@@ -76,10 +78,15 @@ const PFADE = { 'kalender/': 'kalender', 'vortraege/': 'vortrag', 'videos/': 'vi
 // (16 Bit, 24 kHz, mono = 48 000 Byte/s; 25 Token/s zu 9 $/Mio. = 0,000225 $/s, aufgerundet)
 const SPRACHE = { model: 'google/gemini-3.8-flash-tts', usdProSekunde: 0.00025, zeichen: 8000 };
 // ponytail: Funktion und Modell prüft der Server, den Prompt nicht; Missbrauch deckelt das Monatsbudget. Strenger: Prompts serverseitig bauen.
-const MODELLE = new Set(['openai/gpt-6-luna', 'xiaomi/mimo-v2.6-pro', 'openai/gpt-6.1-sol', 'google/gemini-3.8-flash', 'google/gemini-4-argon', BASIS_KI.model]);
+// Modelle zur Auswahl ab Pro (Admin-Ecke „KI-Modelle“): bei Wochenausgabe, Chat, Thema lernen … Der Standard steht in der App immer davor.
+const WAHL_VORGABE = [{ name: 'GPT-6 Luna', model: 'openai/gpt-6-luna', denken: 'xhigh' }, { name: 'MiMo V2.6 Pro', model: 'xiaomi/mimo-v2.6-pro', denken: 'high' },
+  { name: 'GPT-6.1 Sol', model: 'openai/gpt-6.1-sol', denken: 'xhigh' }, { name: 'Gemini 3.8 Flash', model: 'google/gemini-3.8-flash', denken: 'low' }];
+const wahlModelle = () => { try { const l = JSON.parse(E.LH_MODELLE || ''); if (Array.isArray(l) && l.length) return l; } catch { /* Vorgabe */ } return WAHL_VORGABE; };
+const wahlOk = m => !!m && (m === themaModell() || m === (E.LH_MODELL || BASIS_KI.model) || wahlModelle().some(x => x.model === m));
+const MODELLE = new Set(['openai/gpt-6-luna', 'xiaomi/mimo-v2.6-pro', 'google/gemini-3.8-flash', 'google/gemini-4-argon', BASIS_KI.model]);  // fest eingebaut: Formel, Fotos, Vortrag, Word Power, Löser
 const WP_MODELLE = { LH_WP_TRANSKRIPT: 0, LH_WP_VERGLEICH: 0, LH_WP_TEXT: 0, LH_WP_REFLEXION: 0 };
 const WP_DENKEN = Object.fromEntries(Object.keys(WP_MODELLE).map(n => [n + '_DENKEN', 0]));  // Nachdenken je Word-Power-Schritt
-const modellOk = m => MODELLE.has(m) || !!m && [E.LH_MODELL, E.LH_MODELL_TRANSKRIPT, ...Object.keys(WP_MODELLE).map(n => E[n])].includes(m);
+const modellOk = m => MODELLE.has(m) || wahlOk(m) || !!m && [E.LH_MODELL_TRANSKRIPT, E.LH_MODELL_CHECK, ...Object.keys(WP_MODELLE).map(n => E[n])].includes(m);
 const basisKi = () => ({ ...BASIS_KI, model: E.LH_MODELL || BASIS_KI.model, reasoning: E.LH_MODELL_DENKEN === 'none' ? undefined : { effort: E.LH_MODELL_DENKEN || 'max' } });
 const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/, DENKSTUFEN = ['max', 'xhigh', 'high', 'medium', 'low', 'none'];
 // Anbieter bei OpenRouter: jedes Modell nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren, sonst freie Wahl der App
@@ -229,10 +236,13 @@ const entschluesseln = s => {
 const SCHLUESSEL = { LH_OR_KEY: 1, LH_OR_VERWALTUNG: 1, LH_BREVO: 1, LH_PASS_WORDPOWER: 1, LH_PASS_ONLINETEST: 1,  // 1 = geheim, wird nie zurückgegeben
   LH_ABSENDER: 0, LH_EMPFAENGER: 0, LH_IBAN: 0, LH_BIC: 0, LH_PAYPAL: 0,
   LH_MODELL: 0, LH_MODELL_DENKEN: 0, LH_MODELL_TRANSKRIPT: 0, LH_MODELL_CHECK: 0,  // Standard- und Transkript-Modell (OpenRouter-ID), Admin-Ecke „KI-Modelle“
+  LH_MODELLE: 0, LH_MODELL_THEMA: 0,  // Liste zur Auswahl als JSON und Vorauswahl bei Thema lernen
   ...WP_MODELLE, ...WP_DENKEN };  // Word Power je Aufgabe, Admin-Ecke „Word Power: KI-Modelle“
 const AUS_DATEI = Object.fromEntries(Object.keys(SCHLUESSEL).map(n => [n, E[n]]));  // Löschen in der Ecke führt hierher zurück
 for (const { name, wert } of db.prepare('select name, wert from schluessel').all())
   try { if (Object.hasOwn(SCHLUESSEL, name)) E[name] = entschluesseln(wert); } catch { console.error(`Gespeicherter Wert ${name} lässt sich nicht entschlüsseln (LH_GEHEIM geändert?).`); }
+const schluesselSetzen = (n, v) => { db.prepare('insert into schluessel (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(n, verschluesseln(v)); E[n] = v; };
+const schluesselWeg = n => { db.prepare('delete from schluessel where name = ?').run(n); if (AUS_DATEI[n]) E[n] = AUS_DATEI[n]; else delete E[n]; };
 const schluesselStand = () => Object.fromEntries(Object.entries(SCHLUESSEL).map(([n, geheim]) => [n, geheim ? !!E[n] : E[n] || '']));
 const json = (res, status, daten) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(daten)); };
 function lies(req, max) {
@@ -499,11 +509,11 @@ async function ki(req, res, k) {
   if (!Object.hasOwn(FUNKTIONEN, String(b.feature))) nein(400, 'Unbekannte Funktion.');
   if (Number(req.headers['content-length']) > (GROSS.has(b.feature) ? 40e6 : 10e6)) nein(413, 'Das ist zu viel auf einmal. Bitte in kleineren Teilen schicken.');
   const s = darf(k, b.feature);
-  if (!modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');
+  if (b.feature !== 'thema' && !modellOk(b.model)) nein(400, 'Dieses Modell gibt es hier nicht.');  // Thema: unbekanntes Modell → Vorauswahl
   if (b.feature === 'reflexion' && !wert('reflexion', 0) && !k.ecke) nein(403, 'Das Reflection-Feedback ist gerade nicht freigeschaltet.');  // Admin-Ecke: Schalter
   if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
   if (b.feature === 'check') { Object.assign(b, checkKi()); delete b.provider; }
-  else if (b.feature === 'thema') { Object.assign(b, THEMA_KI()); delete b.provider; delete b.plugins; }
+  else if (b.feature === 'thema') { Object.assign(b, THEMA_KI(b.model)); delete b.provider; delete b.plugins; }
   else if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
   if (b.max_tokens != null) b.max_tokens = Math.min(Number(b.max_tokens) || 16000, 120000);
@@ -1065,7 +1075,7 @@ const SPIEL_ORTE = new Map();  // Lernhof: Konto → letzter gemeldeter Ort
 let spielNr = 0;
 const ROUTEN = {
   'GET /api/tarife': () => ({ tarife: TARIFE, verkauf: verkauf(), reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olat: !wert('olat-aus', 0), ankuendigung: ankuendigung(), launch: LAUNCH, test: TEST, monate: MONATE, funktionen: Object.fromEntries(Object.entries(FUNKTIONEN).filter(([, r]) => r <= 2)),
-    modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '', check: E.LH_MODELL_CHECK || '',
+    modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '', check: E.LH_MODELL_CHECK || '', liste: wahlModelle(), thema: themaModell(),
       wpTranskript: E.LH_WP_TRANSKRIPT || '', wpVergleich: E.LH_WP_VERGLEICH || '', wpText: E.LH_WP_TEXT || '', wpReflexion: E.LH_WP_REFLEXION || '',
       wpDenken: { wpTranskript: E.LH_WP_TRANSKRIPT_DENKEN || '', wpVergleich: E.LH_WP_VERGLEICH_DENKEN || '', wpText: E.LH_WP_TEXT_DENKEN || '', wpReflexion: E.LH_WP_REFLEXION_DENKEN || '' } },
     zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
@@ -1461,16 +1471,33 @@ const ROUTEN = {
   'POST /api/admin/schluessel': ({ k, b }) => {  // leer = unverändert; b.weg: diese Namen löschen, dann gilt wieder /etc/lernhelfer.env
     admin(k);
     for (const [n, v] of Object.entries(b)) {
-      if (!Object.hasOwn(SCHLUESSEL, n) || typeof v !== 'string' || !v.trim()) continue;
+      if (!Object.hasOwn(SCHLUESSEL, n) || n === 'LH_MODELLE' || typeof v !== 'string' || !v.trim()) continue;  // die Liste nur geprüft über admin/modelle
       if (v.length > 500 || /[\r\n]/.test(v)) nein(400, `${n}: zu lang oder mit Zeilenumbruch.`);
       if ((/^LH_MODELL(_TRANSKRIPT|_CHECK)?$/.test(n) || n in WP_MODELLE) && !MODELL_ID.test(v.trim())) nein(400, 'Bitte die Modell-ID im OpenRouter-Format, etwa deepseek/deepseek-v4.1-flash-1017.');
       if (/_DENKEN$/.test(n) && !DENKSTUFEN.includes(v.trim())) nein(400, 'Unbekannte Stufe fürs Nachdenken.');
-      db.prepare('insert into schluessel (name, wert) values (?, ?) on conflict (name) do update set wert = excluded.wert').run(n, verschluesseln(v.trim()));
-      E[n] = v.trim();
+      schluesselSetzen(n, v.trim());
     }
-    for (const n of Array.isArray(b.weg) ? b.weg : []) if (Object.hasOwn(SCHLUESSEL, String(n))) { db.prepare('delete from schluessel where name = ?').run(n); if (AUS_DATEI[n]) E[n] = AUS_DATEI[n]; else delete E[n]; }
+    for (const n of Array.isArray(b.weg) ? b.weg : []) if (Object.hasOwn(SCHLUESSEL, String(n))) schluesselWeg(n);
     for (const x in PROMPTS) delete PROMPTS[x];  // neue Passwörter: Prompts neu entschlüsseln
     return schluesselStand();
+  },
+  'POST /api/admin/modelle': ({ k, b }) => {  // Liste zur Auswahl: [{ name, model, denken }], dazu die Vorauswahl bei Thema lernen (leer: Gemini Flash)
+    admin(k);
+    const liste = Array.isArray(b.liste) ? b.liste : [];
+    if (!liste.length || liste.length > 12) nein(400, 'Bitte eins bis zwölf Modelle.');
+    const sauber = liste.map(x => {
+      const name = String(x?.name ?? '').trim().slice(0, 40), model = String(x?.model ?? '').trim(), denken = String(x?.denken ?? '');
+      if (!name) nein(400, 'Jedes Modell braucht einen Namen.');
+      if (!MODELL_ID.test(model)) nein(400, `${name}: Bitte die Modell-ID im OpenRouter-Format, etwa google/gemini-3.8-flash.`);
+      if (!DENKSTUFEN.includes(denken)) nein(400, `${name}: Unbekannte Stufe fürs Nachdenken.`);
+      return { name, model, denken };
+    });
+    if (new Set(sauber.map(x => x.name)).size < sauber.length) nein(400, 'Zwei Modelle heißen gleich. Bitte unterschiedliche Namen.');
+    const thema = String(b.thema ?? '').trim();
+    if (thema && !MODELL_ID.test(thema)) nein(400, 'Die Vorauswahl bei Thema lernen bitte als OpenRouter-ID.');
+    schluesselSetzen('LH_MODELLE', JSON.stringify(sauber));
+    if (thema) schluesselSetzen('LH_MODELL_THEMA', thema); else schluesselWeg('LH_MODELL_THEMA');
+    return { liste: wahlModelle(), thema: themaModell() };
   },
   'POST /api/admin/bezahlt': ({ k, b }) => { admin(k); return freischalten(Number(b.id)); },
   'POST /api/admin/fehler': ({ k, b }) => { admin(k); db.prepare('update fehler set erledigt = ? where id = ?').run(jetzt(), Number(b.id)); },
