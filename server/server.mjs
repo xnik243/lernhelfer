@@ -33,9 +33,12 @@ const TARIFE = {
   manual: { name: 'Manual Access', preis: 0, rang: 0, aktion: true, zusatz: ['loeser', 'test-foto'] },
   // Testerinnen und Tester, nur vom Admin vergeben: Rechte wie Ultra, sehen in der App aber nur die Bereiche, die der Admin je Konto anhakt (Spalte beta)
   beta: { name: 'Beta', preis: 0, rang: 2, budget: 6, aktion: true },
+  // Start-Geschenk: neue Konten bekommen automatisch so viele Tage Ultra (Admin-Ecke „neu-ultra“, 0 = aus), damit sie die App erst nutzen, bevor sie zahlen
+  start: { name: 'Ultra (Start)', preis: 0, rang: 2, budget: 6, aktion: true },
 };
 // Vorerst nichts zu kaufen (2026-10-20, rechtlich auf Nummer sicher): ohne Haken in der Admin-Ecke keine Tarifseite, kein Bestellen, kein Ultra-Test
 const verkauf = () => !!wert('verkauf', E.LH_VERKAUF === '1' ? 1 : 0);
+const neuUltra = () => wert('neu-ultra', Number(E.LH_NEU_ULTRA ?? 60));  // Tage Ultra (Start) für neue Konten; ohne Eintrag 60
 const ZU_KAUFEN = Object.keys(TARIFE).filter(t => TARIFE[t].preis);
 // Base schreibt nur mit DeepSeek V4.1 Flash, maximal nachdenkend; der Server setzt das selbst, egal was die App schickt.
 // Nie mehr als 5 $ im Monat pro Gratis-Konto: Budget 2 $ + LAUFEND gleichzeitige Anfragen zu je höchstens 0,33 $
@@ -48,6 +51,8 @@ const FOTO_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000 };
 // Antwort auf eine Check-Frage prüfen, für alle: Prüf-Modell aus der Admin-Ecke, sonst das Standard-Modell; wenig Nachdenken, damit es schnell geht
 const checkKi = () => ({ model: E.LH_MODELL_CHECK || E.LH_MODELL || BASIS_KI.model, max_tokens: 8000, reasoning: { effort: 'low' } });
 const FORMEL_KI = { model: 'google/gemini-3.8-flash', max_tokens: 3000 };  // Tipp auf eine Formel: was jedes Zeichen bedeutet, für alle, schnell und günstig
+// Thema lernen: schnell soll es sein (erste Bausteine nach Sekunden) und oft genutzt wird es, darum ein schnelles, günstiges Modell mit wenig Nachdenken
+const THEMA_KI = () => ({ model: E.LH_MODELL_THEMA || 'google/gemini-3.8-flash', max_tokens: 16000, reasoning: { effort: 'low' } });
 const LAUFEND = 8, LAEUFT = new Map();  // gleichzeitige KI-Anfragen pro Konto; ein Vortrag schickt seine Teile parallel
 // Jede laufende Anfrage hält 5 Cent vom Budget fest, bis ihr echter Preis gebucht ist: 8 parallele Anfragen kurz vor dem Limit überziehen
 // sonst gemeinsam. ponytail: fester Schätzwert; Vortrag-Teile kosten meist weniger, ein großer Chat mehr
@@ -60,13 +65,13 @@ const MONATE = [1, 3, 6];
 // 8 = auf Eis (rechtlich heikel: Lösen von Testfragen): nur Admin-Ecke und Zusatz Manual Access
 // ausgabe-ultra: die ausführliche Fassung der Wochenausgabe; noten, karten, export: ohne KI; hoeren: Ausgabe als Podcast
 const FUNKTIONEN = { ausgabe: 0, 'test-foto': 8, formel: 0, check: 0, arena: 0, kalender: 1, video: 1, noten: 1, karten: 1, export: 1, 'wp-transkript': 1, vortrag: 1, reflexion: 1,
-  'ausgabe-ultra': 2, hoeren: 2, probeklausur: 2, training: 2, lernskript: 2, stil: 2, chat: 2, loeser: 8, 'wp-text': 9 };
+  'ausgabe-ultra': 2, hoeren: 2, probeklausur: 2, training: 2, lernskript: 2, stil: 2, chat: 2, thema: 2, loeser: 8, 'wp-text': 9 };
 const NAMEN = { ausgabe: 'Die Wochenausgabe', 'test-foto': 'Das Auslesen von Test-Fotos', formel: 'Das Erklären von Formeln', check: 'Das Prüfen der Check-Fragen', arena: 'Die Lernmethoden der Arena', video: 'Die Video-Erklärung', kalender: 'Der Kalender', noten: 'Der Notentracker', karten: 'Der Karteikasten', export: 'Der Export',
   'wp-transkript': 'Das Word-Power-Transkript', vortrag: 'Die Vortragsanalyse', reflexion: 'Das Reflection-Feedback', 'ausgabe-ultra': 'Die Ultra-Fassung der Wochenausgabe', hoeren: 'Die Ausgabe zum Anhören',
   probeklausur: 'Die Probeklausur', training: 'Das Schwächen-Training', lernskript: 'Das Lernskript', stil: 'Der eigene Stil für die KI',
-  chat: 'Der KI-Chat', loeser: 'Der Lösungsweg zu jeder Frage', 'wp-text': 'Der Hausaufgaben-Entwurf' };
+  chat: 'Der KI-Chat', thema: 'Thema lernen', loeser: 'Der Lösungsweg zu jeder Frage', 'wp-text': 'Der Hausaufgaben-Entwurf' };
 const PFADE = { 'kalender/': 'kalender', 'vortraege/': 'vortrag', 'videos/': 'video', 'noten.json': 'noten', 'karten.json': 'karten',
-  'training/': 'training', 'lernskripte/': 'lernskript', 'hoeren/': 'hoeren', 'stil.json': 'stil' };  // Schreiben hierhin nur mit Tarif
+  'training/': 'training', 'lernskripte/': 'lernskript', 'hoeren/': 'hoeren', 'stil.json': 'stil', 'themen/': 'thema', 'themen.json': 'thema' };  // Schreiben hierhin nur mit Tarif
 // Vorlesen: Gemini TTS über /audio/speech. OpenRouter schickt dort keinen Preis mit; gebucht wird nach Länge des Tons
 // (16 Bit, 24 kHz, mono = 48 000 Byte/s; 25 Token/s zu 9 $/Mio. = 0,000225 $/s, aufgerundet)
 const SPRACHE = { model: 'google/gemini-3.8-flash-tts', usdProSekunde: 0.00025, zeichen: 8000 };
@@ -369,7 +374,7 @@ const logSql = db.prepare('insert into nutzung_log (konto, zeit, was) values (?,
 const zaehlen = (id, was, usd = 0, n = 1) => { zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0); if (n > 0) logSql.run(id, jetzt(), was); };
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
 const SEITEN = { start: 'Start', titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
-  karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos',
+  karten: 'Karteikarten', thema: 'Thema lernen', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos',
   'wp-glossar': 'Word Power: Glossar', 'wp-trainer': 'Word Power: Trainer', 'wp-zeit': 'Word Power: Time Log', 'wp-reflexion': 'Word Power: Reflection-Feedback' };
 const MELDBAR = new Set([...Object.keys(SEITEN).map(x => 'seite:' + x), ...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2).map(f => 'gesperrt:' + f), 'export']);
 const bezahlt = id => !!db.prepare("select 1 from bestellungen where konto = ? and status = 'bezahlt'").get(id);
@@ -382,8 +387,8 @@ function ich(k) {
   const s = stufe(k), budget = s.test ? TEST.budget : TARIFE[s.tarif].budget;
   return {
     id: k.id, spielname: db.prepare('select name from arena where konto = ? and aus = 0').get(k.id)?.name || null,  // für Campus: Nummer und Arena-Name
-    email: k.email, bestaetigt: !!k.bestaetigt, admin: istAdmin(k), ecke,
-    tarif: s.tarif, bis: s.bis, test: s.test, testFrei: verkauf() && uniAdresse(k.email) && !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis,
+    email: k.email, bestaetigt: !!k.bestaetigt, admin: istAdmin(k), ecke, englisch: k.englisch_bis > jetzt(),  // englisch: Rolle, sieht Word Power
+    tarif: s.tarif, bis: s.bis, test: s.test, testFrei: verkauf() && uniAdresse(k.email) && !k.test_bis && !bezahlt(k.id) && !TARIFE[s.tarif].preis && TARIFE[s.tarif].rang < 2,
     zusatz: zusatz(k), manual_bis: k.manual_bis > jetzt() ? k.manual_bis : null, beta: s.tarif === 'beta' ? JSON.parse(k.beta) : null,
     genutzt: Math.min(100, Math.round(100 * verbraucht(k.id, s.test) / budget)),
     code: k.code, freunde: db.prepare('select count(*) n from konten where geworben_von = ?').get(k.id).n,
@@ -498,6 +503,7 @@ async function ki(req, res, k) {
   if (b.feature === 'reflexion' && !wert('reflexion', 0) && !k.ecke) nein(403, 'Das Reflection-Feedback ist gerade nicht freigeschaltet.');  // Admin-Ecke: Schalter
   if (!k.ecke) delete b.plugins;  // Websuche kostet pro Treffer extra
   if (b.feature === 'check') { Object.assign(b, checkKi()); delete b.provider; }
+  else if (b.feature === 'thema') { Object.assign(b, THEMA_KI()); delete b.provider; delete b.plugins; }
   else if (b.feature === 'test-foto' || b.feature === 'formel') { Object.assign(b, b.feature === 'formel' ? FORMEL_KI : FOTO_KI); delete b.reasoning; delete b.provider; }
   else if (!k.ecke && TARIFE[s.tarif].rang === 0 && !TARIFE[s.tarif].dazu?.includes(b.feature)) Object.assign(b, basisKi());  // Englisch: Vortrag und Transkript mit den Modellen, die hören
   if (b.max_tokens != null) b.max_tokens = Math.min(Number(b.max_tokens) || 16000, 120000);
@@ -644,7 +650,9 @@ function dashboard(konten) {  // Kennzahlen, Geld und Verlauf; KI-Kosten in $, m
   return {
     kennzahlen: { konten: konten.length, bestaetigt: n(x => x.bestaetigt), neu7: n(x => x.erstellt > t - 7 * TAG), neu30: n(x => x.erstellt > t - 30 * TAG),
       aktiv7: n(x => x.zuletzt > t - 7 * TAG), aktiv30: n(x => x.zuletzt > t - 30 * TAG), imTest: n(x => x.test_bis > t), testGenutzt: n(x => x.test_bis > 0),
-      kunden: n(x => x.bezahlt > 0), englisch: n(x => x.englisch_bis > t), zahlend, mrr: Object.entries(zahlend).reduce((s, [x, z]) => s + z * TARIFE[x].preis, 0) },
+      kunden: n(x => x.bezahlt > 0), englisch: n(x => x.englisch_bis > t), zahlend,
+      start: n(x => x.tarif === 'start' && x.bis > t), startEndet: n(x => x.tarif === 'start' && x.bis > t && x.bis < t + 7 * TAG), nieAktiv: n(x => !x.zuletzt),
+      mrr: Object.entries(zahlend).reduce((s, [x, z]) => s + z * TARIFE[x].preis, 0) },
     geld, verlauf,
     freunde: { geworben: n(x => x.werber), zahlend: n(x => x.werber && x.bezahlt > 0),
       offen: summe('select count(*) n from gutscheine where eingeloest is null'), eingeloest: summe('select count(*) n from gutscheine where eingeloest is not null') },
@@ -1155,9 +1163,9 @@ const ROUTEN = {
     const werber = b.code ? db.prepare('select id from konten where code = ?').get(String(b.code).trim().toUpperCase()) : null;
     if (b.code && !werber) nein(400, 'Diesen Freundescode gibt es nicht. Leer lassen geht auch.');
     let neu; do neu = code(6); while (db.prepare('select 1 from konten where code = ?').get(neu));
-    const tage = wert('neu-englisch', 0);  // Admin-Ecke: neue Konten starten so viele Tage mit Englisch statt Base
-    const { lastInsertRowid: id } = db.prepare('insert into konten (email, pw, erstellt, code, geworben_von, englisch_bis) values (?, ?, ?, ?, ?, ?)')
-      .run(email, await pwHash(pw), jetzt(), neu, werber?.id ?? null, tage > 0 ? jetzt() + tage * TAG : 0);
+    const tage = wert('neu-englisch', 0), ultra = neuUltra();  // Admin-Ecke: so viele Tage Englisch (Rolle für Word Power) und Ultra (Start-Geschenk)
+    const { lastInsertRowid: id } = db.prepare('insert into konten (email, pw, erstellt, code, geworben_von, englisch_bis, tarif, bis) values (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(email, await pwHash(pw), jetzt(), neu, werber?.id ?? null, tage > 0 ? jetzt() + tage * TAG : 0, ultra > 0 ? 'start' : null, ultra > 0 ? jetzt() + ultra * TAG : 0);
     anmelden(res, id);
     await bestaetigungSenden(id, email);
     return ich({ id });
@@ -1411,7 +1419,7 @@ const ROUTEN = {
       from konten k left join konten w on w.id = k.geworben_von order by k.id desc`).all(monat());
     await Promise.all(konten.map(async x => { x.api = x.or_hash && E.LH_OR_VERWALTUNG ? await orNutzung(x.or_hash) : null; delete x.or_hash; }));
     return {
-      ...dashboard(konten), konten, funktionen: nutzungListe(), schluessel: schluesselStand(), neuEnglisch: wert('neu-englisch', 0), launchEin: !!wert('launch', 1),
+      ...dashboard(konten), konten, funktionen: nutzungListe(), schluessel: schluesselStand(), neuEnglisch: wert('neu-englisch', 0), neuUltra: neuUltra(), launchEin: !!wert('launch', 1),
       reflexion: !!wert('reflexion', 0), wpExtras: !!wert('wp-extras', 0), olatAus: !!wert('olat-aus', 0), ankuendigung: ankuendigung(),
       arena: { preise: arenaPreise(), woche: arenaWoche(),
         teilnehmer: db.prepare(`select a.konto, a.name, a.aus, k.email, coalesce((select sum(xp) from arena_xp x where x.konto = a.konto and x.tag >= ?), 0) woche,
@@ -1424,7 +1432,7 @@ const ROUTEN = {
   },
   'POST /api/admin/werte': ({ k, b }) => {  // Fixkosten pro Monat in €, was 1 $ KI in € kostet, wie viele Tage neue Konten Englisch bekommen (0 = aus)
     admin(k);
-    const ganz = ['neu-englisch', 'reflexion', 'wp-extras', 'olat-aus', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion, wp-extras und olat-aus 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
+    const ganz = ['neu-englisch', 'neu-ultra', 'reflexion', 'wp-extras', 'olat-aus', 'arena-art', 'arena-p1', 'arena-p2', 'arena-p3', 'arena-min'];  // reflexion, wp-extras und olat-aus 0/1, arena-art 0 aus, 1 Ultra-Tage, 2 Rabatt %
     for (const name of ['fixkosten', 'kurs', ...ganz]) {
       if (b[name] == null || b[name] === '') continue;
       const x = Number(String(b[name]).replace(',', '.'));

@@ -227,3 +227,22 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 .energie input[type="range"]::-webkit-slider-runnable-track { height: 6px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
 .energie input[type="range"]::-moz-range-track { height: 6px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
 .energie input[type="range"]::-moz-range-progress { background: none; }
+
+/* Thema lernen: gezeichnet. Kern mit Textmarker, Antworten und Stationen in Strich-Rahmen, Beispiel und Rückfrage als Zettel */
+.t-kern > span { padding: 0 0.1em; background: var(--marker) 0 78% / 100% 42% no-repeat; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.t-feld textarea { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen-blau) 10 / 10px / 4px stretch; background: var(--bg); }
+:is(.t-option, .t-ablauf li) { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; }
+:is(.t-option, .t-ablauf li):nth-child(even) { border-image-source: var(--rahmen-2); }
+@media (hover: hover) { .t-option:not([aria-disabled]):hover { border-color: transparent; background: var(--gelb-hauch); } }
+.t-option.richtig { border-color: transparent; border-image-source: var(--rahmen-blau); background: var(--bg); }
+.t-option.richtig .t-option-text > span:first-child { background: var(--marker) 0 80% / 100% 45% no-repeat; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.t-option.falsch { border-color: transparent; background: var(--bg); }
+.t-option.falsch .t-option-text > span:first-child { text-decoration: line-through; text-decoration-color: var(--fehler); text-decoration-thickness: 2px; }
+.t-buchstabe { border: 0; background: var(--kreis) center / 100% 100% no-repeat; }
+.t-option.richtig .t-buchstabe { background: var(--haken-blau) center / 70% no-repeat; color: transparent; }
+:is(.t-beispiel, .t-du) { border-radius: 2px; background: var(--zettel); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 14px 22px -16px rgb(0 0 0 / 0.45); }
+.t-beispiel { transform: rotate(-0.4deg); }
+.t-du { transform: rotate(0.6deg); }
+:is(.t-werte, .t-mehr) { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }
+.t-liste a { border-bottom: 0; background: var(--strich-waagrecht) bottom / 100% 6px no-repeat; }
+.t-ablauf li + li::before { background: var(--tinte); }

@@ -1183,6 +1183,105 @@
   .beta-wahl legend { padding: 0; margin-bottom: 2px; color: var(--text-3); }
   .beta-wahl label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
   .beta-wahl input { width: auto; margin: 0; }
+  .pille.gelb { background: var(--warn-flaeche); color: var(--text); }
+  .admin-wer { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+
+  /* Thema lernen: Eingabe, Liste und die Bausteine einer Antwort */
+  .thema { max-width: 900px; }
+  .t-feld { display: grid; gap: 10px; }
+  .t-feld textarea { width: 100%; font: 500 1.0625rem/1.45 var(--sans); resize: vertical; }
+  .t-feld.gross textarea { padding: 14px 16px; font-size: clamp(1.125rem, 2.2vw, 1.3125rem); }
+  .t-feld-fuss { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .t-fachwahl { display: flex; flex-wrap: wrap; gap: 6px; }
+  .t-tipps { margin: 14px 0 0; }
+  .t-vorlauf { display: inline-flex; align-items: center; gap: 6px; }
+  .t-liste-kopf { margin-top: 48px; }
+  .t-liste { list-style: none; margin: 0; padding: 0; }
+  .t-liste a { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 4px 14px; align-items: start; padding: 14px 4px; border-bottom: 1px solid var(--linie); color: inherit; text-decoration: none; }
+  .t-liste .punkt { margin-top: 7px; }
+  .t-l-text { display: grid; gap: 3px; min-width: 0; }
+  .t-l-titel { font: 650 1.0625rem/1.3 var(--sans); }
+  .t-l-kern { display: -webkit-box; overflow: hidden; color: var(--text-2); font-size: 0.9375rem; line-height: 1.4; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .t-l-meta { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  @media (hover: hover) { .t-liste a:hover .t-l-titel { color: var(--akzent-text); } }
+  @media (max-width: 560px) { .t-liste a { grid-template-columns: 10px minmax(0, 1fr); } .t-l-meta { grid-column: 2; } }
+  .t-zurueck { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 10px -4px; color: var(--text-2); text-decoration: none; }
+  .t-ikon { display: inline-flex; flex: none; }
+  .t-ikon svg.ic { width: 18px; height: 18px; }
+  .t-runde { margin: 0 0 52px; }
+  .t-du { width: fit-content; max-width: min(100%, 60ch); margin: 0 0 24px auto; padding: 10px 14px; border-radius: var(--r); background: var(--bg-2); font-weight: 550; line-height: 1.4; }
+  .t-quellen:not(:empty) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 20px; }
+  .t-quelle { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font: 550 0.8125rem/1.3 var(--sans); }
+  .t-bloecke { display: grid; gap: 32px; }
+  .t-baustein { min-width: 0; animation: t-rein 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes t-rein { from { opacity: 0.2; translate: 0 10px; } }
+  .t-titel { margin: 0 0 10px; font: 700 1.0625rem/1.3 var(--sans); }
+  .t-kern { max-width: 34ch; margin: 0; font: 650 clamp(1.375rem, 3.4vw, 1.875rem)/1.3 var(--serif); letter-spacing: -0.012em; text-wrap: balance; }
+  .t-baustein > .text { max-width: 68ch; }
+  .t-beispiel { max-width: 62ch; padding: 16px 18px 4px; border-radius: var(--r); background: var(--bg-2); }
+  .t-diagramm { display: grid; gap: 18px; align-items: start; }
+  @media (min-width: 760px) { .t-diagramm:has(.t-steuer) { grid-template-columns: minmax(0, 1.35fr) minmax(230px, 1fr); gap: 28px; } }
+  .t-diagramm .bild, .t-baustein > .bild { max-width: 560px; margin: 0; }
+  .t-steuer { display: grid; gap: 18px; align-content: start; }
+  .t-probier { display: flex; gap: 8px; margin: 0; font-weight: 600; line-height: 1.4; }
+  .t-regler { display: grid; gap: 2px; }
+  .t-regler-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--text-2); font: 550 0.9375rem/1.35 var(--sans); }
+  .t-regler output { flex: none; color: var(--akzent-text); font: 700 1rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .t-regler input[type="range"] { width: 100%; min-height: 36px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--akzent); cursor: grab; }
+  .t-regler input[type="range"]:active { cursor: grabbing; }
+  .t-werte { display: flex; flex-wrap: wrap; gap: 10px 28px; padding-top: 14px; border-top: 1px solid var(--linie); }
+  .t-wert { display: grid; gap: 2px; }
+  .t-wert b { font: 750 1.5rem/1.1 var(--sans); font-variant-numeric: tabular-nums; }
+  .t-schritte { display: grid; gap: 18px; margin: 0 0 14px; padding: 0; list-style: none; }
+  .t-schritte li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; }
+  .t-schritte h4 { margin: 4px 0; font: 650 1rem/1.35 var(--sans); }
+  .t-schritte .text > :first-child { margin-top: 0; }
+  .t-schritte li.neu { animation: t-rein 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+  .t-ablauf { --pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 22'%3E%3Cpath d='M7 1.5C6.4 7 7.6 13 7 20M2.5 15.2C4.4 17 5.6 18.6 7 20.5c1.3-1.9 2.6-3.6 4.5-5.4' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    display: flex; flex-direction: column; gap: 32px; max-width: 440px; margin: 0; padding: 0; list-style: none; }
+  .t-ablauf li { position: relative; display: grid; gap: 3px; padding: 12px 14px; border: 1px solid var(--linie-2); border-radius: var(--r); background: var(--bg); }
+  .t-ablauf li > span { color: var(--text-2); font-size: 0.9375rem; line-height: 1.4; }
+  .t-ablauf li + li::before { content: ''; position: absolute; top: -28px; left: 50%; width: 14px; height: 22px; translate: -50% 0; background: var(--text-2); -webkit-mask: var(--pfeil) center / contain no-repeat; mask: var(--pfeil) center / contain no-repeat; }
+  @media (min-width: 760px) {
+    .t-ablauf:not(.lang) { flex-direction: row; max-width: none; gap: 40px; }
+    .t-ablauf:not(.lang) li { flex: 1 1 0; }
+    .t-ablauf:not(.lang) li + li::before { top: 50%; left: -29px; translate: 0 -50%; rotate: -90deg; }
+  }
+  .t-kreis { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; }
+  .t-formel-gross { overflow-x: auto; }
+  .t-formel-gross math[display="block"] { margin: 0.2em 0; font-size: 1.45em; }
+  .t-zeichen { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; max-width: 62ch; margin: 14px 0 0; }
+  .t-zeichen dt { min-width: 2.2ch; color: var(--akzent-text); font: italic 600 1.125rem/1.35 var(--serif); text-align: center; }
+  .t-zeichen dd { margin: 0; line-height: 1.45; }
+  .t-fehler-box { display: grid; gap: 12px; max-width: 64ch; }
+  .t-fehler-box p { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; margin: 0; line-height: 1.5; }
+  .t-falsch { color: var(--text-2); }
+  .t-falsch .t-ikon { color: var(--fehler); }
+  .t-richtig .t-ikon { color: var(--ok); }
+  .t-quiz { display: grid; gap: 10px; max-width: 64ch; }
+  .t-quiz-frage { margin: 0 0 4px; font: 650 1.1875rem/1.35 var(--serif); }
+  .t-optionen { display: grid; gap: 8px; }
+  .t-option { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; width: 100%; min-height: 48px; padding: 11px 14px; border: 1px solid var(--linie-2); border-radius: var(--r); background: var(--bg); color: var(--text); font: 500 1rem/1.4 var(--sans); text-align: left; cursor: pointer; transition: background-color 0.15s, border-color 0.15s; }
+  @media (hover: hover) { .t-option:not([aria-disabled]):hover { border-color: var(--akzent); background: var(--akzent-flaeche); } }
+  .t-option[aria-disabled] { cursor: default; }
+  .t-option-text { padding-top: 3px; }
+  .t-option small { display: block; margin-top: 4px; color: var(--text-2); font-size: 0.875rem; line-height: 1.4; }
+  .t-option.richtig { border-color: var(--ok); background: var(--ok-flaeche); }
+  .t-option.falsch { border-color: var(--fehler); background: var(--fehler-flaeche); }
+  .t-option.aus { opacity: 0.6; }
+  .t-buchstabe { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--linie-2); border-radius: 50%; font: 700 0.8125rem/1 var(--sans); }
+  .t-baustein textarea { width: 100%; margin: 8px 0; }
+  .t-anschluss .vorschlaege { margin: 0; }
+  .t-zeichnet { display: flex; align-items: center; gap: 12px; margin: 0 0 48px; color: var(--text-2); font-weight: 600; }
+  .t-zeichnet svg { width: 64px; height: 18px; overflow: visible; }
+  .t-zeichnet path { fill: none; stroke: var(--akzent); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 90; stroke-dashoffset: 90; animation: t-strich 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+  @keyframes t-strich { 60% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -90; } }
+  @media (prefers-reduced-motion: reduce) { .t-baustein, .t-schritte li.neu { animation: none; } .t-zeichnet path { animation: none; stroke-dashoffset: 0; } }
+  .t-mehr { padding-top: 28px; border-top: 1px solid var(--linie); }
+  .t-mehr h2 { margin: 0 0 12px; }
+  .t-mehr > .vorschlaege { margin-bottom: 18px; }
+  .t-fuss { margin-top: 44px; }
+  .t-auswahl { position: absolute; z-index: 40; box-shadow: var(--schatten-gross); }
   .admin-setzen select { width: auto; min-width: 7.5em; }
   .admin-setzen input { width: 5.5em; }
   .seitenleiste .ecke-link { margin: 8px 10px 0; color: var(--text-3); font-size: 0.75rem; text-decoration: none; }
@@ -1201,7 +1300,7 @@
   .werte-form label { display: grid; gap: 4px; color: var(--text-2); font-size: 0.875rem; font-weight: 600; }
   .werte-form input { width: 8em; }
   .werte-form label.haken { display: inline-flex; align-self: center; }
-  .werte-form input[type=checkbox] { width: auto; }
+  .werte-form input[type=checkbox] { width: 20px; }  /* sonst macht appearance: none (.haken) den Haken 2 px schmal */
   .preis-form { display: grid; justify-items: start; gap: 12px; margin-top: 14px; }
   .preis-form .tabelle-rahmen { justify-self: stretch; }
   .preis-form td input { width: 6.5em; }
@@ -1512,6 +1611,7 @@ aussehen();
       <div class="navi mit-daten" id="nav-faecher"></div>
       <p class="gruppe mit-daten" id="nav-werkzeuge-kopf">Werkzeuge</p>
       <div class="navi" id="nav-werkzeuge">
+        <a href="#/thema" data-ansicht="thema" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5h5M10.5 20.5h3M12 3.5a6 6 0 0 0-3.7 10.7c.7.6 1.2 1.4 1.2 2.3v1h5v-1c0-.9.5-1.7 1.2-2.3A6 6 0 0 0 12 3.5z"/></svg>Thema lernen</a>
         <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg>Arena<span class="arena-uhr" data-runde-uhr></span></a>
         <a href="#/kalender" data-ansicht="kalender" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</a>
         <a href="#/onlinetests" data-ansicht="onlinetests" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9.5 3.5h5M9 12.5l2 2 4-4"/></svg>Onlinetests</a>
@@ -1558,6 +1658,10 @@ aussehen();
       </header>
       <div class="heute-raster">
         <div class="heute-spalte">
+          <section aria-labelledby="th-kopf" class="h-thema" id="h-thema" hidden>
+            <div class="block-kopf"><h2 id="th-kopf">Was willst du verstehen?</h2><a href="#/thema" class="meta">Deine Themen</a></div>
+            <div id="h-thema-inhalt"></div>
+          </section>
           <section aria-labelledby="w-kopf" class="h-weiter" id="weiter" hidden>
             <div class="block-kopf"><h2 id="w-kopf">Weiterlernen</h2></div>
             <div class="weiter" id="weiter-inhalt"></div>
@@ -1601,6 +1705,7 @@ aussehen();
     <section id="arena" hidden class="werkstatt arena"></section>
 
     <section id="video" hidden class="werkstatt video"></section>
+    <section id="thema" hidden class="werkstatt thema"></section>
 
     <section id="vortrag" hidden class="vortrag"></section>
 
@@ -2040,8 +2145,10 @@ aussehen();
     </footer>
   </main>
 </div>
+<button type="button" class="knopf voll t-auswahl" id="t-auswahl" hidden>Erklär mir das</button>
 <nav class="tabs" aria-label="Hauptnavigation">
   <a href="#/" data-ansicht="titelblatt" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>Heute</a>
+  <a href="#/thema" data-ansicht="thema" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5h5M10.5 20.5h3M12 3.5a6 6 0 0 0-3.7 10.7c.7.6 1.2 1.4 1.2 2.3v1h5v-1c0-.9.5-1.7 1.2-2.3A6 6 0 0 0 12 3.5z"/></svg>Lernen</a>
   <a href="#/kalender" data-ansicht="kalender" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</a>
   <a href="#/wordpower" data-ansicht="wordpower" class="mit-daten" id="tab-wordpower"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-8L7 20v-3.5H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg><span translate="no">Word Power</span></a>
   <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg><span>Arena</span></a>
@@ -2343,7 +2450,7 @@ function bruechen(knoten) {
 }
 /* ---------- Schaubilder: Codeblock ```bild mit JSON wird zu SVG (Kurven, Punkte, Flächen, Hilfslinien). Kein eval (CSP), darum ein eigener kleiner Rechner ---------- */
 const BILD_FN = { sqrt: Math.sqrt, ln: Math.log, log: Math.log10, exp: Math.exp, sin: Math.sin, cos: Math.cos, tan: Math.tan, abs: Math.abs };
-function rechner(s) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er nicht kennt
+function rechner(s, P) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er nicht kennt. P: Parameter für Regler (a → P.a, beim Rechnen gelesen)
   const roh = String(s).toLowerCase().replace(/\s+/g, '').replace(/(\d),(\d)/g, '$1.$2').replace(/[·×]/g, '*').replace(/[−–]/g, '-').replace(/²/g, '^2').replace(/³/g, '^3');
   const t = roh.match(/\d+\.?\d*|[a-z]+|[-+*/^()]/g) || [];
   if (!t.length || t.join('') !== roh) throw new Error('Formel');
@@ -2368,6 +2475,7 @@ function rechner(s) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er ni
     if (k === 'e') return () => Math.E;
     if (k === 'pi') return () => Math.PI;
     if (Object.hasOwn(BILD_FN, k ?? '') && t[i++] === '(') { const fn = BILD_FN[k], g = klammer(); return x => fn(g(x)); }
+    if (P && Object.hasOwn(P, k ?? '')) return () => P[k];
     throw new Error('Formel');
   };
   const f = summe();
@@ -2377,18 +2485,18 @@ function rechner(s) {  // "10 - 2*x^2" → x => Zahl; wirft bei allem, was er ni
 const BILD_FARBEN = ['#2446c8', '#c2410c', '#15803d', '#7c3aed', '#b45309', '#0e7490'];
 const bZahl = x => Math.abs(x) >= 1e6 ? x.toLocaleString('de-AT', { notation: 'compact', maximumFractionDigits: 2 }) : (Math.abs(x) >= 100 ? Math.round(x) : +x.toPrecision(3)).toLocaleString('de-AT');
 let bildNr = 0;
-function bildSvg(d) {
+function bildSvg(d, P) {
   const B = 380, H = 270, R = 14, O = 24, U = 34, h = H - O - U, HALO = 'paint-order:stroke;stroke:var(--bg,#fff);stroke-width:3px;stroke-linejoin:round';
   const num = (v, sonst) => typeof v === 'number' && Number.isFinite(v) ? v : sonst;
   const liste = (v, n) => (Array.isArray(v) ? v : []).filter(x => x && typeof x === 'object').slice(0, n);
   const txt = t => escHtml(String(t ?? '').slice(0, 70));
-  const kurven = liste(d.kurven, 6).map((k, i) => ({ name: k.name, strich: k.strich, fn: rechner(k.f), farbe: BILD_FARBEN[i % BILD_FARBEN.length] }));
+  const kurven = liste(d.kurven, 6).map((k, i) => ({ name: k.name, strich: k.strich, fn: rechner(k.f, P), farbe: BILD_FARBEN[i % BILD_FARBEN.length] }));
   const punkte = liste(d.punkte, 8).filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
   const linien = liste(d.linien, 6).filter(l => Number.isFinite(l.x) || Number.isFinite(l.y));
   if (!kurven.length && !punkte.length) throw new Error('leer');
   const x0 = num(d.von, 0), x1 = num(d.bis, Math.max(10, ...punkte.map(p => p.x * 1.5)));
   if (!(x1 > x0)) throw new Error('Bereich');
-  const flaechen = liste(d.flaechen, 4).map((f, i) => ({ name: f.name, o: rechner(f.oben), u: rechner(f.unten ?? 0), von: Math.max(x0, num(f.von, x0)), bis: Math.min(x1, num(f.bis, x1)), farbe: BILD_FARBEN[(kurven.length + i) % BILD_FARBEN.length] }));
+  const flaechen = liste(d.flaechen, 4).map((f, i) => ({ name: f.name, o: rechner(f.oben, P), u: rechner(f.unten ?? 0, P), von: Math.max(x0, num(f.von, x0)), bis: Math.min(x1, num(f.bis, x1)), farbe: BILD_FARBEN[(kurven.length + i) % BILD_FARBEN.length] }));
   const xs = Array.from({ length: 161 }, (_, i) => x0 + (x1 - x0) * i / 160);
   const ys = kurven.flatMap(k => xs.map(k.fn)).filter(Number.isFinite).sort((a, b) => a - b), q = p => ys[Math.round(p * (ys.length - 1))];
   let lo = ys[0] ?? 0, hi = ys.at(-1) ?? 1;
@@ -2838,6 +2946,7 @@ function titelblatt() {
   wocheZeigen();
   lernenKurz();
   arenaKurz();
+  themaKurz();
   weiterZeigen();
   $('assistent').replaceChildren(assistent());
 }
@@ -3248,7 +3357,7 @@ async function ausgabeZeigen(f, tag) {
         el('p', { class: 'unterzeile' }, el('span', {}, `Ausgabe vom ${datum(tag, { weekday: 'long', day: 'numeric', month: 'long' })}`),
           a.meta && el('span', {}, a.meta.split(' · ')[0]), fassungName(fa) && el('span', { class: 'fassung' }, fassungName(fa)), !SERVER && a.preis && el('span', {}, `Kosten ${geld(a.preis)}`))),
       el('div', { class: 'kopf-aktionen' },
-        f === 'Englisch' && el('a', { class: 'knopf', href: '#/wordpower' }, el('span', { translate: 'no' }, 'Word Power')),
+        f === 'Englisch' && wpSichtbar() && el('a', { class: 'knopf', href: '#/wordpower' }, el('span', { translate: 'no' }, 'Word Power')),
         el('button', { class: 'knopf', type: 'button', 'aria-expanded': String(!!HOER[`${f}/${tag}`]?.offen), onclick: () => hoerenKlick(f, tag) }, 'Anhören'),
         darf('export') && el('button', { class: 'knopf', type: 'button', onclick: () => ausgabeDrucken(f, a) }, 'PDF'),
         el('a', { class: 'knopf', href: `#/pruefung/${encodeURIComponent(f)}` }, 'Prüfungstraining'),
@@ -7091,8 +7200,9 @@ function einrichtenZeigen() {
 }
 
 /* ---------- Server-Version: Konto, Tarife, Sperren mit Gratis-Test, Admin-Ecke, Recht ---------- */
-const SPERREN = { kalender: 'kalender', noten: 'noten', karten: 'karten', pruefung: 'probeklausur', vortrag: 'vortrag', video: 'video' };  // Ansicht → Funktion, die sie braucht
+const SPERREN = { thema: 'thema', kalender: 'kalender', noten: 'noten', karten: 'karten', pruefung: 'probeklausur', vortrag: 'vortrag', video: 'video' };  // Ansicht → Funktion, die sie braucht
 const SPERRE = {  // was ein Tarif bringt, je Funktion in einem Satz
+  thema: ['Thema lernen', 'Frag alles fürs Studium: Die Antwort kommt als Schaubild zum Ausprobieren, Rechnung Schritt für Schritt, Vergleich und Quiz, mit Bezug zu deinen Folien.'],
   kalender: ['Der Kalender', 'Stundenplan aus LFU:online und alle Fristen auf einen Blick, mit einem Tipp ins iPad übernommen.'],
   noten: ['Der Notentracker', 'Alle Punkte an einem Ort: Onlinetests kommen von selbst aus OLAT, dazu dein Verlauf als Diagramm, die Prognose je Lehrveranstaltung, der Vergleich mit dem Kursschnitt und was dir für jede Note noch fehlt.'],
   karten: ['Der Karteikasten', 'Alle Begriffe aus allen Ausgaben mit Wiederholplan: Was sitzt, kommt seltener, was nicht, gleich nochmal. Dazu Export für Anki und Quizlet.'],
@@ -7569,8 +7679,27 @@ async function adminZeigen() {
   const kostet = usd => `${euro(-Math.round(usd * G.kurs * 100) || 0)} (${geld(usd)})`;
   const fix = Math.round(G.fixkosten * 100), komma = x => String(x).replace('.', ',');
   const nutzung = d.funktionen.filter(x => x.art !== 'Gesperrt angetippt');  // meistgenutzt zuerst, wie der Server sortiert
-  const stand = k => [k.tarif && k.bis > jetzt ? `${T[k.tarif].name} bis ${tag(k.bis)}` : k.test_bis > jetzt ? `Ultra-Test bis ${zeitpunkt(k.test_bis)}` : k.englisch_bis > jetzt ? null : k.test_bis ? 'Base, Test genutzt' : 'Base',
-    k.englisch_bis > jetzt && `Englisch bis ${tag(k.englisch_bis)}`, k.manual_bis > jetzt && `Manual Access bis ${tag(k.manual_bis)}`].filter(Boolean).join(', ');
+  const enAktion = k => k.englisch_bis > jetzt && k.englisch_bis < jetzt + 3 * 365 * 864e5;  // länger: Rolle per Haken, steht in der Spalte Rolle
+  const stand = k => [k.tarif && k.bis > jetzt ? `${T[k.tarif].name} bis ${tag(k.bis)}` : k.test_bis > jetzt ? `Ultra-Test bis ${zeitpunkt(k.test_bis)}` : enAktion(k) ? null : k.test_bis ? 'Base, Test genutzt' : 'Base',
+    enAktion(k) && `Englisch bis ${tag(k.englisch_bis)}`, k.manual_bis > jetzt && `Manual Access bis ${tag(k.manual_bis)}`].filter(Boolean).join(', ');
+  // Neu dabei: wer neu ist, wer automatisch Ultra (Start) hat und ob die Person die App überhaupt schon benutzt
+  const vor = x => { const n = Math.floor((jetzt - x) / 864e5); return n < 1 ? 'heute' : n === 1 ? 'gestern' : `vor ${n} Tagen`; };
+  const istNeu = k => jetzt - k.erstellt < 7 * 864e5, start = k => k.tarif === 'start' && k.bis > jetzt;
+  const marken = k => [istNeu(k) && el('span', { class: 'pille akzent' }, 'neu'), start(k) && el('span', { class: 'pille gelb' }, 'Start-Ultra'),
+    !k.zuletzt && el('span', { class: 'pille' }, 'nie benutzt'), !k.bestaetigt && el('span', { class: 'pille' }, 'unbestätigt')].filter(Boolean);
+  const rolle = k => el('label', { class: 'haken' }, el('input', { type: 'checkbox', checked: k.englisch_bis > jetzt, 'aria-label': `Word Power für ${k.email}`,
+    onchange: e => tun('admin/tarif', { konto: k.id, tarif: 'englisch', tage: e.target.checked ? 3650 : 0 })({ currentTarget: e.target }) }), 'Word Power');
+  const neuListe = d.konten.filter(k => jetzt - k.erstellt < 14 * 864e5);
+  const startForm = el('form', { class: 'werte-form', onsubmit: async e => {
+    e.preventDefault();
+    const f = e.target.elements;
+    f.knopf.disabled = true;
+    try { await api('admin/werte', { 'neu-ultra': f.an.checked ? f.tage.value : '0' }); } catch (err) { alert(err.message); }
+    adminZeigen();
+  } },
+    el('label', { class: 'haken' }, el('input', { type: 'checkbox', name: 'an', checked: d.neuUltra > 0 }), 'Neue Konten bekommen automatisch Ultra (Start)'),
+    el('label', {}, 'für so viele Tage', el('input', { name: 'tage', type: 'number', min: 1, step: 1, value: d.neuUltra || 60 })),
+    el('button', { class: 'knopf', name: 'knopf' }, 'Speichern'));
   const werte = el('form', { class: 'werte-form', onsubmit: async e => {
     e.preventDefault();
     const f = e.target.elements;
@@ -7637,6 +7766,17 @@ async function adminZeigen() {
       el('div', { class: 'knopfreihe' },
         el('button', { class: 'knopf', type: 'button', onclick: e => { e.currentTarget.disabled = true; adminZeigen(); } }, 'Aktualisieren'),
         el('button', { class: 'knopf', type: 'button', onclick: async e => { e.currentTarget.disabled = true; ICH = await api('ecke-zu', {}).catch(() => ICH); eckeWechsel(); } }, 'Ecke sperren'))),
+    el('h2', {}, 'Neu dabei'),
+    el('div', { class: 'kacheln' },
+      kachel('Neu in 7 Tagen', K.neu7, `${K.neu30} in 30 Tagen, ${K.konten} insgesamt`),
+      kachel('Mit Start-Ultra', K.start, K.startEndet ? `${K.startEndet} enden in 7 Tagen` : d.neuUltra > 0 ? `neue Konten: ${d.neuUltra} Tage` : 'für neue Konten aus'),
+      kachel('Noch nie benutzt', K.nieAktiv, `${K.aktiv7} aktiv in 7 Tagen`)),
+    neuListe.length ? tabelle(['Wer', 'Registriert', 'Zuletzt aktiv', 'Tarif', 'Rolle'], neuListe.map(k => [
+      el('span', { class: 'admin-wer' }, k.email, ...marken(k)), vor(k.erstellt), k.zuletzt ? vor(k.zuletzt) : 'noch nie', stand(k), rolle(k)]))
+      : el('p', { class: 'leer' }, 'In den letzten 14 Tagen hat sich niemand neu registriert.'),
+    el('p', { class: 'klein' }, d.neuUltra > 0 ? `An: Wer sich jetzt registriert, hat ${d.neuUltra} Tage Ultra (Start), danach Base. Verlängern oder beenden: unten bei „Tarif von Hand“. Ultra (Start) zählt wie Ultra, auch beim KI-Kontingent (6 $ im Monat je Konto).`
+      : 'Aus: Neue Konten starten mit Base.'),
+    startForm,
     el('h2', {}, 'Für alle'),
     el('form', { class: 'werte-form ank-form', onsubmit: async e => {
       e.preventDefault();
@@ -7750,8 +7890,8 @@ async function adminZeigen() {
     el('h2', {}, `Konten (${d.konten.length})`),
     el('input', { type: 'search', class: 'konten-suche', placeholder: 'Suchen: Adresse, Tarif, „unbestätigt“, „gesperrt“ …', 'aria-label': 'Konten durchsuchen',
       oninput: e => { const q = e.target.value.trim().toLowerCase(); e.target.nextElementSibling.querySelectorAll('tbody tr').forEach(r => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); } }),
-    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Konto', 'Tarif', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
-      k.email + (k.bestaetigt ? '' : ' (unbestätigt)') + (k.gesperrt ? ' (gesperrt)' : ''), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k),
+    tabelle(['E-Mail', 'Registriert', 'Zuletzt aktiv', 'Konto', 'Tarif', 'Rolle', `KI im ${MONAT}`, 'KI gesamt', 'Bezahlt', 'Speicher', 'Tarif von Hand', ''], d.konten.map(k => [
+      el('span', { class: 'admin-wer' }, k.email + (k.gesperrt ? ' (gesperrt)' : ''), ...marken(k)), tag(k.erstellt), tag(k.zuletzt), el('button', { class: 'knopf', type: 'button', onclick: () => kontoNutzung(k.id) }, 'Ansehen'), stand(k), rolle(k),
       geld(k.ki_monat + (k.api?.monat || 0)), geld(k.ki_gesamt + (k.api?.gesamt || 0)), euro(k.bezahlt),
       `${(k.speicher / 1e6).toLocaleString('de-AT', { maximumFractionDigits: 1 })} MB`, setzen(k),
       k.email === ICH.email ? '' : el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`Konto ${k.email} mit allen Ausgaben, Vorträgen und Kalendern endgültig löschen? Das lässt sich nicht rückgängig machen.`) && tun('admin/konto-loeschen', { konto: k.id })(e) }, 'Löschen')])),
@@ -8089,6 +8229,453 @@ async function videoZeigen(id) {
         el('div', {}, el('a', { href: `#/video/${v.id}` }, v.titel), el('span', { class: 'ort' }, [v.fach, v.zeilen.length && `${mmss(v.zeilen.at(-1).t)} min`].filter(Boolean).join(' · '))))))
         : el('p', { class: 'leer' }, 'Noch keine. Das erste erscheint hier.'))]);
 }
+
+/* ---------- Thema lernen (Ultra): eine Frage, die Antwort aus Bausteinen zum Sehen, Ausprobieren und Üben ---------- */
+// Die KI schreibt je Baustein ein JSON-Objekt (Schaubild mit Reglern, Schritte, Vergleich, Ablauf, Formel, Quiz …); die App zeichnet jedes,
+// sobald es vollständig ist, der Kern steht also nach Sekunden da. Bezug zu den eigenen Folien: Stichwortsuche im Gerät, nur die besten
+// vier Stellen gehen mit (spart Token). Ein Thema liegt in themen/<id>.json, die Liste in themen.json.
+// ponytail: Stichwortsuche statt Vektorsuche; umstellen, wenn die Treffer messbar danebenliegen
+const THEMA_KI = { model: 'google/gemini-3.8-flash', max_tokens: 16000, reasoning: { effort: 'low' } };  // der Server erzwingt dasselbe (THEMA_KI)
+const THEMA_AUFTRAG = `Du bist der Lernhelfer, ein Tutor für Studierende. Du erklärst so, dass es sitzt: erst der Kern, dann ein Bild im Kopf, dann die Genauigkeit, dann üben. Du antwortest nie mit Fließtext, sondern mit Bausteinen, die die App als Schaubilder, Regler, Schritte und Übungen zeichnet.
+
+Ausgabe: nur JSON-Objekte, eines pro Zeile, nichts davor, nichts danach, keine Codeblöcke.
+Erstes Objekt immer: {"typ":"meta","titel":"Thema in 2 bis 6 Wörtern","fach":"eines der Fächer unten oder null","quellen":[Nummern der Folien-Stellen, die du genutzt hast]}
+
+Bausteine:
+{"typ":"kern","text":"Der Kern in einem Satz, so klar, dass man ihn sich merkt."} Genau einer, gleich nach meta.
+{"typ":"text","md":"Absatz, höchstens 70 Wörter"}
+{"typ":"beispiel","titel":"kurz","md":"Beispiel aus dem Alltag von Studierenden, konkret, mit Zahlen oder Namen"}
+{"typ":"diagramm","titel":"…","x":"Menge","y":"Preis","von":0,"bis":10,"kurven":[{"f":"10 - a*x","name":"Nachfrage"},{"f":"2 + 0.6*x","name":"Angebot"}],"punkte":[{"x":"8/(a+0.6)","y":"2 + 0.6*8/(a+0.6)","name":"Gleichgewicht"}],"parameter":[{"name":"a","label":"Wie stark die Nachfrage auf den Preis reagiert","von":0.5,"bis":2,"start":1,"schritt":0.1}],"werte":[{"name":"Gleichgewichtsmenge","f":"8/(a+0.6)","einheit":"Stück"}],"frage":"Was passiert mit der Menge, wenn a steigt? Probier es aus."}
+{"typ":"schritte","titel":"…","schritte":[{"titel":"…","md":"…"}]} Rechenweg, Herleitung oder Vorgehen in 3 bis 6 Schritten; man deckt sie einzeln auf.
+{"typ":"vergleich","titel":"…","spalten":["A","B"],"zeilen":[{"merkmal":"…","werte":["…","…"]}]} 2 bis 3 Spalten, 3 bis 6 Zeilen, Zellen kurz.
+{"typ":"ablauf","titel":"…","kreis":false,"schritte":[{"name":"2 bis 4 Wörter","text":"ein Satz"}]} Prozess oder Kreislauf mit 3 bis 6 Stationen; "kreis": true, wenn es danach wieder von vorn beginnt.
+{"typ":"formel","tex":"LaTeX ohne Begrenzer","zeichen":[{"zeichen":"als Unicode, etwa ε, Δ, p","bedeutung":"was es hier bedeutet, mit Einheit"}]}
+{"typ":"fehler","falsch":"was viele hier falsch denken","richtig":"wie es wirklich ist und warum"}
+{"typ":"quiz","frage":"…","optionen":[{"text":"…","richtig":true,"warum":"ein Satz"}]} 3 bis 4 Optionen, genau eine richtig; die falschen sind typische Denkfehler, "warum" erklärt jede.
+{"typ":"weiter","fragen":["…","…"]} 2 bis 3 Anschlussfragen, die man als Nächstes verstehen will. Immer das letzte Objekt.
+
+Diagramme: "f", "oben" und "unten" sind Funktionen von x in einfacher Schreibweise: Zahlen mit Punkt, + - * / ^, Klammern, sqrt(), ln(), exp(), abs(), e und pi; kein LaTeX. Die Größe auf der waagrechten Achse heißt immer x. Parameter sind einzelne Kleinbuchstaben außer x und e und stehen immer mit Malzeichen (a*x, nie ax). Optional: "flaechen":[{"oben":"…","unten":"…","von":0,"bis":5,"name":"Konsumentenrente"}], "linien":[{"y":7,"name":"Mindestpreis"}] (senkrecht mit "x"), "ymin", "ymax", "strich": true für eine gestrichelte Kurve. Koordinaten von Punkten und Linien und die "werte" dürfen Formeln in den Parametern sein, als Text; dann wandern sie mit dem Regler. Rechne exakt, schätze nicht. Ohne "parameter" ist es ein festes Bild. Ein Regler lohnt sich überall, wo man eine Wirkung entdecken kann: Verschiebung, Steigung, Elastizität, Zins, Kosten, Wachstum.
+
+Regeln:
+- Wähle die Bausteine nach dem Thema, nicht nach Schema: 5 bis 9 insgesamt, mindestens einer visuell (diagramm, ablauf, vergleich, schritte oder formel). Hat das Thema eine Kurve, eine Menge oder eine Wirkung, ist ein diagramm mit Regler der beste Baustein.
+- Kurz vor dem Schluss fast immer ein quiz, dann weiter.
+- Fachlich exakt auf Uni-Niveau, in einfacher Sprache, Du-Form, Deutsch. Keine Floskeln wie „Gute Frage“.
+- Die Folien-Stellen kommen aus den Unterlagen der Person. Passt eine, nimm ihre Begriffe und Schreibweise und nenne ihre Nummer in "quellen". Passt keine, erklär aus deinem Wissen und lass "quellen" leer; erfinde nie, was in den Folien steht.
+- Aufgaben aus einem laufenden bewerteten Test rechnest du nicht mit den Originalzahlen vor, sondern zeigst den Weg an einem Beispiel mit anderen Zahlen.
+- Formeln im Text in LaTeX zwischen \\\\( und \\\\). Im JSON verdoppelst du jeden Backslash: "\\\\(\\\\frac{a}{b}\\\\)".`;
+const THEMA_ARTEN = [
+  ['Einfacher', 'Erklär dasselbe noch einmal deutlich einfacher: ein anderes Bild, ein anderes Alltagsbeispiel, weniger Formeln.'],
+  ['Genauer', 'Geh eine Stufe tiefer, so wie es die Prüfung verlangt: exakte Definition, Formel mit Herleitung, Sonderfälle.'],
+  ['Mit Zahlen', 'Rechne ein vollständiges Zahlenbeispiel Schritt für Schritt (Baustein schritte), dazu ein diagramm, wo es passt, und ein quiz mit einer ähnlichen Rechnung.'],
+  ['Prüfungsaufgabe', 'Stell eine typische Prüfungsaufgabe zu diesem Thema: die Aufgabe als text, die Lösung als schritte zum Aufdecken. Kein quiz.']];
+const THEMA_VORLAUF = plan => `Bereite mich in zwei Minuten auf die nächste Einheit vor. Laut Plan kommt: ${plan}
+Nach kern zuerst ein quiz, bei dem man raten muss, bevor man es weiß (sag nicht, dass es eine Vorab-Frage ist). Dann die zwei, drei Begriffe oder Zusammenhänge, die man kennen muss, um mitzukommen, möglichst visuell. Höchstens 6 Bausteine, dann weiter.`;
+const THEMA = { offen: null, sha: {}, job: null, fehler: '', fach: '', entwurf: '', uhr: 0 };
+const THEMEN_D = datei('themen.json', () => ({ themen: [] }));
+const ausBase64 = c => new TextDecoder().decode(Uint8Array.from(atob(c.replace(/\s/g, '')), x => x.charCodeAt(0)));
+const THEMA_STOPP = new Set(('dass eine einen einem einer eines diese dieser dieses diesen warum wieso weshalb wann welche welcher welches erklär erkläre erklären erklärt '
+  + 'bitte kannst könntest nicht oder aber auch noch mehr über unter zwischen sind wird werden wurde haben habe hast ist was wie mir mich mein meine dein deine genau '
+  + 'einfach verstehe verstehen kapiere bedeutet heißt funktioniert gibt geht machen macht damit dann denn dabei dazu also eigentlich wirklich immer schon sein seine '
+  + 'ihre wenn weil während durch gegen ohne sowie beim unterschied vorbereitung heute morgen').split(' '));
+
+// Die passendsten Stellen aus den Folien: Seiten (über die [Seite N]-Marken) bzw. Abschnitte, gewichtet wie tf-idf
+async function themaQuellen(frage, fach) {
+  const woerter = [...new Set((frage.toLowerCase().match(/[a-zäöüß]{4,}/g) || []).filter(w => !THEMA_STOPP.has(w)).map(w => w.slice(0, 7)))].slice(0, 12);
+  if (!woerter.length) return [];
+  const stellen = [];
+  for (const [f, q] of await Promise.all((R[fach] ? [fach] : Object.keys(R)).map(async f => [f, await quelle(f).catch(() => null)])))
+    for (const d of q?.dateien || []) {
+      const teile = String(d.text || '').split(/\[Seite (\d+)\]/);  // [davor, n, text, n, text …]
+      const seiten = teile.slice(1).flatMap((x, i, a) => i % 2 ? [] : [{ seite: +x, text: a[i + 1] || '' }]);
+      for (let i = 0; i < teile[0].length; i += 1500) seiten.push({ seite: null, text: teile[0].slice(i, i + 1500) });
+      for (const s of seiten) if (s.text.trim().length > 40) stellen.push({ f, datei: d.datei, ...s, klein: s.text.toLowerCase() });
+    }
+  const df = Object.fromEntries(woerter.map(w => [w, stellen.filter(s => s.klein.includes(w)).length]));
+  for (const s of stellen) s.punkte = woerter.reduce((n, w) => {
+    let c = 0, i = -1;
+    while (c < 5 && (i = s.klein.indexOf(w, i + 1)) >= 0) c++;
+    return n + (c ? (1 + Math.log(c)) * Math.log(1 + stellen.length / df[w]) : 0);
+  }, 0);
+  return stellen.filter(s => s.punkte > 0).sort((a, b) => b.punkte - a.punkte).slice(0, 4).map((s, i) => {
+    const p = Math.max(0, s.klein.indexOf(woerter.find(w => s.klein.includes(w))) - 300);
+    return { nr: i + 1, f: s.f, datei: s.datei.split('/').pop(), seite: s.seite, text: s.text.slice(p, p + 900).replace(/\s+/g, ' ').trim() };
+  });
+}
+function themaNachricht(t, auftrag, quellen) {
+  const bisher = t.runden.slice(0, -1).slice(-3).map(r => `Frage: ${r.frage}\nErklärt: ${r.bloecke.filter(b => b.typ === 'kern' || b.typ === 'text').map(b => b.text || b.md).join(' ').slice(0, 700)}`).join('\n\n');
+  return [`Studium: ${studium()}. Fächer: ${Object.keys(R).join(', ') || 'noch keine'}. Heute ist ${TAG}.`,
+    bisher && `Bisher in diesem Thema (${t.titel}):\n${bisher}`,
+    quellen.length ? `Folien-Stellen aus den Unterlagen der Person:\n${quellen.map(q => `[${q.nr}] ${q.f} · ${q.datei}${q.seite ? `, S. ${q.seite}` : ''}: ${q.text}`).join('\n')}` : 'Folien-Stellen: keine passenden gefunden.',
+    `Auftrag: ${auftrag}`].filter(Boolean).join('\n\n');
+}
+// Vollständige JSON-Objekte aus einem wachsenden Text, ab Position ab; egal ob eines pro Zeile, eingerückt oder in einer Liste
+function jsonObjekte(text, ab) {
+  const objekte = [];
+  let tiefe = 0, start = -1, str = false, esc = false, i = ab;
+  for (; i < text.length; i++) {
+    const c = text[i];
+    if (str) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') str = false; continue; }
+    if (c === '"') str = tiefe > 0;
+    else if (c === '{') { if (!tiefe++) start = i; }
+    else if (c === '}' && tiefe && !--tiefe) { objekte.push(text.slice(start, i + 1)); start = -1; }
+  }
+  return { objekte, weiter: start >= 0 ? start : i };
+}
+
+async function themaRunde(t, frage, auftrag) {
+  if (THEMA.job) return;
+  const runde = { frage, bloecke: [], quellen: [] };
+  t.runden.push(runde);
+  const job = THEMA.job = { t, runde, ziel: null, quellenZiel: null, sektion: null };
+  THEMA.fehler = '';
+  themaAnsicht(t, job);
+  wach(true);
+  let roh = '', pos = 0, quellen = [];
+  const lesen = () => {
+    const r = jsonObjekte(roh, pos);
+    pos = r.weiter;
+    for (const o of r.objekte) { let b; try { b = JSON.parse(o); } catch { continue; } themaObjekt(job, b, quellen); }  // kaputtes Objekt: weglassen
+  };
+  try {
+    quellen = await themaQuellen(`${t.titel} ${frage} ${t.plan || ''}`, t.fach);
+    await strom({ feature: 'thema', ...THEMA_KI, messages: [{ role: 'system', content: THEMA_AUFTRAG }, { role: 'user', content: themaNachricht(t, auftrag, quellen) }] }, x => { roh = x; lesen(); });
+    if (!runde.bloecke.length) throw new Error('Die Antwort kam ohne Inhalt an. Bitte nochmal fragen.');
+    t.titel ||= frage.slice(0, 60);
+    await themaSichern(t);
+  } catch (e) {
+    if (!runde.bloecke.length) t.runden.splice(t.runden.indexOf(runde), 1);
+    THEMA.fehler = e.message;
+  }
+  THEMA.job = null;
+  wach(false);
+  themaAnsicht(t, job);
+}
+function themaObjekt(job, b, quellen) {
+  const { t, runde } = job;
+  if (b?.typ === 'meta') {
+    if (!t.titel && typeof b.titel === 'string') t.titel = b.titel.slice(0, 80);
+    if (!t.fach && R[b.fach]) t.fach = b.fach;
+    runde.quellen = (Array.isArray(b.quellen) ? b.quellen : []).map(n => quellen.find(q => q.nr === Number(n))).filter(Boolean).map(({ f, datei, seite }) => ({ f, datei, seite }));
+    if (job.ziel?.isConnected) { $('t-titel').textContent = t.titel || 'Neues Thema'; $('t-unterzeile').replaceWith(themaUnterzeile(t)); job.quellenZiel.replaceChildren(...themaQuellChips(runde.quellen).flat()); }
+    return;
+  }
+  if (!Object.hasOwn(THEMA_BAUSTEINE, b?.typ) || b.typ === 'offen') return;
+  runde.bloecke.push(b);
+  const e = job.ziel?.isConnected && themaBaustein(t, b);
+  if (e) job.ziel.append(e);
+}
+// Während eine Antwort kommt, nicht alles neu zeichnen: Regler und Antworten, mit denen man schon spielt, bleiben, wie sie sind
+function themaAnsicht(t, job) {
+  const ansicht = document.body.dataset.ansicht;
+  if (ansicht === 'titelblatt') return themaKurz();
+  if (ansicht !== 'thema') return;
+  if (THEMA.offen !== t || !$('t-runden')) { if (!location.hash.split('/')[2]) zeichne(); return; }  // Liste: zeigt, was läuft
+  if (THEMA.job === job && !job.sektion) $('t-runden').append(themaRundeEl(t, job.runde, t.runden.length - 1));
+  if (!t.runden.includes(job.runde)) job.sektion?.remove();
+  $('t-titel').textContent = t.titel || 'Neues Thema';
+  $('t-unterzeile').replaceWith(themaUnterzeile(t));
+  $('t-ende').replaceChildren(...[themaEnde(t)].flat(Infinity).filter(Boolean));
+}
+async function themaSichern(t) {
+  const pfad = `themen/${t.id}.json`;
+  const a = await nacheinander(() => gh(pfad, { method: 'PUT', roh: false, body: { message: `Thema: ${t.titel}`, content: base64(JSON.stringify(t)), sha: THEMA.sha[t.id] } }));
+  THEMA.sha[t.id] = a.content.sha;
+  await THEMEN_D.laden();
+  const liste = THEMEN_D.daten.themen, i = liste.findIndex(x => x.id === t.id);
+  const eintrag = { id: t.id, titel: t.titel, fach: t.fach || null, datum: t.datum, kern: t.runden[0]?.bloecke.find(b => b.typ === 'kern')?.text || '', sitzt: !!t.sitzt, art: t.art || null, termin: t.termin || null };
+  if (i >= 0) liste[i] = eintrag; else liste.unshift(eintrag);
+  await THEMEN_D.speichern();
+}
+const themaSpaeter = t => { clearTimeout(THEMA.uhr); THEMA.uhr = setTimeout(() => { if (t.runden.length) themaSichern(t).catch(e => status(e.message, true)); }, 1500); };
+async function themaLaden(id) {
+  const j = await gh(`themen/${id}.json`, { roh: false });
+  if (!j) return null;
+  THEMA.sha[id] = j.sha;
+  return THEMA.offen = JSON.parse(ausBase64(j.content));
+}
+function themaNeu({ frage, fach, art, plan, termin }) {
+  frage = String(frage || '').trim();
+  if (!frage || THEMA.job) return;
+  const t = { id: `${HEUTE}-${Math.random().toString(36).slice(2, 8)}`, titel: '', fach: R[fach] ? fach : null, datum: HEUTE, art: art || null, plan: plan || null, termin: termin || null, frage, runden: [] };
+  t.auftrag = art === 'vorlauf' ? THEMA_VORLAUF(plan) : `Erklär mir: ${frage}`;
+  THEMA.offen = t; THEMA.entwurf = '';
+  location.hash = `#/thema/${t.id}`;
+  themaRunde(t, frage, t.auftrag);
+}
+async function themaWeg(t) {
+  if (!confirm(`„${t.titel}“ mit allen Erklärungen löschen?`)) return;
+  try {
+    if (THEMA.sha[t.id]) await nacheinander(() => gh(`themen/${t.id}.json`, { method: 'DELETE', roh: false, body: { message: `Thema gelöscht: ${t.titel}`, sha: THEMA.sha[t.id] } }));
+    THEMEN_D.daten.themen = THEMEN_D.daten.themen.filter(x => x.id !== t.id);
+    await THEMEN_D.speichern();
+    delete THEMA.sha[t.id]; THEMA.offen = null;
+    location.hash = '#/thema';
+  } catch (e) { status(e.message, true); }
+}
+// Erklär's mir zurück: die Person erklärt selbst, das Prüf-Modell vergleicht mit dem, was der Lernhelfer erklärt hat (ohne neue Antwort)
+async function themaZurueck(t) {
+  const r = t.runden.at(-1);
+  if (!r || r.bloecke.some(b => b.typ === 'offen')) return;
+  const loesung = t.runden.flatMap(x => x.bloecke).filter(b => b.typ === 'kern' || b.typ === 'text' || b.typ === 'fehler').map(b => b.text || b.md || b.richtig).join(' ').slice(0, 1500);
+  r.bloecke.push({ typ: 'offen', frage: `Erklär „${t.titel}“ in eigenen Worten: Was ist der Kern, und warum ist das so?`, loesung });
+  await zeichne();
+  document.querySelector('#t-runden .t-runde:last-child .t-baustein:last-child')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.querySelector('#t-runden .t-runde:last-child .t-baustein:last-child textarea')?.focus({ preventScroll: true });
+}
+
+/* Bausteine */
+const tListe = (v, n) => (Array.isArray(v) ? v : []).filter(x => x && typeof x === 'object').slice(0, n);
+const tMd = (s, inline) => markdown(el(inline ? 'span' : 'div', inline ? {} : { class: 'text' }), String(s ?? ''), inline);
+const tH = titel => titel && el('h3', { class: 't-titel' }, String(titel).slice(0, 120));
+const T_IKON = { x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>', haken: '<path d="M4.5 12.5l4.5 4.5L19.5 6.5"/>', datei: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5A.5.5 0 0 1 6.5 20V4a.5.5 0 0 1 .5-.5z"/><path d="M13.5 3.5V8h4.5"/>',
+  kreis: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/>', stift: '<path d="M4.5 19.5l1-4L16 5l3 3L8.5 18.5z"/><path d="M13.5 7.5l3 3"/>', zurueck: '<path d="M14.5 6l-6 6 6 6"/>' };
+const tIkon = n => { const s = el('span', { class: 't-ikon', 'aria-hidden': 'true' }); s.innerHTML = `<svg class="ic" viewBox="0 0 24 24">${T_IKON[n]}</svg>`; return s; };
+const THEMA_BAUSTEINE = {
+  kern: b => b.text && el('p', { class: 't-kern' }, tMd(b.text, true)),
+  text: b => b.md && tMd(b.md),
+  beispiel: b => b.md && el('aside', { class: 't-beispiel' }, el('h3', { class: 't-titel' }, String(b.titel || 'Zum Beispiel').slice(0, 80)), tMd(b.md)),
+  diagramm: b => themaDiagramm(b),
+  schritte: b => themaSchritte(b),
+  vergleich: b => {
+    const sp = (Array.isArray(b.spalten) ? b.spalten : []).slice(0, 4).map(String), z = tListe(b.zeilen, 8);
+    return sp.length >= 2 && z.length > 0 && [tH(b.titel), tabelle(['', ...sp], z.map(r => [el('b', {}, String(r.merkmal ?? '')), ...sp.map((_, i) => tMd(r.werte?.[i] ?? '–', true))]))];
+  },
+  ablauf: b => {
+    const s = tListe(b.schritte, 7).filter(x => x.name);
+    return s.length >= 2 && [tH(b.titel), el('ol', { class: `t-ablauf${s.length > 4 ? ' lang' : ''}` }, s.map(x => el('li', {}, el('b', {}, String(x.name)), x.text && tMd(x.text, true)))),
+      b.kreis && el('p', { class: 't-kreis meta' }, tIkon('kreis'), `und wieder zu „${s[0].name}“`)];
+  },
+  formel: b => typeof b.tex === 'string' && [tH(b.titel), el('div', { class: 't-formel-gross' }, tMd('\\[' + b.tex + '\\]')),
+    tListe(b.zeichen, 12).length > 0 && el('dl', { class: 't-zeichen' }, tListe(b.zeichen, 12).flatMap(z => [el('dt', {}, String(z.zeichen ?? '')), el('dd', {}, tMd(z.bedeutung, true))]))],
+  fehler: b => b.falsch && b.richtig && el('div', { class: 't-fehler-box' },
+    el('p', { class: 't-falsch' }, tIkon('x'), el('span', {}, el('b', {}, 'Viele denken: '), tMd(b.falsch, true))),
+    el('p', { class: 't-richtig' }, tIkon('haken'), el('span', {}, el('b', {}, 'Tatsächlich: '), tMd(b.richtig, true)))),
+  quiz: (b, t) => themaQuiz(b, t),
+  offen: (b, t) => themaOffen(b, t),
+  weiter: (b, t) => {
+    const fragen = (Array.isArray(b.fragen) ? b.fragen : []).filter(x => typeof x === 'string' && x.trim()).slice(0, 3);
+    return t && fragen.length > 0 && el('div', { class: 't-anschluss' }, el('h3', { class: 't-titel' }, 'Als Nächstes verstehen'),
+      el('div', { class: 'vorschlaege' }, fragen.map(q => el('button', { class: 'vorschlag', type: 'button', onclick: () => themaRunde(t, q, `Rückfrage: ${q}`) }, q))));
+  },
+};
+const themaBaustein = (t, b) => {  // was sich nicht zeichnen lässt (kaputtes JSON, unbekannte Formel), fehlt einfach
+  try { const e = THEMA_BAUSTEINE[b.typ]?.(b, t); return e ? el('div', { class: `t-baustein t-b-${b.typ}` }, e) : null; } catch { return null; }
+};
+// Schaubild mit Reglern: Parameter in den Formeln, Punkte und Werte wandern mit; die Achse bleibt fest, damit man die Wirkung sieht
+function themaDiagramm(b) {
+  const par = tListe(b.parameter, 3).filter(p => /^[a-df-wyz]$/.test(p.name) && Number.isFinite(p.von) && Number.isFinite(p.bis) && p.bis > p.von);
+  const P = Object.fromEntries(par.map(p => [p.name, Math.min(p.bis, Math.max(p.von, Number.isFinite(p.start) ? p.start : (p.von + p.bis) / 2))]));
+  const zahl = v => { if (typeof v !== 'string') return v; try { return rechner(v, P)(0); } catch { return NaN; } };
+  const fest = {};
+  if (par.length && (b.ymin == null || b.ymax == null)) {
+    const fns = tListe(b.kurven, 6).flatMap(k => { try { return [rechner(k.f, P)]; } catch { return []; } });
+    const x0 = Number.isFinite(b.von) ? b.von : 0, x1 = Number.isFinite(b.bis) ? b.bis : 10;
+    const proben = () => fns.flatMap(f => Array.from({ length: 41 }, (_, i) => f(x0 + (x1 - x0) * i / 40))).filter(Number.isFinite).sort((a, c) => a - c);
+    const q = (l, f) => l[Math.round(f * (l.length - 1))], start = proben(), ys = [...start];
+    for (const p of par) { const alt = P[p.name]; for (const v of [p.von, p.bis]) { P[p.name] = v; ys.push(...proben()); } P[p.name] = alt; }
+    ys.sort((a, c) => a - c);
+    // unten wie in der Startstellung (negative Preise beim Schieben schneidet das Bild ab), oben so hoch, wie es beim Schieben geht
+    const lo = start.length ? Math.min(0, q(start, 0.02)) : 0, hi = ys.length ? q(ys, 0.98) : 1;
+    if (hi > lo) Object.assign(fest, { ymin: b.ymin ?? lo, ymax: b.ymax ?? hi + (hi - lo) * 0.08 });
+  }
+  const daten = () => ({ ...b, ...fest, punkte: tListe(b.punkte, 8).map(p => ({ ...p, x: zahl(p.x), y: zahl(p.y) })),
+    linien: tListe(b.linien, 6).map(l => ({ ...l, x: l.x == null ? undefined : zahl(l.x), y: l.y == null ? undefined : zahl(l.y) })) });
+  let fig = bildSvg(daten(), P);
+  if (!par.length) return fig;
+  const werte = tListe(b.werte, 4).filter(w => typeof w.f === 'string' && w.name), wertEl = werte.map(() => el('b'));
+  const mit = (x, einheit) => Number.isFinite(x) ? bZahl(x) + (einheit ? ' ' + einheit : '') : '–';
+  const zeigeWerte = () => werte.forEach((w, i) => { wertEl[i].textContent = mit(zahl(w.f), w.einheit); });
+  let plan = 0;
+  const neu = () => { plan ||= requestAnimationFrame(() => { plan = 0; try { const f = bildSvg(daten(), P); fig.replaceWith(f); fig = f; } catch { /* bleibt das alte Bild */ } zeigeWerte(); }); };
+  zeigeWerte();
+  return el('div', { class: 't-diagramm' }, fig, el('div', { class: 't-steuer' },
+    typeof b.frage === 'string' && el('p', { class: 't-probier' }, tIkon('stift'), b.frage),
+    par.map(p => {
+      const out = el('output', {}, mit(P[p.name], p.einheit));
+      return el('label', { class: 't-regler' }, el('span', { class: 't-regler-kopf' }, el('span', {}, String(p.label || p.name).slice(0, 80)), out),
+        el('input', { type: 'range', min: p.von, max: p.bis, value: P[p.name], step: Number.isFinite(p.schritt) && p.schritt > 0 ? p.schritt : (p.bis - p.von) / 100,
+          oninput: e => { P[p.name] = +e.target.value; out.textContent = mit(P[p.name], p.einheit); neu(); } }));
+    }),
+    werte.length > 0 && el('div', { class: 't-werte', 'aria-live': 'polite' }, werte.map((w, i) => el('div', { class: 't-wert' }, el('span', { class: 'meta' }, String(w.name)), wertEl[i])))));
+}
+function themaSchritte(b) {
+  const s = tListe(b.schritte, 8).filter(x => x.md || x.titel);
+  if (!s.length) return null;
+  let n = Math.min(s.length, b.gezeigt || 1);
+  const ol = el('ol', { class: 't-schritte', 'aria-live': 'polite' }), mehr = el('button', { class: 'knopf voll', type: 'button' });
+  const reihe = el('div', { class: 'knopfreihe' }, mehr, el('button', { class: 'knopf', type: 'button', onclick: () => { n = b.gezeigt = s.length; zeige(true); } }, 'Alle zeigen'));
+  const zeige = neu => {
+    ol.replaceChildren(...s.slice(0, n).map((x, i) => el('li', { class: neu && i === n - 1 ? 'neu' : null }, el('span', { class: 'nr', 'aria-hidden': 'true' }, String(i + 1)),
+      el('div', {}, x.titel && el('h4', {}, String(x.titel)), x.md && tMd(x.md)))));
+    mehr.textContent = `Nächster Schritt (${n + 1} von ${s.length})`;
+    reihe.hidden = n >= s.length;
+  };
+  mehr.onclick = () => { n = b.gezeigt = n + 1; zeige(true); };
+  zeige(false);
+  return [tH(b.titel), ol, reihe];
+}
+function themaQuiz(b, t) {
+  const opt = tListe(b.optionen, 5).filter(o => o.text), ri = opt.findIndex(o => o.richtig === true);
+  if (!b.frage || opt.length < 2 || opt.filter(o => o.richtig === true).length !== 1) return null;
+  const box = el('div', { class: 't-quiz' });
+  const zeige = () => {
+    const g = Number.isInteger(b.gewaehlt) ? b.gewaehlt : null;
+    box.replaceChildren(...[el('p', { class: 't-quiz-frage' }, tMd(b.frage, true)),
+      el('div', { class: 't-optionen', role: 'group', 'aria-label': 'Antworten' }, opt.map((o, i) => el('button', {
+        type: 'button', class: `t-option${g == null ? '' : i === ri ? ' richtig' : i === g ? ' falsch' : ' aus'}`, 'aria-disabled': g == null ? null : 'true',
+        onclick: () => { if (g == null) waehle(i); } },
+      el('span', { class: 't-buchstabe', 'aria-hidden': 'true' }, 'ABCDE'[i]),
+      el('span', { class: 't-option-text' }, tMd(o.text, true), g != null && (i === ri || i === g) && o.warum && el('small', {}, String(o.warum)))))),
+      g != null && el('p', { class: 'check-urteil', role: 'status', 'data-art': g === ri ? 'ja' : 'nein' }, el('b', {}, g === ri ? 'Richtig. ' : 'Nicht ganz. '),
+        t && darf('karten') ? 'Die Frage liegt jetzt in deinem Karteikasten.' : '')].filter(Boolean));
+  };
+  const waehle = i => {
+    b.gewaehlt = i; zeige();
+    box.querySelector('.check-urteil')?.focus?.();
+    if (!t) return;
+    const r = opt[ri];
+    kartenDazu([{ f: t.fach || 'Themen', frage: String(b.frage), antwort: `${r.text}${r.warum ? `. ${r.warum}` : ''}`, gewusst: i === ri, datum: HEUTE }]);
+    if (i === ri) t.sitzt = true;
+    themaSpaeter(t);
+  };
+  zeige();
+  return box;
+}
+function themaOffen(b, t) {
+  const feld = el('textarea', { rows: 4, maxlength: 1500, placeholder: 'Erklär es so, als würdest du es jemandem aus deinem Kurs erklären.', 'aria-label': 'Deine Erklärung' }, b.antwort || '');
+  const urteil = el('p', { class: 'check-urteil', role: 'status' }), knopf = el('button', { class: 'knopf voll', type: 'button' }, b.urteil ? 'Nochmal prüfen' : 'Prüfen');
+  const sage = (art, ...x) => { urteil.hidden = false; urteil.dataset.art = art; urteil.replaceChildren(...x); };
+  if (b.urteil) sage(b.bestanden ? 'ja' : 'nein', el('b', {}, b.bestanden ? 'Sitzt. ' : 'Noch nicht ganz. '), b.urteil); else urteil.hidden = true;
+  knopf.onclick = async () => {
+    const text = feld.value.trim();
+    if (text.length < 20) return sage('', 'Schreib ein paar Sätze, in deinen eigenen Worten.');
+    knopf.disabled = true; knopf.textContent = 'Prüft …';
+    try {
+      const j = await anfrage({ ...FX_KI, max_tokens: 600, feature: 'check', stil: false, response_format: { type: 'json_object' } },
+        [{ role: 'system', content: CHECK_PRUEFEN }, { role: 'user', content: `Frage: ${b.frage}\n\nMusterlösung: ${b.loesung}\n\n<<<ANTWORT\n${text.replace(/<<<|>>>/g, '')}\nANTWORT>>>` }]);
+      const c = j.choices?.[0]?.message?.content || '';
+      let d;
+      try { d = JSON.parse(c.slice(c.indexOf('{'), c.lastIndexOf('}') + 1)); } catch { throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.'); }
+      Object.assign(b, { antwort: text, bestanden: d.bestanden === true, urteil: String(d.grund || '') });
+      if (t) { if (b.bestanden) t.sitzt = true; themaSpaeter(t); }
+      sage(b.bestanden ? 'ja' : 'nein', el('b', {}, b.bestanden ? 'Sitzt. ' : 'Noch nicht ganz. '), b.urteil);
+    } catch (e) { sage('nein', e.message); }
+    knopf.disabled = false; knopf.textContent = 'Nochmal prüfen';
+  };
+  return [el('h3', { class: 't-titel' }, 'Erklär’s mir zurück'), el('p', { class: 'klein' }, b.frage), feld, urteil, el('div', { class: 'knopfreihe' }, knopf)];
+}
+
+/* Seiten */
+const enterSendet = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); } };
+function themaFeld(gross) {
+  const id = 'tf-' + ++chatNr, faecher = Object.keys(R);
+  const feld = el('textarea', { id, rows: gross ? 3 : 2, maxlength: 600, enterkeyhint: 'go', placeholder: 'Etwa: Warum ist die Nachfrage nach Insulin so unelastisch?',
+    oninput: e => { THEMA.entwurf = e.target.value; }, onkeydown: enterSendet }, THEMA.entwurf);
+  return el('form', { class: `t-feld${gross ? ' gross' : ''}`, onsubmit: e => { e.preventDefault(); themaNeu({ frage: feld.value, fach: THEMA.fach }); } },
+    el('label', { for: id, class: 'sr' }, 'Was willst du verstehen?'), feld,
+    el('div', { class: 't-feld-fuss' },
+      gross && faecher.length > 1 ? el('div', { class: 't-fachwahl', role: 'group', 'aria-label': 'Fach' }, ['', ...faecher].map(f => el('button', {
+        type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.fach === f),
+        onclick: e => { THEMA.fach = f; for (const k of e.currentTarget.parentNode.children) k.setAttribute('aria-pressed', String(k === e.currentTarget)); } }, f || 'Alle Fächer'))) : el('span'),
+      el('button', { class: 'knopf voll', disabled: !!THEMA.job }, THEMA.job ? 'Erklärt gerade …' : 'Erklär’s mir')));
+}
+// Vor der nächsten Einheit (heute später oder morgen): was laut Ausgabe drankommt, in zwei Minuten vorbereitet
+function themaVorlauf() {
+  const jetzt = new Date().toTimeString().slice(0, 5), morgen = plusTage(1);
+  const t = kalenderTermine().filter(x => x.zeit && !FRISTEN.has(x.art) && (x.datum === HEUTE && x.zeit > jetzt || x.datum === morgen)).sort(nachZeit)[0];
+  const f = t && lvFach(t), a = f && aktuell(f);
+  const plan = a && (abschnitt(a, t.art === 'VO' ? 'nächste vorlesung' : 'nächstes proseminar') || abschnitt(a, 'nächste vorlesung'));
+  if (!plan || plan.length < 40) return null;
+  const termin = `${f}|${t.datum}|${t.zeit}`;
+  return { t, f, plan: plan.replace(/\s+/g, ' ').slice(0, 1500), termin, schon: THEMEN_D.daten?.themen.find(x => x.termin === termin) };
+}
+const vorlaufKnopf = v => el('button', { class: 'vorschlag t-vorlauf', type: 'button',
+  onclick: () => v.schon ? (location.hash = `#/thema/${v.schon.id}`) : themaNeu({ frage: `Vorbereitung auf ${v.f} ${v.t.code || v.t.art} ${v.t.datum === HEUTE ? 'heute' : 'morgen'}`, fach: v.f, art: 'vorlauf', plan: v.plan, termin: v.termin }) },
+  tIkon('stift'), `${v.t.datum === HEUTE ? 'Heute' : 'Morgen'} ${v.t.zeit}, ${v.f} ${v.t.code || v.t.art}: ${v.schon ? 'Vorbereitung ansehen' : 'in 2 Minuten vorbereiten'}`);
+async function themaKurz() {  // Heute: das Feld, darunter die Vorbereitung auf die nächste Einheit und offene Themen
+  const box = $('h-thema');
+  box.hidden = !darf('thema');
+  if (box.hidden) return;
+  await THEMEN_D.laden().catch(() => null);
+  const v = themaVorlauf(), offen = (THEMEN_D.daten?.themen || []).filter(x => !x.sitzt && x.art !== 'vorlauf').slice(0, 2), j = THEMA.job;
+  $('h-thema-inhalt').replaceChildren(themaFeld(false), (v || offen.length || j) ? el('div', { class: 'vorschlaege t-tipps' },
+    j && el('a', { class: 'vorschlag', href: `#/thema/${j.t.id}` }, `Läuft gerade: ${j.t.titel || j.runde.frage}`), v && vorlaufKnopf(v),
+    offen.map(x => el('a', { class: 'vorschlag', href: `#/thema/${x.id}` }, `Weiter: ${x.titel}`))) : '');
+}
+const themaUnterzeile = t => el('p', { class: 'unterzeile', id: 't-unterzeile' }, t.fach && el('span', {}, t.fach), el('span', {}, datum(t.datum, { day: 'numeric', month: 'long' })),
+  t.sitzt && el('span', { class: 'pille gelb' }, 'sitzt'));
+const themaQuellChips = q => q?.length ? [el('span', { class: 'meta' }, 'Aus deinen Unterlagen:'),
+  q.map(x => el('span', { class: 't-quelle' }, tIkon('datei'), `${x.f} · ${x.datei.replace(/\.[a-z0-9]{2,4}$/i, '')}${x.seite ? `, S. ${x.seite}` : ''}`))] : [];
+function themaRundeEl(t, r, i) {
+  const bloecke = el('div', { class: 't-bloecke' }, r.bloecke.map(b => themaBaustein(t, b)));
+  const quellen = el('div', { class: 't-quellen' }, themaQuellChips(r.quellen));
+  const sektion = el('section', { class: 't-runde', 'aria-label': i ? `Rückfrage: ${r.frage}` : 'Erklärung' }, i > 0 && el('p', { class: 't-du' }, r.frage), quellen, bloecke);
+  if (THEMA.job?.runde === r) Object.assign(THEMA.job, { ziel: bloecke, quellenZiel: quellen, sektion });
+  return sektion;
+}
+function themaEnde(t) {
+  if (THEMA.job?.t === t) { const s = el('span', { 'aria-hidden': 'true' }); s.innerHTML = '<svg viewBox="0 0 64 18"><path d="M2 12C10 4 16 15 24 9s14-7 20 1 12 2 18-4"/></svg>'; return el('p', { class: 't-zeichnet', role: 'status' }, s, 'Der Lernhelfer zeichnet …'); }
+  const r = t.runden.at(-1), id = 'tr-' + ++chatNr;
+  const feld = el('textarea', { id, rows: 2, maxlength: 600, enterkeyhint: 'send', placeholder: 'Rückfrage, etwa: Und was ändert sich bei einem Monopol?', onkeydown: enterSendet });
+  return [THEMA.fehler && el('p', { class: 'fehlertext' }, THEMA.fehler),
+    !r && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', onclick: () => themaRunde(t, t.frage, t.auftrag) }, 'Nochmal versuchen')),
+    r && el('div', { class: 't-mehr' }, el('h2', {}, 'Weiter mit diesem Thema'),
+      el('div', { class: 'vorschlaege' }, THEMA_ARTEN.map(([name, auftrag]) => el('button', { class: 'vorschlag', type: 'button', onclick: () => themaRunde(t, name, auftrag) }, name)),
+        !r.bloecke.some(b => b.typ === 'offen') && el('button', { class: 'vorschlag', type: 'button', onclick: () => themaZurueck(t) }, 'Erklär’s mir zurück')),
+      el('form', { class: 't-feld', onsubmit: e => { e.preventDefault(); const q = feld.value.trim(); if (q) themaRunde(t, q, `Rückfrage: ${q}`); } },
+        el('label', { for: id, class: 'sr' }, 'Rückfrage'), feld, el('div', { class: 't-feld-fuss' }, el('span'), el('button', { class: 'knopf voll' }, 'Fragen'))),
+      el('div', { class: 't-fuss' }, el('button', { class: 'knopf', type: 'button', onclick: () => themaWeg(t) }, 'Thema löschen')))];
+}
+async function themaZeigen(id) {
+  const s = $('thema');
+  try { await THEMEN_D.laden(); } catch (e) { return s.replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Thema lernen')), el('p', { class: 'fehlertext' }, e.message)); }
+  let t = null;
+  if (id) t = THEMA.offen?.id === id ? THEMA.offen : await themaLaden(id).catch(e => { status(e.message, true); return null; });
+  if (document.body.dataset.ansicht !== 'thema' || (location.hash.split('/')[2] || null) !== (id || null)) return;  // inzwischen woanders
+  if (t) {
+    s.replaceChildren(el('a', { class: 't-zurueck meta', href: '#/thema' }, tIkon('zurueck'), 'Alle Themen'),
+      el('header', { class: 'ausgabe-kopf t-kopf' }, el('h1', { id: 't-titel' }, t.titel || 'Neues Thema'), themaUnterzeile(t)),
+      el('div', { id: 't-runden' }, t.runden.map((r, i) => themaRundeEl(t, r, i))),
+      el('div', { id: 't-ende' }, themaEnde(t)));
+    return;
+  }
+  const themen = THEMEN_D.daten.themen, v = themaVorlauf(), j = THEMA.job;
+  s.replaceChildren(
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Thema lernen'),
+      el('p', { class: 'schlagzeile' }, 'Frag alles, was du fürs Studium verstehen willst. Du bekommst ein Bild zum Ausprobieren, ein Beispiel und eine Frage, ob es sitzt.')),
+    themaFeld(true),
+    (v || j) ? el('div', { class: 'vorschlaege t-tipps' }, j && el('a', { class: 'vorschlag', href: `#/thema/${j.t.id}` }, `Läuft gerade: ${j.t.titel || j.runde.frage}`), v && vorlaufKnopf(v)) : '',
+    el('h2', { class: 't-liste-kopf' }, 'Deine Themen'),
+    themen.length ? el('ul', { class: 't-liste' }, themen.map(x => el('li', {}, el('a', { href: `#/thema/${x.id}` },
+      el('span', { class: 'punkt', 'data-fach': x.fach || null, 'aria-hidden': 'true' }),
+      el('span', { class: 't-l-text' }, el('span', { class: 't-l-titel' }, x.titel), x.kern && el('span', { class: 't-l-kern' }, tMd(x.kern, true))),
+      el('span', { class: 't-l-meta' }, x.sitzt && el('span', { class: 'pille gelb' }, 'sitzt'), el('span', { class: 'meta' }, [x.fach, kurz(x.datum)].filter(Boolean).join(' · ')))))))
+      : el('p', { class: 'leer' }, 'Noch keine Themen. Deine erste Frage landet hier, mit allem, was du dazu gelernt hast.'));
+}
+// In einer Wochenausgabe Text markieren: „Erklär mir das“ erscheint darunter und startet ein Thema damit
+let T_AUSWAHL = 0;
+document.addEventListener('selectionchange', () => { clearTimeout(T_AUSWAHL); T_AUSWAHL = setTimeout(themaAuswahl, 200); });
+function themaAuswahl() {
+  const k = $('t-auswahl'), sel = getSelection(), text = sel?.toString().replace(/\s+/g, ' ').trim() || '';
+  k.hidden = !(darf('thema') && document.body.dataset.ansicht === 'ausgabe' && text.length >= 3 && text.length <= 400 && sel.rangeCount && $('ausgabe').contains(sel.anchorNode));
+  if (k.hidden) return;
+  const r = sel.getRangeAt(0).getBoundingClientRect();
+  k.dataset.text = text;
+  Object.assign(k.style, { top: `${r.bottom + scrollY + 10}px`, left: `${Math.max(16, Math.min(innerWidth - 200, r.left + scrollX))}px` });
+}
+$('t-auswahl').onpointerdown = e => e.preventDefault();  // sonst verschwindet die Markierung vor dem Klick
+$('t-auswahl').onclick = () => {
+  const k = $('t-auswahl'), f = decodeURIComponent(location.hash.replace(/^#\/?/, '').split('/')[0] || '');
+  k.hidden = true;
+  themaNeu({ frage: `Erklär mir das: „${k.dataset.text}“`, fach: f });
+};
+// Gesperrt (ohne Ultra): so sieht es aus, mit echten Bausteinen und Beispieldaten
+VORSCHAU.thema = () => el('div', { class: 't-bloecke' }, [
+  { typ: 'kern', text: 'Je weniger Ersatz es für ein Gut gibt, desto weniger reagiert die Nachfrage auf den Preis.' },
+  { typ: 'diagramm', x: 'Menge', y: 'Preis', von: 0, bis: 10, kurven: [{ f: '10 - a*x', name: 'Nachfrage' }], frage: 'Schieb den Regler: Wann wird die Kurve steil?',
+    parameter: [{ name: 'a', label: 'Wie stark der Preis auf die Menge reagiert', von: 0.5, bis: 3, start: 1, schritt: 0.1 }] },
+  { typ: 'quiz', frage: 'Welches Gut hat die unelastischste Nachfrage?', optionen: [{ text: 'Insulin', richtig: true }, { text: 'Kinokarten' }, { text: 'Eine bestimmte Limo-Marke' }] }]
+  .map(b => themaBaustein(null, b)));
 
 /* ---------- Formeln erklären: Tipp auf eine Formel oder ein Zeichen darin zeigt, was jedes Zeichen hier bedeutet ---------- */
 // Danach erklären Tooltips die Zeichen auch beim Drüberfahren. Ein schnelles, günstiges Modell; Ergebnis bleibt auf dem Gerät gespeichert.
@@ -9013,10 +9600,12 @@ function modellWahl() {
 const WERKZEUGE = [...document.querySelectorAll('#nav-werkzeuge > a')];
 const BEREICHE = WERKZEUGE.map(a => a.dataset.ansicht).filter(v => v !== 'upgrade');  // was der Admin für Beta anhaken kann
 const ENGLISCH_VORN = ['wordpower', 'vortrag'];
-const GRUPPEN = [['Lernen', ['karten', 'pruefung', 'arena', 'video']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
-const ANSICHTEN = { start: 'Start', arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
+const GRUPPEN = [['Lernen', ['thema', 'karten', 'pruefung', 'arena', 'video']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
+const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
-const betaWeg = v => SERVER && !!ICH?.beta && !ICH.ecke && BEREICHE.includes(v) && !ICH.beta.includes(v);  // Beta: diesen Bereich nicht zeigen
+// Word Power sehen nur Konten mit der Englisch-Rolle (Admin-Ecke: Haken je Konto oder Aktion für neue Konten), der Admin und die eigene Version
+const wpSichtbar = () => !SERVER || !!ICH?.admin || !!ICH?.englisch || ICH?.tarif === 'englisch';
+const betaWeg = v => v === 'wordpower' && !wpSichtbar() || SERVER && !!ICH?.beta && !ICH.ecke && BEREICHE.includes(v) && !ICH.beta.includes(v);  // Beta: diesen Bereich nicht zeigen
 function leisteOrdnen() {
   const englisch = SERVER && ICH?.tarif === 'englisch' && !ICH.ecke;
   const zu = v => englisch && BEREICHE.includes(v) && !ENGLISCH_VORN.includes(v);  // eingeklappt
@@ -9034,7 +9623,7 @@ function leisteOrdnen() {
   $('nav-mehr').hidden = !fertig() || !n;
   $('nav-mehr-titel').textContent = `Weitere Funktionen (${n})`;
   // Handy: unten nur, was oben in der Seitenleiste steht; Word Power springt für einen fehlenden Kalender ein
-  document.querySelectorAll('.tabs a[data-ansicht]').forEach(a => { a.hidden ||= zu(a.dataset.ansicht) || betaWeg(a.dataset.ansicht); });
+  document.querySelectorAll('.tabs a[data-ansicht]').forEach(a => { a.hidden ||= zu(a.dataset.ansicht) || betaWeg(a.dataset.ansicht) || a.dataset.ansicht === 'thema' && !darf('thema'); });
   $('tab-wordpower').hidden ||= !document.querySelector('.tabs a[data-ansicht="kalender"]').hidden;
   [...document.querySelectorAll('.tabs a[data-ansicht]')].filter(a => !a.hidden).forEach((a, i) => a.classList.toggle('ueber', i >= 4));  // vier Tabs, der Rest unter „Mehr“
 }
@@ -9072,12 +9661,12 @@ async function zeichne() {
   const [teil, tag] = anker ? ['anleitung'] : location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const offen = SERVER && (teil === 'recht' || teil === 'upgrade' && !!TARIFE?.verkauf);  // Preise und Impressum auch ohne Konto; ohne Verkauf keine Tarifseite
   let neu = teil === 'anleitung' || teil === 'start' && SERVER ? teil : offen ? teil : !fertig() || teil === 'einstellungen' ? (SERVER && !teil ? 'start' : 'einstellungen')
-    : ['kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
+    : ['thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
     : !teil && !eingerichtet() ? 'start' : 'titelblatt';  // wer noch nichts eingerichtet hat, landet auf Start
   if (betaWeg(neu)) neu = 'titelblatt';
   if (SPERREN[neu] && !darf(SPERREN[neu])) neu = 'gesperrt';  // Server: Funktion ohne passenden Tarif
   if ($('meldung').open) $('meldung').close();
-  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
+  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
   ankuendigungZeigen();
   $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
@@ -9120,6 +9709,7 @@ async function zeichne() {
   else if (neu === 'unterlagen') await unterlagenZeigen(tag);
   else if (neu === 'arena') await arenaZeigen();
   else if (neu === 'video') await videoZeigen(tag);
+  else if (neu === 'thema') await themaZeigen(tag);
   else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, ANSICHTEN[teil])), sperrBuehne(SPERREN[teil]));
   else if (neu === 'upgrade') upgradeZeigen();
   else if (neu === 'admin') await adminZeigen();

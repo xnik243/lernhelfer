@@ -102,7 +102,7 @@ let log = '';
 const server = spawn(process.execPath, ['--no-warnings', join(import.meta.dirname, 'server.mjs')], { env: { ...process.env,
   LH_DATEN: ordner, LH_PORT: String(PORT), LH_URL: BASIS, LH_OR_URL: `http://127.0.0.1:${attrappe.address().port}`, LH_OR_KEY: 'sk-or-server',
   LH_OR_VERWALTUNG: 'verwaltung', LH_ADMIN: 'chef@example.com', LH_IBAN: 'AT00 TEST', LH_BREVO: '',
-  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_CAMPUS: `http://127.0.0.1:${campus.address().port}`, LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1', LH_NACHBUCHEN_MS: '20' } });
+  LH_ECKE: 'Ecke-Passwort!', LH_VERKAUF: '1', LH_CAMPUS: `http://127.0.0.1:${campus.address().port}`, LH_PASS_WORDPOWER: 'wp-test1', LH_PASS_ONLINETEST: 'ot-test1', LH_NACHBUCHEN_MS: '20', LH_NEU_ULTRA: '0' } });
 server.stdout.on('data', t => log += t); server.stderr.on('data', t => log += t);
 const warte = async (bis, was) => { for (let i = 0; i < 100; i++) { const x = await bis(); if (x) return x; await new Promise(ok => setTimeout(ok, 50)); } throw new Error('Zeit um: ' + was + '\n' + log); };
 await warte(() => fetch(BASIS + '/api/tarife').then(r => r.ok, () => false), 'Server startet');
@@ -466,8 +466,26 @@ try {
   assert.equal((await lea('POST', '/api/bestellen', { tarif: 'englisch', monate: 1, sofort: true })).status, 400, 'Englisch gibt es nicht zu kaufen');
   assert.equal((await lea('POST', '/api/test')).j.tarif, 'ultra', 'Gratis-Test auch mit Englisch');
   await chef('POST', '/api/admin/werte', { 'neu-englisch': '0' });
+
+  // Start-Geschenk: neue Konten bekommen n Tage Ultra (Start); Thema lernen läuft immer mit dem schnellen Modell; Englisch-Rolle getrennt davon
+  assert.equal(r.englisch, true, 'Lea hat die Englisch-Rolle');
+  await chef('POST', '/api/admin/werte', { 'neu-ultra': '60' });
+  assert.equal((await chef('GET', '/api/admin')).j.neuUltra, 60);
+  const ute = person();
+  r = (await ute('POST', '/api/registrieren', { email: 'ute@example.com', passwort: 'utes-passwort-1', agb: true })).j;
+  assert.equal(r.tarif, 'start'); assert.equal(r.englisch, false); assert.equal(r.testFrei, false, 'mit Start-Ultra kein Test');
+  assert.ok(Math.abs(r.bis - Date.now() - 60 * 864e5) < 60e3);
+  await ute('POST', '/api/bestaetigen', { token: await link('ute@example.com', 'bestaetigen') });
+  assert.equal((await ute('POST', '/api/ki', { feature: 'thema', model: 'openai/gpt-6-luna', reasoning: { effort: 'xhigh' }, messages: [{ role: 'user', content: 'x' }] })).status, 200);
+  assert.equal(or.anfragen.at(-1).model, 'google/gemini-3.8-flash', 'Thema: Modell vom Server'); assert.deepEqual(or.anfragen.at(-1).reasoning, { effort: 'low' });
+  assert.equal((await ute('PUT', gh('themen/t1.json'), { content: b64('{}') })).status, 201, 'Ultra (Start) speichert Themen');
+  const K = (await chef('GET', '/api/admin')).j.kennzahlen;
+  assert.equal(K.start, 1); assert.equal(K.startEndet, 0);
+  await chef('POST', '/api/admin/werte', { 'neu-ultra': '0' });
   const max = person();
   r = (await max('POST', '/api/registrieren', { email: 'max@example.com', passwort: 'max-passwort-1', agb: true })).j;
+  assert.equal(r.tarif, 'base', 'Start-Ultra aus: Base');
+  assert.equal((await max('PUT', gh('themen/t1.json'), { content: b64('{}') })).status, 402, 'Thema lernen nur mit Ultra');
   assert.equal(r.tarif, 'base', 'ausgeschaltet: wieder Base'); assert.equal(r.testFrei, false, 'Gratis-Test nur mit Uni-Adresse');
   assert.match((await max('POST', '/api/test')).j.error.message, /nur für Konten mit einer Adresse der Uni Innsbruck/);
   dash = (await chef('GET', '/api/admin')).j;
