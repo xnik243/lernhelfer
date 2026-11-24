@@ -246,6 +246,20 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 :is(.t-werte, .t-mehr) { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }
 .t-liste a { border-bottom: 0; background: var(--strich-waagrecht) bottom / 100% 6px no-repeat; }
 .t-ablauf li + li::before { background: var(--tinte); }
+/* Formen, gezeichnet: Rätsel im blauen Strich-Rahmen, Fall-Lage als Zettel, Nummern und „vs.“ im Kreis, Folien-Stellen mit Textmarker */
+.t-form-name { border-radius: 0; background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb); }
+.t-b-raten .t-quiz { border: 2px solid transparent; border-radius: 0; border-image: var(--rahmen-blau) 10 / 10px / 4px stretch; background: var(--bg); }
+.t-fall-lage { border-left: 0; border-radius: 2px; background: var(--zettel); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 14px 22px -16px rgb(0 0 0 / 0.45); transform: rotate(-0.3deg); }
+.t-fall-weg > li::before, .t-vs { border-radius: 0; background: var(--kreis) center / 100% 100% no-repeat; color: var(--text); }
+.t-fall-weg > li:not(:last-child)::after { left: 12px; width: 6px; background: var(--strich-senkrecht) center / 6px 100% no-repeat; }
+:is(.t-folie, .t-duell, .t-sort-karte) { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; box-shadow: none; }
+.t-sort-karte { border-image-source: var(--rahmen-2); transform: rotate(-0.4deg); }
+:is(.t-folie-kopf, .t-duell-kopf) { border-bottom: 0; background: none; }
+.t-folie-kopf { background: var(--strich-waagrecht) bottom / 100% 6px no-repeat; }
+.t-folie mark { border-radius: 0; background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb); }
+.t-duell-zeile { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }
+.t-sort-gruppe { border: 0; border-radius: 2px; background: var(--bg-2); }
+.t-bezug { border-radius: 2px; }
 
 /* Admin-Ecke: der aktive Reiter mit Textmarker statt Linie, Zahlen im Kreis */
 .admin-reiter { border-bottom: 0; background: var(--bg) var(--strich-waagrecht) bottom / 100% 6px no-repeat; }

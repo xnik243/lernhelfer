@@ -1323,6 +1323,71 @@
   .t-mehr h2 { margin: 0 0 12px; }
   .t-mehr > .vorschlaege { margin-bottom: 18px; }
   .t-fuss { margin-top: 44px; }
+
+  /* Formen: jede Antwort bekommt die Gestalt, die zum Thema passt (Spielwiese, Rätsel, Fall, Folie, Duell …) */
+  .t-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .t-stand .meta { margin-right: 4px; }
+  .t-form-name { padding: 4px 10px; border-radius: 999px; background: var(--akzent-flaeche); color: var(--akzent-text); font: 750 0.75rem/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; }
+  .t-eyebrow { margin: 0; color: var(--akzent-text); font: 750 0.75rem/1.2 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+  .t-bloecke > .t-baustein { transition: filter 0.6s ease, opacity 0.6s ease; }
+  .t-b-raten .t-quiz { max-width: 68ch; padding: 20px 22px; border: 2px solid var(--akzent); border-radius: var(--r-l); background: var(--akzent-flaeche); }
+  .t-b-raten .t-quiz-frage { font-size: clamp(1.25rem, 2.8vw, 1.5rem); }
+  .t-b-raten.offen ~ .t-baustein { filter: blur(6px); opacity: 0.35; user-select: none; }
+  .t-runde[data-form="spielwiese"] .t-diagramm:has(.t-steuer) { grid-template-columns: minmax(0, 1fr); }
+  .t-runde[data-form="spielwiese"] .t-diagramm .bild { max-width: 760px; }
+  .t-runde[data-form="spielwiese"] .t-steuer { display: flex; flex-wrap: wrap; gap: 16px 28px; max-width: 760px; padding: 18px 20px; border-radius: var(--r-l); background: var(--akzent-flaeche); }
+  .t-runde[data-form="spielwiese"] .t-steuer > * { flex: 1 1 240px; }
+  .t-runde[data-form="spielwiese"] .t-steuer > :is(.t-probier, .t-werte) { flex-basis: 100%; }
+  .t-runde[data-form="spielwiese"] .t-probier { font-size: 1.125rem; }
+  .t-fall { display: grid; gap: 18px; max-width: 70ch; }
+  .t-fall .t-titel { margin: 0; }
+  .t-fall-lage { margin: 0; padding: 16px 20px; border-left: 4px solid var(--akzent); border-radius: 0 var(--r) var(--r) 0; background: var(--bg-2); font: 450 1.125rem/1.55 var(--serif); }
+  .t-fall-weg { display: grid; gap: 26px; margin: 0; padding: 0; list-style: none; counter-reset: entscheidung; }
+  .t-fall-weg > li { position: relative; padding-left: 46px; }
+  .t-fall-weg > li::before { counter-increment: entscheidung; content: counter(entscheidung); position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--akzent); color: var(--auf-akzent); font: 750 0.875rem/1 var(--sans); }
+  .t-fall-weg > li:not(:last-child)::after { content: ''; position: absolute; top: 38px; bottom: -20px; left: 14px; width: 2px; background: var(--linie-2); }
+  .t-fall-weg > li.neu { animation: t-rein 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+  .t-fall-frage { margin: 4px 0 10px; font: 650 1.0625rem/1.4 var(--sans); }
+  .t-folge { display: grid; gap: 4px; margin: 10px 0 0; padding: 10px 14px; border-radius: var(--r); background: var(--ok-flaeche); line-height: 1.45; }
+  .t-folge[data-art="nein"] { background: var(--warn-flaeche); }
+  .t-folge small { color: var(--text-2); font-size: 0.875rem; }
+  .t-fall-ende { margin: 0; }
+  .t-folie { max-width: 640px; margin: 0; border: 1px solid var(--linie-2); border-radius: var(--r-l); background: var(--bg); box-shadow: var(--schatten); overflow: clip; }
+  .t-folie-kopf { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-bottom: 1px solid var(--linie); background: var(--bg-2); color: var(--text-2); font: 600 0.8125rem/1.3 var(--sans); }
+  .t-folie-text { margin: 0; padding: 22px 24px; font: 500 clamp(1.0625rem, 2.2vw, 1.1875rem)/1.7 var(--sans); }
+  .t-folie mark { padding: 0.05em 0.15em; border-radius: 3px; background: var(--gelb-hauch); color: inherit; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .t-folie sup { margin-left: 2px; color: var(--akzent-text); font: 800 0.7em/1 var(--sans); }
+  .t-folie-notizen { display: grid; gap: 10px; margin: 0; padding: 16px 24px 20px 46px; border-top: 1px dashed var(--linie-2); line-height: 1.5; }
+  .t-folie-notizen li::marker { color: var(--akzent-text); font-weight: 800; }
+  .t-duell { display: grid; max-width: 720px; border: 1px solid var(--linie-2); border-radius: var(--r-l); overflow: clip; }
+  .t-duell-kopf, .t-duell-zeile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(64px, 0.6fr) minmax(0, 1fr); align-items: center; gap: 12px; margin: 0; padding: 12px 16px; line-height: 1.4; }
+  .t-duell-kopf { background: var(--bg-2); font: 750 clamp(1.0625rem, 2.4vw, 1.25rem)/1.25 var(--sans); }
+  .t-duell-kopf > b:last-child, .t-d-b { text-align: right; }
+  .t-duell-zeile { border-top: 1px solid var(--linie); }
+  .t-vs { display: grid; place-items: center; justify-self: center; width: 40px; height: 40px; border-radius: 50%; background: var(--akzent); color: var(--auf-akzent); font: italic 800 0.8125rem/1 var(--sans); }
+  .t-d-m { color: var(--text-2); font: 650 0.75rem/1.3 var(--sans); letter-spacing: 0.04em; text-align: center; text-transform: uppercase; }
+  @media (max-width: 520px) {
+    .t-duell-zeile { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 4px; }
+    .t-d-m { grid-column: 1 / -1; grid-row: 1; }
+  }
+  .t-sortieren { display: grid; gap: 16px; max-width: 70ch; }
+  .t-sortieren .t-titel { margin: 0; }
+  .t-sort-karte { display: grid; justify-items: center; gap: 12px; padding: 22px 20px; border: 1px solid var(--linie-2); border-radius: var(--r-l); background: var(--bg); text-align: center; animation: t-rein 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+  .t-sort-karte > p { margin: 0; font: 650 clamp(1.1875rem, 2.6vw, 1.375rem)/1.35 var(--serif); }
+  .t-sort-wohin { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .t-sort-gruppen { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; }
+  .t-sort-gruppe { min-height: 88px; padding: 12px 14px; border: 1px dashed var(--linie-2); border-radius: var(--r); }
+  .t-sort-gruppe h4 { margin: 0 0 8px; font: 750 0.9375rem/1.3 var(--sans); }
+  .t-sort-gruppe ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .t-sort-gruppe li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; font-size: 0.9375rem; line-height: 1.35; animation: t-rein 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+  .t-sort-gruppe .t-ikon svg.ic { width: 16px; height: 16px; }
+  .t-sort-gruppe li.richtig .t-ikon { color: var(--ok); }
+  .t-sort-gruppe li.falsch .t-ikon { color: var(--fehler); }
+  .t-sort-gruppe small { display: block; margin-top: 2px; color: var(--text-2); font-size: 0.8125rem; }
+  @media (max-width: 520px) { .t-sort-gruppen { grid-template-columns: minmax(0, 1fr); } .t-sort-gruppe { min-height: 0; } }
+  .t-bezug { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; max-width: 64ch; margin: 0; padding: 12px 16px; border-radius: var(--r); background: var(--akzent-flaeche); line-height: 1.5; }
+  .t-bezug .t-ikon { padding-top: 2px; color: var(--akzent-text); }
+  @media (prefers-reduced-motion: reduce) { .t-fall-weg > li.neu, .t-sort-karte, .t-sort-gruppe li { animation: none; } .t-bloecke > .t-baustein { transition: none; } }
   .t-auswahl { position: absolute; z-index: 40; box-shadow: var(--schatten-gross); }
   .admin-setzen select { width: auto; min-width: 7.5em; }
   .admin-setzen input { width: 5.5em; }
@@ -8417,13 +8482,23 @@ const themaModellWahl = () => {
   return l.length < 2 ? '' : el('select', { class: 't-modell', 'aria-label': 'Modell', title: 'Welches Modell erklärt', onchange: e => merk('thema-modell', e.target.value) },
     l.map(x => el('option', { value: x.model, selected: x.model === w }, x.name)));
 };
-const THEMA_AUFTRAG = `Du bist der Lernhelfer, ein Tutor für Studierende. Du erklärst so, dass es sitzt: erst der Kern, dann ein Bild im Kopf, dann die Genauigkeit, dann üben. Du antwortest nie mit Fließtext, sondern mit Bausteinen, die die App als Schaubilder, Regler, Schritte und Übungen zeichnet.
+const THEMA_AUFTRAG = `Du bist der Lernhelfer, ein Tutor für Studierende. Du erklärst so, dass es sitzt, und jedes Thema bekommt die Form, die zu ihm passt, nicht immer dasselbe Schema. Du kennst die Person: ihre Folien, ihren Stundenplan, ihre Prüfungen und Onlinetests, ihre Karteikarten. Du antwortest nie mit Fließtext, sondern mit Bausteinen, die die App als Schaubilder, Regler, Spiele und Übungen zeichnet.
 
 Ausgabe: nur JSON-Objekte, eines pro Zeile, nichts davor, nichts danach, keine Codeblöcke.
-Erstes Objekt immer: {"typ":"meta","titel":"Thema in 2 bis 6 Wörtern","fach":"eines der Fächer unten oder null","quellen":[Nummern der Folien-Stellen, die du genutzt hast]}
+Erstes Objekt immer: {"typ":"meta","titel":"Thema in 2 bis 6 Wörtern","fach":"eines der Fächer unten oder null","form":"eine der Formen unten","quellen":[Nummern der Folien-Stellen, die du genutzt hast]}
+
+Formen (die App gestaltet jede anders; die Reihenfolge der Bausteine ergibt sich aus der Form):
+- "spielwiese": Eine Wirkung oder Kurve, die man selbst entdecken kann. Ein großes diagramm mit Reglern trägt alles und kommt früh; der kern folgt als Erkenntnis danach, dann wenig Text.
+- "raetsel": Das Ergebnis überrascht oder widerspricht dem Bauchgefühl. Zuerst raten; die App verdeckt alles danach, bis man getippt hat. Dann die Auflösung: kern, ein Bild, warum das Bauchgefühl irrt.
+- "fall": Eine Entscheidung oder ein Werkzeug aus der Praxis. Erst ein fall, in dem man selbst entscheidet und die Folgen sieht, dann der kern und, wo nötig, formel oder schritte.
+- "folie": Eine Folien-Stelle unten zeigt genau das Gefragte, ist aber schwer zu lesen. Zuerst folie mit Markierungen, dann kern und was daraus folgt.
+- "duell": Zwei Begriffe, die man leicht verwechselt. kern als Merksatz, vergleich mit genau zwei Spalten, dann sortieren.
+- "schritt": Ein Rechenweg oder Verfahren. Kurz der kern, dann schritte, dann ein quiz mit einer ähnlichen Rechnung.
+- "ueberblick": Ein breites Thema mit mehreren Teilen. kern, dann ablauf oder vergleich als Landkarte, kurze Texte dazwischen.
+Nimm die Form, die am besten passt. Passen zwei ähnlich gut, nimm eine, die zuletzt nicht dran war (steht unten).
 
 Bausteine:
-{"typ":"kern","text":"Der Kern in einem Satz, so klar, dass man ihn sich merkt."} Genau einer, gleich nach meta.
+{"typ":"kern","text":"Der Kern in einem Satz, so klar, dass man ihn sich merkt."} Genau einer, an der Stelle, die die Form vorgibt.
 {"typ":"text","md":"Absatz, höchstens 70 Wörter"}
 {"typ":"beispiel","titel":"kurz","md":"Beispiel aus dem Alltag von Studierenden, konkret, mit Zahlen oder Namen"}
 {"typ":"diagramm","titel":"…","x":"Menge","y":"Preis","von":0,"bis":10,"kurven":[{"f":"10 - a*x","name":"Nachfrage"},{"f":"2 + 0.6*x","name":"Angebot"}],"punkte":[{"x":"8/(a+0.6)","y":"2 + 0.6*8/(a+0.6)","name":"Gleichgewicht"}],"parameter":[{"name":"a","label":"Wie stark die Nachfrage auf den Preis reagiert","von":0.5,"bis":2,"start":1,"schritt":0.1}],"werte":[{"name":"Gleichgewichtsmenge","f":"8/(a+0.6)","einheit":"Stück"}],"frage":"Was passiert mit der Menge, wenn a steigt? Probier es aus."}
@@ -8433,13 +8508,19 @@ Bausteine:
 {"typ":"formel","tex":"LaTeX ohne Begrenzer","zeichen":[{"zeichen":"als Unicode, etwa ε, Δ, p","bedeutung":"was es hier bedeutet, mit Einheit"}]}
 {"typ":"fehler","falsch":"was viele hier falsch denken","richtig":"wie es wirklich ist und warum"}
 {"typ":"quiz","frage":"…","optionen":[{"text":"…","richtig":true,"warum":"ein Satz"}]} 3 bis 4 Optionen, genau eine richtig; die falschen sind typische Denkfehler, "warum" erklärt jede.
+{"typ":"raten","frage":"…","optionen":[{"text":"…","richtig":true,"warum":"ein Satz"}]} Wie quiz, aber bevor irgendetwas erklärt ist; die falschen Optionen sind das, was das Bauchgefühl sagt. Höchstens einer, als erster Baustein.
+{"typ":"fall","titel":"…","lage":"Du bist … (2 bis 3 Sätze, konkret, mit Zahlen)","entscheidungen":[{"frage":"…","optionen":[{"text":"…","gut":true,"folge":"was dann passiert, mit Zahlen, ein bis zwei Sätze"}]}]} 2 bis 3 Entscheidungen nacheinander, je 2 bis 3 Optionen, je mindestens eine gut.
+{"typ":"folie","quelle":Nummer der Folien-Stelle,"zitat":"wörtlich aus dieser Stelle abgeschrieben, 15 bis 70 Wörter","markierungen":[{"stelle":"wörtlicher Teil des Zitats","erklaerung":"was das hier bedeutet, ein Satz"}]} 2 bis 4 Markierungen. Steht das Zitat nicht wörtlich in der Stelle, zeigt die App den Baustein nicht.
+{"typ":"sortieren","titel":"Ordne zu: …","gruppen":["A","B"],"karten":[{"text":"kurz, ein konkretes Beispiel","gruppe":0,"warum":"ein Satz"}]} 2 bis 3 Gruppen, 4 bis 6 Karten; man legt jede in eine Gruppe.
+{"typ":"bezug","text":"…"} Höchstens einer: wie das Thema gerade mit der Person zusammenhängt (nächste Einheit, Prüfung, Onlinetest, wackelige Karteikarten, schon gelernte Themen). Nur aus „Was der Lernhelfer über dich weiß“, konkret mit Tag oder Name, nie erfunden; passt dort nichts zum Thema, lass ihn weg.
 {"typ":"weiter","fragen":["…","…"]} 2 bis 3 Anschlussfragen, die man als Nächstes verstehen will. Immer das letzte Objekt.
 
 Diagramme: "f", "oben" und "unten" sind Funktionen von x in einfacher Schreibweise: Zahlen mit Punkt, + - * / ^, Klammern, sqrt(), ln(), exp(), abs(), e und pi; kein LaTeX. Die Größe auf der waagrechten Achse heißt immer x. Parameter sind einzelne Kleinbuchstaben außer x und e und stehen immer mit Malzeichen (a*x, nie ax). Optional: "flaechen":[{"oben":"…","unten":"…","von":0,"bis":5,"name":"Konsumentenrente"}], "linien":[{"y":7,"name":"Mindestpreis"}] (senkrecht mit "x"), "ymin", "ymax", "strich": true für eine gestrichelte Kurve. Koordinaten von Punkten und Linien und die "werte" dürfen Formeln in den Parametern sein, als Text; dann wandern sie mit dem Regler. Rechne exakt, schätze nicht. Ohne "parameter" ist es ein festes Bild. Ein Regler lohnt sich überall, wo man eine Wirkung entdecken kann: Verschiebung, Steigung, Elastizität, Zins, Kosten, Wachstum.
 
 Regeln:
-- Wähle die Bausteine nach dem Thema, nicht nach Schema: 5 bis 9 insgesamt, mindestens einer visuell (diagramm, ablauf, vergleich, schritte oder formel). Hat das Thema eine Kurve, eine Menge oder eine Wirkung, ist ein diagramm mit Regler der beste Baustein.
-- Kurz vor dem Schluss fast immer ein quiz, dann weiter.
+- 4 bis 9 Bausteine, mindestens einer zum Sehen (diagramm, ablauf, vergleich, folie, formel) und einer zum Mitmachen (raten, fall, sortieren, quiz, schritte oder ein Regler). Hat das Thema eine Kurve, eine Menge oder eine Wirkung, ist ein diagramm mit Regler der beste Baustein.
+- Richte dich nach dem Vorwissen unten: neu heißt Bild und Alltag zuerst, Formeln spät und erklärt; grob heißt Grundlagen in einem Satz, dann das, was oft schiefgeht, und üben; prüfungsfest heißt exakte Definitionen, Formeln, typische Fallen und Aufgaben im Stil der Prüfung.
+- Vor weiter etwas zum Üben (quiz, sortieren oder fall), außer die Antwort hat schon damit begonnen.
 - Fachlich exakt auf Uni-Niveau, in einfacher Sprache, Du-Form, Deutsch. Keine Floskeln wie „Gute Frage“.
 - Die Folien-Stellen kommen aus den Unterlagen der Person. Passt eine, nimm ihre Begriffe und Schreibweise und nenne ihre Nummer in "quellen". Passt keine, erklär aus deinem Wissen und lass "quellen" leer; erfinde nie, was in den Folien steht.
 - Aufgaben aus einem laufenden bewerteten Test rechnest du nicht mit den Originalzahlen vor, sondern zeigst den Weg an einem Beispiel mit anderen Zahlen.
@@ -8448,10 +8529,13 @@ const THEMA_ARTEN = [
   ['Einfacher', 'Erklär dasselbe noch einmal deutlich einfacher: ein anderes Bild, ein anderes Alltagsbeispiel, weniger Formeln.'],
   ['Genauer', 'Geh eine Stufe tiefer, so wie es die Prüfung verlangt: exakte Definition, Formel mit Herleitung, Sonderfälle.'],
   ['Mit Zahlen', 'Rechne ein vollständiges Zahlenbeispiel Schritt für Schritt (Baustein schritte), dazu ein diagramm, wo es passt, und ein quiz mit einer ähnlichen Rechnung.'],
-  ['Prüfungsaufgabe', 'Stell eine typische Prüfungsaufgabe zu diesem Thema: die Aufgabe als text, die Lösung als schritte zum Aufdecken. Kein quiz.']];
+  ['Prüfungsaufgabe', 'Stell eine typische Prüfungsaufgabe zu diesem Thema, Form "schritt": die Aufgabe als text, die Lösung als schritte zum Aufdecken. Kein quiz.'],
+  ['Anders erklärt', 'Erklär dasselbe in einer anderen Form als bisher (etwa fall, raetsel oder spielwiese), mit anderen Beispielen.']];
 const THEMA_VORLAUF = plan => `Bereite mich in zwei Minuten auf die nächste Einheit vor. Laut Plan kommt: ${plan}
-Nach kern zuerst ein quiz, bei dem man raten muss, bevor man es weiß (sag nicht, dass es eine Vorab-Frage ist). Dann die zwei, drei Begriffe oder Zusammenhänge, die man kennen muss, um mitzukommen, möglichst visuell. Höchstens 6 Bausteine, dann weiter.`;
-const THEMA = { offen: null, sha: {}, job: null, fehler: '', fach: '', entwurf: '', uhr: 0 };
+Form "raetsel": zuerst raten mit einer Frage zum Kommenden, die man noch nicht wissen kann (sag nicht, dass es eine Vorab-Frage ist). Dann kern und die zwei, drei Begriffe oder Zusammenhänge, die man kennen muss, um mitzukommen, möglichst visuell. Höchstens 6 Bausteine, dann weiter.`;
+const THEMA_FORMEN = { spielwiese: 'Spielwiese', raetsel: 'Rätsel', fall: 'Dein Fall', folie: 'Deine Folie', duell: 'Duell', schritt: 'Schritt für Schritt', ueberblick: 'Überblick' };
+const THEMA_STAND = { neu: ['Neu für mich', 'neu, noch nie gehört'], grob: ['Kenn ich grob', 'grob, die Grundlagen sind bekannt'], pruefung: ['Prüfungsfest machen', 'prüfungsfest, die Prüfung steht an'] };
+const THEMA = { offen: null, sha: {}, job: null, fehler: '', fach: '', stand: '', entwurf: '', uhr: 0 };
 const THEMEN_D = datei('themen.json', () => ({ themen: [] }));
 const ausBase64 = c => new TextDecoder().decode(Uint8Array.from(atob(c.replace(/\s/g, '')), x => x.charCodeAt(0)));
 const THEMA_STOPP = new Set(('dass eine einen einem einer eines diese dieser dieses diesen warum wieso weshalb wann welche welcher welches erklär erkläre erklären erklärt '
@@ -8460,8 +8544,9 @@ const THEMA_STOPP = new Set(('dass eine einen einem einer eines diese dieser die
   + 'ihre wenn weil während durch gegen ohne sowie beim unterschied vorbereitung heute morgen').split(' '));
 
 // Die passendsten Stellen aus den Folien: Seiten (über die [Seite N]-Marken) bzw. Abschnitte, gewichtet wie tf-idf
+const themaWoerter = frage => [...new Set((frage.toLowerCase().match(/[a-zäöüß]{4,}/g) || []).filter(w => !THEMA_STOPP.has(w)).map(w => w.slice(0, 7)))].slice(0, 12);
 async function themaQuellen(frage, fach) {
-  const woerter = [...new Set((frage.toLowerCase().match(/[a-zäöüß]{4,}/g) || []).filter(w => !THEMA_STOPP.has(w)).map(w => w.slice(0, 7)))].slice(0, 12);
+  const woerter = themaWoerter(frage);
   if (!woerter.length) return [];
   const stellen = [];
   for (const [f, q] of await Promise.all((R[fach] ? [fach] : Object.keys(R)).map(async f => [f, await quelle(f).catch(() => null)])))
@@ -8482,9 +8567,33 @@ async function themaQuellen(frage, fach) {
     return { nr: i + 1, f: s.f, datei: s.datei.split('/').pop(), seite: s.seite, text: s.text.slice(p, p + 900).replace(/\s+/g, ' ').trim() };
   });
 }
-function themaNachricht(t, auftrag, quellen) {
-  const bisher = t.runden.slice(0, -1).slice(-3).map(r => `Frage: ${r.frage}\nErklärt: ${r.bloecke.filter(b => b.typ === 'kern' || b.typ === 'text').map(b => b.text || b.md).join(' ').slice(0, 700)}`).join('\n\n');
+// Was der Lernhelfer über die Person weiß und ein allgemeiner Chat nie: nächste Termine mit Plan, Prüfungen, Onlinetests zum Thema,
+// wackelige Karteikarten, schon sitzende Themen. Nur Fakten aus den eigenen Dateien; fehlt etwas, fehlt die Zeile.
+async function themaUeberDich(t, woerter) {
+  await Promise.all([notenLaden().catch(() => {}), darf('karten') && kartenLaden(false).catch(() => {}), !KAL && kalenderLaden().catch(() => {})]);
+  const passt = f => !t.fach || f === t.fach, trifft = s => woerter.some(w => String(s || '').toLowerCase().includes(w));
+  const tage = d => Math.round((Date.parse(d) - Date.parse(HEUTE)) / 864e5), wann = d => `${datum(d, { weekday: 'short', day: 'numeric', month: 'numeric' })} (in ${tage(d)} Tagen)`;
+  const termine = kalenderTermine().filter(x => x.datum >= HEUTE && x.datum <= plusTage(7) && passt(x.fach)).sort(nachZeit).slice(0, 4).map(x => {
+    if (FRISTEN.has(x.art)) return `- ${x.datum === HEUTE ? 'Heute' : datum(x.datum, { weekday: 'short', day: 'numeric', month: 'numeric' })}: Frist ${x.fach} „${terminTitel(x)}“`;
+    const a = aktuell(x.fach), plan = a && abschnitt(a, x.art === 'VO' ? 'nächste vorlesung' : 'nächstes proseminar');
+    return `- ${x.datum === HEUTE ? 'Heute' : datum(x.datum, { weekday: 'short', day: 'numeric', month: 'numeric' })} ${x.zeit || ''}: ${x.fach} ${x.code || x.art}${plan ? `, laut Plan: ${plan.replace(/\s+/g, ' ').slice(0, 260)}` : ''}`;
+  });
+  const pruef = (NOTEN ? kommendePruefungen() : []).filter(p => passt(p.fach)).slice(0, 2).map(p => `- Prüfung ${p.fach} „${p.titel}“ am ${wann(p.datum)}`);
+  const tests = (TESTS || []).filter(x => x.art === 'test' && !x.uebung && passt(x.fach) && teststand(x).gruppe === 'fertig' && trifft(`${x.titel} ${x.fragen}`)).slice(0, 2).map(x => {
+    const m = x.startseite?.match(/Erreichte Punktzahl\s*(-?[\d.,]+) von ([\d.,]+) Punkt/);
+    return `- Erledigter Onlinetest mit Fragen dazu: ${x.fach} „${x.titel}“${m ? `, erreicht ${m[1]} von ${m[2]} Punkten` : ''}`;
+  });
+  const karten = Object.values(KARTEN?.karten || {}).filter(k => k.box === 1 && passt(k.f) && trifft(`${k.b} ${k.d}`)).slice(0, 4).map(k => `- Karteikarte wackelt noch: ${String(k.b).slice(0, 120)}`);
+  const sitzt = (THEMEN_D.daten?.themen || []).filter(x => x.id !== t.id && x.sitzt && passt(x.fach)).slice(0, 5).map(x => x.titel);
+  return [...termine, ...pruef, ...tests, ...karten, sitzt.length && `- Schon gelernt, sitzt: ${sitzt.join(', ')}`].filter(Boolean).join('\n');
+}
+function themaNachricht(t, auftrag, quellen, ueberDich) {
+  const bisher = t.runden.slice(0, -1).slice(-3).map(r => `Frage: ${r.frage}${r.form ? ` (Form ${r.form})` : ''}\nErklärt: ${r.bloecke.filter(b => b.typ === 'kern' || b.typ === 'text').map(b => b.text || b.md).join(' ').slice(0, 700)}`).join('\n\n');
+  const zuletzt = [...t.runden.slice(0, -1).map(r => r.form).reverse(), ...(THEMEN_D.daten?.themen || []).filter(x => x.id !== t.id).map(x => x.form)].filter(Boolean).slice(0, 4);
   return [`Studium: ${studium()}. Fächer: ${Object.keys(R).join(', ') || 'noch keine'}. Heute ist ${TAG}.`,
+    `Vorwissen: ${THEMA_STAND[t.stand]?.[1] || 'unbekannt, schätz es aus der Frage'}.`,
+    `Was der Lernhelfer über dich weiß:\n${ueberDich || '- noch nichts, was hierzu passt'}`,
+    zuletzt.length && `Zuletzt benutzte Formen: ${zuletzt.join(', ')}`,
     bisher && `Bisher in diesem Thema (${t.titel}):\n${bisher}`,
     quellen.length ? `Folien-Stellen aus den Unterlagen der Person:\n${quellen.map(q => `[${q.nr}] ${q.f} · ${q.datei}${q.seite ? `, S. ${q.seite}` : ''}: ${q.text}`).join('\n')}` : 'Folien-Stellen: keine passenden gefunden.',
     `Auftrag: ${auftrag}`].filter(Boolean).join('\n\n');
@@ -8529,8 +8638,10 @@ async function themaRunde(t, frage, auftrag) {
     }
   };
   try {
-    quellen = await themaQuellen(`${t.titel} ${frage} ${t.plan || ''}`, t.fach);
-    await strom({ feature: 'thema', ...THEMA_KI, model: themaModell(), messages: [{ role: 'system', content: THEMA_AUFTRAG }, { role: 'user', content: themaNachricht(t, auftrag, quellen) }] }, x => { roh = x; lesen(); });
+    const such = `${t.titel} ${frage} ${t.plan || ''}`;
+    let ueberDich;
+    [quellen, ueberDich] = await Promise.all([themaQuellen(such, t.fach), themaUeberDich(t, themaWoerter(such)).catch(() => '')]);
+    await strom({ feature: 'thema', ...THEMA_KI, model: themaModell(), messages: [{ role: 'system', content: THEMA_AUFTRAG }, { role: 'user', content: themaNachricht(t, auftrag, quellen, ueberDich) }] }, x => { roh = x; lesen(); });
     if (!runde.bloecke.length) throw new Error('Die Antwort kam ohne Inhalt an. Bitte nochmal fragen.');
     t.titel ||= frage.slice(0, 60);
     await themaSichern(t);
@@ -8547,15 +8658,33 @@ function themaObjekt(job, b, quellen) {
   if (b?.typ === 'meta') {
     if (!t.titel && typeof b.titel === 'string') t.titel = b.titel.slice(0, 80);
     if (!t.fach && R[b.fach]) t.fach = b.fach;
+    if (Object.hasOwn(THEMA_FORMEN, b.form)) runde.form = b.form;
     runde.quellen = (Array.isArray(b.quellen) ? b.quellen : []).map(n => quellen.find(q => q.nr === Number(n))).filter(Boolean).map(({ f, datei, seite }) => ({ f, datei, seite }));
-    if (job.ziel?.isConnected) { $('t-titel').textContent = t.titel || 'Neues Thema'; $('t-unterzeile').replaceWith(themaUnterzeile(t)); job.quellenZiel.replaceChildren(...themaQuellChips(runde.quellen).flat()); }
+    if (job.ziel?.isConnected) {
+      $('t-titel').textContent = t.titel || 'Neues Thema'; $('t-unterzeile').replaceWith(themaUnterzeile(t));
+      job.quellenZiel.replaceChildren(...themaQuellChips(runde.quellen, runde.form).flat());
+      if (runde.form) job.sektion.dataset.form = runde.form;
+    }
     return;
   }
   if (!Object.hasOwn(THEMA_BAUSTEINE, b?.typ) || b.typ === 'offen') return;
+  if (b.typ === 'folie') {  // nur, was wirklich auf der Folie steht: Zitat gegen die Stelle prüfen, die mitging
+    const q = quellen.find(x => x.nr === Number(b.quelle));
+    if (!q || !zitatPasst(b.zitat, q.text)) return;
+    Object.assign(b, { echt: true, f: q.f, datei: q.datei, seite: q.seite });
+  }
   runde.bloecke.push(b);
   const e = job.ziel?.isConnected && themaBaustein(t, b);
-  if (e) job.ziel.append(e);
+  if (e) { job.ziel.append(e); themaVerdecken(job.ziel); }
 }
+// Wörtlich genug: mindestens 85 % der Wörter des Zitats stehen in der Stelle (Modelle ändern gern ein Satzzeichen oder ein Wort)
+const tWorte = s => String(s || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+function zitatPasst(zitat, stelle) {
+  const z = tWorte(zitat), s = new Set(tWorte(stelle));
+  return z.length >= 5 && z.filter(w => s.has(w)).length >= z.length * 0.85;
+}
+// Rätsel: alles nach einer noch nicht geratenen Frage bleibt verdeckt und unerreichbar, bis man getippt hat
+const themaVerdecken = box => { let zu = false; for (const k of box.children) { k.inert = zu; zu ||= k.classList.contains('offen'); } };
 // Während eine Antwort kommt, nicht alles neu zeichnen: Regler und Antworten, mit denen man schon spielt, bleiben, wie sie sind
 function themaAnsicht(t, job) {
   const ansicht = document.body.dataset.ansicht;
@@ -8574,7 +8703,7 @@ async function themaSichern(t) {
   THEMA.sha[t.id] = a.content.sha;
   await THEMEN_D.laden();
   const liste = THEMEN_D.daten.themen, i = liste.findIndex(x => x.id === t.id);
-  const eintrag = { id: t.id, titel: t.titel, fach: t.fach || null, datum: t.datum, kern: t.runden[0]?.bloecke.find(b => b.typ === 'kern')?.text || '', sitzt: !!t.sitzt, art: t.art || null, termin: t.termin || null };
+  const eintrag = { id: t.id, titel: t.titel, fach: t.fach || null, datum: t.datum, kern: t.runden[0]?.bloecke.find(b => b.typ === 'kern')?.text || '', sitzt: !!t.sitzt, art: t.art || null, termin: t.termin || null, form: t.runden[0]?.form || null };
   if (i >= 0) liste[i] = eintrag; else liste.unshift(eintrag);
   await THEMEN_D.speichern();
 }
@@ -8585,10 +8714,11 @@ async function themaLaden(id) {
   THEMA.sha[id] = j.sha;
   return THEMA.offen = JSON.parse(ausBase64(j.content));
 }
-function themaNeu({ frage, fach, art, plan, termin }) {
+function themaNeu({ frage, fach, art, plan, termin, stand }) {
   frage = String(frage || '').trim();
   if (!frage || THEMA.job) return;
-  const t = { id: `${HEUTE}-${Math.random().toString(36).slice(2, 8)}`, titel: '', fach: R[fach] ? fach : null, datum: HEUTE, art: art || null, plan: plan || null, termin: termin || null, frage, runden: [] };
+  const t = { id: `${HEUTE}-${Math.random().toString(36).slice(2, 8)}`, titel: '', fach: R[fach] ? fach : null, datum: HEUTE, art: art || null, plan: plan || null, termin: termin || null,
+    stand: THEMA_STAND[stand] ? stand : null, frage, runden: [] };
   t.auftrag = art === 'vorlauf' ? THEMA_VORLAUF(plan) : `Erklär mir: ${frage}`;
   THEMA.offen = t; THEMA.entwurf = '';
   location.hash = `#/thema/${t.id}`;
@@ -8620,7 +8750,8 @@ const tListe = (v, n) => (Array.isArray(v) ? v : []).filter(x => x && typeof x =
 const tMd = (s, inline) => markdown(el(inline ? 'span' : 'div', inline ? {} : { class: 'text' }), String(s ?? ''), inline);
 const tH = titel => titel && el('h3', { class: 't-titel' }, String(titel).slice(0, 120));
 const T_IKON = { x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>', haken: '<path d="M4.5 12.5l4.5 4.5L19.5 6.5"/>', datei: '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5A.5.5 0 0 1 6.5 20V4a.5.5 0 0 1 .5-.5z"/><path d="M13.5 3.5V8h4.5"/>',
-  kreis: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/>', stift: '<path d="M4.5 19.5l1-4L16 5l3 3L8.5 18.5z"/><path d="M13.5 7.5l3 3"/>', zurueck: '<path d="M14.5 6l-6 6 6 6"/>' };
+  kreis: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/>', stift: '<path d="M4.5 19.5l1-4L16 5l3 3L8.5 18.5z"/><path d="M13.5 7.5l3 3"/>', zurueck: '<path d="M14.5 6l-6 6 6 6"/>',
+  pin: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>' };
 const tIkon = n => { const s = el('span', { class: 't-ikon', 'aria-hidden': 'true' }); s.innerHTML = `<svg class="ic" viewBox="0 0 24 24">${T_IKON[n]}</svg>`; return s; };
 const THEMA_BAUSTEINE = {
   kern: b => b.text && el('p', { class: 't-kern' }, tMd(b.text, true)),
@@ -8630,6 +8761,10 @@ const THEMA_BAUSTEINE = {
   schritte: b => themaSchritte(b),
   vergleich: b => {
     const sp = (Array.isArray(b.spalten) ? b.spalten : []).slice(0, 4).map(String), z = tListe(b.zeilen, 8);
+    if (sp.length === 2 && z.length > 0) return [tH(b.titel), el('div', { class: 't-duell' },  // zwei Begriffe: gegenüber, das Merkmal in der Mitte
+      el('p', { class: 't-duell-kopf' }, el('b', {}, sp[0]), el('span', { class: 't-vs', 'aria-hidden': 'true' }, 'vs.'), el('b', {}, sp[1])),
+      z.map(r => el('p', { class: 't-duell-zeile' }, el('span', { class: 't-d-a' }, el('span', { class: 'sr' }, `${sp[0]}: `), tMd(r.werte?.[0] ?? '–', true)),
+        el('span', { class: 't-d-m' }, String(r.merkmal ?? '')), el('span', { class: 't-d-b' }, el('span', { class: 'sr' }, `${sp[1]}: `), tMd(r.werte?.[1] ?? '–', true)))))];
     return sp.length >= 2 && z.length > 0 && [tH(b.titel), tabelle(['', ...sp], z.map(r => [el('b', {}, String(r.merkmal ?? '')), ...sp.map((_, i) => tMd(r.werte?.[i] ?? '–', true))]))];
   },
   ablauf: b => {
@@ -8643,6 +8778,11 @@ const THEMA_BAUSTEINE = {
     el('p', { class: 't-falsch' }, tIkon('x'), el('span', {}, el('b', {}, 'Viele denken: '), tMd(b.falsch, true))),
     el('p', { class: 't-richtig' }, tIkon('haken'), el('span', {}, el('b', {}, 'Tatsächlich: '), tMd(b.richtig, true)))),
   quiz: (b, t) => themaQuiz(b, t),
+  raten: (b, t) => themaQuiz(b, t, true),
+  fall: (b, t) => themaFall(b, t),
+  folie: b => themaFolie(b),
+  sortieren: (b, t) => themaSortieren(b, t),
+  bezug: b => typeof b.text === 'string' && b.text.trim() && el('p', { class: 't-bezug' }, tIkon('pin'), el('span', {}, el('b', {}, 'Für dich: '), tMd(b.text, true))),
   offen: (b, t) => themaOffen(b, t),
   weiter: (b, t) => {
     const fragen = (Array.isArray(b.fragen) ? b.fragen : []).filter(x => typeof x === 'string' && x.trim()).slice(0, 3);
@@ -8651,7 +8791,10 @@ const THEMA_BAUSTEINE = {
   },
 };
 const themaBaustein = (t, b) => {  // was sich nicht zeichnen lässt (kaputtes JSON, unbekannte Formel), fehlt einfach
-  try { const e = THEMA_BAUSTEINE[b.typ]?.(b, t); return e ? el('div', { class: `t-baustein t-b-${b.typ}` }, e) : null; } catch { return null; }
+  try {
+    const e = THEMA_BAUSTEINE[b.typ]?.(b, t);
+    return e ? el('div', { class: `t-baustein t-b-${b.typ}${b.typ === 'raten' && !Number.isInteger(b.gewaehlt) ? ' offen' : ''}` }, e) : null;
+  } catch { return null; }
 };
 // Schaubild mit Reglern: Parameter in den Formeln, Punkte und Werte wandern mit; die Achse bleibt fest, damit man die Wirkung sieht
 function themaDiagramm(b) {
@@ -8706,12 +8849,20 @@ function themaSchritte(b) {
   zeige(false);
   return [tH(b.titel), ol, reihe];
 }
-function themaQuiz(b, t) {
+function themaQuiz(b, t, raten) {  // raten: vor der Erklärung; zählt nicht als Wissen, deckt danach den Rest auf
   const opt = tListe(b.optionen, 5).filter(o => o.text), ri = opt.findIndex(o => o.richtig === true);
   if (!b.frage || opt.length < 2 || opt.filter(o => o.richtig === true).length !== 1) return null;
   const box = el('div', { class: 't-quiz' });
   const zeige = () => {
     const g = Number.isInteger(b.gewaehlt) ? b.gewaehlt : null;
+    if (raten) return box.replaceChildren(...[el('p', { class: 't-eyebrow' }, 'Erst raten'), el('p', { class: 't-quiz-frage' }, tMd(b.frage, true)),
+      el('div', { class: 't-optionen', role: 'group', 'aria-label': 'Dein Tipp' }, opt.map((o, i) => el('button', {
+        type: 'button', class: `t-option${g == null ? '' : i === ri ? ' richtig' : i === g ? ' falsch' : ' aus'}`, 'aria-disabled': g == null ? null : 'true',
+        onclick: () => { if (g == null) waehle(i); } },
+      el('span', { class: 't-buchstabe', 'aria-hidden': 'true' }, 'ABCDE'[i]),
+      el('span', { class: 't-option-text' }, tMd(o.text, true), g != null && (i === ri || i === g) && o.warum && el('small', {}, String(o.warum)))))),
+      g == null ? el('p', { class: 'meta' }, 'Bauchgefühl reicht. Die Erklärung kommt, sobald du getippt hast.')
+        : el('p', { class: 'check-urteil', role: 'status', 'data-art': g === ri ? 'ja' : '' }, el('b', {}, g === ri ? 'Gut getippt. ' : 'Knapp daneben, genau dafür ist das Rätsel da. '), 'Unten steht, warum.')].filter(Boolean));
     box.replaceChildren(...[el('p', { class: 't-quiz-frage' }, tMd(b.frage, true)),
       el('div', { class: 't-optionen', role: 'group', 'aria-label': 'Antworten' }, opt.map((o, i) => el('button', {
         type: 'button', class: `t-option${g == null ? '' : i === ri ? ' richtig' : i === g ? ' falsch' : ' aus'}`, 'aria-disabled': g == null ? null : 'true',
@@ -8724,10 +8875,91 @@ function themaQuiz(b, t) {
   const waehle = i => {
     b.gewaehlt = i; zeige();
     box.querySelector('.check-urteil')?.focus?.();
+    if (raten) {
+      const w = box.closest('.t-baustein');
+      w?.classList.remove('offen');
+      if (w) themaVerdecken(w.parentNode);
+      if (t) themaSpaeter(t);
+      return;
+    }
     if (!t) return;
     const r = opt[ri];
     kartenDazu([{ f: t.fach || 'Themen', frage: String(b.frage), antwort: `${r.text}${r.warum ? `. ${r.warum}` : ''}`, gewusst: i === ri, datum: HEUTE }]);
     if (i === ri) t.sitzt = true;
+    themaSpaeter(t);
+  };
+  zeige();
+  return box;
+}
+// Fall: eine Lage, dann Entscheidungen nacheinander; jede zeigt ihre Folge, die nächste erscheint erst danach
+function themaFall(b, t) {
+  const ents = tListe(b.entscheidungen, 4).map(x => ({ frage: x.frage, opt: tListe(x.optionen, 4).filter(o => o.text) })).filter(x => x.frage && x.opt.length >= 2 && x.opt.some(o => o.gut === true));
+  if (!b.lage || !ents.length) return null;
+  const box = el('div', { class: 't-fall' });
+  const zeige = neu => {
+    const wahl = Array.isArray(b.wahl) ? b.wahl : [], n = Math.min(wahl.length + 1, ents.length), fertig = wahl.length >= ents.length;
+    box.replaceChildren(...[tH(b.titel), el('p', { class: 't-fall-lage' }, tMd(b.lage, true)),
+      el('ol', { class: 't-fall-weg' }, ents.slice(0, n).map((x, i) => {
+        const g = Number.isInteger(wahl[i]) ? wahl[i] : null, o = g != null && x.opt[g], gut = x.opt.find(y => y.gut === true);
+        return el('li', { class: neu && i === n - 1 ? 'neu' : null }, el('p', { class: 't-fall-frage' }, tMd(x.frage, true)),
+          el('div', { class: 't-optionen', role: 'group', 'aria-label': 'Deine Entscheidung' }, x.opt.map((y, j) => el('button', {
+            type: 'button', class: `t-option${g == null ? '' : j === g ? (y.gut === true ? ' richtig' : ' falsch') : ' aus'}`, 'aria-disabled': g == null ? null : 'true',
+            onclick: () => { if (g != null) return; b.wahl = [...wahl.slice(0, i), j]; zeige(true); if (t) themaSpaeter(t); } },
+          el('span', { class: 't-buchstabe', 'aria-hidden': 'true' }, 'ABCD'[j]), el('span', { class: 't-option-text' }, tMd(y.text, true))))),
+          o && el('div', { class: 't-folge', role: 'status', 'data-art': o.gut === true ? 'ja' : 'nein' }, o.folge && tMd(o.folge, true),
+            o.gut !== true && gut && el('small', {}, 'Besser wäre gewesen: ', tMd(gut.text, true))));
+      })),
+      fertig && el('p', { class: 'meta t-fall-ende' }, `${wahl.filter((g, i) => ents[i].opt[g]?.gut === true).length} von ${ents.length} Entscheidungen gut getroffen.`)].filter(Boolean));
+  };
+  zeige(false);
+  return box;
+}
+// Deine Folie: das wörtliche Zitat wie auf einem Blatt, die Markierungen mit Textmarker und Nummer, darunter die Erklärungen
+function themaFolie(b) {
+  if (!b.echt || typeof b.zitat !== 'string') return null;
+  const zitat = b.zitat.trim(), klein = zitat.toLowerCase(), treffer = [];
+  for (const m of tListe(b.markierungen, 4)) {
+    const s = String(m.stelle || '').trim(), i = s.length > 1 ? klein.indexOf(s.toLowerCase()) : -1;
+    if (i >= 0 && m.erklaerung && !treffer.some(x => i < x.i + x.n && x.i < i + s.length)) treffer.push({ i, n: s.length, erklaerung: m.erklaerung });
+  }
+  treffer.sort((x, y) => x.i - y.i);
+  const teile = [];
+  let pos = 0;
+  treffer.forEach((x, k) => { teile.push(zitat.slice(pos, x.i), el('mark', {}, zitat.slice(x.i, x.i + x.n), el('sup', {}, String(k + 1)))); pos = x.i + x.n; });
+  teile.push(zitat.slice(pos));
+  return el('figure', { class: 't-folie' },
+    el('figcaption', { class: 't-folie-kopf' }, tIkon('datei'), `${b.f} · ${String(b.datei || '').replace(/\.[a-z0-9]{2,4}$/i, '')}${b.seite ? `, S. ${b.seite}` : ''}`),
+    el('blockquote', { class: 't-folie-text' }, '„', ...teile, '“'),
+    treffer.length > 0 && el('ol', { class: 't-folie-notizen' }, treffer.map(x => el('li', {}, tMd(x.erklaerung, true)))));
+}
+// Sortieren: eine Karte nach der anderen in eine Gruppe legen; falsch gelegte landen im Karteikasten
+function themaSortieren(b, t) {
+  const gr = (Array.isArray(b.gruppen) ? b.gruppen : []).slice(0, 3).map(String).filter(Boolean);
+  const k = tListe(b.karten, 8).filter(x => x.text && Number.isInteger(x.gruppe) && x.gruppe >= 0 && x.gruppe < gr.length);
+  if (gr.length < 2 || k.length < 2) return null;
+  const box = el('div', { class: 't-sortieren' });
+  const gruppe = (zug, j) => el('div', { class: 't-sort-gruppe' }, el('h4', {}, gr[j]),
+    el('ul', {}, k.map((x, m) => zug[m] === j && el('li', { class: x.gruppe === j ? 'richtig' : 'falsch' }, tIkon(x.gruppe === j ? 'haken' : 'x'),
+      el('span', {}, tMd(x.text, true), x.gruppe !== j && el('small', {}, `gehört zu „${gr[x.gruppe]}“`), x.warum && el('small', {}, String(x.warum)))))));
+  const zeige = () => {
+    const zug = Array.isArray(b.zug) ? b.zug : [], i = zug.length, richtig = k.filter((x, j) => zug[j] === x.gruppe).length;
+    box.replaceChildren(...[tH(b.titel || 'Ordne zu'),
+      i < k.length ? el('div', { class: 't-sort-karte', 'aria-live': 'polite' }, el('span', { class: 'meta' }, `Karte ${i + 1} von ${k.length}`), el('p', {}, tMd(k[i].text, true)),
+        el('div', { class: 't-sort-wohin', role: 'group', 'aria-label': 'Wohin gehört das?' }, gr.map((g, j) => el('button', { class: 'knopf', type: 'button', onclick: () => lege(j) }, g))))
+        : el('p', { class: 'check-urteil', role: 'status', 'data-art': richtig === k.length ? 'ja' : 'nein' }, el('b', {}, `${richtig} von ${k.length} richtig. `),
+          richtig === k.length ? 'Sitzt.' : t && darf('karten') ? 'Die falsch gelegten liegen jetzt in deinem Karteikasten.' : ''),
+      el('div', { class: 't-sort-gruppen', style: `--n: ${gr.length}` }, gr.map((g, j) => gruppe(zug, j)))].filter(Boolean));
+  };
+  const lege = j => {
+    b.zug = [...(Array.isArray(b.zug) ? b.zug : []), j];
+    zeige();
+    box.querySelector('.t-sort-wohin .knopf')?.focus({ preventScroll: true });
+    if (!t) return;
+    themaSpaeter(t);
+    if (b.zug.length < k.length) return;
+    const falsch = k.filter((x, m) => b.zug[m] !== x.gruppe);
+    if (!falsch.length) t.sitzt = true;
+    kartenDazu(falsch.map(x => ({ f: t.fach || 'Themen', frage: `Wohin gehört „${x.text}“: ${gr.join(' oder ')}?`, antwort: `${gr[x.gruppe]}${x.warum ? `. ${x.warum}` : ''}`, gewusst: false, datum: HEUTE })));
     themaSpaeter(t);
   };
   zeige();
@@ -8763,8 +8995,11 @@ function themaFeld(gross) {
   const id = 'tf-' + ++chatNr, faecher = Object.keys(R);
   const feld = el('textarea', { id, rows: gross ? 3 : 2, maxlength: 600, enterkeyhint: 'go', placeholder: 'Etwa: Warum ist die Nachfrage nach Insulin so unelastisch?',
     oninput: e => { THEMA.entwurf = e.target.value; }, onkeydown: enterSendet }, THEMA.entwurf);
-  return el('form', { class: `t-feld${gross ? ' gross' : ''}`, onsubmit: e => { e.preventDefault(); themaNeu({ frage: feld.value, fach: THEMA.fach }); } },
+  return el('form', { class: `t-feld${gross ? ' gross' : ''}`, onsubmit: e => { e.preventDefault(); themaNeu({ frage: feld.value, fach: THEMA.fach, stand: THEMA.stand }); } },
     el('label', { for: id, class: 'sr' }, 'Was willst du verstehen?'), feld,
+    el('div', { class: 't-stand', role: 'group', 'aria-label': 'Wie gut kennst du das schon?' }, el('span', { class: 'meta' }, 'Wie gut kennst du das?'),
+      Object.entries(THEMA_STAND).map(([k, [name]]) => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.stand === k),
+        onclick: e => { THEMA.stand = THEMA.stand === k ? '' : k; for (const x of e.currentTarget.parentNode.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === e.currentTarget && THEMA.stand === k)); } }, name))),
     el('div', { class: 't-feld-fuss' },
       gross && faecher.length > 1 ? el('div', { class: 't-fachwahl', role: 'group', 'aria-label': 'Fach' }, ['', ...faecher].map(f => el('button', {
         type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.fach === f),
@@ -8796,12 +9031,14 @@ async function themaKurz() {  // Heute: das Feld, darunter die Vorbereitung auf 
 }
 const themaUnterzeile = t => el('p', { class: 'unterzeile', id: 't-unterzeile' }, t.fach && el('span', {}, t.fach), el('span', {}, datum(t.datum, { day: 'numeric', month: 'long' })),
   t.sitzt && el('span', { class: 'pille gelb' }, 'sitzt'));
-const themaQuellChips = q => q?.length ? [el('span', { class: 'meta' }, 'Aus deinen Unterlagen:'),
-  q.map(x => el('span', { class: 't-quelle' }, tIkon('datei'), `${x.f} · ${x.datei.replace(/\.[a-z0-9]{2,4}$/i, '')}${x.seite ? `, S. ${x.seite}` : ''}`))] : [];
+const themaQuellChips = (q, form) => [THEMA_FORMEN[form] && el('span', { class: 't-form-name' }, THEMA_FORMEN[form]),
+  ...(q?.length ? [el('span', { class: 'meta' }, 'Aus deinen Unterlagen:'),
+    q.map(x => el('span', { class: 't-quelle' }, tIkon('datei'), `${x.f} · ${x.datei.replace(/\.[a-z0-9]{2,4}$/i, '')}${x.seite ? `, S. ${x.seite}` : ''}`))] : [])].filter(Boolean);
 function themaRundeEl(t, r, i) {
   const bloecke = el('div', { class: 't-bloecke' }, r.bloecke.map(b => themaBaustein(t, b)));
-  const quellen = el('div', { class: 't-quellen' }, themaQuellChips(r.quellen));
-  const sektion = el('section', { class: 't-runde', 'aria-label': i ? `Rückfrage: ${r.frage}` : 'Erklärung' }, i > 0 && el('p', { class: 't-du' }, r.frage), quellen, bloecke);
+  themaVerdecken(bloecke);
+  const quellen = el('div', { class: 't-quellen' }, themaQuellChips(r.quellen, r.form));
+  const sektion = el('section', { class: 't-runde', 'data-form': r.form || null, 'aria-label': i ? `Rückfrage: ${r.frage}` : 'Erklärung' }, i > 0 && el('p', { class: 't-du' }, r.frage), quellen, bloecke);
   if (THEMA.job?.runde === r) Object.assign(THEMA.job, { ziel: bloecke, quellenZiel: quellen, sektion });
   return sektion;
 }
