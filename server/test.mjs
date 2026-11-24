@@ -932,6 +932,38 @@ try {
   assert.equal(antwort.ruf, 1); assert.equal(antwort.team, 1); assert.equal(th.beitraege[0].beitraege, 1);
   assert.equal((await chef('POST', '/api/forum/bearbeiten', { beitrag: th.beitraege[0].id, text: 'Gekapert, gekapert, gekapert.' })).status, 403, 'nur eigene');
   await lern('POST', '/api/forum/bearbeiten', { beitrag: th.beitraege[0].id, titel: 'Active Recall: so geht es richtig', text: neuerThread.text + ' Mit Studien.' });
+  // Stufe 2: Hinweise (Antwort, Zitat, @Erwähnung, Reaktion), Suche, Lesezeichen, Profil
+  assert.equal((await lern('GET', '/api/forum')).j.ich.hinweise, 0, 'Antwort im eigenen Thread, Thread schon angesehen');
+  assert.equal((await chef('GET', '/api/forum')).j.ich.hinweise, 1, 'Reaktion auf den eigenen Beitrag');
+  await leser('POST', '/api/forum/antwort', { thema: tid, text: '> **Lernhelfer-Team** schrieb:\n> Guter Guide, kommt ins Best of. @Maxi\n\nStimmt, danke @lena!' });
+  let hl = (await lern('GET', '/api/forum/hinweise')).j;
+  assert.deepEqual(hl.hinweise.map(h => [h.art, h.name, h.neu]), [['erwaehnung', 'Maxi', true], ['antwort', 'Lernhelfer-Team', false]]);
+  assert.equal(hl.ich.hinweise, 0, 'angesehen = gelesen');
+  assert.deepEqual((await chef('GET', '/api/forum/hinweise')).j.hinweise.map(h => [h.art, h.was]), [['zitat', null], ['reaktion', 'danke']], 'Zitat statt Antwort, Reaktion einmal');
+  assert.equal((await leser('GET', '/api/forum')).j.ich.hinweise, 0, 'sich selbst erwähnen zählt nicht');
+  await chef('POST', '/api/forum/antwort', { thema: tid, text: 'Gern.' });
+  await chef('POST', '/api/forum/antwort', { thema: tid, text: 'Noch ein Tipp.' });
+  assert.equal((await lern('GET', '/api/ich')).j.forumHinweise, 1, 'zusammengezählt');
+  hl = (await lern('GET', '/api/forum/hinweise')).j.hinweise;
+  assert.deepEqual([hl[0].art, hl[0].anzahl, hl[0].nr], ['antwort', 2, 4], 'zeigt auf die erste neue Antwort');
+  assert.equal((await leser('GET', '/api/forum/hinweise')).j.hinweise[0].anzahl, 2, 'wer mitgeschrieben hat, bekommt Antworten');
+  let su = (await leser('GET', '/api/forum/suche?q=abruf')).j.treffer;
+  assert.equal(su.length, 1); assert.equal(su[0].thema, tid); assert.equal(su[0].nr, 1); assert.match(su[0].auszug, /\u0002abrufen\u0003/);
+  assert.equal((await leser('GET', '/api/forum/suche?q=STUDIEN')).j.treffer.length, 1, 'Bearbeitetes ist gleich suchbar');
+  assert.equal((await leser('GET', '/api/forum/suche?q=recall%20richtig')).j.treffer[0].id, th.beitraege[0].id, 'Titel');
+  assert.equal((await leser('GET', '/api/forum/suche?q=%22)(*')).j.treffer.length, 0, 'Sonderzeichen');
+  await leser('POST', '/api/forum/lesezeichen', { beitrag: aid, an: true });
+  assert.equal((await leser('GET', `/api/forum/thema?id=${tid}`)).j.beitraege.find(x => x.id === aid).gemerkt, true);
+  assert.equal((await leser('GET', '/api/forum/lesezeichen')).j.lesezeichen[0].id, aid);
+  await leser('POST', '/api/forum/lesezeichen', { beitrag: aid, an: false });
+  assert.equal((await leser('GET', '/api/forum/lesezeichen')).j.lesezeichen.length, 0);
+  const pr = (await leser('GET', '/api/forum/profil?name=LENA')).j.profil;
+  assert.deepEqual([pr.name, pr.beitraege, pr.themen, pr.eigen, pr.konto], ['Lena', 1, 1, false, undefined]);
+  const tr = n => pr.trophaeen.find(t => t.name === n).hat;
+  assert.deepEqual([tr('Erster Beitrag'), tr('Guide-Autor:in'), tr('Gesprächig')], [true, true, false]);
+  assert.equal(pr.letzte[0].thema, tid);
+  assert.equal((await chef('GET', '/api/forum/profil?name=Lernhelfer-Team')).j.profil.reaktionen.stark, 1);
+  assert.equal((await leser('GET', '/api/forum/profil?name=niemand')).status, 404);
   // Melden → Mail an den Admin → Moderation entfernt mit Grund, Meldung erledigt sich mit
   await leser('POST', '/api/forum/melden', { beitrag: th.beitraege[0].id, grund: 'Enthält Lösungen zu einem laufenden Onlinetest.' });
   assert.match(log, /\[Mail an chef@example.com\] Lernhelfer: Forum-Beitrag gemeldet[\s\S]*Active Recall: so geht es richtig/);
@@ -951,6 +983,7 @@ try {
   const ersterT2 = (await lern('GET', `/api/forum/thema?id=${t2}`)).j.beitraege[0].id;
   assert.equal((await lern('POST', '/api/forum/loeschen', { beitrag: ersterT2 })).j.thema, null);
   assert.equal((await lern('GET', `/api/forum/thema?id=${t2}`)).status, 404);
+  assert.equal((await leser('GET', '/api/forum/suche?q=abruf')).j.treffer.length, 0, 'Entferntes und Gelöschtes nicht mehr in der Suche');
   await chef('POST', '/api/admin/forum', { konto: (await chef('GET', '/api/admin')).j.konten.find(x => x.email === lmail).id, sperren: true });
   assert.equal((await lern('POST', '/api/forum/thema', neuerThread)).status, 403, 'gesperrt');
   assert.equal((await chef('GET', '/api/admin')).j.forum.gesperrt[0].name, 'Lena');

@@ -783,6 +783,31 @@
   .fo-neu-form { display: grid; gap: 6px; max-width: 760px; }
   .fo-label { margin: 12px 0 2px; font-weight: 650; font-size: 0.875rem; }
   .fo-arten { margin: 0; }
+  .fo-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 0 0 18px; }
+  .fo-suche { display: flex; flex: 1 1 260px; gap: 6px; max-width: 440px; }
+  .fo-suche input { flex: 1; min-width: 0; }
+  .fo-meins { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-left: auto; font-size: 0.9375rem; }
+  .fo-meins a { display: inline-flex; align-items: center; gap: 6px; }
+  .fo-liste { margin: 0; padding: 0; border-top: 1px solid var(--linie); list-style: none; }
+  .fo-liste > li { display: grid; gap: 4px; padding: 12px 4px; border-bottom: 1px solid var(--linie); }
+  .fo-liste > li > a:first-child { color: var(--text); font-weight: 600; line-height: 1.35; text-decoration: none; }
+  .fo-liste .meta { font-size: 0.8125rem; }
+  .fo-auszug { margin: 0; color: var(--text-2); font-size: 0.9375rem; line-height: 1.45; overflow-wrap: anywhere; }
+  .fo-auszug mark { padding: 0 2px; border-radius: 3px; background: var(--akzent-flaeche); color: var(--text); font-weight: 650; }
+  .fo-hinweise > li { padding: 0; }
+  .fo-hinweise > li > a:first-child { display: flex; align-items: center; gap: 12px; padding: 10px 6px; font-weight: 450; }
+  .fo-hinweise > li[data-neu] { background: var(--akzent-flaeche); }
+  .fo-hinweise .meta { display: block; margin-top: 2px; }
+  .fo-profil { display: flex; align-items: center; gap: 16px; margin: 0 0 18px; }
+  .fo-profil .fo-avatar { width: 72px; height: 72px; font-size: 1.8rem; }
+  .fo-profil h1 { margin: 0 0 4px; }
+  .fo-zahlen { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+  .fo-zahlen div { min-width: 96px; padding: 8px 14px; border: 1px solid var(--linie); border-radius: 10px; }
+  .fo-zahlen dt { color: var(--text-2); font-size: 0.75rem; } .fo-zahlen dd { margin: 0; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fo-beitrag { scroll-margin-top: 16px; } .fo-beitrag.fo-ziel { outline: 2px solid var(--akzent); outline-offset: 3px; }
+  a.fo-p-name { color: var(--text); font-weight: 700; text-decoration: none; } a.fo-p-name:hover { text-decoration: underline; }
+  .fo-link[aria-pressed="true"] { color: var(--akzent-text); font-weight: 650; }
+  .navi a[data-hinweise]::after { content: attr(data-hinweise); margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; background: var(--akzent); color: var(--auf-akzent); font: 650 0.6875rem/1.4 var(--sans); text-align: center; }
   @media (max-width: 860px) { .fo-raster { grid-template-columns: 1fr; } }
   @media (max-width: 640px) {
     .fo-bereich { grid-template-columns: 1fr; } .fo-b-letzt { grid-column: 1; grid-row: auto; margin-top: 6px; }
@@ -791,6 +816,7 @@
     .fo-person { grid-template-columns: auto auto 1fr; justify-items: start; align-items: center; gap: 2px 10px; padding: 10px 14px; text-align: left; }
     .fo-person .fo-avatar { width: 36px; height: 36px; margin: 0; font-size: 1rem; } .fo-p-daten { display: none; }
     .fo-r span { display: none; }
+    .fo-meins { margin-left: 0; }
   }
   .arena-regeln { margin-top: 10px; color: var(--text-2); font-size: 0.875rem; }
   .arena-regeln summary { cursor: pointer; }
@@ -7476,6 +7502,7 @@ async function testStarten(e) {
 }
 function kontoZeile() {  // statt Guthaben: Tarif und wie viel vom KI-Kontingent des Monats genutzt ist
   if (!SERVER) return;
+  foMarke(ICH?.forumHinweise);
   for (const k of document.querySelectorAll('[data-kosten]'))
     k.replaceChildren(...!ICH || !TARIFE ? [] : [
       el('span', {}, ICH.test ? `Ultra-Test bis ${zeitpunkt(ICH.bis)}` : TARIFE.tarife[ICH.tarif].name + (ICH.bis ? ` bis ${new Date(ICH.bis).toLocaleDateString('de-AT')}` : '')),
@@ -10178,21 +10205,53 @@ const foRegeln = () => el('details', { class: 'fo-kasten fo-regeln' }, el('summa
   el('ol', {}, FO_REGELN.map(r => el('li', {}, r))),
   el('p', { class: 'klein' }, 'Verstöße kannst du bei jedem Beitrag melden. Entfernt die Moderation etwas, steht der Grund sichtbar dabei. Löschst du dein Konto, bleiben deine Beiträge ohne Namen stehen; vorher kannst du sie einzeln löschen.'));
 const foDarf = ich => ich.darf && ich.gewaehlt && !ich.gesperrt;
+const foRang = p => p.team ? 'Team' : FO_RANG.find(([ab]) => p.ruf >= ab)[1];
+const foZu = (thema, nr, id) => `#/forum/${thema}/${Math.max(1, Math.ceil(nr / 20))}/${id}`;  // Seite im Thread und Sprung zum Beitrag
+const foName = name => name ? el('a', { class: 'fo-p-name', href: '#/forum/mitglied/' + encodeURIComponent(name) }, name) : el('b', { class: 'fo-p-name' }, 'Gelöschtes Konto');
+const foKlartext = s => (s || '').replace(/```\w*/g, ' ').replace(/\\[()[\]]|[*`~]+/g, '').replace(/[#>|]+/g, ' ').replace(/\s+/g, ' ').trim();  // Auszüge ohne Markdown-Zeichen
+const foMarkiert = s => foKlartext(s).split(/[\u0002\u0003]/).map((t, i) => i % 2 ? el('mark', {}, t) : t);  // Fundstellen der Suche
+function foMarke(n) {  // Zahl ungelesener Hinweise am Forum-Link der Seitenleiste
+  if (ICH) ICH.forumHinweise = n || 0;
+  for (const a of document.querySelectorAll('.navi a[data-ansicht="forum"]')) n ? a.setAttribute('data-hinweise', n > 99 ? '99+' : n) : a.removeAttribute('data-hinweise');
+}
+function foLeiste(ich, wort = '') {  // über jeder Forum-Seite: Suche, Hinweise, Lesezeichen, eigenes Profil
+  foMarke(ich.hinweise);
+  return el('div', { class: 'fo-leiste' },
+    el('form', { class: 'fo-suche', role: 'search', onsubmit: e => {
+        e.preventDefault();
+        const w = e.target.elements.q.value.trim();
+        if (w.length > 1) location.hash = '#/forum/suche/' + encodeURIComponent(w);
+      } },
+      el('input', { type: 'search', name: 'q', value: wort, placeholder: 'Forum durchsuchen', 'aria-label': 'Forum durchsuchen', minlength: 2, maxlength: 100 }),
+      el('button', { class: 'knopf', type: 'submit' }, 'Suchen')),
+    el('nav', { class: 'fo-meins', 'aria-label': 'Mein Forum' },
+      el('a', { href: '#/forum/hinweise' }, 'Hinweise', ich.hinweise ? el('span', { class: 'fo-neu' }, String(ich.hinweise)) : null),
+      el('a', { href: '#/forum/lesezeichen' }, 'Lesezeichen'),
+      ich.gewaehlt && el('a', { href: '#/forum/mitglied/' + encodeURIComponent(ich.name) }, 'Mein Profil')));
+}
+// Liste aus Suche, Lesezeichen und Profil: Titel mit Sprung zum Beitrag, Auszug, wer und wann
+const foTreffer = (liste, extra) => el('ol', { class: 'fo-liste' }, liste.map(x => el('li', {},
+  el('a', { href: foZu(x.thema, x.nr, x.id) }, foPill(x.praefix), ' ', x.titel),
+  x.auszug ? el('p', { class: 'fo-auszug' }, foMarkiert(x.auszug)) : null,
+  el('span', { class: 'meta' }, [x.name !== undefined && (x.name || 'Gelöschtes Konto'), foZeit(x.erstellt), x.nr > 1 && `Beitrag #${x.nr}`].filter(Boolean).join(' · '), extra?.(x)))));
 
 async function forumZeigen() {
-  const s = $('forum'), h = location.hash, [, , a = '', b = ''] = h.split('/').map(decodeURIComponent);
+  const s = $('forum'), h = location.hash, [, , a = '', b = '', c = ''] = h.split('/').map(decodeURIComponent);
   if (!s.childElementCount) s.replaceChildren(el('p', { class: 'leer' }, 'Lade das Forum …'));
   try {
-    const inhalt = /^\d+$/.test(a) ? await foThread(Number(a), b || 1) : a === 'neu' ? await foNeu(b) : a ? await foBereich(a, b || 1) : await foStart();
+    const seiten = { neu: foNeu, suche: foSuche, hinweise: foHinweise, lesezeichen: foLesezeichen, mitglied: foMitglied };
+    const inhalt = /^\d+$/.test(a) ? await foThread(Number(a), b || 1) : seiten[a] ? await seiten[a](b) : a ? await foBereich(a, b || 1) : await foStart();
     if (location.hash !== h) return;  // inzwischen woanders
     s.replaceChildren(...inhalt.flat(Infinity).filter(Boolean));
     if (b === 'letzte') requestAnimationFrame(() => [...s.querySelectorAll('.fo-beitrag')].at(-1)?.scrollIntoView({ block: 'start' }));
+    else if (/^\d+$/.test(c)) requestAnimationFrame(() => { const z = $('b' + c); z?.classList.add('fo-ziel'); z?.scrollIntoView({ block: 'start' }); });
   } catch (e) { s.replaceChildren(el('p', { class: 'fehlertext' }, e.message)); }
 }
 
 async function foStart() {
   const d = await api('forum'), z = d.statistik;
   return [
+    foLeiste(d.ich),
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Forum'), el('p', { class: 'schlagzeile' }, 'Guides, Fragen und Lernlogs von Studierenden der Uni Innsbruck.')),
     foWillkommen(d.ich),
     el('div', { class: 'fo-raster' },
@@ -10233,6 +10292,7 @@ function foWillkommen(ich) {
 async function foBereich(id, seite) {
   const d = await api(`forum/bereich?id=${encodeURIComponent(id)}&seite=${seite}`), b = d.bereich, darf = foDarf(d.ich) && (!b.team || d.ich.team);
   return [
+    foLeiste(d.ich),
     foPfad([['#/forum', 'Forum']]),
     el('header', { class: 'ausgabe-kopf fo-kopf' }, el('h1', {}, b.name), el('p', { class: 'schlagzeile' }, b.text),
       darf && el('a', { class: 'knopf voll', href: `#/forum/neu/${b.id}` }, 'Neuer Thread')),
@@ -10251,7 +10311,7 @@ async function foBereich(id, seite) {
 
 function foEditor({ key, wert = '', titel, knopf, senden, abbrechen }) {  // titel: Startwert, wenn es ein Titelfeld braucht (neuer Thread, erster Beitrag)
   const feld = el('textarea', { class: 'fo-feld', id: 'fo-' + key, rows: 8, 'aria-label': 'Text', oninput: e => { FO.entwurf[key] = e.target.value; },
-    placeholder: 'Schreib hier. Markdown geht: **fett**, ## Überschrift, - Liste, > Zitat, Formeln mit \\( … \\)' });
+    placeholder: 'Schreib hier. Markdown geht: **fett**, ## Überschrift, - Liste, > Zitat, Formeln mit \\( … \\). Mit @Name erwähnst du jemanden.' });
   feld.value = FO.entwurf[key] ?? wert;
   const tf = titel != null && el('input', { type: 'text', class: 'fo-titel-feld', maxlength: 120, 'aria-label': 'Titel', value: FO.entwurf[key + ':t'] ?? titel,
     placeholder: 'Titel, möglichst konkret: z. B. „Active Recall mit Karteikarten: so geht es richtig“', oninput: e => { FO.entwurf[key + ':t'] = e.target.value; } });
@@ -10302,8 +10362,8 @@ async function foThread(id, seite) {
         abbrechen: () => { FO.bearbeiten = null; delete FO.entwurf['e' + p.id]; delete FO.entwurf['e' + p.id + ':t']; forumZeigen(); } })
       : foText(el('div', { class: 'fo-text' }), p.text);
     return el('article', { class: 'fo-beitrag', id: 'b' + p.id },
-      el('aside', { class: 'fo-person' }, foAvatar(p.name), el('b', { class: 'fo-p-name' }, p.name || 'Gelöschtes Konto'),
-        p.name && el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, p.team ? 'Team' : FO_RANG.find(([ab]) => p.ruf >= ab)[1]),
+      el('aside', { class: 'fo-person' }, foAvatar(p.name), foName(p.name),
+        p.name && el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)),
         p.name && el('dl', { class: 'fo-p-daten' }, [['Beiträge', p.beitraege], ['Ruf', p.ruf], p.xp > 0 && ['Arena', `Level ${LEVEL(p.xp)}`],
           ['Dabei seit', new Date(p.seit).toLocaleDateString('de-AT', { month: 'short', year: 'numeric' })]].filter(Boolean).map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]))),
       el('div', { class: 'fo-b-haupt' },
@@ -10316,6 +10376,7 @@ async function foThread(id, seite) {
             onclick: tun('forum/reaktion', { beitrag: p.id, art: meine === a ? '' : a }) }, zeichen, el('span', {}, name))),
           el('span', { class: 'fo-links' },
             darf && !t.zu && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => zitat(p) }, 'Zitieren'),
+            !p.weg && el('button', { type: 'button', class: 'fo-link', 'aria-pressed': String(p.gemerkt), onclick: tun('forum/lesezeichen', { beitrag: p.id, an: !p.gemerkt }) }, p.gemerkt ? 'Gemerkt' : 'Merken'),
             p.eigen && !p.weg && FO.bearbeiten !== p.id && [el('button', { type: 'button', class: 'fo-link', onclick: () => { FO.bearbeiten = p.id; forumZeigen(); } }, 'Bearbeiten'),
               el('button', { type: 'button', class: 'fo-link', onclick: () => loeschen(p) }, 'Löschen')],
             !p.eigen && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => melden(p) }, 'Melden'),
@@ -10326,6 +10387,7 @@ async function foThread(id, seite) {
             ich.mod && p.konto && !p.eigen && el('button', { type: 'button', class: 'fo-link', onclick: e => confirm(`${p.name} im Forum sperren? Lesen geht weiter.`) && tun('admin/forum', { konto: p.konto, sperren: true })(e) }, 'Sperren')))));
   };
   return [
+    foLeiste(ich),
     foPfad([['#/forum', 'Forum'], [`#/forum/${t.bereich}`, t.bereichName]]),
     el('header', { class: 'ausgabe-kopf fo-kopf' }, el('h1', {}, foPill(t.praefix), ' ', t.titel),
       el('p', { class: 'unterzeile' }, el('span', {}, foZeit(t.erstellt)), t.fach && el('span', {}, t.fach), el('span', {}, `${t.aufrufe} Aufrufe`), t.angeheftet ? el('span', {}, 'angeheftet') : null, t.zu ? el('span', {}, 'geschlossen') : null)),
@@ -10344,6 +10406,70 @@ async function foThread(id, seite) {
           const ziel = `#/forum/${t.id}/letzte`; if (location.hash === ziel) forumZeigen(); else location.hash = ziel;
         } }))
       : el('p', { class: 'leer' }, ich.darf ? [el('a', { href: '#/forum' }, 'Wähl deinen Namen'), ', dann kannst du antworten.'] : 'Zum Antworten bestätige zuerst deine E-Mail-Adresse.')),
+  ];
+}
+
+async function foSuche(wort) {
+  const d = await api('forum/suche?q=' + encodeURIComponent(wort)), n = d.treffer.length;
+  return [
+    foLeiste(d.ich, wort),
+    foPfad([['#/forum', 'Forum']]),
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, `Suche: ${wort}`),
+      el('p', { class: 'schlagzeile' }, n ? `${n === 40 ? 'Die besten 40' : n} ${n === 1 ? 'Treffer' : 'Treffer'} in Titeln und Beiträgen.` : 'Nichts gefunden. Versuch ein anderes Wort oder nur den Wortanfang, etwa „elastiz“.')),
+    n > 0 && foTreffer(d.treffer),
+  ];
+}
+
+const FO_HINWEIS = {
+  antwort: h => h.anzahl > 1 ? [`${h.anzahl} neue Antworten in `, el('b', {}, h.titel), `, zuletzt von ${h.name || 'Gelöschtes Konto'}`] : [el('b', {}, h.name || 'Gelöschtes Konto'), ' hat in ', el('b', {}, h.titel), ' geantwortet'],
+  zitat: h => [el('b', {}, h.name || 'Gelöschtes Konto'), ' hat dich in ', el('b', {}, h.titel), ' zitiert'],
+  erwaehnung: h => [el('b', {}, h.name || 'Gelöschtes Konto'), ' hat dich in ', el('b', {}, h.titel), ' erwähnt'],
+  reaktion: h => [el('b', {}, h.name || 'Gelöschtes Konto'), h.anzahl > 1 ? ` und ${h.anzahl - 1} ${h.anzahl === 2 ? 'weitere Person' : 'weitere'} haben` : ' hat',
+    ' auf deinen Beitrag in ', el('b', {}, h.titel), ` reagiert${h.anzahl > 1 ? '' : `: ${FO_REAKTION[h.was]?.join(' ') || ''}`}`],
+};
+async function foHinweise() {
+  const d = await api('forum/hinweise');
+  return [
+    foLeiste(d.ich),
+    foPfad([['#/forum', 'Forum']]),
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Hinweise'), el('p', { class: 'schlagzeile' }, 'Antworten in Threads, in denen du geschrieben hast, Zitate, @Erwähnungen und Reaktionen.')),
+    d.hinweise.length ? el('ol', { class: 'fo-liste fo-hinweise' }, d.hinweise.map(h => el('li', { 'data-neu': h.neu ? '' : null },
+      el('a', { href: foZu(h.thema, h.nr, h.beitrag) }, foAvatar(h.name), el('span', {}, FO_HINWEIS[h.art]?.(h) || h.art, el('span', { class: 'meta' }, foZeit(h.zeit)))))))
+      : el('p', { class: 'leer' }, 'Noch nichts. Hier landet, wenn jemand in deinen Threads antwortet, dich zitiert, mit @Name erwähnt oder auf deine Beiträge reagiert.'),
+  ];
+}
+
+async function foLesezeichen() {
+  const d = await api('forum/lesezeichen');
+  const weg = x => el('button', { type: 'button', class: 'fo-link', onclick: async e => {
+    e.currentTarget.disabled = true;
+    try { await api('forum/lesezeichen', { beitrag: x.id, an: false }); forumZeigen(); } catch (err) { status(err.message, true); }
+  } }, 'Entfernen');
+  return [
+    foLeiste(d.ich),
+    foPfad([['#/forum', 'Forum']]),
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Lesezeichen'), el('p', { class: 'schlagzeile' }, 'Beiträge, die du dir mit „Merken“ gespeichert hast. Nur du siehst sie.')),
+    d.lesezeichen.length ? foTreffer(d.lesezeichen, weg) : el('p', { class: 'leer' }, 'Noch keine. Unter jedem Beitrag steht „Merken“.'),
+  ];
+}
+
+async function foMitglied(name) {
+  const d = await api('forum/profil?name=' + encodeURIComponent(name)), p = d.profil, r = Object.entries(p.reaktionen);
+  const hat = p.trophaeen.filter(t => t.hat).length;
+  return [
+    foLeiste(d.ich),
+    foPfad([['#/forum', 'Forum']]),
+    el('header', { class: 'fo-profil' }, foAvatar(p.name),
+      el('div', {}, el('h1', {}, p.name),
+        el('p', { class: 'unterzeile' }, el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)),
+          el('span', {}, `dabei seit ${new Date(p.seit).toLocaleDateString('de-AT', { month: 'long', year: 'numeric' })}`)))),
+    el('dl', { class: 'fo-zahlen' }, [['Beiträge', p.beitraege], ['Threads', p.themen], ['Ruf', p.ruf], ['Trophäen', hat], p.xp > 0 ? ['Arena', `Level ${LEVEL(p.xp)}`] : null]
+      .filter(Boolean).map(([n, w]) => el('div', {}, el('dt', {}, n), el('dd', {}, String(w))))),
+    r.length ? el('p', { class: 'fo-reaktionen' }, 'Bekommen: ', r.map(([a, n]) => `${FO_REAKTION[a]?.[0] || ''} ${n}× ${FO_REAKTION[a]?.[1] || a}`).join(' · ')) : null,
+    el('section', { class: 'fo-kasten' }, el('h2', {}, `Trophäen: ${hat} von ${p.trophaeen.length}`),
+      el('ul', { class: 'arena-abzeichen' }, p.trophaeen.map(t => el('li', { class: t.hat ? 'hat' : null }, el('b', {}, `${t.zeichen} ${t.name}`), el('span', { class: 'meta' }, t.text))))),
+    el('section', {}, el('h2', {}, 'Letzte Beiträge'),
+      p.letzte.length ? foTreffer(p.letzte) : el('p', { class: 'leer' }, p.eigen ? 'Du hast noch nichts geschrieben.' : 'Noch nichts geschrieben.')),
   ];
 }
 

@@ -208,7 +208,18 @@ create table if not exists forum_reaktion (beitrag integer not null references f
 create table if not exists forum_gelesen (konto integer not null references konten(id) on delete cascade, thema integer not null references forum_thema(id) on delete cascade, bis integer not null,
   primary key (konto, thema));
 create table if not exists forum_meldung (id integer primary key, beitrag integer not null references forum_beitrag(id) on delete cascade, konto integer references konten(id) on delete set null,
-  grund text not null, zeit integer not null, erledigt integer not null default 0);`);
+  grund text not null, zeit integer not null, erledigt integer not null default 0);
+create table if not exists forum_hinweis (id integer primary key, konto integer not null references konten(id) on delete cascade, art text not null, was text,
+  von integer references konten(id) on delete set null, thema integer not null references forum_thema(id) on delete cascade,
+  beitrag integer references forum_beitrag(id) on delete cascade, zeit integer not null, anzahl integer not null default 1, gelesen integer not null default 0);
+create index if not exists forum_hinweis_konto on forum_hinweis (konto, gelesen);
+create table if not exists forum_lesezeichen (konto integer not null references konten(id) on delete cascade, beitrag integer not null references forum_beitrag(id) on delete cascade,
+  zeit integer not null, primary key (konto, beitrag));
+create virtual table if not exists forum_suche using fts5(titel, text, tokenize = 'unicode61 remove_diacritics 2');`);
+// Forum-Suche: rowid = Beitrag, nur sichtbare Beiträge, der Titel steht beim ersten. Beim ersten Start (oder falls je etwas auseinanderläuft) neu aufbauen
+const SUCHE_REIN = `insert into forum_suche (rowid, titel, text) select b.id, case when b.id = (select min(id) from forum_beitrag where thema = b.thema) then t.titel else '' end, b.text
+  from forum_beitrag b join forum_thema t on t.id = b.thema where b.weg = 0`;
+if (db.prepare('select count(*) n from forum_suche').get().n !== db.prepare('select count(*) n from forum_beitrag where weg = 0').get().n) db.exec(`delete from forum_suche; ${SUCHE_REIN}`);
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -424,6 +435,7 @@ function ich(k) {
     bestellung: db.prepare("select id, tarif, monate, betrag, rabatt, zweck, status from bestellungen where konto = ? and status in ('offen', 'gemeldet') order by id desc").get(k.id) || null,
     api: s.tarif === 'ultraplus' && k.or_key && k.or_an ? entschluesseln(k.or_key) : null,
     pc: !!db.prepare("select 1 from marken where konto = ? and art = 'sync'").get(k.id),
+    forumHinweise: ungelesen(k),
   };
 }
 
@@ -1065,6 +1077,7 @@ async function exportieren(req, res, k) {
       beitraege: db.prepare('select t.titel thread, b.text, b.erstellt, b.bearbeitet, b.weg from forum_beitrag b join forum_thema t on t.id = b.thema where b.konto = ? order by b.id').all(k.id)
         .map(x => ({ ...x, erstellt: iso(x.erstellt), bearbeitet: iso(x.bearbeitet) })),
       reaktionen: db.prepare('select beitrag, art from forum_reaktion where konto = ?').all(k.id),
+      lesezeichen: db.prepare('select beitrag, zeit from forum_lesezeichen where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
       meldungen: db.prepare('select beitrag, grund, zeit from forum_meldung where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })) },
   };
   const dateien = db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id);
@@ -1159,8 +1172,44 @@ function forumStart(k) {
 function forumIch(k) {  // gewaehlt: Forum-Name bestätigt; sonst schlägt die App den Arena-Spitznamen vor
   const p = db.prepare('select name, gesperrt from forum_profil where konto = ?').get(k.id);
   return { name: p?.name || db.prepare('select name from arena where konto = ?').get(k.id)?.name || null, gewaehlt: !!p, gesperrt: !!p?.gesperrt,
-    darf: darfSchreiben(k), bestaetigt: !!k.bestaetigt, team: istAdmin(k), mod: !!k.ecke };
+    darf: darfSchreiben(k), bestaetigt: !!k.bestaetigt, team: istAdmin(k), mod: !!k.ecke, hinweise: ungelesen(k) };
 }
+const suchIndex = id => { db.prepare('delete from forum_suche where rowid = ?').run(id); db.prepare(SUCHE_REIN + ' and b.id = ?').run(id); };
+const sucheOhneThema = thema => db.prepare('delete from forum_suche where rowid in (select id from forum_beitrag where thema = ?)').run(thema);
+const NR = '(select count(*) from forum_beitrag x where x.thema = b.thema and x.id <= b.id) nr';  // Nummer im Thread: daraus Seite und Sprungmarke
+const ungelesen = k => db.prepare('select count(*) n from forum_hinweis where konto = ? and gelesen = 0').get(k.id).n;
+// Hinweise: Zitat („> **Name** schrieb:“) und @Name immer, sonst „antwort“ an alle, die im Thread geschrieben haben. Ungelesene Antworten je Thread werden zusammengezählt
+function benachrichtigen(von, thema, beitrag, text, antwort) {
+  const an = new Map(), wer = n => db.prepare('select konto from forum_profil where name = ? collate nocase').get(n)?.konto;
+  for (const [, n] of text.matchAll(/^> \*\*(.{2,24}?)\*\* schrieb:/gm)) { const k = wer(n); if (k) an.set(k, 'zitat'); }
+  const eigen = text.replace(/^>.*$/gm, '');  // @Namen in Zitaten melden sich nicht noch einmal
+  for (const m of [...eigen.matchAll(/(?<![\p{L}\p{N}_@])@(?=[\p{L}\p{N}])/gu)].slice(0, 10)) {  // Namen können Leerzeichen haben: der längste, den es gibt
+    const rest = eigen.slice(m.index + 1, m.index + 25);
+    for (let i = rest.length; i >= 2; i--) {
+      if (/[\p{L}\p{N}_]/u.test(rest[i] || '')) continue;
+      const k = wer(rest.slice(0, i));
+      if (k) { if (!an.has(k)) an.set(k, 'erwaehnung'); break; }
+    }
+  }
+  if (antwort) for (const { konto } of db.prepare('select distinct konto from forum_beitrag where thema = ? and weg = 0 and konto is not null').all(thema)) if (!an.has(konto)) an.set(konto, 'antwort');
+  an.delete(von);
+  const z = jetzt();
+  for (const [konto, art] of an)
+    if (art !== 'antwort' || !db.prepare("update forum_hinweis set anzahl = anzahl + 1, von = ?, zeit = ? where konto = ? and thema = ? and art = 'antwort' and gelesen = 0").run(von, z, konto, thema).changes)
+      db.prepare('insert into forum_hinweis (konto, art, von, thema, beitrag, zeit) values (?, ?, ?, ?, ?, ?)').run(konto, art, von, thema, beitrag, z);
+}
+const TROPHAEEN = [  // aus den Zahlen berechnet, nicht gespeichert
+  ['✍️', 'Erster Beitrag', 'Den ersten Beitrag geschrieben.', s => s.beitraege >= 1],
+  ['💬', 'Gesprächig', '10 Beiträge geschrieben.', s => s.beitraege >= 10],
+  ['📚', 'Vielschreiber:in', '100 Beiträge geschrieben.', s => s.beitraege >= 100],
+  ['🧭', 'Guide-Autor:in', 'Einen Guide veröffentlicht.', s => s.guides >= 1],
+  ['📈', 'Drangeblieben', '5 Lernlogs eröffnet.', s => s.lernlogs >= 5],
+  ['💡', 'Hilfreich', '10-mal als hilfreich markiert.', s => s.hilfreich >= 10],
+  ['🔦', 'Sehr hilfreich', '50-mal als hilfreich markiert.', s => s.hilfreich >= 50],
+  ['👀', 'Gern gelesen', 'Ein eigener Thread mit 100 Aufrufen.', s => s.aufrufe >= 100],
+  ['🏆', 'Best of', 'Ein eigener Thread steht im Best of.', s => s.best >= 1],
+  ['🎂', 'Ein Jahr dabei', 'Seit einem Jahr im Forum.', s => jetzt() - s.seit >= 365 * TAG],
+];
 
 /* ---------- Routen ---------- */
 const SPIEL_ORTE = new Map();  // Lernhof: Konto → letzter gemeldeter Ort
@@ -1463,7 +1512,7 @@ const ROUTEN = {
     const neu = challengesPruefen(k.id);  // vor dem Stand, sonst fehlen geschaffte Challenges darin
     return { ...arenaStand(k), ergebnis: { ...e.ergebnis, methode: d.methode, fach: d.fach, teil: d.teil, ernsthaft: e.ernsthaft, xp, gedeckelt: e.ernsthaft && !zaehlt, neu } };
   },
-  // Forum: lesen mit jedem Konto; schreiben und reagieren nur mit bestätigter Uni-Adresse und Forum-Namen (schreiber)
+  // Forum: lesen mit jedem Konto; schreiben und reagieren mit bestätigter Adresse und Forum-Namen (schreiber)
   'GET /api/forum': ({ k }) => forumStart(forumDa(k)),
   'POST /api/forum/name': ({ k, b }) => {
     forumDa(k);
@@ -1486,17 +1535,19 @@ const ROUTEN = {
     forumDa(k);
     const t = forumThema(q.get('id')), n = db.prepare('select count(*) n from forum_beitrag where thema = ?').get(t.id).n, seiten = Math.max(1, Math.ceil(n / SEITE));
     const seite = q.get('seite') === 'letzte' ? seiten : Math.min(seiten, Math.max(1, parseInt(q.get('seite')) || 1));
-    const beitraege = db.prepare(`select b.id, b.konto, b.text, b.erstellt, b.bearbeitet, b.weg, b.grund, ${AUTOR}
+    const beitraege = db.prepare(`select b.id, b.konto, b.text, b.erstellt, b.bearbeitet, b.weg, b.grund, ${AUTOR},
+        exists (select 1 from forum_lesezeichen l where l.beitrag = b.id and l.konto = ?2) gemerkt
       from forum_beitrag b left join forum_profil p on p.konto = b.konto left join konten k on k.id = b.konto
       where b.thema = ?3 order by b.id limit ?4 offset ?5`).all(ADMIN, k.id, t.id, SEITE, (seite - 1) * SEITE);
     const ids = beitraege.map(x => x.id), reaktionen = ids.length ? db.prepare(`select r.beitrag, r.art, r.konto = ? meine, p.name from forum_reaktion r
       left join forum_profil p on p.konto = r.konto where r.beitrag in (${ids.map(() => '?').join()}) order by r.rowid desc`).all(k.id, ...ids) : [];
     db.prepare('update forum_thema set aufrufe = aufrufe + 1 where id = ?').run(t.id);
     if (beitraege.length) gelesen(k.id, t.id, seite === seiten ? t.letzte : beitraege.at(-1).erstellt);
+    db.prepare('update forum_hinweis set gelesen = 1 where konto = ? and thema = ? and gelesen = 0').run(k.id, t.id);  // Thread angesehen: seine Hinweise sind erledigt
     const erst = erster(t.id), mod = !!k.ecke;
     return {
       thema: { ...t, konto: undefined, letzter: undefined, eigen: t.konto === k.id, bereichName: FORUM.find(x => x.id === t.bereich)?.name || t.bereich },
-      beitraege: beitraege.map(({ konto, ...x }) => ({ ...x, eigen: konto === k.id, erster: x.id === erst, konto: mod ? konto : undefined,
+      beitraege: beitraege.map(({ konto, ...x }) => ({ ...x, eigen: konto === k.id, gemerkt: !!x.gemerkt, erster: x.id === erst, konto: mod ? konto : undefined,
         text: x.weg && !(mod && x.weg === 2) ? '' : x.text, reaktionen: reaktionen.filter(r => r.beitrag === x.id).map(({ art, name, meine }) => ({ art, name, meine: !!meine })) })),
       seite, seiten, ich: forumIch(k), bereiche: mod ? FORUM.map(({ id, name }) => ({ id, name })) : undefined,
     };
@@ -1510,8 +1561,8 @@ const ROUTEN = {
     const fach = String(b.fach || '').replace(/\s+/g, ' ').trim().slice(0, 40) || null;
     const id = Number(db.prepare('insert into forum_thema (bereich, praefix, fach, titel, konto, erstellt, letzte, letzter) values (?, ?, ?, ?, ?, ?, ?, ?)')
       .run(ber.id, b.praefix, fach, titel, k.id, t, t, k.id).lastInsertRowid);
-    db.prepare('insert into forum_beitrag (thema, konto, text, erstellt) values (?, ?, ?, ?)').run(id, k.id, text, t);
-    gelesen(k.id, id, t);
+    const bid = Number(db.prepare('insert into forum_beitrag (thema, konto, text, erstellt) values (?, ?, ?, ?)').run(id, k.id, text, t).lastInsertRowid);
+    gelesen(k.id, id, t); suchIndex(bid); benachrichtigen(k.id, id, bid, text, false);
     return { id };
   },
   'POST /api/forum/antwort': ({ req, k, b }) => {
@@ -1520,7 +1571,7 @@ const ROUTEN = {
     if (t.zu && !istAdmin(k)) nein(403, 'Dieser Thread ist geschlossen.');
     const id = Number(db.prepare('insert into forum_beitrag (thema, konto, text, erstellt) values (?, ?, ?, ?)').run(t.id, k.id, text, z).lastInsertRowid);
     db.prepare('update forum_thema set antworten = antworten + 1, letzte = ?, letzter = ? where id = ?').run(z, k.id, t.id);
-    gelesen(k.id, t.id, z);
+    gelesen(k.id, t.id, z); suchIndex(id); benachrichtigen(k.id, t.id, id, text, true);
     return { id };
   },
   'POST /api/forum/bearbeiten': ({ req, k, b }) => {  // nur eigene, nicht gelöschte Beiträge; beim ersten Beitrag auch den Titel
@@ -1529,16 +1580,17 @@ const ROUTEN = {
     if (p.konto !== k.id || p.weg) nein(403, 'Du kannst nur deine eigenen Beiträge bearbeiten.');
     db.prepare('update forum_beitrag set text = ?, bearbeitet = ? where id = ?').run(forumText(b.text, p.id === erster(p.thema) ? 20 : 2, 30000, 'Text'), jetzt(), p.id);
     if (b.titel != null && p.id === erster(p.thema)) db.prepare('update forum_thema set titel = ? where id = ?').run(forumText(b.titel, 5, 120, 'Titel').replace(/\s+/g, ' '), p.thema);
+    suchIndex(p.id);
   },
   'POST /api/forum/loeschen': ({ k, b }) => {  // eigener Beitrag: Text weg, Platzhalter bleibt; ein Thread ohne Antworten verschwindet ganz
     forumDa(k);
     const p = forumBeitrag(b.beitrag);
     if (p.konto !== k.id) nein(403, 'Du kannst nur deine eigenen Beiträge löschen.');
     if (p.id === erster(p.thema) && !db.prepare('select 1 from forum_beitrag where thema = ? and id != ? and weg = 0').get(p.thema, p.id)) {
-      db.prepare('delete from forum_thema where id = ?').run(p.thema);
+      sucheOhneThema(p.thema); db.prepare('delete from forum_thema where id = ?').run(p.thema);
       return { thema: null };
     }
-    db.prepare("update forum_beitrag set weg = 1, text = '' where id = ?").run(p.id);
+    db.prepare("update forum_beitrag set weg = 1, text = '' where id = ?").run(p.id); suchIndex(p.id);
     return { thema: p.thema };
   },
   'POST /api/forum/reaktion': ({ req, k, b }) => {  // art leer: zurücknehmen
@@ -1548,7 +1600,11 @@ const ROUTEN = {
     if (p.weg) nein(410, 'Dieser Beitrag ist gelöscht.');
     if (!b.art) return void db.prepare('delete from forum_reaktion where beitrag = ? and konto = ?').run(p.id, k.id);
     if (!REAKTIONEN.includes(b.art)) nein(400, 'Diese Reaktion gibt es nicht.');
+    const neu = !db.prepare('select 1 from forum_reaktion where beitrag = ? and konto = ?').get(p.id, k.id);
     db.prepare('insert into forum_reaktion (beitrag, konto, art) values (?, ?, ?) on conflict (beitrag, konto) do update set art = excluded.art').run(p.id, k.id, b.art);
+    if (neu && p.konto && !db.prepare("update forum_hinweis set anzahl = anzahl + 1, von = ?, was = ?, zeit = ? where konto = ? and beitrag = ? and art = 'reaktion' and gelesen = 0")
+      .run(k.id, b.art, jetzt(), p.konto, p.id).changes)
+      db.prepare("insert into forum_hinweis (konto, art, was, von, thema, beitrag, zeit) values (?, 'reaktion', ?, ?, ?, ?, ?)").run(p.konto, b.art, k.id, p.thema, p.id, jetzt());
   },
   'POST /api/forum/melden': async ({ req, k, b }) => {  // jedes Konto; der Admin bekommt eine Mail, damit er schnell reagieren kann (DSA, ECG § 16)
     forumDa(k); bremse(req, 10, String(k.id));
@@ -1556,6 +1612,57 @@ const ROUTEN = {
     if (db.prepare('select 1 from forum_meldung where beitrag = ? and konto = ? and erledigt = 0').get(p.id, k.id)) return;
     db.prepare('insert into forum_meldung (beitrag, konto, grund, zeit) values (?, ?, ?, ?)').run(p.id, k.id, grund, jetzt());
     if (ADMIN) await mail(ADMIN, 'Lernhelfer: Forum-Beitrag gemeldet', `Gemeldet wurde ein Beitrag in „${forumThema(p.thema).titel}“.\n\nGrund: ${grund}\n\n${BASIS}/app#/forum/${p.thema}\nAdmin-Ecke → Forum${gruss}`);
+  },
+  'GET /api/forum/suche': ({ k, q }) => {  // jedes Wort als Wortanfang, alle müssen vorkommen; Fundstellen zwischen \x02 und \x03
+    forumDa(k);
+    const woerter = (String(q.get('q') || '').normalize('NFKC').match(/[\p{L}\p{N}]+/gu) || []).slice(0, 8);
+    const treffer = woerter.join('').length < 2 ? [] : db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, p.name, ${NR},
+        snippet(forum_suche, -1, char(2), char(3), ' … ', 24) auszug
+      from forum_suche join forum_beitrag b on b.id = forum_suche.rowid join forum_thema t on t.id = b.thema left join forum_profil p on p.konto = b.konto
+      where forum_suche match ? order by forum_suche.rank limit 40`).all(woerter.map(w => `"${w}"*`).join(' '));
+    return { treffer, ich: forumIch(k) };
+  },
+  'GET /api/forum/hinweise': ({ k }) => {  // ansehen = gelesen; gelesene verschwinden nach 60 Tagen
+    forumDa(k);
+    db.prepare('delete from forum_hinweis where konto = ? and gelesen = 1 and zeit < ?').run(k.id, jetzt() - 60 * TAG);
+    const hinweise = db.prepare(`select h.id, h.art, h.was, h.thema, h.beitrag, h.zeit, h.anzahl, h.gelesen = 0 neu, p.name, t.titel,
+        (select count(*) from forum_beitrag x where x.thema = h.thema and x.id <= h.beitrag) nr
+      from forum_hinweis h join forum_thema t on t.id = h.thema left join forum_profil p on p.konto = h.von where h.konto = ? order by h.zeit desc, h.id desc limit 50`).all(k.id);
+    db.prepare('update forum_hinweis set gelesen = 1 where konto = ? and gelesen = 0').run(k.id);
+    return { hinweise: hinweise.map(h => ({ ...h, neu: !!h.neu })), ich: forumIch(k) };
+  },
+  'GET /api/forum/lesezeichen': ({ k }) => {
+    forumDa(k);
+    return { lesezeichen: db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, b.weg, p.name, ${NR}, case when b.weg then '' else substr(b.text, 1, 300) end auszug
+      from forum_lesezeichen l join forum_beitrag b on b.id = l.beitrag join forum_thema t on t.id = b.thema left join forum_profil p on p.konto = b.konto
+      where l.konto = ? order by l.zeit desc limit 500`).all(k.id), ich: forumIch(k) };
+  },
+  'POST /api/forum/lesezeichen': ({ k, b }) => {
+    forumDa(k);
+    const p = forumBeitrag(b.beitrag);
+    if (!b.an) return void db.prepare('delete from forum_lesezeichen where konto = ? and beitrag = ?').run(k.id, p.id);
+    db.prepare('insert or ignore into forum_lesezeichen (konto, beitrag, zeit) values (?, ?, ?)').run(k.id, p.id, jetzt());
+  },
+  'GET /api/forum/profil': ({ k, q }) => {  // Zahlen wie auf der Personenkarte, Reaktionen nach Art, Trophäen, die letzten 10 Beiträge
+    forumDa(k);
+    const s = db.prepare(`select ${AUTOR}, b.konto,
+        (select count(*) from forum_thema where konto = b.konto) themen,
+        (select count(*) from forum_thema where konto = b.konto and praefix = 'guide') guides,
+        (select count(*) from forum_thema where konto = b.konto and praefix = 'lernlog') lernlogs,
+        (select count(*) from forum_thema where konto = b.konto and bereich = 'best') best,
+        (select coalesce(max(aufrufe), 0) from forum_thema where konto = b.konto) aufrufe
+      from forum_profil p join konten k on k.id = p.konto join forum_profil b on b.konto = p.konto where p.name = ?2 collate nocase`).get(ADMIN, String(q.get('name') || ''))
+      || nein(404, 'Dieses Mitglied gibt es nicht (mehr).');
+    const reaktionen = Object.fromEntries(db.prepare(`select r.art, count(*) n from forum_reaktion r join forum_beitrag x on x.id = r.beitrag
+      where x.konto = ? and r.konto != x.konto and x.weg = 0 group by r.art`).all(s.konto).map(x => [x.art, x.n]));
+    const stand = { ...s, hilfreich: reaktionen.hilfreich || 0 };
+    return {
+      profil: { name: s.name, seit: s.seit, team: !!s.team, beitraege: s.beitraege, themen: s.themen, ruf: s.ruf, xp: s.xp, reaktionen, eigen: s.konto === k.id,
+        trophaeen: TROPHAEEN.map(([zeichen, name, text, ok]) => ({ zeichen, name, text, hat: ok(stand) })),
+        letzte: db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, ${NR}, substr(b.text, 1, 300) auszug from forum_beitrag b join forum_thema t on t.id = b.thema
+          where b.konto = ? and b.weg = 0 order by b.id desc limit 10`).all(s.konto) },
+      ich: forumIch(k),
+    };
   },
   'POST /api/nutzung': ({ k, b }) => { muss(k); if (MELDBAR.has(b.was)) zaehlen(k.id, b.was); },  // Seite geöffnet, gesperrte Funktion angetippt, PDF
   'POST /api/fehler': async ({ req, k, b }) => {  // „Fehler melden“, auch ohne Konto (etwa beim Registrieren); 5 je 15 Minuten
@@ -1697,7 +1804,7 @@ const ROUTEN = {
     admin(k);
     if (b.thema) {
       const t = forumThema(b.thema);
-      if (b.loeschen) return void db.prepare('delete from forum_thema where id = ?').run(t.id);
+      if (b.loeschen) { sucheOhneThema(t.id); return void db.prepare('delete from forum_thema where id = ?').run(t.id); }
       if (b.angeheftet != null) db.prepare('update forum_thema set angeheftet = ? where id = ?').run(b.angeheftet ? 1 : 0, t.id);
       if (b.zu != null) db.prepare('update forum_thema set zu = ? where id = ?').run(b.zu ? 1 : 0, t.id);
       if (b.bereich) db.prepare('update forum_thema set bereich = ? where id = ?').run((FORUM.find(x => x.id === b.bereich) || nein(400, 'Diesen Bereich gibt es nicht.')).id, t.id);
@@ -1705,7 +1812,7 @@ const ROUTEN = {
     if (b.beitrag) {
       const p = forumBeitrag(b.beitrag);
       if (p.weg === 1) nein(409, 'Den Beitrag hat die Person selbst gelöscht.');
-      db.prepare('update forum_beitrag set weg = ?, grund = ? where id = ?').run(b.weg ? 2 : 0, b.weg ? forumText(b.grund, 3, 300, 'Grund') : null, p.id);
+      db.prepare('update forum_beitrag set weg = ?, grund = ? where id = ?').run(b.weg ? 2 : 0, b.weg ? forumText(b.grund, 3, 300, 'Grund') : null, p.id); suchIndex(p.id);
       if (b.weg) db.prepare('update forum_meldung set erledigt = ? where beitrag = ? and erledigt = 0').run(jetzt(), p.id);
     }
     if (b.meldung) db.prepare('update forum_meldung set erledigt = ? where id = ?').run(jetzt(), Number(b.meldung));
