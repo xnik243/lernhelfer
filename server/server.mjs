@@ -1150,12 +1150,18 @@ function schreiber(req, k, max) {  // schreiben und reagieren: bestätigte Adres
 const gelesen = (konto, thema, bis) => db.prepare('insert into forum_gelesen (konto, thema, bis) values (?, ?, ?) on conflict (konto, thema) do update set bis = max(bis, excluded.bis)').run(konto, thema, bis);
 const erster = thema => db.prepare('select min(id) id from forum_beitrag where thema = ?').get(thema).id;
 const NEU_SEIT = () => jetzt() - 30 * TAG;  // ältere Threads gelten nie als neu (wie bei XenForo)
+// Lernstufe 0–3 aus Tagen mit Nutzung in den letzten 30 Tagen (ohne Forum, Konto, Tarife, Anleitung): ab 4 Bronze, ab 10 Silber, ab 20 Gold.
+// Nach außen geht nur die Stufe, nicht die Tageszahl.
+const STUFE = `(select (count(distinct n.tag) >= 4) + (count(distinct n.tag) >= 10) + (count(distinct n.tag) >= 20) from nutzung n
+  where n.konto = b.konto and n.tag >= date('now', '-29 days') and n.was not in ('seite:forum', 'seite:einstellungen', 'seite:upgrade', 'seite:anleitung')
+    and n.was not like 'gesperrt:%') stufe`;
 // Personenkarte neben jedem Beitrag: Beiträge, Ruf (Reaktionen anderer), Arena-XP nur bei Teilnahme, Team
 const AUTOR = `p.name, k.erstellt seit, p.abzeichen, k.email = ?1 and k.bestaetigt team,
   (select count(*) from forum_beitrag x where x.konto = b.konto and x.weg = 0) beitraege,
   (select count(*) from forum_reaktion r join forum_beitrag x on x.id = r.beitrag where x.konto = b.konto and r.konto != b.konto and x.weg = 0
     and r.art not in ('wut', 'ekel', 'runter')) ruf,
-  (select coalesce(sum(xp), 0) from arena_xp a where a.konto = b.konto and exists (select 1 from arena where konto = b.konto and aus = 0)) xp`;
+  (select coalesce(sum(xp), 0) from arena_xp a where a.konto = b.konto and exists (select 1 from arena where konto = b.konto and aus = 0)) xp,
+  ${STUFE}`;
 function forumStart(k) {
   const t = jetzt(), da = [...IM_FORUM].filter(([, z]) => t - z < 15 * 60e3).map(([id]) => id);
   const zahlen = Object.fromEntries(db.prepare('select bereich, count(*) themen, count(*) + sum(antworten) beitraege from forum_thema group by bereich').all().map(x => [x.bereich, x]));
@@ -1676,7 +1682,7 @@ const ROUTEN = {
     forumDa(k);
     const { s, reaktionen, trophaeen } = forumStand('p.name = ?2 collate nocase', String(q.get('name') || ''));
     return {
-      profil: { name: s.name, seit: s.seit, team: !!s.team, beitraege: s.beitraege, themen: s.themen, ruf: s.ruf, xp: s.xp, reaktionen, eigen: s.konto === k.id,
+      profil: { name: s.name, seit: s.seit, team: !!s.team, beitraege: s.beitraege, themen: s.themen, ruf: s.ruf, xp: s.xp, stufe: s.stufe, reaktionen, eigen: s.konto === k.id,
         abzeichen: s.abzeichen, trophaeen,
         letzte: db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, ${NR}, substr(b.text, 1, 300) auszug from forum_beitrag b join forum_thema t on t.id = b.thema
           where b.konto = ? and b.weg = 0 order by b.id desc limit 10`).all(s.konto) },

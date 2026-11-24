@@ -758,6 +758,16 @@
   .fo-t-haupt .meta { display: block; margin-top: 3px; font-size: 0.8125rem; }
   .fo-t-zahl, .fo-t-letzt { color: var(--text-2); font-size: 0.8125rem; font-variant-numeric: tabular-nums; line-height: 1.35; text-align: right; text-decoration: none; }
   .fo-avatar { display: inline-grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: hsl(var(--h) 70% 60% / 0.3); color: var(--text); font-weight: 750; font-size: 1.05rem; }
+  /* Lernstufe: Ring um den Avatar, Gold glänzt zusätzlich */
+  .fo-avatar[data-stufe] { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 6px var(--ring); }
+  [data-stufe="bronze"] { --ring: #c27c45; } [data-stufe="silber"] { --ring: #8d9aa8; } [data-stufe="gold"] { --ring: #dca72a; }
+  .fo-avatar[data-stufe="silber"] { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 6px var(--ring), 0 0 10px 2px rgb(141 154 168 / 0.45); }
+  .fo-avatar[data-stufe="gold"] { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 6px var(--ring), 0 0 18px 5px rgb(220 167 42 / 0.55); }
+  .fo-person:has(.fo-avatar[data-stufe="gold"]) { background: linear-gradient(rgb(220 167 42 / 0.14), transparent 55%); }
+  .fo-stufe { padding: 0 7px; border-radius: 999px; background: var(--ring); color: #fff; font-weight: 700; }
+  .fo-stufe[data-stufe="gold"] { color: #2a1d00; }
+  .fo-stufe-text { margin: 6px 0 0; color: var(--text-2); font-size: 0.8125rem; }
+  .fo-stufe-text::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: var(--ring); vertical-align: 0.05em; }
   .fo-beitrag { display: grid; grid-template-columns: 148px minmax(0, 1fr); margin: 14px 0; border: 1px solid var(--linie); border-radius: 12px; overflow: hidden; }
   .fo-beitrag.fo-weg { display: block; padding: 12px 18px; }
   .fo-person { display: grid; align-content: start; justify-items: center; gap: 4px; padding: 16px 10px; background: var(--bg-2); text-align: center; }
@@ -10297,10 +10307,14 @@ function foEntwurf(bereich, praefix, fach, titel, text) {  // „Im Forum fragen
   Object.assign(FO.entwurf, { [key]: text, [key + ':t']: titel, [key + ':p']: praefix, [key + ':f']: R[fach] ? fach : '' });
   location.hash = '#/forum/neu/' + bereich;
 }
-const foAvatar = name => {
+// Lernstufe vom Server (Tage mit Nutzung in den letzten 30): Ring um den Avatar, automatisch
+const FO_STUFE = [null, ['bronze', 'Bronze', 'an 4+'], ['silber', 'Silber', 'an 10+'], ['gold', 'Gold', 'an 20+']];
+const foStufe = s => FO_STUFE[s] && `${FO_STUFE[s][1]}: hat ${FO_STUFE[s][2]} der letzten 30 Tage mit dem Lernhelfer gelernt`;
+const foAvatar = (name, stufe) => {
   let h = 0; for (const c of name || '?') h = (h * 31 + c.codePointAt(0)) % 360;
-  return el('span', { class: 'fo-avatar', style: `--h:${h}`, 'aria-hidden': 'true' }, [...(name || '?')][0].toUpperCase());
+  return el('span', { class: 'fo-avatar', style: `--h:${h}`, 'data-stufe': FO_STUFE[stufe]?.[0] || null, title: foStufe(stufe) || null, 'aria-hidden': 'true' }, [...(name || '?')][0].toUpperCase());
 };
+const foDatum = (t, lang) => new Date(t).toLocaleDateString('de-AT', lang ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: '2-digit', month: '2-digit', year: 'numeric' });
 const foPill = p => el('span', { class: 'fo-praefix', 'data-p': p }, FO_PRAEFIX[p] || p);
 const foPfad = teile => el('nav', { class: 'fo-pfad', 'aria-label': 'Pfad' }, teile.map(([h, n]) => el('a', { href: h }, n)));
 const foSeiten = (basis, seite, seiten) => seiten > 1 && el('nav', { class: 'fo-seiten', 'aria-label': 'Seiten' },
@@ -10472,11 +10486,12 @@ async function foThread(id, seite) {
         abbrechen: () => { FO.bearbeiten = null; delete FO.entwurf['e' + p.id]; delete FO.entwurf['e' + p.id + ':t']; forumZeigen(); } })
       : foText(el('div', { class: 'fo-text' }), p.text, t.fach);
     return el('article', { class: 'fo-beitrag', id: 'b' + p.id },
-      el('aside', { class: 'fo-person' }, foAvatar(p.name), foName(p.name),
+      el('aside', { class: 'fo-person' }, foAvatar(p.name, p.stufe), foName(p.name),
         p.name && el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)),
         p.name && p.abzeichen && el('span', { class: 'fo-abzeichen' }, p.abzeichen),
         p.name && el('dl', { class: 'fo-p-daten' }, [['Beiträge', p.beitraege], ['Ruf', p.ruf], p.xp > 0 && ['Arena', `Level ${LEVEL(p.xp)}`],
-          ['Dabei seit', new Date(p.seit).toLocaleDateString('de-AT', { month: 'short', year: 'numeric' })]].filter(Boolean).map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]))),
+          p.stufe > 0 && ['Lernstufe', el('span', { class: 'fo-stufe', 'data-stufe': FO_STUFE[p.stufe][0], title: foStufe(p.stufe) }, FO_STUFE[p.stufe][1])],
+          ['Dabei seit', foDatum(p.seit)]].filter(Boolean).map(([n, w]) => [el('dt', {}, n), el('dd', {}, typeof w === 'object' ? w : String(w))]))),
       el('div', { class: 'fo-b-haupt' },
         el('p', { class: 'fo-b-meta' }, el('span', {}, foZeit(p.erstellt), p.bearbeitet ? ` · bearbeitet` : ''), el('span', {}, `#${(d.seite - 1) * 20 + i + 1}`)),
         p.weg === 2 && el('p', { class: 'fehlertext' }, `Entfernt, nur die Moderation sieht den Text. Grund: ${p.grund}`),
@@ -10580,10 +10595,11 @@ async function foMitglied(name) {
   return [
     foLeiste(d.ich),
     foPfad([['#/forum', 'Forum']]),
-    el('header', { class: 'fo-profil' }, foAvatar(p.name),
+    el('header', { class: 'fo-profil' }, foAvatar(p.name, p.stufe),
       el('div', {}, el('h1', {}, p.name),
         el('p', { class: 'unterzeile' }, el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)), p.abzeichen && el('span', { class: 'fo-abzeichen' }, p.abzeichen),
-          el('span', {}, `dabei seit ${new Date(p.seit).toLocaleDateString('de-AT', { month: 'long', year: 'numeric' })}`)))),
+          el('span', {}, `dabei seit ${foDatum(p.seit, true)}`)),
+        p.stufe > 0 && el('p', { class: 'fo-stufe-text', 'data-stufe': FO_STUFE[p.stufe][0] }, foStufe(p.stufe)))),
     el('dl', { class: 'fo-zahlen' }, [['Beiträge', p.beitraege], ['Threads', p.themen], ['Ruf', p.ruf], ['Trophäen', hat], p.xp > 0 ? ['Level', LEVEL(p.xp)] : null]
       .filter(Boolean).map(([n, w]) => el('div', {}, el('dt', {}, n), el('dd', {}, String(w))))),
     r.length ? el('p', { class: 'fo-reaktionen' }, 'Bekommen: ', r.map(([a, n]) => `${FO_REAKTION[a]?.[0] || ''} ${n}× ${FO_REAKTION[a]?.[1] || a}`).join(' · ')) : null,

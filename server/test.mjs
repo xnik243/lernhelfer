@@ -964,6 +964,18 @@ try {
   assert.equal(pr.letzte[0].thema, tid);
   assert.equal((await chef('GET', '/api/forum/profil?name=Lernhelfer-Team')).j.profil.reaktionen.stark, 1);
   assert.equal((await leser('GET', '/api/forum/profil?name=niemand')).status, 404);
+  // Lernstufe: Tage mit Nutzung in 30 Tagen, Forum zählt nicht, nach außen nur die Stufe
+  const sdb = new DatabaseSync(join(ordner, 'lernhelfer.db')), lid = sdb.prepare('select id from konten where email = ?').get(lmail).id;
+  const tagVor = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10), stufe = async () => (await leser('GET', '/api/forum/profil?name=Lena')).j.profil.stufe;
+  for (let n = 1; n <= 12; n++) sdb.prepare("insert or ignore into nutzung (konto, was, tag, n) values (?, 'seite:forum', ?, 1)").run(lid, tagVor(n));
+  assert.equal(await stufe(), 0, 'Forum zählt nicht');
+  for (let n = 1; n <= 8; n++) sdb.prepare("insert or ignore into nutzung (konto, was, tag, n) values (?, 'thema', ?, 1)").run(lid, tagVor(n));
+  sdb.prepare("insert into nutzung (konto, was, tag, n) values (?, 'thema', ?, 1)").run(lid, tagVor(40));
+  assert.equal(await stufe(), 1, '8 Tage + heute aus den Tests davor (+1 zu alt) = Bronze');
+  sdb.prepare("insert or ignore into nutzung (konto, was, tag, n) values (?, 'karten', ?, 1)").run(lid, tagVor(15));
+  assert.equal(await stufe(), 2, '10 Tage = Silber');
+  assert.equal((await leser('GET', `/api/forum/thema?id=${tid}`)).j.beitraege[0].stufe, 2);
+  sdb.prepare("delete from nutzung where konto = ? and tag != ?").run(lid, tagVor(0)); sdb.close();
   // Stufe 3: „Hilfreich“ bringt XP (5, höchstens 25 am Tag), andere Reaktion oder zurücknehmen nimmt sie wieder; Abzeichen; ähnliche Threads; neuestes Mitglied
   const xpVon = async p => (await p('GET', '/api/arena')).j.xp, chefXp = await xpVon(chef);
   await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'hilfreich' });
@@ -1013,7 +1025,7 @@ try {
   assert.equal(lexp.status, 200);
   console.log('Forum: ok');
 } catch (e) {
-  console.error(log);
+  console.error(log); console.error(e);
   throw e;
 } finally {
   server.kill(); attrappe.close(); campus.close();
