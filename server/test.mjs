@@ -964,6 +964,28 @@ try {
   assert.equal(pr.letzte[0].thema, tid);
   assert.equal((await chef('GET', '/api/forum/profil?name=Lernhelfer-Team')).j.profil.reaktionen.stark, 1);
   assert.equal((await leser('GET', '/api/forum/profil?name=niemand')).status, 404);
+  // Stufe 3: „Hilfreich“ bringt XP (5, höchstens 25 am Tag), andere Reaktion oder zurücknehmen nimmt sie wieder; Abzeichen; ähnliche Threads; neuestes Mitglied
+  const xpVon = async p => (await p('GET', '/api/arena')).j.xp, chefXp = await xpVon(chef);
+  await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'hilfreich' });
+  await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'hilfreich' });
+  assert.equal(await xpVon(chef), chefXp + 5, 'hilfreich: 5 XP, nicht doppelt');
+  await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'stark' });
+  assert.equal(await xpVon(chef), chefXp, 'andere Reaktion: XP wieder weg');
+  const t3 = (await chef('POST', '/api/forum/thema', { bereich: 'stoff', praefix: 'karten', titel: 'Karteikarten zu Active Recall', text: '```karten\nRecall :: Aus dem Kopf holen\n```' })).j.id;
+  const t3d = (await lern('GET', `/api/forum/thema?id=${t3}`)).j;
+  assert.deepEqual(t3d.aehnlich.map(x => x.id), [tid], 'ähnliche Threads über den Titel');
+  for (let i = 0; i < 5; i++) await chef('POST', '/api/forum/antwort', { thema: t3, text: 'Tipp ' + i });
+  for (const p of (await lern('GET', `/api/forum/thema?id=${t3}`)).j.beitraege) await lern('POST', '/api/forum/reaktion', { beitrag: p.id, art: 'hilfreich' });
+  assert.equal(await xpVon(chef), chefXp + 25, 'höchstens 25 am Tag');
+  await lern('POST', '/api/forum/reaktion', { beitrag: t3d.beitraege[0].id, art: '' });
+  assert.equal(await xpVon(chef), chefXp + 20, 'zurückgenommen');
+  assert.equal((await lern('POST', '/api/forum/abzeichen', { name: 'Best of' })).status, 400, 'nur verdiente Trophäen');
+  await lern('POST', '/api/forum/abzeichen', { name: 'Guide-Autor:in' });
+  assert.equal((await leser('GET', `/api/forum/thema?id=${tid}`)).j.beitraege[0].abzeichen, '🧭 Guide-Autor:in');
+  assert.equal((await leser('GET', '/api/forum/profil?name=Lena')).j.profil.abzeichen, '🧭 Guide-Autor:in');
+  await lern('POST', '/api/forum/abzeichen', { name: '' });
+  assert.equal((await leser('GET', '/api/forum/profil?name=Lena')).j.profil.abzeichen, null);
+  assert.equal((await leser('GET', '/api/forum')).j.statistik.neuestes, 'Lernhelfer-Team');
   // Melden → Mail an den Admin → Moderation entfernt mit Grund, Meldung erledigt sich mit
   await leser('POST', '/api/forum/melden', { beitrag: th.beitraege[0].id, grund: 'Enthält Lösungen zu einem laufenden Onlinetest.' });
   assert.match(log, /\[Mail an chef@example.com\] Lernhelfer: Forum-Beitrag gemeldet[\s\S]*Active Recall: so geht es richtig/);

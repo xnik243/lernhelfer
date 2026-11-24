@@ -220,6 +220,7 @@ create virtual table if not exists forum_suche using fts5(titel, text, tokenize 
 const SUCHE_REIN = `insert into forum_suche (rowid, titel, text) select b.id, case when b.id = (select min(id) from forum_beitrag where thema = b.thema) then t.titel else '' end, b.text
   from forum_beitrag b join forum_thema t on t.id = b.thema where b.weg = 0`;
 if (db.prepare('select count(*) n from forum_suche').get().n !== db.prepare('select count(*) n from forum_beitrag where weg = 0').get().n) db.exec(`delete from forum_suche; ${SUCHE_REIN}`);
+try { db.exec('alter table forum_profil add column abzeichen text'); } catch {}  // gewählte Trophäe neben dem Namen („🏆 Best of“)
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -1126,8 +1127,9 @@ const FORUM = [
   ['uni', 'Uni-Leben', 'Innsbruck, Studium, Organisatorisches.'],
   ['offtopic', 'Off Topic', 'Alles andere.'],
 ].map(([id, name, text, team]) => ({ id, name, text, team: !!team }));
-const PRAEFIXE = ['guide', 'frage', 'diskussion', 'lernlog', 'motivation', 'dampf', 'news'];  // news nur fürs Team
+const PRAEFIXE = ['guide', 'frage', 'diskussion', 'lernlog', 'karten', 'motivation', 'dampf', 'news'];  // news nur fürs Team
 const REAKTIONEN = ['hilfreich', 'stark', 'danke', 'haha'];
+const FORUM_XP = 5, FORUM_XP_TAG = 25;  // Arena: „Hilfreich“ von anderen bringt 5 XP, höchstens 25 am Tag (gegen Absprachen)
 const SEITE = 20, IM_FORUM = new Map();  // Konto → letzter Forum-Aufruf, für „online“ (nur im Speicher)
 const forumDa = k => { IM_FORUM.set(muss(k).id, jetzt()); return k; };
 const forumText = (s, min, max, was) => {
@@ -1149,7 +1151,7 @@ const gelesen = (konto, thema, bis) => db.prepare('insert into forum_gelesen (ko
 const erster = thema => db.prepare('select min(id) id from forum_beitrag where thema = ?').get(thema).id;
 const NEU_SEIT = () => jetzt() - 30 * TAG;  // ältere Threads gelten nie als neu (wie bei XenForo)
 // Personenkarte neben jedem Beitrag: Beiträge, Ruf (Reaktionen anderer), Arena-XP nur bei Teilnahme, Team
-const AUTOR = `p.name, p.seit, k.email = ?1 and k.bestaetigt team,
+const AUTOR = `p.name, p.seit, p.abzeichen, k.email = ?1 and k.bestaetigt team,
   (select count(*) from forum_beitrag x where x.konto = b.konto and x.weg = 0) beitraege,
   (select count(*) from forum_reaktion r join forum_beitrag x on x.id = r.beitrag where x.konto = b.konto and r.konto != b.konto and x.weg = 0) ruf,
   (select coalesce(sum(xp), 0) from arena_xp a where a.konto = b.konto and exists (select 1 from arena where konto = b.konto and aus = 0)) xp`;
@@ -1165,7 +1167,7 @@ function forumStart(k) {
       order by t.letzte desc limit 8`).all(),
     online: da.length, teamOnline: da.some(id => istAdmin(kontoMit(id) || {})),
     statistik: { themen: Object.values(zahlen).reduce((s, x) => s + x.themen, 0), beitraege: Object.values(zahlen).reduce((s, x) => s + x.beitraege, 0),
-      mitglieder: db.prepare('select count(*) n from forum_profil').get().n },
+      mitglieder: db.prepare('select count(*) n from forum_profil').get().n, neuestes: db.prepare('select name from forum_profil order by seit desc limit 1').get()?.name || null },
     ich: forumIch(k),
   };
 }
@@ -1210,6 +1212,21 @@ const TROPHAEEN = [  // aus den Zahlen berechnet, nicht gespeichert
   ['🏆', 'Best of', 'Ein eigener Thread steht im Best of.', s => s.best >= 1],
   ['🎂', 'Ein Jahr dabei', 'Seit einem Jahr im Forum.', s => jetzt() - s.seit >= 365 * TAG],
 ];
+function forumStand(bed, wert) {  // Zahlen wie auf der Personenkarte, Reaktionen nach Art, Trophäen; bed: Bedingung auf p mit ?2
+  const s = db.prepare(`select ${AUTOR}, b.konto,
+      (select count(*) from forum_thema where konto = b.konto) themen,
+      (select count(*) from forum_thema where konto = b.konto and praefix = 'guide') guides,
+      (select count(*) from forum_thema where konto = b.konto and praefix = 'lernlog') lernlogs,
+      (select count(*) from forum_thema where konto = b.konto and bereich = 'best') best,
+      (select coalesce(max(aufrufe), 0) from forum_thema where konto = b.konto) aufrufe
+    from forum_profil p join konten k on k.id = p.konto join forum_profil b on b.konto = p.konto where ${bed}`).get(ADMIN, wert)
+    || nein(404, 'Dieses Mitglied gibt es nicht (mehr).');
+  const reaktionen = Object.fromEntries(db.prepare(`select r.art, count(*) n from forum_reaktion r join forum_beitrag x on x.id = r.beitrag
+    where x.konto = ? and r.konto != x.konto and x.weg = 0 group by r.art`).all(s.konto).map(x => [x.art, x.n]));
+  const stand = { ...s, hilfreich: reaktionen.hilfreich || 0 };
+  return { s, reaktionen, trophaeen: TROPHAEEN.map(([zeichen, name, text, ok]) => ({ zeichen, name, text, hat: ok(stand) })) };
+}
+const STOPP = new Set('aber alle auch dann dass dein deine eine einem einen einer eines frage habe hilfe kann kein keine mein meine mich nach nicht noch oder schon sein sind warum weil wenn wird wieso'.split(' '));
 
 /* ---------- Routen ---------- */
 const SPIEL_ORTE = new Map();  // Lernhof: Konto → letzter gemeldeter Ort
@@ -1544,12 +1561,14 @@ const ROUTEN = {
     db.prepare('update forum_thema set aufrufe = aufrufe + 1 where id = ?').run(t.id);
     if (beitraege.length) gelesen(k.id, t.id, seite === seiten ? t.letzte : beitraege.at(-1).erstellt);
     db.prepare('update forum_hinweis set gelesen = 1 where konto = ? and thema = ? and gelesen = 0').run(k.id, t.id);  // Thread angesehen: seine Hinweise sind erledigt
-    const erst = erster(t.id), mod = !!k.ecke;
+    const erst = erster(t.id), mod = !!k.ecke, woerter = [...new Set(t.titel.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) || [])].filter(w => !STOPP.has(w)).slice(0, 8);
+    const aehnlich = woerter.length ? db.prepare(`select t.id, t.titel, t.praefix, t.antworten, t.letzte from forum_suche s join forum_beitrag b on b.id = s.rowid join forum_thema t on t.id = b.thema
+      where forum_suche match ? and t.id != ? order by rank limit 5`).all(`titel : (${woerter.map(w => `"${w}"`).join(' OR ')})`, t.id) : [];
     return {
       thema: { ...t, konto: undefined, letzter: undefined, eigen: t.konto === k.id, bereichName: FORUM.find(x => x.id === t.bereich)?.name || t.bereich },
       beitraege: beitraege.map(({ konto, ...x }) => ({ ...x, eigen: konto === k.id, gemerkt: !!x.gemerkt, erster: x.id === erst, konto: mod ? konto : undefined,
         text: x.weg && !(mod && x.weg === 2) ? '' : x.text, reaktionen: reaktionen.filter(r => r.beitrag === x.id).map(({ art, name, meine }) => ({ art, name, meine: !!meine })) })),
-      seite, seiten, ich: forumIch(k), bereiche: mod ? FORUM.map(({ id, name }) => ({ id, name })) : undefined,
+      seite, seiten, aehnlich, ich: forumIch(k), bereiche: mod ? FORUM.map(({ id, name }) => ({ id, name })) : undefined,
     };
   },
   'POST /api/forum/thema': ({ req, k, b }) => {
@@ -1598,10 +1617,14 @@ const ROUTEN = {
     const p = forumBeitrag(b.beitrag);
     if (p.konto === k.id) nein(400, 'Eigene Beiträge kannst du nicht bewerten.');
     if (p.weg) nein(410, 'Dieser Beitrag ist gelöscht.');
-    if (!b.art) return void db.prepare('delete from forum_reaktion where beitrag = ? and konto = ?').run(p.id, k.id);
+    const xpArt = `forum:${p.id}:${k.id}`, xpWeg = () => p.konto && db.prepare('delete from arena_xp where konto = ? and art = ?').run(p.konto, xpArt);  // zurückgenommen: XP wieder weg
+    if (!b.art) { db.prepare('delete from forum_reaktion where beitrag = ? and konto = ?').run(p.id, k.id); xpWeg(); return; }
     if (!REAKTIONEN.includes(b.art)) nein(400, 'Diese Reaktion gibt es nicht.');
     const neu = !db.prepare('select 1 from forum_reaktion where beitrag = ? and konto = ?').get(p.id, k.id);
     db.prepare('insert into forum_reaktion (beitrag, konto, art) values (?, ?, ?) on conflict (beitrag, konto) do update set art = excluded.art').run(p.id, k.id, b.art);
+    if (b.art !== 'hilfreich') xpWeg();
+    else if (p.konto && !db.prepare('select 1 from arena_xp where konto = ? and art = ?').get(p.konto, xpArt)
+      && db.prepare("select coalesce(sum(xp), 0) n from arena_xp where konto = ? and tag = ? and art like 'forum:%'").get(p.konto, wienTag()).n < FORUM_XP_TAG) xpBuchen(p.konto, xpArt, FORUM_XP);
     if (neu && p.konto && !db.prepare("update forum_hinweis set anzahl = anzahl + 1, von = ?, was = ?, zeit = ? where konto = ? and beitrag = ? and art = 'reaktion' and gelesen = 0")
       .run(k.id, b.art, jetzt(), p.konto, p.id).changes)
       db.prepare("insert into forum_hinweis (konto, art, was, von, thema, beitrag, zeit) values (?, 'reaktion', ?, ?, ?, ?, ?)").run(p.konto, b.art, k.id, p.thema, p.id, jetzt());
@@ -1643,22 +1666,17 @@ const ROUTEN = {
     if (!b.an) return void db.prepare('delete from forum_lesezeichen where konto = ? and beitrag = ?').run(k.id, p.id);
     db.prepare('insert or ignore into forum_lesezeichen (konto, beitrag, zeit) values (?, ?, ?)').run(k.id, p.id, jetzt());
   },
+  'POST /api/forum/abzeichen': ({ req, k, b }) => {  // eine verdiente Trophäe neben dem Namen zeigen; name leer: keine
+    schreiber(req, k, 30);
+    const t = b.name ? forumStand('p.konto = ?2', k.id).trophaeen.find(x => x.hat && x.name === b.name) || nein(400, 'Diese Trophäe hast du noch nicht.') : null;
+    db.prepare('update forum_profil set abzeichen = ? where konto = ?').run(t && `${t.zeichen} ${t.name}`, k.id);
+  },
   'GET /api/forum/profil': ({ k, q }) => {  // Zahlen wie auf der Personenkarte, Reaktionen nach Art, Trophäen, die letzten 10 Beiträge
     forumDa(k);
-    const s = db.prepare(`select ${AUTOR}, b.konto,
-        (select count(*) from forum_thema where konto = b.konto) themen,
-        (select count(*) from forum_thema where konto = b.konto and praefix = 'guide') guides,
-        (select count(*) from forum_thema where konto = b.konto and praefix = 'lernlog') lernlogs,
-        (select count(*) from forum_thema where konto = b.konto and bereich = 'best') best,
-        (select coalesce(max(aufrufe), 0) from forum_thema where konto = b.konto) aufrufe
-      from forum_profil p join konten k on k.id = p.konto join forum_profil b on b.konto = p.konto where p.name = ?2 collate nocase`).get(ADMIN, String(q.get('name') || ''))
-      || nein(404, 'Dieses Mitglied gibt es nicht (mehr).');
-    const reaktionen = Object.fromEntries(db.prepare(`select r.art, count(*) n from forum_reaktion r join forum_beitrag x on x.id = r.beitrag
-      where x.konto = ? and r.konto != x.konto and x.weg = 0 group by r.art`).all(s.konto).map(x => [x.art, x.n]));
-    const stand = { ...s, hilfreich: reaktionen.hilfreich || 0 };
+    const { s, reaktionen, trophaeen } = forumStand('p.name = ?2 collate nocase', String(q.get('name') || ''));
     return {
       profil: { name: s.name, seit: s.seit, team: !!s.team, beitraege: s.beitraege, themen: s.themen, ruf: s.ruf, xp: s.xp, reaktionen, eigen: s.konto === k.id,
-        trophaeen: TROPHAEEN.map(([zeichen, name, text, ok]) => ({ zeichen, name, text, hat: ok(stand) })),
+        abzeichen: s.abzeichen, trophaeen,
         letzte: db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, ${NR}, substr(b.text, 1, 300) auszug from forum_beitrag b join forum_thema t on t.id = b.thema
           where b.konto = ? and b.weg = 0 order by b.id desc limit 10`).all(s.konto) },
       ich: forumIch(k),

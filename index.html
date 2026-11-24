@@ -736,6 +736,7 @@
   .fo-praefix[data-p="guide"] { background: var(--zettel); color: #121212; }
   .fo-praefix[data-p="frage"] { background: var(--akzent-flaeche); color: var(--akzent-text); }
   .fo-praefix[data-p="news"] { background: var(--akzent); color: var(--auf-akzent); }
+  .fo-praefix[data-p="karten"] { background: var(--bg); box-shadow: inset 0 0 0 1px var(--linie-2); }
   h1 .fo-praefix { font-size: 0.42em; vertical-align: 0.4em; }
   .fo-pfad { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 0.875rem; }
   .fo-pfad a + a::before { content: "›"; margin-right: 6px; color: var(--text-3); }
@@ -755,6 +756,16 @@
   .fo-p-name { overflow-wrap: anywhere; }
   .fo-rang { color: var(--text-2); font-size: 0.75rem; font-weight: 650; }
   .fo-rang[data-team] { padding: 1px 8px; border-radius: 4px; background: var(--akzent); color: var(--auf-akzent); }
+  .fo-abzeichen { padding: 1px 9px; border: 1px solid var(--akzent); border-radius: 999px; background: var(--akzent-flaeche); color: var(--akzent-text); font-size: 0.75rem; font-weight: 650; white-space: nowrap; }
+  .fo-karten { margin: 1em 0; padding: 12px 14px 14px; border: 1px solid var(--linie); border-radius: 12px; background: var(--bg-2); }
+  .fo-karten figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0 0 10px; font-weight: 700; }
+  .fo-karten figcaption .meta { font-size: 0.8125rem; font-weight: 400; }
+  .fo-k-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .fo-k { height: 100%; padding: 10px 12px; border: 1px solid var(--linie); border-top: 3px solid var(--zettel); border-radius: 8px; background: var(--bg); }
+  .fo-k summary { cursor: pointer; font-weight: 650; line-height: 1.35; list-style: none; } .fo-k summary::-webkit-details-marker { display: none; }
+  .fo-k > div { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--linie-2); color: var(--text-2); font-size: 0.9375rem; line-height: 1.45; }
+  .fo-karten .knopfreihe { margin-top: 12px; }
+  .fo-aehnlich { margin-top: 28px; }
   .fo-p-daten { display: grid; grid-template-columns: auto auto; gap: 2px 10px; margin: 8px 0 0; color: var(--text-2); font-size: 0.75rem; text-align: left; }
   .fo-p-daten dd { margin: 0; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
   .fo-b-haupt { display: flex; flex-direction: column; min-width: 0; padding: 12px 18px; }
@@ -807,17 +818,21 @@
   .fo-beitrag { scroll-margin-top: 16px; } .fo-beitrag.fo-ziel { outline: 2px solid var(--akzent); outline-offset: 3px; }
   a.fo-p-name { color: var(--text); font-weight: 700; text-decoration: none; } a.fo-p-name:hover { text-decoration: underline; }
   .fo-link[aria-pressed="true"] { color: var(--akzent-text); font-weight: 650; }
+  .fo-zeigen { justify-self: start; margin: 2px 0 -6px -6px; text-align: left; }
+  .fo-profil .unterzeile { align-items: center; }
   .navi a[data-hinweise]::after { content: attr(data-hinweise); margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; background: var(--akzent); color: var(--auf-akzent); font: 650 0.6875rem/1.4 var(--sans); text-align: center; }
   @media (max-width: 860px) { .fo-raster { grid-template-columns: 1fr; } }
   @media (max-width: 640px) {
     .fo-bereich { grid-template-columns: 1fr; } .fo-b-letzt { grid-column: 1; grid-row: auto; margin-top: 6px; }
     .fo-thread { grid-template-columns: 36px minmax(0, 1fr); } .fo-thread .fo-avatar { width: 36px; height: 36px; } .fo-t-zahl, .fo-t-letzt { display: none; }
     .fo-beitrag { grid-template-columns: 1fr; }
-    .fo-person { grid-template-columns: auto auto 1fr; justify-items: start; align-items: center; gap: 2px 10px; padding: 10px 14px; text-align: left; }
+    .fo-person { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 14px; text-align: left; }
     .fo-person .fo-avatar { width: 36px; height: 36px; margin: 0; font-size: 1rem; } .fo-p-daten { display: none; }
     .fo-r span { display: none; }
     .fo-meins { margin-left: 0; }
+    .fo-zahlen { flex-wrap: nowrap; gap: 6px; } .fo-zahlen div { flex: 1 1 0; min-width: 0; padding: 6px 8px; } .fo-zahlen dd { font-size: 1.0625rem; }
   }
+  .fo-kasten .arena-abzeichen { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .arena-regeln { margin-top: 10px; color: var(--text-2); font-size: 0.875rem; }
   .arena-regeln summary { cursor: pointer; }
   .arena-uhr { margin-left: auto; color: var(--akzent-text); font: 650 0.75rem/1 var(--sans); font-variant-numeric: tabular-nums; }
@@ -2218,7 +2233,7 @@ aussehen();
         <p>Ältere Ausgaben bleiben unter „Frühere Ausgaben“ erhalten. Welches Modell schreibt, stellst du unter <span class="nur-eigen">Einrichten</span><span class="nur-server">Konto</span> ein.<span class="nur-server"> In Base schreibt immer DeepSeek V4.1, ab Pro wählst du selbst.</span></p>
         <p class="nur-server">Für Word Power gibt es in jedem Tarif die Vorlage: Du gibst deine Word Partnerships ein und bekommst das Journal mit allen Feldern zum Ausfüllen und der Progress-Tabelle, als Datei für Word. Ab Pro schreibt Gemini dazu jeden YouTube-Talk mit Zeitstempeln mit.</p>
         <p>In der <b>Vortragsanalyse</b> kannst du deine Word Partnerships eintragen: Sie zeigt, welche du im Probevideo eingebaut hast, und für die fehlenden die Stelle, an der sie am besten gepasst hätten.</p>
-        <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen), 20 XP für jede ernsthaft abgeschlossene Lernmethode (6 am Tag zählen; es zählt der echte Versuch, nicht ob alles richtig war) und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
+        <p class="nur-server"><b>Arena:</b> XP zählt der Server selbst, damit die Bestenliste fair bleibt: einmal am Tag fürs Öffnen (mehr, je länger deine Serie läuft), jede Minute einer Fokus-Runde, solange der Lernhelfer offen ist (höchstens 240 am Tag), Speedruns (3 am Tag zählen), 20 XP für jede ernsthaft abgeschlossene Lernmethode (6 am Tag zählen; es zählt der echte Versuch, nicht ob alles richtig war), 5 XP, wenn jemand deinen Forum-Beitrag als hilfreich markiert (höchstens 25 am Tag), und die drei Challenges des Tages. Alle 7 Tage am Stück gibt es einen Joker, der einen verpassten Tag auffängt. Die besten drei der Woche bekommen am Montag einen Preis.</p>
         <p>Die <b>Ultra-Fassung</b><span class="nur-server"> (in Ultra)</span> ist mehr als doppelt so ausführlich: Jeder Gedanke der Folien wird erklärt, mit Beispiel, typischen Fehlern und Merksatz. Dazu kommt der Teil „Formeln Schritt für Schritt“: jede Formel in anderen Schreibweisen, nach jeder Größe umgestellt, eine Umformung pro Zeile, mit Zahlenbeispiel. Außerdem 8 bis 12 Übungsaufgaben mit jedem Rechenschritt und bis zu 35 Begriffe.</p>
         <p><b>Fassung wählen:</b> Über „Fassung“ neben „Neu erstellen“ stellst du für jedes Fach ein, wie die Zusammenfassung aussieht. Beim Niveau gibt es Einsteiger (einfach erklärt, ohne Vorwissen), Normal, Prüfungsfokus (halb so lang, nur was zählt) und Ultra. Bei der Form gibt es Fließtext, Balanced (kurz erklärt, dann die Formeln), Stichpunkte, An Beispielen, Fragen zum Selbstabfragen und Formelsammlung. Die Wahl gilt ab der nächsten Ausgabe, auf allen deinen Geräten.</p>
         <p><b>Fach aufteilen:</b> Haben Vorlesung und Proseminar eigenen Stoff, öffne <a href="#/unterlagen">Unterlagen</a>, tippe beim Fach auf „Fach aufteilen“ und beim PS auf „Eigenes Fach“. Dann bekommt jeder Teil eigene Wochenausgaben, Termine und Begriffe. „Zurück zu …“ holt den Teil wieder. Hat der Lernhelfer ein Fach doppelt angelegt, etwa VO und PS unter zwei Namen, legst du die beiden dort zusammen. Ein ganz neues Fach entsteht, wenn du unter Unterlagen Dateien mit einem neuen Fachnamen hochlädst.</p>
@@ -3474,7 +3489,10 @@ function aufbereiten(text, form, lern) {
     const antworten = gewusst => {
       kartenDazu([{ f: lern.f, datum: lern.datum, frage, antwort: muster, gewusst }]);
       fuss.replaceChildren(el('p', { class: 'meta' }, gewusst ? 'Gewusst.' : 'Kein Problem, genau dafür ist die Frage da.',
-        darf('karten') ? (gewusst ? ' Sie kommt in drei Tagen zur Wiederholung.' : ' Sie liegt jetzt in deinem Karteikasten, heute noch einmal.') : ''));
+        darf('karten') ? (gewusst ? ' Sie kommt in drei Tagen zur Wiederholung.' : ' Sie liegt jetzt in deinem Karteikasten, heute noch einmal.') : '',
+        foDa() ? [' Noch unklar? ', el('a', { href: '#/forum/neu/stoff', onclick: e => { e.preventDefault();
+          foEntwurf('stoff', 'frage', lern.f, `Check-Frage: ${frage.slice(0, 90)}`, `Zur Check-Frage aus der Wochenausgabe vom ${new Date(lern.datum + 'T12:00').toLocaleDateString('de-AT')}:\n\n> ${frage}\n\nWas ich nicht verstehe: `);
+        } }, 'Im Forum fragen')] : ''));
       if (q.check && t >= 0) setze(t, gewusst);
       if (gewusst && q.check && darf('karten')) status('Gewusst. Die Frage kommt in drei Tagen wieder.');
     };
@@ -4099,6 +4117,16 @@ document.addEventListener('keydown', e => {  // am PC: Leertaste dreht um, 1 noc
 });
 const kartenText = (quizlet) => Object.values(KARTEN.karten).filter(k => !KARTEN_FACH || k.f === KARTEN_FACH)
   .map(k => [k.b, k.d, ...quizlet ? [] : [k.f]].map(x => x.replace(/\s+/g, ' ')).join('\t')).join('\n');
+function kartenTeilen() {  // die Begriffe des gewählten Fachs als ```karten-Block in einen neuen Thread; vor dem Veröffentlichen lässt sich alles ändern
+  const zeilen = [];
+  for (const x of Object.values(KARTEN.karten).filter(x => !x.art && (!KARTEN_FACH || x.f === KARTEN_FACH))) {
+    const z = `${x.b.replace(/ :: /g, ': ')} :: ${x.d}`.replace(/\s*\n\s*/g, ' ');
+    if (zeilen.join('\n').length + z.length > 25000 || zeilen.length >= 150) break;
+    zeilen.push(z);
+  }
+  foEntwurf('stoff', 'karten', KARTEN_FACH, `${zeilen.length} ${zeilen.length === 1 ? 'Karteikarte' : 'Karteikarten'}${KARTEN_FACH ? ' zu ' + KARTEN_FACH : ''}`,
+    `Meine Begriffe${KARTEN_FACH ? ' für ' + KARTEN_FACH : ''} als Karteikarten. Mit „In meinen Karteikasten“ übernimmst du sie.\n\n\`\`\`karten\n${zeilen.join('\n')}\n\`\`\``);
+}
 async function kartenZeigen() {
   const s = $('karten'), kopf = (...x) => el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Karteikarten'), ...x);
   if (!STAPEL) {
@@ -4123,11 +4151,15 @@ async function kartenZeigen() {
       k ? el('div', { class: 'lexikon-karte' }, el('p', { class: 'fortschritt meta' }, `Noch ${STAPEL.length} für heute`), karte,
         el('div', { class: 'karten-aktionen' },
           el('button', { class: 'knopf', type: 'button', onclick: () => kartenAntwort(false) }, 'Nochmal'),
-          el('button', { class: 'knopf voll', type: 'button', onclick: () => kartenAntwort(true) }, 'Gewusst')))
+          el('button', { class: 'knopf voll', type: 'button', onclick: () => kartenAntwort(true) }, 'Gewusst')),
+        foDa() && el('p', { class: 'meta' }, 'Hängst du bei dieser Karte? ', el('a', { href: '#/forum/neu/stoff', onclick: e => { e.preventDefault();
+          foEntwurf('stoff', 'frage', k.f, `Frage zu „${foKlartext(k.b).slice(0, 70)}“`, `Bei dieser Karte hänge ich:\n\n${[k.b, '', k.d].join('\n').split('\n').map(z => ('> ' + z).trimEnd()).join('\n')}\n\nWas ich nicht verstehe: `);
+        } }, 'Im Forum fragen')))
         : el('div', { class: 'fertig-karte' }, el('div', {}, el('p', { class: 'schlagzeile' }, alle.length ? 'Geschafft.' : 'Noch keine Begriffe.'),
           el('p', { class: 'meta' }, alle.length ? `Morgen ${morgen === 1 ? 'kommt eine Wiederholung' : `kommen ${morgen} Wiederholungen`}${anzahl(b => !b) ? ', dazu neue Karten' : ''}.` : 'Sie kommen mit der ersten Wochenausgabe.'))),
       el('div', { class: 'kacheln' }, kachel('Neu', anzahl(b => !b), 'noch nie gesehen'), kachel('Am Lernen', anzahl(b => b === 1 || b === 2), 'kommen bald wieder'),
         kachel('Sitzt', anzahl(b => b >= 3), 'auch nach einer Woche noch gewusst')),
+      foDa() && alle.some(x => !x.art) && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: kartenTeilen }, 'Im Forum teilen')),
       darf('export') && alle.length > 0 && el('div', { class: 'knopfreihe' },
         el('button', { class: 'knopf', type: 'button', onclick: () => speichern('#separator:tab\n#html:false\n#tags column:3\n' + kartenText(false), `Lernhelfer Karteikarten${KARTEN_FACH ? ' ' + KARTEN_FACH : ''}.txt`, 'text/plain;charset=utf-8') }, 'Für Anki herunterladen'),
         el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, kartenText(true)) }, 'Für Quizlet kopieren'))),
@@ -8111,7 +8143,7 @@ async function adminZeigen() {
 
     tafel('arena',
       el('h2', {}, 'Preise der Woche'),
-      el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen), Lernmethoden mit vom Server gestellter Aufgabe und KI-Urteil (6 am Tag zählen) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
+      el('p', { class: 'klein' }, 'XP gibt es nur noch für das, was der Server selbst sieht: einmal am Tag fürs Öffnen (mit Serie), gemessene Fokus-Minuten (höchstens 240 am Tag), Speedruns mit Antworten und Zeit vom Server (3 am Tag zählen), Lernmethoden mit vom Server gestellter Aufgabe und KI-Urteil (6 am Tag zählen), „Hilfreich“ im Forum (5 XP, höchstens 25 am Tag) und Challenges, die daraus folgen. Jeden Montag bekommen die besten drei der Vorwoche ihren Preis automatisch, mit Mail; Ultra-Tage gelten sofort, Rabatte beim nächsten Bestellen.'),
       el('p', { class: 'meta' }, P.art ? `Gerade: Platz 1 bis 3 bekommen ${P.werte.join(', ')} ${P.art === 1 ? 'Tage Ultra' : '% Rabatt'}, ab ${P.min} XP.${P.art === 2 && !TARIFE.verkauf ? ' Achtung: Der Verkauf ist aus, Rabatte nützen gerade niemandem.' : ''}` : 'Gerade keine Preise.'),
       arenaPreise,
       el('h2', {}, `Mitmachende (${A.teilnehmer.length})`),
@@ -10163,7 +10195,7 @@ const BEREICHE = WERKZEUGE.map(a => a.dataset.ansicht).filter(v => v !== 'upgrad
 const ENGLISCH_VORN = ['wordpower', 'vortrag'];
 const GRUPPEN = [['Lernen', ['thema', 'karten', 'pruefung', 'arena', 'video']], ['Austausch', ['forum']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
 /* ---------- Forum (nur Server): Bereiche → Threads → Beiträge mit Personenkarte, wie ein klassisches Forum ---------- */
-const FO_PRAEFIX = { guide: 'Guide', frage: 'Frage', diskussion: 'Diskussion', lernlog: 'Lernlog', motivation: 'Motivation', dampf: 'Dampf ablassen', news: 'News' };
+const FO_PRAEFIX = { guide: 'Guide', frage: 'Frage', diskussion: 'Diskussion', lernlog: 'Lernlog', karten: 'Karteikarten', motivation: 'Motivation', dampf: 'Dampf ablassen', news: 'News' };
 const FO_REAKTION = { hilfreich: ['💡', 'Hilfreich'], stark: ['💪', 'Stark'], danke: ['🙏', 'Danke'], haha: ['😂', 'Haha'] };
 const FO_RANG = [[400, 'Legende'], [150, 'Lernmaxxer'], [75, 'Tutor:in'], [30, 'Durchblick'], [10, 'Stammgast'], [0, 'Ersti']];  // nach Ruf (Reaktionen anderer)
 const FO_STANDARD = { lernen: 'guide', stoff: 'frage', pruefungen: 'lernlog', kopf: 'motivation' };  // Vorauswahl der Art je Bereich
@@ -10187,11 +10219,48 @@ function foZeit(t) {
   return d.toLocaleDateString('de-AT', { day: 'numeric', month: 'short', year: d.getFullYear() === g.getFullYear() ? undefined : 'numeric' });
 }
 // Beiträge wie die Ausgabe (Markdown, Formeln, ```bild-Schaubilder), aber ohne fremde Bilder und Medien: die würden die IP der Lesenden verraten
-const foText = (knoten, s) => {
-  markdown(knoten, (s || '').replace(/!\[([^\]]*)\]\((?!data:)/g, '[Bild: $1](').replace(/<(?=\/?\s*(img|video|audio|source|picture|iframe|object|embed|link|style)\b)/gi, '&lt;'));
+const foText = (knoten, s, fach) => {
+  const karten = [];  // ```karten roh herausnehmen: markdown() setzt Formeln auch in Codeblöcken schon um
+  s = (s || '').replace(/^```karten\n([\s\S]*?)^```/gm, (_, roh) => '```karten\n' + (karten.push(roh) - 1) + '\n```');
+  markdown(knoten, s.replace(/!\[([^\]]*)\]\((?!data:)/g, '[Bild: $1](').replace(/<(?=\/?\s*(img|video|audio|source|picture|iframe|object|embed|link|style)\b)/gi, '&lt;'));
   knoten.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer nofollow ugc'; });
+  for (const c of knoten.querySelectorAll('pre > code.language-karten')) c.parentNode.replaceWith(foKarten(karten[c.textContent.trim()] ?? '', fach));
   return knoten;
 };
+function foKarten(roh, fach) {  // ```karten-Block: eine Karte je Zeile „Vorderseite :: Rückseite“, zum Aufdecken und Übernehmen
+  const karten = roh.split('\n').map(z => z.split(' :: ')).filter(x => x.length > 1).map(([b, ...d]) => ({ b: b.trim(), d: d.join(' :: ').trim() })).filter(x => x.b && x.d).slice(0, 300);
+  const f = fach || 'Forum', zeig = 6;
+  if (!karten.length) return el('p', { class: 'leer' }, 'Leerer Kartenstapel: eine Karte je Zeile, „Vorderseite :: Rückseite“.');
+  const liste = el('ol', { class: 'fo-k-liste' }, karten.map((x, i) => el('li', { hidden: i >= zeig ? true : null },
+    el('details', { class: 'fo-k' }, markdown(el('summary'), x.b, true), markdown(el('div'), x.d, true)))));
+  return el('figure', { class: 'fo-karten' },
+    el('figcaption', {}, `🗂 ${karten.length} ${karten.length === 1 ? 'Karteikarte' : 'Karteikarten'}`, el('span', { class: 'meta' }, `${f} · antippen zum Aufdecken`)),
+    liste,
+    el('div', { class: 'knopfreihe' },
+      darf('karten') ? el('button', { type: 'button', class: 'knopf voll', onclick: e => foKartenNehmen(e.currentTarget, karten, f) }, 'In meinen Karteikasten')
+        : el('p', { class: 'klein' }, 'Übernehmen kannst du sie mit dem Karteikasten (ab Pro).'),
+      karten.length > zeig && el('button', { type: 'button', class: 'knopf', onclick: e => { liste.querySelectorAll('li[hidden]').forEach(li => { li.hidden = false; }); e.currentTarget.remove(); } }, `Alle ${karten.length} zeigen`)));
+}
+async function foKartenNehmen(knopf, karten, f) {  // neue Karten wie Check-Fragen in den Kasten; was schon drin ist, behält seinen Lernstand
+  knopf.disabled = true;
+  try {
+    await kartenLaden(false);
+    let neu = 0;
+    for (const x of karten) {
+      const id = `${f}|?${x.b.toLowerCase().slice(0, 200)}`;
+      if (!KARTEN.karten[id]) { KARTEN.karten[id] = { f, art: 'frage', b: x.b, d: x.d, datum: HEUTE, box: 0, faellig: null }; neu++; }
+    }
+    if (neu) { STAPEL = null; await KARTEN_D.speichern(); }
+    knopf.textContent = neu ? `${neu} übernommen` : 'Schon alle drin';
+    status(neu ? `${neu} ${neu === 1 ? 'Karte liegt' : 'Karten liegen'} jetzt in deinem Karteikasten (${f}).` : 'Diese Karten hast du schon alle.');
+  } catch (e) { status(e.message, true); knopf.disabled = false; }
+}
+const foDa = () => SERVER && !betaWeg('forum');
+function foEntwurf(bereich, praefix, fach, titel, text) {  // „Im Forum fragen“ (Karten, Check-Fragen) und „Im Forum teilen“: neuer Thread, schon ausgefüllt
+  const key = 'n' + bereich;
+  Object.assign(FO.entwurf, { [key]: text, [key + ':t']: titel, [key + ':p']: praefix, [key + ':f']: R[fach] ? fach : '' });
+  location.hash = '#/forum/neu/' + bereich;
+}
 const foAvatar = name => {
   let h = 0; for (const c of name || '?') h = (h * 31 + c.codePointAt(0)) % 360;
   return el('span', { class: 'fo-avatar', style: `--h:${h}`, 'aria-hidden': 'true' }, [...(name || '?')][0].toUpperCase());
@@ -10258,7 +10327,7 @@ async function foStart() {
       el('div', { class: 'fo-bereiche' }, d.bereiche.map(b => el('a', { class: 'fo-bereich', href: `#/forum/${b.id}`, 'data-neu': b.neu ? '' : null },
         el('span', { class: 'fo-b-name' }, b.name, b.neu ? el('span', { class: 'fo-neu' }, `${b.neu} neu`) : ''),
         el('span', { class: 'fo-b-text' }, b.text),
-        el('span', { class: 'fo-b-zahl' }, `${b.themen} ${b.themen === 1 ? 'Thread' : 'Threads'} · ${b.beitraege} Beiträge`),
+        el('span', { class: 'fo-b-zahl' }, `${b.themen} ${b.themen === 1 ? 'Thread' : 'Threads'} · ${b.beitraege} ${b.beitraege === 1 ? 'Beitrag' : 'Beiträge'}`),
         el('span', { class: 'fo-b-letzt' }, b.letztes ? [el('b', {}, b.letztes.titel), el('br'), `${b.letztes.name || 'Gelöschtes Konto'}, ${foZeit(b.letztes.zeit)}`]
           : b.team ? 'Noch leer.' : 'Noch leer. Schreib den ersten Thread.')))),
       el('aside', { class: 'fo-seite' },
@@ -10269,7 +10338,8 @@ async function foStart() {
         el('section', { class: 'fo-kasten' }, el('h2', {}, 'Gerade da'),
           el('p', { class: 'fo-da' }, `${d.online} ${d.online === 1 ? 'Person ist' : 'Personen sind'} im Forum`, d.teamOnline ? ', das Team ist auch da.' : '.')),
         el('section', { class: 'fo-kasten' }, el('h2', {}, 'Statistik'),
-          el('dl', { class: 'fo-statistik' }, [['Threads', z.themen], ['Beiträge', z.beitraege], ['Mitglieder', z.mitglieder]].map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]))),
+          el('dl', { class: 'fo-statistik' }, [['Threads', z.themen], ['Beiträge', z.beitraege], ['Mitglieder', z.mitglieder]].map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]),
+            z.neuestes && [el('dt', {}, 'Neu dabei'), el('dd', {}, foName(z.neuestes))])),
         foRegeln())),
   ];
 }
@@ -10352,6 +10422,10 @@ async function foThread(id, seite) {
     if (!confirm(p.erster ? 'Den Beitrag löschen? Hat der Thread noch keine Antworten, verschwindet er ganz.' : 'Den Beitrag löschen?')) return;
     try { const r = await api('forum/loeschen', { beitrag: p.id }); if (r.thema === null) location.hash = `#/forum/${t.bereich}`; else forumZeigen(); } catch (err) { status(err.message, true); }
   };
+  const teilen = (e, p, i) => {  // Handy: Teilen-Menü, sonst Link kopieren
+    const url = location.href.split('#')[0] + foZu(t.id, (d.seite - 1) * 20 + i + 1, p.id);
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) navigator.share({ title: t.titel, url }).catch(() => {}); else kopieren(e, url);
+  };
   const beitrag = (p, i) => {
     if (p.weg === 1 || p.weg && !ich.mod) return el('article', { class: 'fo-beitrag fo-weg', id: 'b' + p.id },
       el('p', { class: 'leer' }, p.weg === 2 ? `Von der Moderation entfernt. Grund: ${p.grund}` : 'Gelöscht von der Person, die ihn geschrieben hat.'));
@@ -10360,10 +10434,11 @@ async function foThread(id, seite) {
     const text = FO.bearbeiten === p.id ? foEditor({ key: 'e' + p.id, wert: p.text, titel: p.erster ? t.titel : null, knopf: 'Speichern',
         senden: async (text, titel) => { await api('forum/bearbeiten', { beitrag: p.id, text, titel }); FO.bearbeiten = null; forumZeigen(); },
         abbrechen: () => { FO.bearbeiten = null; delete FO.entwurf['e' + p.id]; delete FO.entwurf['e' + p.id + ':t']; forumZeigen(); } })
-      : foText(el('div', { class: 'fo-text' }), p.text);
+      : foText(el('div', { class: 'fo-text' }), p.text, t.fach);
     return el('article', { class: 'fo-beitrag', id: 'b' + p.id },
       el('aside', { class: 'fo-person' }, foAvatar(p.name), foName(p.name),
         p.name && el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)),
+        p.name && p.abzeichen && el('span', { class: 'fo-abzeichen' }, p.abzeichen),
         p.name && el('dl', { class: 'fo-p-daten' }, [['Beiträge', p.beitraege], ['Ruf', p.ruf], p.xp > 0 && ['Arena', `Level ${LEVEL(p.xp)}`],
           ['Dabei seit', new Date(p.seit).toLocaleDateString('de-AT', { month: 'short', year: 'numeric' })]].filter(Boolean).map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]))),
       el('div', { class: 'fo-b-haupt' },
@@ -10376,6 +10451,7 @@ async function foThread(id, seite) {
             onclick: tun('forum/reaktion', { beitrag: p.id, art: meine === a ? '' : a }) }, zeichen, el('span', {}, name))),
           el('span', { class: 'fo-links' },
             darf && !t.zu && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => zitat(p) }, 'Zitieren'),
+            !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: e => teilen(e, p, i) }, 'Teilen'),
             !p.weg && el('button', { type: 'button', class: 'fo-link', 'aria-pressed': String(p.gemerkt), onclick: tun('forum/lesezeichen', { beitrag: p.id, an: !p.gemerkt }) }, p.gemerkt ? 'Gemerkt' : 'Merken'),
             p.eigen && !p.weg && FO.bearbeiten !== p.id && [el('button', { type: 'button', class: 'fo-link', onclick: () => { FO.bearbeiten = p.id; forumZeigen(); } }, 'Bearbeiten'),
               el('button', { type: 'button', class: 'fo-link', onclick: () => loeschen(p) }, 'Löschen')],
@@ -10406,6 +10482,9 @@ async function foThread(id, seite) {
           const ziel = `#/forum/${t.id}/letzte`; if (location.hash === ziel) forumZeigen(); else location.hash = ziel;
         } }))
       : el('p', { class: 'leer' }, ich.darf ? [el('a', { href: '#/forum' }, 'Wähl deinen Namen'), ', dann kannst du antworten.'] : 'Zum Antworten bestätige zuerst deine E-Mail-Adresse.')),
+    d.seite === d.seiten && d.aehnlich.length > 0 && el('section', { class: 'fo-kasten fo-aehnlich' }, el('h2', {}, 'Ähnliche Threads'),
+      el('ul', { class: 'fo-neueste' }, d.aehnlich.map(x => el('li', {}, el('a', { href: `#/forum/${x.id}` }, foPill(x.praefix), ' ', x.titel),
+        el('span', { class: 'meta' }, `${foZeit(x.letzte)} · ${x.antworten} ${x.antworten === 1 ? 'Antwort' : 'Antworten'}`))))),
   ];
 }
 
@@ -10461,13 +10540,21 @@ async function foMitglied(name) {
     foPfad([['#/forum', 'Forum']]),
     el('header', { class: 'fo-profil' }, foAvatar(p.name),
       el('div', {}, el('h1', {}, p.name),
-        el('p', { class: 'unterzeile' }, el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)),
+        el('p', { class: 'unterzeile' }, el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)), p.abzeichen && el('span', { class: 'fo-abzeichen' }, p.abzeichen),
           el('span', {}, `dabei seit ${new Date(p.seit).toLocaleDateString('de-AT', { month: 'long', year: 'numeric' })}`)))),
-    el('dl', { class: 'fo-zahlen' }, [['Beiträge', p.beitraege], ['Threads', p.themen], ['Ruf', p.ruf], ['Trophäen', hat], p.xp > 0 ? ['Arena', `Level ${LEVEL(p.xp)}`] : null]
+    el('dl', { class: 'fo-zahlen' }, [['Beiträge', p.beitraege], ['Threads', p.themen], ['Ruf', p.ruf], ['Trophäen', hat], p.xp > 0 ? ['Level', LEVEL(p.xp)] : null]
       .filter(Boolean).map(([n, w]) => el('div', {}, el('dt', {}, n), el('dd', {}, String(w))))),
     r.length ? el('p', { class: 'fo-reaktionen' }, 'Bekommen: ', r.map(([a, n]) => `${FO_REAKTION[a]?.[0] || ''} ${n}× ${FO_REAKTION[a]?.[1] || a}`).join(' · ')) : null,
     el('section', { class: 'fo-kasten' }, el('h2', {}, `Trophäen: ${hat} von ${p.trophaeen.length}`),
-      el('ul', { class: 'arena-abzeichen' }, p.trophaeen.map(t => el('li', { class: t.hat ? 'hat' : null }, el('b', {}, `${t.zeichen} ${t.name}`), el('span', { class: 'meta' }, t.text))))),
+      p.eigen && hat > 0 && el('p', { class: 'meta' }, 'Eine deiner Trophäen kannst du als Abzeichen neben deinem Namen zeigen.'),
+      el('ul', { class: 'arena-abzeichen' }, p.trophaeen.map(t => {
+        const an = p.abzeichen === `${t.zeichen} ${t.name}`;
+        return el('li', { class: t.hat ? 'hat' : null }, el('b', {}, `${t.zeichen} ${t.name}`), el('span', { class: 'meta' }, t.text),
+          p.eigen && t.hat && el('button', { type: 'button', class: 'fo-link fo-zeigen', 'aria-pressed': String(an), onclick: async e => {
+            e.currentTarget.disabled = true;
+            try { await api('forum/abzeichen', { name: an ? '' : t.name }); forumZeigen(); } catch (err) { status(err.message, true); e.target.disabled = false; }
+          } }, an ? '✓ Am Namen' : 'Am Namen zeigen'));
+      }))),
     el('section', {}, el('h2', {}, 'Letzte Beiträge'),
       p.letzte.length ? foTreffer(p.letzte) : el('p', { class: 'leer' }, p.eigen ? 'Du hast noch nichts geschrieben.' : 'Noch nichts geschrieben.')),
   ];
@@ -10500,7 +10587,7 @@ async function foNeu(id) {
           const r = await api('forum/thema', { bereich: b.id, praefix: art, titel, text, fach: fach.value });
           delete FO.entwurf[key + ':p']; delete FO.entwurf[key + ':f']; location.hash = `#/forum/${r.id}`;
         } }),
-      el('p', { class: 'klein' }, 'Ein guter Guide nimmt sich eine Methode vor, ganz genau: Was bringt sie, welche Studie zeigt das, Schritt für Schritt, typische Fehler. Schaubilder gehen wie in der Wochenausgabe mit einem ```bild-Block.'),
+      el('p', { class: 'klein' }, 'Ein guter Guide nimmt sich eine Methode vor, ganz genau: Was bringt sie, welche Studie zeigt das, Schritt für Schritt, typische Fehler. Schaubilder gehen wie in der Wochenausgabe mit einem ```bild-Block. Karteikarten teilst du auf der Seite Karteikarten mit „Im Forum teilen“.'),
       foRegeln()),
   ];
 }
