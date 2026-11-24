@@ -705,6 +705,93 @@
   .check-urteil[data-art="ja"] { background: var(--ok-flaeche); }
   .check-urteil[data-art="nein"] { background: var(--fehler-flaeche); }
   .arena-tabs { margin: 4px 0 18px; }
+  /* Forum: klassisch aufgebaut (Bereiche → Threads → Beiträge mit Personenkarte), im Stil der App */
+  .forum { max-width: 1040px; }
+  .fo-raster { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; align-items: start; }
+  .fo-bereiche { display: grid; gap: 10px; }
+  .fo-bereich { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr); gap: 3px 20px; padding: 14px 16px; border: 1px solid var(--linie); border-radius: 12px; background: var(--bg); color: inherit; text-decoration: none; }
+  @media (hover: hover) { .fo-bereich:hover { background: var(--bg-2); } }
+  .fo-b-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 700; font-size: 1.0625rem; }
+  .fo-b-text { color: var(--text-2); font-size: 0.9375rem; line-height: 1.4; }
+  .fo-b-zahl { color: var(--text-3); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .fo-b-letzt { grid-column: 2; grid-row: 1 / span 3; align-self: center; min-width: 0; color: var(--text-2); font-size: 0.8125rem; line-height: 1.4; }
+  .fo-b-letzt b { display: inline-block; max-width: 100%; overflow: hidden; color: var(--text); font-size: 0.875rem; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+  .fo-neu { padding: 1px 8px; border-radius: 999px; background: var(--akzent); color: var(--auf-akzent); font-size: 0.75rem; font-weight: 650; }
+  .fo-kasten { margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--linie); border-radius: 12px; }
+  .fo-kasten > h2 { margin: 0 0 10px; color: var(--text-2); font-size: 0.8125rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .fo-da { margin: 0; }
+  .fo-neueste { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .fo-neueste a { color: var(--text); font-weight: 600; text-decoration: none; line-height: 1.35; }
+  .fo-neueste .meta { display: block; margin-top: 2px; font-size: 0.8125rem; }
+  .fo-statistik { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+  .fo-statistik dd { margin: 0; font-weight: 650; }
+  .fo-regeln summary { cursor: pointer; font-weight: 650; }
+  .fo-regeln ol { margin: 10px 0; padding-left: 1.2em; font-size: 0.9375rem; line-height: 1.45; }
+  .fo-regeln li + li { margin-top: 6px; }
+  .fo-willkommen { display: grid; gap: 8px; max-width: 640px; margin-bottom: 24px; }
+  .fo-willkommen h2, .fo-willkommen p { margin: 0; }
+  .fo-name-zeile { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fo-name-zeile input { flex: 1 1 200px; }
+  .fo-praefix { display: inline-block; padding: 1px 7px; border-radius: 4px; background: var(--bg-3); color: var(--text); font-size: 0.75rem; font-weight: 700; line-height: 1.5; white-space: nowrap; vertical-align: 0.1em; }
+  .fo-praefix[data-p="guide"] { background: var(--zettel); color: #121212; }
+  .fo-praefix[data-p="frage"] { background: var(--akzent-flaeche); color: var(--akzent-text); }
+  .fo-praefix[data-p="news"] { background: var(--akzent); color: var(--auf-akzent); }
+  h1 .fo-praefix { font-size: 0.42em; vertical-align: 0.4em; }
+  .fo-pfad { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; font-size: 0.875rem; }
+  .fo-pfad a + a::before { content: "›"; margin-right: 6px; color: var(--text-3); }
+  .fo-kopf .knopf { margin-top: 14px; }
+  .fo-threads { margin: 0; padding: 0; border-top: 1px solid var(--linie); list-style: none; }
+  .fo-thread { display: grid; grid-template-columns: 40px minmax(0, 1fr) 104px 112px; gap: 12px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--linie); }
+  .fo-t-titel { color: var(--text); font-weight: 550; text-decoration: none; line-height: 1.35; }
+  .fo-thread[data-neu] .fo-t-titel { font-weight: 750; }
+  .fo-thread[data-neu] .fo-avatar { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--akzent); }
+  .fo-t-haupt .meta { display: block; margin-top: 3px; font-size: 0.8125rem; }
+  .fo-t-zahl, .fo-t-letzt { color: var(--text-2); font-size: 0.8125rem; font-variant-numeric: tabular-nums; line-height: 1.35; text-align: right; text-decoration: none; }
+  .fo-avatar { display: inline-grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: hsl(var(--h) 70% 60% / 0.3); color: var(--text); font-weight: 750; font-size: 1.05rem; }
+  .fo-beitrag { display: grid; grid-template-columns: 148px minmax(0, 1fr); margin: 14px 0; border: 1px solid var(--linie); border-radius: 12px; overflow: hidden; }
+  .fo-beitrag.fo-weg { display: block; padding: 12px 18px; }
+  .fo-person { display: grid; align-content: start; justify-items: center; gap: 4px; padding: 16px 10px; background: var(--bg-2); text-align: center; }
+  .fo-person .fo-avatar { width: 64px; height: 64px; margin-bottom: 4px; font-size: 1.6rem; }
+  .fo-p-name { overflow-wrap: anywhere; }
+  .fo-rang { color: var(--text-2); font-size: 0.75rem; font-weight: 650; }
+  .fo-rang[data-team] { padding: 1px 8px; border-radius: 4px; background: var(--akzent); color: var(--auf-akzent); }
+  .fo-p-daten { display: grid; grid-template-columns: auto auto; gap: 2px 10px; margin: 8px 0 0; color: var(--text-2); font-size: 0.75rem; text-align: left; }
+  .fo-p-daten dd { margin: 0; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
+  .fo-b-haupt { display: flex; flex-direction: column; min-width: 0; padding: 12px 18px; }
+  .fo-b-meta { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 8px; color: var(--text-3); font-size: 0.8125rem; }
+  .fo-text { line-height: 1.6; overflow-wrap: anywhere; }
+  .fo-text > :first-child { margin-top: 0; } .fo-text > :last-child { margin-bottom: 0; }
+  .fo-text h2 { margin: 1.2em 0 0.4em; font-size: 1.25rem; } .fo-text h3 { margin: 1em 0 0.3em; font-size: 1.0625rem; }
+  .fo-text blockquote { margin: 0.8em 0; padding: 6px 12px; border-left: 3px solid var(--linie-2); background: var(--bg-2); color: var(--text-2); }
+  .fo-text pre, .fo-text table { display: block; max-width: 100%; overflow-x: auto; }
+  .fo-reaktionen { margin: 14px 0 0; color: var(--text-2); font-size: 0.8125rem; }
+  .fo-aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 12px; }
+  .fo-r { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 2px 10px; border: 1px solid var(--linie); border-radius: 999px; background: none; color: var(--text-2); font: inherit; font-size: 0.8125rem; cursor: pointer; }
+  .fo-r[aria-pressed="true"] { border-color: var(--akzent); background: var(--akzent-flaeche); color: var(--akzent-text); font-weight: 650; }
+  .fo-links { display: flex; flex-wrap: wrap; gap: 2px; margin-left: auto; }
+  .fo-link { min-height: 32px; padding: 2px 6px; border: 0; background: none; color: var(--text-2); font: inherit; font-size: 0.8125rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  @media (hover: hover) { .fo-link:hover { color: var(--text); } }
+  .fo-editor { display: grid; gap: 10px; }
+  .fo-feld { width: 100%; min-height: 180px; padding: 10px 12px; font: inherit; line-height: 1.5; resize: vertical; }
+  .fo-titel-feld { width: 100%; font-size: 1.0625rem; font-weight: 650; }
+  .fo-vorschau { min-height: 140px; padding: 12px 14px; border: 1px dashed var(--linie-2); border-radius: 8px; }
+  .fo-antwort { margin-top: 28px; }
+  .fo-seiten { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+  .fo-seiten a { min-width: 34px; padding: 4px 8px; border: 1px solid var(--linie); border-radius: 6px; color: var(--text); text-align: center; text-decoration: none; }
+  .fo-seiten a[aria-current] { border-color: var(--akzent); background: var(--akzent-flaeche); color: var(--akzent-text); font-weight: 650; }
+  .fo-mod { align-items: center; margin: 0 0 16px; padding: 8px 10px; border: 1px dashed var(--akzent); border-radius: 8px; }
+  .fo-neu-form { display: grid; gap: 6px; max-width: 760px; }
+  .fo-label { margin: 12px 0 2px; font-weight: 650; font-size: 0.875rem; }
+  .fo-arten { margin: 0; }
+  @media (max-width: 860px) { .fo-raster { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) {
+    .fo-bereich { grid-template-columns: 1fr; } .fo-b-letzt { grid-column: 1; grid-row: auto; margin-top: 6px; }
+    .fo-thread { grid-template-columns: 36px minmax(0, 1fr); } .fo-thread .fo-avatar { width: 36px; height: 36px; } .fo-t-zahl, .fo-t-letzt { display: none; }
+    .fo-beitrag { grid-template-columns: 1fr; }
+    .fo-person { grid-template-columns: auto auto 1fr; justify-items: start; align-items: center; gap: 2px 10px; padding: 10px 14px; text-align: left; }
+    .fo-person .fo-avatar { width: 36px; height: 36px; margin: 0; font-size: 1rem; } .fo-p-daten { display: none; }
+    .fo-r span { display: none; }
+  }
   .arena-regeln { margin-top: 10px; color: var(--text-2); font-size: 0.875rem; }
   .arena-regeln summary { cursor: pointer; }
   .arena-uhr { margin-left: auto; color: var(--akzent-text); font: 650 0.75rem/1 var(--sans); font-variant-numeric: tabular-nums; }
@@ -1720,6 +1807,7 @@ aussehen();
       <div class="navi" id="nav-werkzeuge">
         <a href="#/thema" data-ansicht="thema" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5h5M10.5 20.5h3M12 3.5a6 6 0 0 0-3.7 10.7c.7.6 1.2 1.4 1.2 2.3v1h5v-1c0-.9.5-1.7 1.2-2.3A6 6 0 0 0 12 3.5z"/></svg>Thema lernen</a>
         <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg>Arena<span class="arena-uhr" data-runde-uhr></span></a>
+        <a href="#/forum" data-ansicht="forum" class="mit-daten nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h11a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H9l-3.5 3v-3H4A1.5 1.5 0 0 1 2.5 13V7A1.5 1.5 0 0 1 4 5.5z"/><path d="M16.5 9H20a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 20 18h-1.5v3L15 18h-4.5a1.5 1.5 0 0 1-1.5-1.5V15"/></svg>Forum</a>
         <a href="#/kalender" data-ansicht="kalender" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</a>
         <a href="#/onlinetests" data-ansicht="onlinetests" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9.5 3.5h5M9 12.5l2 2 4-4"/></svg>Onlinetests</a>
         <a href="#/noten" data-ansicht="noten" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 16.5v-4M12 16.5v-9M17 16.5v-6"/></svg>Noten</a>
@@ -1810,6 +1898,7 @@ aussehen();
     <section id="kalender" hidden class="kalender"></section>
 
     <section id="arena" hidden class="werkstatt arena"></section>
+    <section id="forum" hidden class="forum"></section>
 
     <section id="video" hidden class="werkstatt video"></section>
     <section id="thema" hidden class="werkstatt thema"></section>
@@ -7761,7 +7850,7 @@ async function adminZeigen() {
     return s.replaceChildren(el('p', { class: 'fehlertext' }, e.message));
   }
   if (document.body.dataset.ansicht !== 'admin') return;
-  const T = TARIFE.tarife, K = d.kennzahlen, G = d.geld, tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–', jetzt = Date.now();
+  const F = d.forum, T = TARIFE.tarife, K = d.kennzahlen, G = d.geld, tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–', jetzt = Date.now();
   const tun = (pfad, body) => async e => {
     e.currentTarget.disabled = true;
     try { const r = await api(pfad, body); if (r.warnung) alert('Freigeschaltet, aber: ' + r.warnung); } catch (err) { alert(err.message); }
@@ -7867,9 +7956,10 @@ async function adminZeigen() {
     unbestaetigt.length && [unbestaetigt.length, `${mehr(unbestaetigt.length, 'neues Konto hat', 'neue Konten haben')} die E-Mail noch nicht bestätigt. Bis dahin schreibt die KI für sie nichts.`, 'konten'],
     K.startEndet && [K.startEndet, `Bei ${mehr(K.startEndet, 'Konto endet', 'Konten endet')} Ultra (Start) in den nächsten 7 Tagen.`, 'konten'],
     d.olatAus && ['!', 'Der OLAT-Abgleich ist auf allen Geräten pausiert.', 'einstellungen'],
+    F.meldungen.length && [F.meldungen.length, `${mehr(F.meldungen.length, 'Forum-Beitrag ist', 'Forum-Beiträge sind')} gemeldet. Bitte bald ansehen: Als Betreiber musst du zügig reagieren.`, 'forum'],
   ].filter(Boolean);
   const reiterName = n => ADMIN_REITER.find(([x]) => x === n)[1];
-  const zahl = { uebersicht: zuTun.length, konten: K.neu7, geld: offen.length };
+  const zahl = { uebersicht: zuTun.length, konten: K.neu7, geld: offen.length, forum: F.meldungen.length };
   const aktiv = ADMIN_REITER.some(([n]) => n === location.hash.split('/')[2]) ? location.hash.split('/')[2] : 'uebersicht';
   const pfeile = e => {  // Pfeiltasten wandern durch die Reiter
     const i = ADMIN_REITER.findIndex(([n]) => n === e.target.id?.slice(3)), w = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
@@ -8009,6 +8099,20 @@ async function adminZeigen() {
       A.gewinner.length ? tabelle(['Woche ab', 'Platz', 'Spitzname', 'XP', 'Preis'], A.gewinner.map(g => [new Date(g.woche + 'T12:00').toLocaleDateString('de-AT'), `${g.platz}.`, g.name, String(g.xp), g.preis]))
         : el('p', { class: 'leer' }, 'Noch keine Woche abgerechnet.')),
 
+    tafel('forum',
+      el('h2', {}, `Meldungen (${F.meldungen.length})`),
+      el('p', { class: 'klein' }, 'Gemeldete Beiträge zügig prüfen. Entfernen braucht einen Grund, den alle sehen. Im Thread selbst geht dasselbe über „Entfernen“ und „Sperren“.'),
+      F.meldungen.length ? tabelle(['Wann', 'Thread', 'Von', 'Gemeldet von', 'Grund', 'Text', ''], F.meldungen.map(m => [zeitpunkt(m.zeit), el('a', { href: `#/forum/${m.thema}` }, m.titel),
+        m.autor || '–', m.melder || '–', el('span', { class: 'umbruch' }, m.grund), el('span', { class: 'umbruch' }, m.weg === 1 ? '(selbst gelöscht)' : m.text.slice(0, 500)),
+        el('div', { class: 'knopfreihe' },
+          m.weg !== 1 && el('button', { class: 'knopf', type: 'button', onclick: e => { const g = prompt('Grund, den alle sehen:', m.grund.slice(0, 300)); if (g?.trim()) tun('admin/forum', { beitrag: m.beitrag, weg: true, grund: g })(e); } }, 'Entfernen'),
+          el('button', { class: 'knopf', type: 'button', onclick: tun('admin/forum', { meldung: m.id }) }, 'Passt so'),
+          m.konto && el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`${m.autor} im Forum sperren? Lesen geht weiter.`) && tun('admin/forum', { konto: m.konto, sperren: true })(e) }, 'Sperren'))]))
+        : el('p', { class: 'leer' }, 'Keine offenen Meldungen.'),
+      el('h2', {}, 'Im Forum gesperrt'),
+      F.gesperrt.length ? tabelle(['Name', 'Konto', ''], F.gesperrt.map(g => [g.name, g.email, el('button', { class: 'knopf', type: 'button', onclick: tun('admin/forum', { konto: g.konto, sperren: false }) }, 'Entsperren')]))
+        : el('p', { class: 'leer' }, 'Niemand.')),
+
     tafel('einstellungen',
       el('h2', {}, 'Ankündigung'),
       ankuendigung,
@@ -8028,7 +8132,7 @@ async function adminZeigen() {
       schluesselForm(d.schluessel)));
 }
 // Reiter wechseln ohne neu zu laden; die Adresse merkt ihn fürs Neuladen und für „Aktualisieren“
-const ADMIN_REITER = [['uebersicht', 'Übersicht'], ['konten', 'Konten'], ['geld', 'Geld'], ['nutzung', 'Nutzung'], ['ki', 'KI-Modelle'], ['arena', 'Arena'], ['einstellungen', 'Einstellungen']];
+const ADMIN_REITER = [['uebersicht', 'Übersicht'], ['konten', 'Konten'], ['geld', 'Geld'], ['nutzung', 'Nutzung'], ['ki', 'KI-Modelle'], ['arena', 'Arena'], ['forum', 'Forum'], ['einstellungen', 'Einstellungen']];
 let ADMIN = null;  // letzter Stand der Ecke, fürs Konto-Fenster
 function adminReiter(name) {
   for (const [n] of ADMIN_REITER) {
@@ -10030,8 +10134,252 @@ function modellWahl() {
 const WERKZEUGE = [...document.querySelectorAll('#nav-werkzeuge > a')];
 const BEREICHE = WERKZEUGE.map(a => a.dataset.ansicht).filter(v => v !== 'upgrade');  // was der Admin für Beta anhaken kann
 const ENGLISCH_VORN = ['wordpower', 'vortrag'];
-const GRUPPEN = [['Lernen', ['thema', 'karten', 'pruefung', 'arena', 'video']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
-const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
+const GRUPPEN = [['Lernen', ['thema', 'karten', 'pruefung', 'arena', 'video']], ['Austausch', ['forum']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
+/* ---------- Forum (nur Server): Bereiche → Threads → Beiträge mit Personenkarte, wie ein klassisches Forum ---------- */
+const FO_PRAEFIX = { guide: 'Guide', frage: 'Frage', diskussion: 'Diskussion', lernlog: 'Lernlog', motivation: 'Motivation', dampf: 'Dampf ablassen', news: 'News' };
+const FO_REAKTION = { hilfreich: ['💡', 'Hilfreich'], stark: ['💪', 'Stark'], danke: ['🙏', 'Danke'], haha: ['😂', 'Haha'] };
+const FO_RANG = [[400, 'Legende'], [150, 'Lernmaxxer'], [75, 'Tutor:in'], [30, 'Durchblick'], [10, 'Stammgast'], [0, 'Ersti']];  // nach Ruf (Reaktionen anderer)
+const FO_STANDARD = { lernen: 'guide', stoff: 'frage', pruefungen: 'lernlog', kopf: 'motivation' };  // Vorauswahl der Art je Bereich
+const FO_GUIDE = '## Worum es geht\n\n\n## Warum es funktioniert\n(Studie oder Quelle: wer, was gemacht, was rauskam)\n\n\n## So gehst du vor\n1. \n2. \n3. \n\n## Typische Fehler\n- \n\n## Quellen\n- ';
+const FO_REGELN = [
+  'Keine Lösungen oder Antworten zu laufenden, bewerteten Onlinetests, PS-Tests oder Prüfungen. Lernen ja, Schummeln nein.',
+  'Keine Folien, Skripten oder Prüfungsangaben hochladen oder abtippen, die sind urheberrechtlich geschützt. Eigene Zusammenfassungen sind okay.',
+  'Keine Tipps zu Medikamenten wie Ritalin oder Modafinil zum Lernen.',
+  'Respekt: keine Beleidigungen, kein Bloßstellen, keine Namen oder Daten anderer Personen, auch nicht von Lehrenden.',
+  'Behauptungen mit Quelle, wo es geht. Eigene Erfahrung ist willkommen, wenn sie als Erfahrung dasteht.',
+  'Keine Werbung, kein Spam.',
+];
+const FO = { entwurf: {}, bearbeiten: null };  // Entwürfe überleben das Neuzeichnen (Reaktion, Seitenwechsel)
+function foZeit(t) {
+  const d = new Date(t), s = (Date.now() - t) / 1000, uhr = d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' }), g = new Date();
+  if (s < 60) return 'gerade eben';
+  if (s < 3600) return `vor ${Math.floor(s / 60)} Min.`;
+  if (d.toDateString() === g.toDateString()) return `heute, ${uhr}`;
+  g.setDate(g.getDate() - 1);
+  if (d.toDateString() === g.toDateString()) return `gestern, ${uhr}`;
+  return d.toLocaleDateString('de-AT', { day: 'numeric', month: 'short', year: d.getFullYear() === g.getFullYear() ? undefined : 'numeric' });
+}
+// Beiträge wie die Ausgabe (Markdown, Formeln, ```bild-Schaubilder), aber ohne fremde Bilder und Medien: die würden die IP der Lesenden verraten
+const foText = (knoten, s) => {
+  markdown(knoten, (s || '').replace(/!\[([^\]]*)\]\((?!data:)/g, '[Bild: $1](').replace(/<(?=\/?\s*(img|video|audio|source|picture|iframe|object|embed|link|style)\b)/gi, '&lt;'));
+  knoten.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer nofollow ugc'; });
+  return knoten;
+};
+const foAvatar = name => {
+  let h = 0; for (const c of name || '?') h = (h * 31 + c.codePointAt(0)) % 360;
+  return el('span', { class: 'fo-avatar', style: `--h:${h}`, 'aria-hidden': 'true' }, [...(name || '?')][0].toUpperCase());
+};
+const foPill = p => el('span', { class: 'fo-praefix', 'data-p': p }, FO_PRAEFIX[p] || p);
+const foPfad = teile => el('nav', { class: 'fo-pfad', 'aria-label': 'Pfad' }, teile.map(([h, n]) => el('a', { href: h }, n)));
+const foSeiten = (basis, seite, seiten) => seiten > 1 && el('nav', { class: 'fo-seiten', 'aria-label': 'Seiten' },
+  Array.from({ length: seiten }, (_, i) => el('a', { href: `${basis}/${i + 1}`, 'aria-current': i + 1 === seite ? 'page' : null }, String(i + 1))));
+const foNamen = n => n.length <= 3 ? n.join(', ') : `${n.slice(0, 2).join(', ')} und ${n.length - 2} weitere`;
+const foRegeln = () => el('details', { class: 'fo-kasten fo-regeln' }, el('summary', {}, 'Forenregeln'),
+  el('ol', {}, FO_REGELN.map(r => el('li', {}, r))),
+  el('p', { class: 'klein' }, 'Verstöße kannst du bei jedem Beitrag melden. Entfernt die Moderation etwas, steht der Grund sichtbar dabei. Löschst du dein Konto, bleiben deine Beiträge ohne Namen stehen; vorher kannst du sie einzeln löschen.'));
+const foDarf = ich => ich.darf && ich.gewaehlt && !ich.gesperrt;
+
+async function forumZeigen() {
+  const s = $('forum'), h = location.hash, [, , a = '', b = ''] = h.split('/').map(decodeURIComponent);
+  if (!s.childElementCount) s.replaceChildren(el('p', { class: 'leer' }, 'Lade das Forum …'));
+  try {
+    const inhalt = /^\d+$/.test(a) ? await foThread(Number(a), b || 1) : a === 'neu' ? await foNeu(b) : a ? await foBereich(a, b || 1) : await foStart();
+    if (location.hash !== h) return;  // inzwischen woanders
+    s.replaceChildren(...inhalt.flat(Infinity).filter(Boolean));
+    if (b === 'letzte') requestAnimationFrame(() => [...s.querySelectorAll('.fo-beitrag')].at(-1)?.scrollIntoView({ block: 'start' }));
+  } catch (e) { s.replaceChildren(el('p', { class: 'fehlertext' }, e.message)); }
+}
+
+async function foStart() {
+  const d = await api('forum'), z = d.statistik;
+  return [
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Forum'), el('p', { class: 'schlagzeile' }, 'Guides, Fragen und Lernlogs von Studierenden der Uni Innsbruck.')),
+    foWillkommen(d.ich),
+    el('div', { class: 'fo-raster' },
+      el('div', { class: 'fo-bereiche' }, d.bereiche.map(b => el('a', { class: 'fo-bereich', href: `#/forum/${b.id}`, 'data-neu': b.neu ? '' : null },
+        el('span', { class: 'fo-b-name' }, b.name, b.neu ? el('span', { class: 'fo-neu' }, `${b.neu} neu`) : ''),
+        el('span', { class: 'fo-b-text' }, b.text),
+        el('span', { class: 'fo-b-zahl' }, `${b.themen} ${b.themen === 1 ? 'Thread' : 'Threads'} · ${b.beitraege} Beiträge`),
+        el('span', { class: 'fo-b-letzt' }, b.letztes ? [el('b', {}, b.letztes.titel), el('br'), `${b.letztes.name || 'Gelöschtes Konto'}, ${foZeit(b.letztes.zeit)}`]
+          : b.team ? 'Noch leer.' : 'Noch leer. Schreib den ersten Thread.')))),
+      el('aside', { class: 'fo-seite' },
+        el('section', { class: 'fo-kasten' }, el('h2', {}, 'Neueste Beiträge'),
+          d.neueste.length ? el('ul', { class: 'fo-neueste' }, d.neueste.map(t => el('li', {}, el('a', { href: `#/forum/${t.id}/letzte` }, foPill(t.praefix), ' ', t.titel),
+            el('span', { class: 'meta' }, `${t.name || 'Gelöschtes Konto'} · ${foZeit(t.letzte)} · ${t.antworten} ${t.antworten === 1 ? 'Antwort' : 'Antworten'}`))))
+            : el('p', { class: 'leer' }, 'Noch nichts geschrieben.')),
+        el('section', { class: 'fo-kasten' }, el('h2', {}, 'Gerade da'),
+          el('p', { class: 'fo-da' }, `${d.online} ${d.online === 1 ? 'Person ist' : 'Personen sind'} im Forum`, d.teamOnline ? ', das Team ist auch da.' : '.')),
+        el('section', { class: 'fo-kasten' }, el('h2', {}, 'Statistik'),
+          el('dl', { class: 'fo-statistik' }, [['Threads', z.themen], ['Beiträge', z.beitraege], ['Mitglieder', z.mitglieder]].map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]))),
+        foRegeln())),
+  ];
+}
+
+function foWillkommen(ich) {
+  if (ich.gewaehlt) return ich.gesperrt && el('p', { class: 'fehlertext' }, 'Du kannst im Forum gerade nur lesen, nicht schreiben.');
+  if (!ich.darf) return el('p', { class: 'willkommen klein' }, 'Lesen kannst du alles. Zum Mitschreiben bestätige zuerst deine E-Mail-Adresse (Link in der Mail nach der Anmeldung).');
+  const feld = el('input', { type: 'text', id: 'fo-name', maxlength: 24, autocomplete: 'nickname', required: true, 'aria-label': 'Name im Forum', value: ich.name || '' });
+  return el('form', { class: 'willkommen fo-willkommen', onsubmit: async e => {
+      e.preventDefault();
+      const k = e.target.querySelector('button'); k.disabled = true;
+      try { await api('forum/name', { name: feld.value }); forumZeigen(); } catch (err) { status(err.message, true); k.disabled = false; }
+    } },
+    el('h2', {}, 'Wie willst du im Forum heißen?'),
+    el('p', { class: 'klein' }, 'Andere sehen nur diesen Namen, nie deine E-Mail-Adresse.', ich.name ? ' Vorgeschlagen ist dein Arena-Spitzname.' : ''),
+    el('div', { class: 'fo-name-zeile' }, feld, el('button', { class: 'knopf voll' }, 'Mitmachen')),
+    el('p', { class: 'klein' }, 'Mit dem Namen akzeptierst du die Forenregeln (rechts bzw. unten).'));
+}
+
+async function foBereich(id, seite) {
+  const d = await api(`forum/bereich?id=${encodeURIComponent(id)}&seite=${seite}`), b = d.bereich, darf = foDarf(d.ich) && (!b.team || d.ich.team);
+  return [
+    foPfad([['#/forum', 'Forum']]),
+    el('header', { class: 'ausgabe-kopf fo-kopf' }, el('h1', {}, b.name), el('p', { class: 'schlagzeile' }, b.text),
+      darf && el('a', { class: 'knopf voll', href: `#/forum/neu/${b.id}` }, 'Neuer Thread')),
+    d.ich.darf && !d.ich.gewaehlt && el('p', { class: 'klein' }, el('a', { href: '#/forum' }, 'Wähl zuerst deinen Namen'), ', dann kannst du hier schreiben.'),
+    d.themen.length ? el('ol', { class: 'fo-threads' }, d.themen.map(t => el('li', { class: 'fo-thread', 'data-neu': t.neu ? '' : null },
+      foAvatar(t.autor),
+      el('div', { class: 'fo-t-haupt' },
+        el('a', { class: 'fo-t-titel', href: `#/forum/${t.id}` }, foPill(t.praefix), ' ', el('span', {}, t.titel)),
+        el('span', { class: 'meta' }, [t.autor || 'Gelöschtes Konto', foZeit(t.erstellt), t.fach, t.angeheftet && 'angeheftet', t.zu && 'geschlossen'].filter(Boolean).join(' · '))),
+      el('span', { class: 'fo-t-zahl' }, el('b', {}, String(t.antworten)), t.antworten === 1 ? ' Antwort' : ' Antworten', el('br'), `${t.aufrufe} Aufrufe`),
+      el('a', { class: 'fo-t-letzt', href: `#/forum/${t.id}/letzte`, 'aria-label': 'Zum letzten Beitrag' }, foZeit(t.letzte), el('br'), t.letzter || 'Gelöschtes Konto'))))
+      : el('p', { class: 'leer' }, b.team ? 'Hier ist noch nichts.' : 'Noch kein Thread. Mach den Anfang!'),
+    foSeiten(`#/forum/${b.id}`, d.seite, d.seiten),
+  ];
+}
+
+function foEditor({ key, wert = '', titel, knopf, senden, abbrechen }) {  // titel: Startwert, wenn es ein Titelfeld braucht (neuer Thread, erster Beitrag)
+  const feld = el('textarea', { class: 'fo-feld', id: 'fo-' + key, rows: 8, 'aria-label': 'Text', oninput: e => { FO.entwurf[key] = e.target.value; },
+    placeholder: 'Schreib hier. Markdown geht: **fett**, ## Überschrift, - Liste, > Zitat, Formeln mit \\( … \\)' });
+  feld.value = FO.entwurf[key] ?? wert;
+  const tf = titel != null && el('input', { type: 'text', class: 'fo-titel-feld', maxlength: 120, 'aria-label': 'Titel', value: FO.entwurf[key + ':t'] ?? titel,
+    placeholder: 'Titel, möglichst konkret: z. B. „Active Recall mit Karteikarten: so geht es richtig“', oninput: e => { FO.entwurf[key + ':t'] = e.target.value; } });
+  const vorschau = el('div', { class: 'fo-text fo-vorschau', hidden: true });
+  return el('form', { class: 'fo-editor', onsubmit: async e => {
+      e.preventDefault();
+      const k = e.target.querySelector('button[type=submit]'); k.disabled = true;
+      try { await senden(feld.value, tf?.value); delete FO.entwurf[key]; delete FO.entwurf[key + ':t']; } catch (err) { status(err.message, true); k.disabled = false; }
+    } },
+    tf, feld, vorschau,
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'submit' }, knopf),
+      el('button', { class: 'knopf', type: 'button', onclick: e => {
+        const an = vorschau.hidden;
+        vorschau.hidden = !an; feld.hidden = an; e.currentTarget.textContent = an ? 'Weiterschreiben' : 'Vorschau';
+        if (an) foText(vorschau, feld.value);
+      } }, 'Vorschau'),
+      abbrechen && el('button', { class: 'knopf', type: 'button', onclick: abbrechen }, 'Abbrechen')));
+}
+
+async function foThread(id, seite) {
+  const d = await api(`forum/thema?id=${id}&seite=${seite}`), t = d.thema, ich = d.ich, darf = foDarf(ich);
+  const tun = (pfad, body, danach = forumZeigen) => async e => {
+    if (e?.currentTarget) e.currentTarget.disabled = true;
+    try { await api(pfad, body); } catch (err) { status(err.message, true); }
+    danach();
+  };
+  const zitat = p => {
+    const f = $('fo-a' + t.id); if (!f) return;
+    f.value += (f.value && !f.value.endsWith('\n\n') ? '\n\n' : '') + `> **${p.name || 'Gelöschtes Konto'}** schrieb:\n${p.text.split('\n').slice(0, 12).map(z => '> ' + z).join('\n')}\n\n`;
+    FO.entwurf['a' + t.id] = f.value; f.focus(); f.scrollIntoView({ block: 'center' });
+  };
+  const melden = async p => {
+    const g = prompt('Was stimmt mit diesem Beitrag nicht? (z. B. Lösungen zu einem laufenden Test, Beleidigung, abgetippte Folien)');
+    if (!g?.trim()) return;
+    try { await api('forum/melden', { beitrag: p.id, grund: g }); status('Danke, ist gemeldet. Das Team sieht es sich an.'); } catch (err) { status(err.message, true); }
+  };
+  const loeschen = async p => {
+    if (!confirm(p.erster ? 'Den Beitrag löschen? Hat der Thread noch keine Antworten, verschwindet er ganz.' : 'Den Beitrag löschen?')) return;
+    try { const r = await api('forum/loeschen', { beitrag: p.id }); if (r.thema === null) location.hash = `#/forum/${t.bereich}`; else forumZeigen(); } catch (err) { status(err.message, true); }
+  };
+  const beitrag = (p, i) => {
+    if (p.weg === 1 || p.weg && !ich.mod) return el('article', { class: 'fo-beitrag fo-weg', id: 'b' + p.id },
+      el('p', { class: 'leer' }, p.weg === 2 ? `Von der Moderation entfernt. Grund: ${p.grund}` : 'Gelöscht von der Person, die ihn geschrieben hat.'));
+    const zahl = {}, meine = p.reaktionen.find(r => r.meine)?.art;
+    for (const r of p.reaktionen) zahl[r.art] = (zahl[r.art] || 0) + 1;
+    const text = FO.bearbeiten === p.id ? foEditor({ key: 'e' + p.id, wert: p.text, titel: p.erster ? t.titel : null, knopf: 'Speichern',
+        senden: async (text, titel) => { await api('forum/bearbeiten', { beitrag: p.id, text, titel }); FO.bearbeiten = null; forumZeigen(); },
+        abbrechen: () => { FO.bearbeiten = null; delete FO.entwurf['e' + p.id]; delete FO.entwurf['e' + p.id + ':t']; forumZeigen(); } })
+      : foText(el('div', { class: 'fo-text' }), p.text);
+    return el('article', { class: 'fo-beitrag', id: 'b' + p.id },
+      el('aside', { class: 'fo-person' }, foAvatar(p.name), el('b', { class: 'fo-p-name' }, p.name || 'Gelöschtes Konto'),
+        p.name && el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, p.team ? 'Team' : FO_RANG.find(([ab]) => p.ruf >= ab)[1]),
+        p.name && el('dl', { class: 'fo-p-daten' }, [['Beiträge', p.beitraege], ['Ruf', p.ruf], p.xp > 0 && ['Arena', `Level ${LEVEL(p.xp)}`],
+          ['Dabei seit', new Date(p.seit).toLocaleDateString('de-AT', { month: 'short', year: 'numeric' })]].filter(Boolean).map(([n, w]) => [el('dt', {}, n), el('dd', {}, String(w))]))),
+      el('div', { class: 'fo-b-haupt' },
+        el('p', { class: 'fo-b-meta' }, el('span', {}, foZeit(p.erstellt), p.bearbeitet ? ` · bearbeitet` : ''), el('span', {}, `#${(d.seite - 1) * 20 + i + 1}`)),
+        p.weg === 2 && el('p', { class: 'fehlertext' }, `Entfernt, nur die Moderation sieht den Text. Grund: ${p.grund}`),
+        text,
+        p.reaktionen.length > 0 && el('p', { class: 'fo-reaktionen' }, Object.entries(zahl).map(([a, n]) => `${FO_REAKTION[a][0]} ${n}`).join('  '), ' · ', foNamen(p.reaktionen.map(r => r.name || 'Gelöscht'))),
+        el('div', { class: 'fo-aktionen' },
+          !p.eigen && darf && !p.weg && Object.entries(FO_REAKTION).map(([a, [zeichen, name]]) => el('button', { type: 'button', class: 'fo-r', 'aria-pressed': String(meine === a),
+            onclick: tun('forum/reaktion', { beitrag: p.id, art: meine === a ? '' : a }) }, zeichen, el('span', {}, name))),
+          el('span', { class: 'fo-links' },
+            darf && !t.zu && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => zitat(p) }, 'Zitieren'),
+            p.eigen && !p.weg && FO.bearbeiten !== p.id && [el('button', { type: 'button', class: 'fo-link', onclick: () => { FO.bearbeiten = p.id; forumZeigen(); } }, 'Bearbeiten'),
+              el('button', { type: 'button', class: 'fo-link', onclick: () => loeschen(p) }, 'Löschen')],
+            !p.eigen && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => melden(p) }, 'Melden'),
+            ich.mod && p.weg === 2 && el('button', { type: 'button', class: 'fo-link', onclick: tun('admin/forum', { beitrag: p.id, weg: false }) }, 'Zurückholen'),
+            ich.mod && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: e => {
+              const g = prompt('Grund, den alle sehen (z. B. „Regel 1: Lösungen zu einem laufenden Test“):'); if (g?.trim()) tun('admin/forum', { beitrag: p.id, weg: true, grund: g })(e);
+            } }, 'Entfernen'),
+            ich.mod && p.konto && !p.eigen && el('button', { type: 'button', class: 'fo-link', onclick: e => confirm(`${p.name} im Forum sperren? Lesen geht weiter.`) && tun('admin/forum', { konto: p.konto, sperren: true })(e) }, 'Sperren')))));
+  };
+  return [
+    foPfad([['#/forum', 'Forum'], [`#/forum/${t.bereich}`, t.bereichName]]),
+    el('header', { class: 'ausgabe-kopf fo-kopf' }, el('h1', {}, foPill(t.praefix), ' ', t.titel),
+      el('p', { class: 'unterzeile' }, el('span', {}, foZeit(t.erstellt)), t.fach && el('span', {}, t.fach), el('span', {}, `${t.aufrufe} Aufrufe`), t.angeheftet ? el('span', {}, 'angeheftet') : null, t.zu ? el('span', {}, 'geschlossen') : null)),
+    ich.mod && el('div', { class: 'fo-mod knopfreihe' },
+      el('button', { class: 'knopf', type: 'button', onclick: tun('admin/forum', { thema: t.id, angeheftet: !t.angeheftet }) }, t.angeheftet ? 'Nicht mehr anheften' : 'Anheften'),
+      el('button', { class: 'knopf', type: 'button', onclick: tun('admin/forum', { thema: t.id, zu: !t.zu }) }, t.zu ? 'Wieder öffnen' : 'Schließen'),
+      el('select', { 'aria-label': 'Verschieben nach', onchange: e => tun('admin/forum', { thema: t.id, bereich: e.target.value })() },
+        d.bereiche.map(b => el('option', { value: b.id, selected: b.id === t.bereich }, b.id === t.bereich ? `In: ${b.name}` : `→ ${b.name}`))),
+      el('button', { class: 'knopf', type: 'button', onclick: e => confirm('Den ganzen Thread mit allen Antworten löschen?') && tun('admin/forum', { thema: t.id, loeschen: true }, () => { location.hash = `#/forum/${t.bereich}`; })(e) }, 'Thread löschen')),
+    foSeiten(`#/forum/${t.id}`, d.seite, d.seiten),
+    d.beitraege.map(beitrag),
+    foSeiten(`#/forum/${t.id}`, d.seite, d.seiten),
+    d.seite === d.seiten && (t.zu && !ich.team ? el('p', { class: 'leer' }, 'Dieser Thread ist geschlossen.')
+      : darf ? el('section', { class: 'fo-antwort' }, el('h2', {}, 'Antworten'), foEditor({ key: 'a' + t.id, knopf: 'Antworten', senden: async text => {
+          await api('forum/antwort', { thema: t.id, text });
+          const ziel = `#/forum/${t.id}/letzte`; if (location.hash === ziel) forumZeigen(); else location.hash = ziel;
+        } }))
+      : el('p', { class: 'leer' }, ich.darf ? [el('a', { href: '#/forum' }, 'Wähl deinen Namen'), ', dann kannst du antworten.'] : 'Zum Antworten bestätige zuerst deine E-Mail-Adresse.')),
+  ];
+}
+
+async function foNeu(id) {
+  const d = await api('forum'), b = d.bereiche.find(x => x.id === id), key = 'n' + id;
+  if (!b) throw new Error('Diesen Bereich gibt es nicht.');
+  if (!foDarf(d.ich) || b.team && !d.ich.team) { location.hash = '#/forum'; return []; }
+  const arten = Object.keys(FO_PRAEFIX).filter(p => p !== 'news' || d.ich.team);
+  let art = FO.entwurf[key + ':p'] || (b.team ? 'news' : FO_STANDARD[id] || 'diskussion');
+  if (art === 'guide' && FO.entwurf[key] == null) FO.entwurf[key] = FO_GUIDE;
+  const chips = el('div', { class: 'arena-chips fo-arten', role: 'group', 'aria-label': 'Art des Threads' }, arten.map(p => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(p === art),
+    onclick: e => {
+      art = FO.entwurf[key + ':p'] = p;
+      chips.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === e.currentTarget)));
+      const f = $('fo-' + key); if (p === 'guide' && !f.value.trim()) f.value = FO.entwurf[key] = FO_GUIDE;
+    } }, FO_PRAEFIX[p])));
+  const fach = el('select', { id: 'fo-fach', onchange: e => { FO.entwurf[key + ':f'] = e.target.value; } }, el('option', { value: '' }, 'Kein bestimmtes Fach'),
+    Object.keys(R).map(f => el('option', { value: f, selected: FO.entwurf[key + ':f'] === f }, f)));
+  return [
+    foPfad([['#/forum', 'Forum'], [`#/forum/${b.id}`, b.name]]),
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Neuer Thread'), el('p', { class: 'schlagzeile' }, `in ${b.name}`)),
+    el('div', { class: 'fo-neu-form' },
+      el('p', { class: 'fo-label' }, 'Was ist das?'), chips,
+      el('label', { class: 'fo-label', for: 'fo-fach' }, 'Fach'), fach,
+      el('p', { class: 'fo-label' }, 'Titel und Text'),
+      foEditor({ key, titel: '', knopf: 'Veröffentlichen', abbrechen: () => { location.hash = `#/forum/${b.id}`; },
+        senden: async (text, titel) => {
+          const r = await api('forum/thema', { bereich: b.id, praefix: art, titel, text, fach: fach.value });
+          delete FO.entwurf[key + ':p']; delete FO.entwurf[key + ':f']; location.hash = `#/forum/${r.id}`;
+        } }),
+      el('p', { class: 'klein' }, 'Ein guter Guide nimmt sich eine Methode vor, ganz genau: Was bringt sie, welche Studie zeigt das, Schritt für Schritt, typische Fehler. Schaubilder gehen wie in der Wochenausgabe mit einem ```bild-Block.'),
+      foRegeln()),
+  ];
+}
+
+const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', forum: 'Forum', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
 // Word Power sehen nur Konten mit der Englisch-Rolle (Admin-Ecke: Haken je Konto oder Aktion für neue Konten), der Admin und die eigene Version
 const wpSichtbar = () => !SERVER || !!ICH?.admin || !!ICH?.englisch || ICH?.tarif === 'englisch';
@@ -10091,12 +10439,12 @@ async function zeichne() {
   const [teil, tag] = anker ? ['anleitung'] : location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const offen = SERVER && (teil === 'recht' || teil === 'upgrade' && !!TARIFE?.verkauf);  // Preise und Impressum auch ohne Konto; ohne Verkauf keine Tarifseite
   let neu = teil === 'anleitung' || teil === 'start' && SERVER ? teil : offen ? teil : !fertig() || teil === 'einstellungen' ? (SERVER && !teil ? 'start' : 'einstellungen')
-    : ['thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
+    : ['thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin', 'forum'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
     : !teil && !eingerichtet() ? 'start' : 'titelblatt';  // wer noch nichts eingerichtet hat, landet auf Start
   if (betaWeg(neu)) neu = 'titelblatt';
   if (SPERREN[neu] && !darf(SPERREN[neu])) neu = 'gesperrt';  // Server: Funktion ohne passenden Tarif
   if ($('meldung').open) $('meldung').close();
-  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
+  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'forum', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
   ankuendigungZeigen();
   $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
@@ -10138,6 +10486,7 @@ async function zeichne() {
   else if (neu === 'vortrag') await vortragZeigen(tag);
   else if (neu === 'unterlagen') await unterlagenZeigen(tag);
   else if (neu === 'arena') await arenaZeigen();
+  else if (neu === 'forum') await forumZeigen();
   else if (neu === 'video') await videoZeigen(tag);
   else if (neu === 'thema') await themaZeigen(tag);
   else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, ANSICHTEN[teil])), sperrBuehne(SPERREN[teil]));

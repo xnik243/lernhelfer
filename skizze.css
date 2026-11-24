@@ -93,10 +93,15 @@ main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 9
 /* ---------- Gezeichnete Kästen ---------- */
 :is(.fach, .abschnitt:not(.blick), .aufgabe, .schritt, .kal-panel, .tarif, .sperrkarte, .assistent, .liste-rahmen, .woche, .testzeilen, .ul-liste,
   .vt-gesamt, .vt-tipps li, .vt-befund, .vt-abgleich li, .vt-ger-skalen > li, .vt-zahl, .vt-verlauf, .lv-karte, .kachel, .frage-karte,
-  .tabelle-rahmen, .sperre, .ultra-werbung, .meldung, .vt-spieler) {
+  .tabelle-rahmen, .sperre, .ultra-werbung, .meldung, .vt-spieler, .fo-bereich, .fo-kasten, .fo-beitrag) {
   border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 10px / 4px stretch; background-color: var(--bg);
 }
-:is(.fach, .weiter-ziel, .aufgabe, .kal-panel, .tarif, .vt-tipps li, .vt-befund, .vt-zahl, .lv-karte, .kachel, .vt-abgleich li):nth-child(even) { border-image-source: var(--rahmen-2); }
+:is(.fach, .weiter-ziel, .aufgabe, .kal-panel, .tarif, .vt-tipps li, .vt-befund, .vt-zahl, .lv-karte, .kachel, .vt-abgleich li, .fo-bereich, .fo-beitrag):nth-child(even) { border-image-source: var(--rahmen-2); }
+/* Forum: neue Threads mit Textmarker, Personenkarte ohne graue Fläche, Bereiche beim Drüberfahren gelb */
+.fo-thread[data-neu] .fo-t-titel span { background: var(--marker) center 62% / 100% 58% no-repeat; }
+.fo-person { background: none; border-right: 1.5px dashed var(--linie-2); }
+@media (hover: hover) { .fo-bereich:hover { background-color: var(--gelb-hauch); } }
+@media (max-width: 640px) { .fo-person { border-right: 0; border-bottom: 1.5px dashed var(--linie-2); } }
 :is(.schritt .sperre, .assistent > .sperrkarte, .loeser-teil .aufgabe) { border-image: none; background-color: transparent; }
 .tarif.empfohlen, .ultra-werbung { border-image-source: var(--rahmen-blau); box-shadow: none; }
 .ultra-werbung { background-color: var(--akzent-flaeche); }

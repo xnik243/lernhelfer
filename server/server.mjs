@@ -192,6 +192,23 @@ db.exec(`create table if not exists campus_verdienst (id integer primary key aut
 create index if not exists campus_verdienst_konto on campus_verdienst (konto, id);
 create table if not exists campus_einmal (konto integer not null references konten(id) on delete cascade, was text not null, naechste text not null default '', primary key (konto, was));
 create table if not exists campus_loeschen (konto integer primary key);`);
+// Forum: Name je Konto (eindeutig zusammen mit den Arena-Spitznamen), Threads, Beiträge, Reaktionen (eine je Person und Beitrag), gelesen bis, Meldungen.
+// Gelöschte Konten: Beiträge bleiben ohne Namen stehen. weg: 1 selbst gelöscht (Text leer), 2 von der Moderation entfernt (Text bleibt als Beleg, grund sieht jede:r)
+db.exec(`create table if not exists forum_profil (konto integer primary key references konten(id) on delete cascade, name text not null, seit integer not null, gesperrt integer not null default 0);
+create table if not exists forum_thema (id integer primary key, bereich text not null, praefix text not null, fach text, titel text not null, konto integer references konten(id) on delete set null,
+  erstellt integer not null, letzte integer not null, letzter integer references konten(id) on delete set null, antworten integer not null default 0, aufrufe integer not null default 0,
+  angeheftet integer not null default 0, zu integer not null default 0);
+create index if not exists forum_thema_bereich on forum_thema (bereich, angeheftet, letzte);
+create table if not exists forum_beitrag (id integer primary key, thema integer not null references forum_thema(id) on delete cascade, konto integer references konten(id) on delete set null,
+  text text not null, erstellt integer not null, bearbeitet integer, weg integer not null default 0, grund text);
+create index if not exists forum_beitrag_thema on forum_beitrag (thema, id);
+create index if not exists forum_beitrag_konto on forum_beitrag (konto);
+create table if not exists forum_reaktion (beitrag integer not null references forum_beitrag(id) on delete cascade, konto integer not null references konten(id) on delete cascade, art text not null,
+  primary key (beitrag, konto));
+create table if not exists forum_gelesen (konto integer not null references konten(id) on delete cascade, thema integer not null references forum_thema(id) on delete cascade, bis integer not null,
+  primary key (konto, thema));
+create table if not exists forum_meldung (id integer primary key, beitrag integer not null references forum_beitrag(id) on delete cascade, konto integer references konten(id) on delete set null,
+  grund text not null, zeit integer not null, erledigt integer not null default 0);`);
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -384,7 +401,7 @@ const logSql = db.prepare('insert into nutzung_log (konto, zeit, was) values (?,
 const zaehlen = (id, was, usd = 0, n = 1) => { zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0); if (n > 0) logSql.run(id, jetzt(), was); };
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
 const SEITEN = { start: 'Start', titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
-  karten: 'Karteikarten', thema: 'Thema lernen', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', video: 'Videos',
+  karten: 'Karteikarten', thema: 'Thema lernen', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', forum: 'Forum', video: 'Videos',
   'wp-glossar': 'Word Power: Glossar', 'wp-trainer': 'Word Power: Trainer', 'wp-zeit': 'Word Power: Time Log', 'wp-reflexion': 'Word Power: Reflection-Feedback' };
 const MELDBAR = new Set([...Object.keys(SEITEN).map(x => 'seite:' + x), ...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2).map(f => 'gesperrt:' + f), 'export']);
 const bezahlt = id => !!db.prepare("select 1 from bestellungen where konto = ? and status = 'bezahlt'").get(id);
@@ -1044,6 +1061,11 @@ async function exportieren(req, res, k) {
       xp: db.prepare('select tag, zeit, art, xp, wert from arena_xp where konto = ? order by id').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
       bestzeiten: db.prepare('select fach, ms from arena_best where konto = ?').all(k.id), preise: db.prepare('select woche, platz, xp, art, wert from arena_preise where konto = ?').all(k.id) },
     campus_verdienst: db.prepare('select tag, art, menge, fach, serie, note from campus_verdienst where konto = ? order by id').all(k.id),
+    forum: { name: db.prepare('select name, seit, gesperrt from forum_profil where konto = ?').get(k.id) ?? null,
+      beitraege: db.prepare('select t.titel thread, b.text, b.erstellt, b.bearbeitet, b.weg from forum_beitrag b join forum_thema t on t.id = b.thema where b.konto = ? order by b.id').all(k.id)
+        .map(x => ({ ...x, erstellt: iso(x.erstellt), bearbeitet: iso(x.bearbeitet) })),
+      reaktionen: db.prepare('select beitrag, art from forum_reaktion where konto = ?').all(k.id),
+      meldungen: db.prepare('select beitrag, grund, zeit from forum_meldung where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })) },
   };
   const dateien = db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id);
   const liesmich = `Deine Daten aus dem Lernhelfer, Stand ${new Date().toLocaleString('de-AT')}.\n\nkonto.json: Konto, Tarif, Bestellungen, KI-Kosten pro Monat, welche Bereiche du an welchem Tag genutzt hast, deine Fehlerberichte, dein Arena-Eintrag.\n`
@@ -1068,6 +1090,76 @@ function bestellMail(k, T, monate, betrag, zweck) {
     + `Folgen des Widerrufs: Wir zahlen dir alles, was du für diesen Vertrag gezahlt hast, unverzüglich und spätestens binnen 14 Tagen ab Eingang deines Widerrufs zurück, auf demselben Weg, auf dem du gezahlt hast, ohne Gebühren. `
     + `Hat der Tarif auf deinen Wunsch schon während der Widerrufsfrist begonnen, zahlst du einen Betrag, der dem Anteil der bis zum Widerruf genutzten Zeit an der ganzen Laufzeit entspricht.\n\n`
     + `MUSTER-WIDERRUFSFORMULAR\nAn ${anbieter}: Hiermit widerrufe ich den von mir abgeschlossenen Vertrag über ${T.name} (Bestellung ${zweck}), bestellt am ${am}. Name, E-Mail-Adresse des Kontos, Datum.` + gruss;
+}
+
+/* ---------- Forum ---------- */
+// Spitzname für Arena und Forum: ein Name pro Person, in beiden Tabellen eindeutig; Team-Namen bleiben dem Admin
+function spitzname(k, roh) {
+  const name = String(roh || '').normalize('NFKC').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  if (name.length < 2) nein(400, 'Bitte einen Spitznamen mit mindestens 2 Zeichen.');
+  if (!istAdmin(k) && /admin|moderat|lernhelfer|^team$/i.test(name)) nein(400, 'Dieser Name ist fürs Team reserviert.');
+  if (db.prepare('select 1 from arena where name = ?1 collate nocase and konto != ?2 union all select 1 from forum_profil where name = ?1 collate nocase and konto != ?2').get(name, k.id))
+    nein(409, 'Diesen Spitznamen hat schon jemand.');
+  return name;
+}
+// team: neue Threads nur vom Admin (Antworten darf jede:r); „Best of“ füllt der Admin, indem er gute Threads dorthin verschiebt
+const FORUM = [
+  ['ankuendigungen', 'Ankündigungen', 'Neues vom Lernhelfer und vom Team.', true],
+  ['best', 'Best of', 'Die besten Guides und Lernlogs, vom Team ausgesucht. Guter Startpunkt.', true],
+  ['lernen', 'Lernen lernen', 'Eine Methode, ganz genau: was sie bringt, wie sie geht, welche Studien dahinterstehen.'],
+  ['stoff', 'Fragen zum Stoff', 'Hängst du bei einer Aufgabe, einer Formel oder einem Begriff? Frag hier.'],
+  ['pruefungen', 'Prüfungsphase', 'Lernpläne, Lernlogs und Erfahrungen mit Prüfungen und PS-Tests.'],
+  ['kopf', 'Kopf und Motivation', 'Aufschieben, Stress, Fokus, Schlaf. Und Dampf ablassen.'],
+  ['uni', 'Uni-Leben', 'Innsbruck, Studium, Organisatorisches.'],
+  ['offtopic', 'Off Topic', 'Alles andere.'],
+].map(([id, name, text, team]) => ({ id, name, text, team: !!team }));
+const PRAEFIXE = ['guide', 'frage', 'diskussion', 'lernlog', 'motivation', 'dampf', 'news'];  // news nur fürs Team
+const REAKTIONEN = ['hilfreich', 'stark', 'danke', 'haha'];
+const SEITE = 20, IM_FORUM = new Map();  // Konto → letzter Forum-Aufruf, für „online“ (nur im Speicher)
+const forumDa = k => { IM_FORUM.set(muss(k).id, jetzt()); return k; };
+const forumText = (s, min, max, was) => {
+  s = String(s ?? '').replace(/\r\n/g, '\n').trim();
+  if (s.length < min || s.length > max) nein(400, `${was}: bitte ${min} bis ${max} Zeichen.`);
+  return s;
+};
+const forumThema = id => db.prepare('select * from forum_thema where id = ?').get(Number(id)) || nein(404, 'Diesen Thread gibt es nicht (mehr).');
+const forumBeitrag = id => db.prepare('select * from forum_beitrag where id = ?').get(Number(id)) || nein(404, 'Diesen Beitrag gibt es nicht (mehr).');
+const darfSchreiben = k => !!k.bestaetigt;
+function schreiber(req, k, max) {  // schreiben und reagieren: bestätigte Adresse, Forum-Name, nicht gesperrt; max je 15 Minuten
+  forumDa(k);
+  if (!darfSchreiben(k)) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');
+  const p = db.prepare('select name, gesperrt from forum_profil where konto = ?').get(k.id) || nein(409, 'Wähl zuerst deinen Namen fürs Forum.');
+  if (p.gesperrt) nein(403, 'Du kannst im Forum gerade nicht schreiben.');
+  bremse(req, max, String(k.id));
+}
+const gelesen = (konto, thema, bis) => db.prepare('insert into forum_gelesen (konto, thema, bis) values (?, ?, ?) on conflict (konto, thema) do update set bis = max(bis, excluded.bis)').run(konto, thema, bis);
+const erster = thema => db.prepare('select min(id) id from forum_beitrag where thema = ?').get(thema).id;
+const NEU_SEIT = () => jetzt() - 30 * TAG;  // ältere Threads gelten nie als neu (wie bei XenForo)
+// Personenkarte neben jedem Beitrag: Beiträge, Ruf (Reaktionen anderer), Arena-XP nur bei Teilnahme, Team
+const AUTOR = `p.name, p.seit, k.email = ?1 and k.bestaetigt team,
+  (select count(*) from forum_beitrag x where x.konto = b.konto and x.weg = 0) beitraege,
+  (select count(*) from forum_reaktion r join forum_beitrag x on x.id = r.beitrag where x.konto = b.konto and r.konto != b.konto and x.weg = 0) ruf,
+  (select coalesce(sum(xp), 0) from arena_xp a where a.konto = b.konto and exists (select 1 from arena where konto = b.konto and aus = 0)) xp`;
+function forumStart(k) {
+  const t = jetzt(), da = [...IM_FORUM].filter(([, z]) => t - z < 15 * 60e3).map(([id]) => id);
+  const zahlen = Object.fromEntries(db.prepare('select bereich, count(*) themen, count(*) + sum(antworten) beitraege from forum_thema group by bereich').all().map(x => [x.bereich, x]));
+  const neu = Object.fromEntries(db.prepare(`select t.bereich, count(*) n from forum_thema t left join forum_gelesen g on g.thema = t.id and g.konto = ?
+    where t.letzte > coalesce(g.bis, 0) and t.letzte > ? group by t.bereich`).all(k.id, NEU_SEIT()).map(x => [x.bereich, x.n]));
+  const letztes = db.prepare('select t.id, t.titel, t.letzte zeit, p.name from forum_thema t left join forum_profil p on p.konto = t.letzter where t.bereich = ? order by t.letzte desc limit 1');
+  return {
+    bereiche: FORUM.map(b => ({ ...b, themen: zahlen[b.id]?.themen || 0, beitraege: zahlen[b.id]?.beitraege || 0, neu: neu[b.id] || 0, letztes: letztes.get(b.id) || null })),
+    neueste: db.prepare(`select t.id, t.titel, t.praefix, t.bereich, t.antworten, t.letzte, p.name from forum_thema t left join forum_profil p on p.konto = t.letzter
+      order by t.letzte desc limit 8`).all(),
+    online: da.length, teamOnline: da.some(id => istAdmin(kontoMit(id) || {})),
+    statistik: { themen: Object.values(zahlen).reduce((s, x) => s + x.themen, 0), beitraege: Object.values(zahlen).reduce((s, x) => s + x.beitraege, 0),
+      mitglieder: db.prepare('select count(*) n from forum_profil').get().n },
+    ich: forumIch(k),
+  };
+}
+function forumIch(k) {  // gewaehlt: Forum-Name bestätigt; sonst schlägt die App den Arena-Spitznamen vor
+  const p = db.prepare('select name, gesperrt from forum_profil where konto = ?').get(k.id);
+  return { name: p?.name || db.prepare('select name from arena where konto = ?').get(k.id)?.name || null, gewaehlt: !!p, gesperrt: !!p?.gesperrt,
+    darf: darfSchreiben(k), bestaetigt: !!k.bestaetigt, team: istAdmin(k), mod: !!k.ecke };
 }
 
 /* ---------- Routen ---------- */
@@ -1255,9 +1347,7 @@ const ROUTEN = {
     if (db.prepare('select aus from arena where konto = ?').get(k.id)?.aus) nein(403, 'Du kannst in der Arena gerade nicht mitmachen.');
     if (!b.aus && !k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse, dann kannst du mitmachen.');
     if (b.aus) { db.prepare('delete from arena where konto = ?').run(k.id); return arenaStand(k); }
-    const name = String(b.name || '').normalize('NFKC').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
-    if (name.length < 2) nein(400, 'Bitte einen Spitznamen mit mindestens 2 Zeichen.');
-    if (db.prepare('select 1 from arena where name = ? collate nocase and konto != ?').get(name, k.id)) nein(409, 'Diesen Spitznamen hat schon jemand.');
+    const name = spitzname(k, b.name);
     db.prepare('insert into arena (konto, name, woche, xp, min, serie, laeuft) values (?, ?, ?, 0, 0, 0, 0) on conflict (konto) do update set name = excluded.name').run(k.id, name, arenaWoche());
     return arenaStand(k);
   },
@@ -1373,6 +1463,100 @@ const ROUTEN = {
     const neu = challengesPruefen(k.id);  // vor dem Stand, sonst fehlen geschaffte Challenges darin
     return { ...arenaStand(k), ergebnis: { ...e.ergebnis, methode: d.methode, fach: d.fach, teil: d.teil, ernsthaft: e.ernsthaft, xp, gedeckelt: e.ernsthaft && !zaehlt, neu } };
   },
+  // Forum: lesen mit jedem Konto; schreiben und reagieren nur mit bestätigter Uni-Adresse und Forum-Namen (schreiber)
+  'GET /api/forum': ({ k }) => forumStart(forumDa(k)),
+  'POST /api/forum/name': ({ k, b }) => {
+    forumDa(k);
+    if (!k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');
+    db.prepare('insert into forum_profil (konto, name, seit) values (?, ?, ?) on conflict (konto) do update set name = excluded.name').run(k.id, spitzname(k, b.name), jetzt());
+    return forumStart(k);
+  },
+  'GET /api/forum/bereich': ({ k, q }) => {
+    forumDa(k);
+    const b = FORUM.find(x => x.id === q.get('id')) || nein(404, 'Diesen Bereich gibt es nicht.');
+    const n = db.prepare('select count(*) n from forum_thema where bereich = ?').get(b.id).n, seiten = Math.max(1, Math.ceil(n / SEITE));
+    const seite = Math.min(seiten, Math.max(1, parseInt(q.get('seite')) || 1));
+    const themen = db.prepare(`select t.id, t.praefix, t.fach, t.titel, t.erstellt, t.letzte, t.antworten, t.aufrufe, t.angeheftet, t.zu, a.name autor, l.name letzter,
+        t.letzte > coalesce(g.bis, 0) and t.letzte > ? neu
+      from forum_thema t left join forum_profil a on a.konto = t.konto left join forum_profil l on l.konto = t.letzter left join forum_gelesen g on g.thema = t.id and g.konto = ?
+      where t.bereich = ? order by t.angeheftet desc, t.letzte desc limit ? offset ?`).all(NEU_SEIT(), k.id, b.id, SEITE, (seite - 1) * SEITE);
+    return { bereich: b, themen, seite, seiten, ich: forumIch(k) };
+  },
+  'GET /api/forum/thema': ({ k, q }) => {  // seite=letzte: die letzte Seite (aus „Neueste Beiträge“)
+    forumDa(k);
+    const t = forumThema(q.get('id')), n = db.prepare('select count(*) n from forum_beitrag where thema = ?').get(t.id).n, seiten = Math.max(1, Math.ceil(n / SEITE));
+    const seite = q.get('seite') === 'letzte' ? seiten : Math.min(seiten, Math.max(1, parseInt(q.get('seite')) || 1));
+    const beitraege = db.prepare(`select b.id, b.konto, b.text, b.erstellt, b.bearbeitet, b.weg, b.grund, ${AUTOR}
+      from forum_beitrag b left join forum_profil p on p.konto = b.konto left join konten k on k.id = b.konto
+      where b.thema = ?3 order by b.id limit ?4 offset ?5`).all(ADMIN, k.id, t.id, SEITE, (seite - 1) * SEITE);
+    const ids = beitraege.map(x => x.id), reaktionen = ids.length ? db.prepare(`select r.beitrag, r.art, r.konto = ? meine, p.name from forum_reaktion r
+      left join forum_profil p on p.konto = r.konto where r.beitrag in (${ids.map(() => '?').join()}) order by r.rowid desc`).all(k.id, ...ids) : [];
+    db.prepare('update forum_thema set aufrufe = aufrufe + 1 where id = ?').run(t.id);
+    if (beitraege.length) gelesen(k.id, t.id, seite === seiten ? t.letzte : beitraege.at(-1).erstellt);
+    const erst = erster(t.id), mod = !!k.ecke;
+    return {
+      thema: { ...t, konto: undefined, letzter: undefined, eigen: t.konto === k.id, bereichName: FORUM.find(x => x.id === t.bereich)?.name || t.bereich },
+      beitraege: beitraege.map(({ konto, ...x }) => ({ ...x, eigen: konto === k.id, erster: x.id === erst, konto: mod ? konto : undefined,
+        text: x.weg && !(mod && x.weg === 2) ? '' : x.text, reaktionen: reaktionen.filter(r => r.beitrag === x.id).map(({ art, name, meine }) => ({ art, name, meine: !!meine })) })),
+      seite, seiten, ich: forumIch(k), bereiche: mod ? FORUM.map(({ id, name }) => ({ id, name })) : undefined,
+    };
+  },
+  'POST /api/forum/thema': ({ req, k, b }) => {
+    schreiber(req, k, 6);
+    const ber = FORUM.find(x => x.id === b.bereich) || nein(400, 'Diesen Bereich gibt es nicht.');
+    if (ber.team && !istAdmin(k)) nein(403, 'Hier eröffnet nur das Team neue Threads.');
+    if (!PRAEFIXE.includes(b.praefix) || b.praefix === 'news' && !istAdmin(k)) nein(400, 'Bitte wähl, was für ein Thread das ist.');
+    const titel = forumText(b.titel, 5, 120, 'Titel').replace(/\s+/g, ' '), text = forumText(b.text, 20, 30000, 'Text'), t = jetzt();
+    const fach = String(b.fach || '').replace(/\s+/g, ' ').trim().slice(0, 40) || null;
+    const id = Number(db.prepare('insert into forum_thema (bereich, praefix, fach, titel, konto, erstellt, letzte, letzter) values (?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(ber.id, b.praefix, fach, titel, k.id, t, t, k.id).lastInsertRowid);
+    db.prepare('insert into forum_beitrag (thema, konto, text, erstellt) values (?, ?, ?, ?)').run(id, k.id, text, t);
+    gelesen(k.id, id, t);
+    return { id };
+  },
+  'POST /api/forum/antwort': ({ req, k, b }) => {
+    schreiber(req, k, 30);
+    const t = forumThema(b.thema), text = forumText(b.text, 2, 30000, 'Antwort'), z = jetzt();
+    if (t.zu && !istAdmin(k)) nein(403, 'Dieser Thread ist geschlossen.');
+    const id = Number(db.prepare('insert into forum_beitrag (thema, konto, text, erstellt) values (?, ?, ?, ?)').run(t.id, k.id, text, z).lastInsertRowid);
+    db.prepare('update forum_thema set antworten = antworten + 1, letzte = ?, letzter = ? where id = ?').run(z, k.id, t.id);
+    gelesen(k.id, t.id, z);
+    return { id };
+  },
+  'POST /api/forum/bearbeiten': ({ req, k, b }) => {  // nur eigene, nicht gelöschte Beiträge; beim ersten Beitrag auch den Titel
+    schreiber(req, k, 30);
+    const p = forumBeitrag(b.beitrag);
+    if (p.konto !== k.id || p.weg) nein(403, 'Du kannst nur deine eigenen Beiträge bearbeiten.');
+    db.prepare('update forum_beitrag set text = ?, bearbeitet = ? where id = ?').run(forumText(b.text, p.id === erster(p.thema) ? 20 : 2, 30000, 'Text'), jetzt(), p.id);
+    if (b.titel != null && p.id === erster(p.thema)) db.prepare('update forum_thema set titel = ? where id = ?').run(forumText(b.titel, 5, 120, 'Titel').replace(/\s+/g, ' '), p.thema);
+  },
+  'POST /api/forum/loeschen': ({ k, b }) => {  // eigener Beitrag: Text weg, Platzhalter bleibt; ein Thread ohne Antworten verschwindet ganz
+    forumDa(k);
+    const p = forumBeitrag(b.beitrag);
+    if (p.konto !== k.id) nein(403, 'Du kannst nur deine eigenen Beiträge löschen.');
+    if (p.id === erster(p.thema) && !db.prepare('select 1 from forum_beitrag where thema = ? and id != ? and weg = 0').get(p.thema, p.id)) {
+      db.prepare('delete from forum_thema where id = ?').run(p.thema);
+      return { thema: null };
+    }
+    db.prepare("update forum_beitrag set weg = 1, text = '' where id = ?").run(p.id);
+    return { thema: p.thema };
+  },
+  'POST /api/forum/reaktion': ({ req, k, b }) => {  // art leer: zurücknehmen
+    schreiber(req, k, 120);
+    const p = forumBeitrag(b.beitrag);
+    if (p.konto === k.id) nein(400, 'Eigene Beiträge kannst du nicht bewerten.');
+    if (p.weg) nein(410, 'Dieser Beitrag ist gelöscht.');
+    if (!b.art) return void db.prepare('delete from forum_reaktion where beitrag = ? and konto = ?').run(p.id, k.id);
+    if (!REAKTIONEN.includes(b.art)) nein(400, 'Diese Reaktion gibt es nicht.');
+    db.prepare('insert into forum_reaktion (beitrag, konto, art) values (?, ?, ?) on conflict (beitrag, konto) do update set art = excluded.art').run(p.id, k.id, b.art);
+  },
+  'POST /api/forum/melden': async ({ req, k, b }) => {  // jedes Konto; der Admin bekommt eine Mail, damit er schnell reagieren kann (DSA, ECG § 16)
+    forumDa(k); bremse(req, 10, String(k.id));
+    const p = forumBeitrag(b.beitrag), grund = forumText(b.grund, 3, 1000, 'Grund');
+    if (db.prepare('select 1 from forum_meldung where beitrag = ? and konto = ? and erledigt = 0').get(p.id, k.id)) return;
+    db.prepare('insert into forum_meldung (beitrag, konto, grund, zeit) values (?, ?, ?, ?)').run(p.id, k.id, grund, jetzt());
+    if (ADMIN) await mail(ADMIN, 'Lernhelfer: Forum-Beitrag gemeldet', `Gemeldet wurde ein Beitrag in „${forumThema(p.thema).titel}“.\n\nGrund: ${grund}\n\n${BASIS}/app#/forum/${p.thema}\nAdmin-Ecke → Forum${gruss}`);
+  },
   'POST /api/nutzung': ({ k, b }) => { muss(k); if (MELDBAR.has(b.was)) zaehlen(k.id, b.was); },  // Seite geöffnet, gesperrte Funktion angetippt, PDF
   'POST /api/fehler': async ({ req, k, b }) => {  // „Fehler melden“, auch ohne Konto (etwa beim Registrieren); 5 je 15 Minuten
     bremse(req, 5);
@@ -1437,6 +1621,12 @@ const ROUTEN = {
           from arena a join konten k on k.id = a.konto order by a.aus, woche desc`).all(arenaWoche()),
         gewinner: db.prepare('select woche, platz, name, xp, art, wert from arena_preise order by woche desc, platz limit 30').all().map(x => ({ ...x, preis: preisText(x.art, x.wert) })) },
       fehler: db.prepare('select id, zeit, kontakt, seite, meldung, text, geraet from fehler where erledigt = 0 order by id desc limit 50').all(),
+      forum: {
+        meldungen: db.prepare(`select m.id, m.grund, m.zeit, b.id beitrag, b.thema, b.text, b.weg, b.konto, t.titel, a.name autor, r.name melder
+          from forum_meldung m join forum_beitrag b on b.id = m.beitrag join forum_thema t on t.id = b.thema
+          left join forum_profil a on a.konto = b.konto left join forum_profil r on r.konto = m.konto where m.erledigt = 0 order by m.id`).all(),
+        gesperrt: db.prepare('select p.konto, p.name, k.email from forum_profil p join konten k on k.id = p.konto where p.gesperrt = 1').all(),
+      },
       bestellungen: db.prepare("select id, email, tarif, monate, betrag, rabatt, zweck, status, erstellt, gemeldet, bezahlt from bestellungen where status in ('offen', 'gemeldet') or bezahlt > ? order by id desc").all(jetzt() - 60 * TAG),
     };
   },
@@ -1502,6 +1692,25 @@ const ROUTEN = {
   'POST /api/admin/bezahlt': ({ k, b }) => { admin(k); return freischalten(Number(b.id)); },
   'POST /api/admin/fehler': ({ k, b }) => { admin(k); db.prepare('update fehler set erledigt = ? where id = ?').run(jetzt(), Number(b.id)); },
   'POST /api/admin/storno': ({ k, b }) => { admin(k); db.prepare("update bestellungen set status = 'storniert' where id = ? and status in ('offen', 'gemeldet')").run(Number(b.id)); },
+  // Forum-Moderation: Thread anheften, schließen, verschieben, löschen; Beitrag entfernen (Grund sieht jede:r) oder zurückholen; Meldung erledigt; Konto sperren
+  'POST /api/admin/forum': ({ k, b }) => {
+    admin(k);
+    if (b.thema) {
+      const t = forumThema(b.thema);
+      if (b.loeschen) return void db.prepare('delete from forum_thema where id = ?').run(t.id);
+      if (b.angeheftet != null) db.prepare('update forum_thema set angeheftet = ? where id = ?').run(b.angeheftet ? 1 : 0, t.id);
+      if (b.zu != null) db.prepare('update forum_thema set zu = ? where id = ?').run(b.zu ? 1 : 0, t.id);
+      if (b.bereich) db.prepare('update forum_thema set bereich = ? where id = ?').run((FORUM.find(x => x.id === b.bereich) || nein(400, 'Diesen Bereich gibt es nicht.')).id, t.id);
+    }
+    if (b.beitrag) {
+      const p = forumBeitrag(b.beitrag);
+      if (p.weg === 1) nein(409, 'Den Beitrag hat die Person selbst gelöscht.');
+      db.prepare('update forum_beitrag set weg = ?, grund = ? where id = ?').run(b.weg ? 2 : 0, b.weg ? forumText(b.grund, 3, 300, 'Grund') : null, p.id);
+      if (b.weg) db.prepare('update forum_meldung set erledigt = ? where beitrag = ? and erledigt = 0').run(jetzt(), p.id);
+    }
+    if (b.meldung) db.prepare('update forum_meldung set erledigt = ? where id = ?').run(jetzt(), Number(b.meldung));
+    if (b.konto) db.prepare('update forum_profil set gesperrt = ? where konto = ?').run(b.sperren ? 1 : 0, Number(b.konto));
+  },
   'POST /api/admin/arena': ({ k, b }) => {  // aus der Bestenliste nehmen (darf wieder mitmachen), sperren bzw. entsperren, XP dieser Woche löschen
     admin(k);
     const z = Number(b.konto);
@@ -1678,7 +1887,7 @@ createServer(async (req, res) => {
     const route = ROUTEN[`${req.method} ${url.pathname}`];
     if (!route) nein(404, 'Gibt es nicht.');
     const b = req.method === 'POST' ? await liesJson(req) : {};
-    json(res, 200, (await route({ req, res, k, b })) ?? { ok: true });
+    json(res, 200, (await route({ req, res, k, b, q: url.searchParams })) ?? { ok: true });
   } catch (e) {
     if (!(e instanceof Fehler)) console.error(e);
     if (res.headersSent) return res.end();

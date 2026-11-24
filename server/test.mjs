@@ -891,6 +891,72 @@ try {
   assert.equal((await meth({ abbruch: true })).status, 200);
   assert.equal((await lern('GET', '/api/arena')).j.methode, null, 'abgebrochen');
   console.log('Arena-Lernmethoden: ok');
+
+  // Forum: Name (eindeutig mit Arena), schreiben nur bestätigt, Team-Bereiche, gelesen/neu, Reaktionen und Ruf, Löschen, Melden, Moderation, Export
+  const leser = person();  // ohne Uni-Adresse, aber bestätigt: darf schreiben
+  await leser('POST', '/api/registrieren', { email: 'leser@example.com', passwort: 'leser-passwort-1', agb: true });
+  await leser('POST', '/api/bestaetigen', { token: await link('leser@example.com', 'bestaetigen') });
+  let fo = (await lern('GET', '/api/forum')).j;
+  assert.equal(fo.bereiche.length, 8); assert.equal(fo.ich.gewaehlt, false); assert.equal(fo.ich.darf, true);
+  const neuerThread = { bereich: 'lernen', praefix: 'guide', titel: 'Active Recall richtig', text: 'Erst abrufen, dann nachschauen. So geht es Schritt für Schritt.' };
+  assert.equal((await lern('POST', '/api/forum/thema', neuerThread)).status, 409, 'erst einen Namen wählen');
+  await leser('POST', '/api/arena', { name: 'Maxi' });
+  assert.equal((await lern('POST', '/api/forum/name', { name: 'maxi' })).status, 409, 'Arena-Name von jemand anderem');
+  assert.equal((await lern('POST', '/api/forum/name', { name: 'Lernhelfer Team' })).status, 400, 'Team-Namen reserviert');
+  assert.equal((await lern('POST', '/api/forum/name', { name: 'Lena' })).j.ich.gewaehlt, true);
+  assert.equal((await leser('POST', '/api/arena', { name: 'lena' })).status, 409, 'Forum-Name gilt auch in der Arena');
+  assert.equal((await lern('POST', '/api/forum/thema', { ...neuerThread, bereich: 'best' })).status, 403, 'Best of nur Team');
+  assert.equal((await lern('POST', '/api/forum/thema', { ...neuerThread, praefix: 'news' })).status, 400);
+  assert.equal((await lern('POST', '/api/forum/thema', { ...neuerThread, text: 'zu kurz' })).status, 400);
+  const tid = (await lern('POST', '/api/forum/thema', neuerThread)).j.id;
+  assert.equal((await leser('POST', '/api/forum/name', { name: 'Maxi' })).status, 200, 'eigener Arena-Name geht');
+  const roh = person();
+  await roh('POST', '/api/registrieren', { email: 'roh@example.com', passwort: 'roh-passwort-1', agb: true });
+  assert.equal((await roh('POST', '/api/forum/antwort', { thema: tid, text: 'Danke!' })).status, 403, 'unbestätigt nur lesen');
+  assert.equal((await roh('GET', '/api/forum')).j.ich.darf, false); assert.equal((await leser('GET', '/api/forum')).j.ich.darf, true, 'bestätigt ohne Uni darf');
+  fo = (await leser('GET', '/api/forum')).j;
+  assert.equal(fo.bereiche.find(b => b.id === 'lernen').neu, 1, 'für andere neu'); assert.equal(fo.neueste[0].name, 'Lena'); assert.ok(fo.online >= 2);
+  let th = (await leser('GET', `/api/forum/thema?id=${tid}`)).j;
+  assert.equal(th.beitraege[0].name, 'Lena'); assert.equal(th.beitraege[0].erster, true); assert.equal(th.beitraege[0].eigen, false); assert.equal(th.beitraege[0].konto, undefined);
+  assert.equal((await leser('GET', '/api/forum')).j.bereiche.find(b => b.id === 'lernen').neu, 0, 'gelesen');
+  assert.equal((await chef('POST', '/api/forum/antwort', { thema: tid, text: 'Guter Guide.' })).status, 409, 'auch das Team braucht einen Namen');
+  await chef('POST', '/api/forum/name', { name: 'Lernhelfer-Team' });
+  const aid = (await chef('POST', '/api/forum/antwort', { thema: tid, text: 'Guter Guide, kommt ins Best of.' })).j.id;
+  assert.equal((await lern('POST', '/api/forum/reaktion', { beitrag: th.beitraege[0].id, art: 'hilfreich' })).status, 400, 'nicht die eigenen');
+  assert.equal((await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'boah' })).status, 400);
+  await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'danke' });
+  await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'stark' });
+  th = (await lern('GET', `/api/forum/thema?id=${tid}&seite=letzte`)).j;
+  const antwort = th.beitraege.find(x => x.id === aid);
+  assert.deepEqual(antwort.reaktionen, [{ art: 'stark', name: 'Lena', meine: true }], 'eine Reaktion je Person');
+  assert.equal(antwort.ruf, 1); assert.equal(antwort.team, 1); assert.equal(th.beitraege[0].beitraege, 1);
+  assert.equal((await chef('POST', '/api/forum/bearbeiten', { beitrag: th.beitraege[0].id, text: 'Gekapert, gekapert, gekapert.' })).status, 403, 'nur eigene');
+  await lern('POST', '/api/forum/bearbeiten', { beitrag: th.beitraege[0].id, titel: 'Active Recall: so geht es richtig', text: neuerThread.text + ' Mit Studien.' });
+  // Melden → Mail an den Admin → Moderation entfernt mit Grund, Meldung erledigt sich mit
+  await leser('POST', '/api/forum/melden', { beitrag: th.beitraege[0].id, grund: 'Enthält Lösungen zu einem laufenden Onlinetest.' });
+  assert.match(log, /\[Mail an chef@example.com\] Lernhelfer: Forum-Beitrag gemeldet[\s\S]*Active Recall: so geht es richtig/);
+  let ad = (await chef('GET', '/api/admin')).j.forum;
+  assert.equal(ad.meldungen.length, 1); assert.equal(ad.meldungen[0].autor, 'Lena'); assert.equal(ad.meldungen[0].melder, 'Maxi');
+  assert.equal((await lern('POST', '/api/admin/forum', { beitrag: th.beitraege[0].id, weg: true, grund: 'x' })).status, 403);
+  await chef('POST', '/api/admin/forum', { beitrag: th.beitraege[0].id, weg: true, grund: 'Regel 2: Lösungen zu laufenden Tests' });
+  th = (await leser('GET', `/api/forum/thema?id=${tid}`)).j;
+  assert.deepEqual([th.beitraege[0].weg, th.beitraege[0].text, th.beitraege[0].grund], [2, '', 'Regel 2: Lösungen zu laufenden Tests'], 'Grund sieht jede:r, Text niemand');
+  assert.equal((await chef('GET', `/api/forum/thema?id=${tid}`)).j.beitraege[0].text.length > 0, true, 'die Moderation sieht den Text');
+  assert.equal((await chef('GET', '/api/admin')).j.forum.meldungen.length, 0, 'Meldung erledigt');
+  await chef('POST', '/api/admin/forum', { thema: tid, bereich: 'best', angeheftet: true, zu: true });
+  assert.equal((await lern('POST', '/api/forum/antwort', { thema: tid, text: 'Noch was.' })).status, 403, 'geschlossen');
+  assert.equal((await lern('GET', '/api/forum/bereich?id=best')).j.themen[0].angeheftet, 1);
+  // eigener Thread ohne Antworten verschwindet beim Löschen ganz; mit Antworten bleibt ein Platzhalter
+  const t2 = (await lern('POST', '/api/forum/thema', { ...neuerThread, bereich: 'kopf', praefix: 'dampf' })).j.id;
+  const ersterT2 = (await lern('GET', `/api/forum/thema?id=${t2}`)).j.beitraege[0].id;
+  assert.equal((await lern('POST', '/api/forum/loeschen', { beitrag: ersterT2 })).j.thema, null);
+  assert.equal((await lern('GET', `/api/forum/thema?id=${t2}`)).status, 404);
+  await chef('POST', '/api/admin/forum', { konto: (await chef('GET', '/api/admin')).j.konten.find(x => x.email === lmail).id, sperren: true });
+  assert.equal((await lern('POST', '/api/forum/thema', neuerThread)).status, 403, 'gesperrt');
+  assert.equal((await chef('GET', '/api/admin')).j.forum.gesperrt[0].name, 'Lena');
+  const lexp = await lern('GET', '/api/export');
+  assert.equal(lexp.status, 200);
+  console.log('Forum: ok');
 } catch (e) {
   console.error(log);
   throw e;
