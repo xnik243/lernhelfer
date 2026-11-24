@@ -276,8 +276,8 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 
 /* Changelog: Linie gezeichnet, Überlegungen mit Textmarker */
 .cl-liste { border-left: 0; background: var(--strich-senkrecht) left top / 6px 100% no-repeat; }
-.cl-liste li::before { left: -3px; }
+.cl-liste > li::before { left: -3px; }
 .cl-pause { border-left-style: dotted; }
 .cl-marke { border-radius: 0; background: var(--marker) center / 100% 100% no-repeat; color: var(--auf-gelb); }
-.cl-liste li.idee::before { border-color: var(--tinte); background: var(--zettel); }
+.cl-liste > li.idee::before { border-color: var(--tinte); background: var(--zettel); }
 .cl-phase { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }

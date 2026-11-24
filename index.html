@@ -577,20 +577,42 @@
   .cl-datum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 26px 0 12px; font: 650 1rem/1.3 var(--sans); }
   .cl-datum span { color: var(--text-3); font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; }
   .cl-liste { margin: 0 0 0 4rem; padding: 0; border-left: 2px solid var(--linie); list-style: none; }
-  .cl-liste li { position: relative; padding: 0 0 18px 22px; }
-  .cl-liste li:last-child { padding-bottom: 4px; }
-  .cl-liste li::before { content: ""; position: absolute; left: -7px; top: 0.3rem; box-sizing: border-box; width: 12px; height: 12px; border: 2px solid var(--akzent); border-radius: 50%; background: var(--bg); }
-  .cl-liste li.idee::before { border-color: var(--warn); background: var(--warn-flaeche); }
+  .cl-liste > li { position: relative; padding: 0 0 18px 22px; }
+  .cl-liste > li:last-child { padding-bottom: 4px; }
+  .cl-liste > li::before { content: ""; position: absolute; left: -7px; top: 0.3rem; box-sizing: border-box; width: 12px; height: 12px; border: 2px solid var(--akzent); border-radius: 50%; background: var(--bg); }
+  .cl-liste > li.idee::before { border-color: var(--warn); background: var(--warn-flaeche); }
   .cl-uhr { position: absolute; top: 0; right: calc(100% + 16px); color: var(--text-3); font-size: 0.8125rem; line-height: 1.4rem; font-variant-numeric: tabular-nums; }
   .cl-liste strong { display: block; color: var(--text); font-weight: 650; line-height: 1.4rem; }
   .cl-liste p { margin: 3px 0 0; color: var(--text-2); font: 400 1rem/1.55 var(--serif); }
-  .cl-liste.technik li { padding-bottom: 10px; color: var(--text-2); line-height: 1.4rem; }
+  .cl-liste.technik > li { padding-bottom: 10px; color: var(--text-2); line-height: 1.4rem; }
   .cl-marke { display: inline-block; margin-bottom: 4px; padding: 0 8px; border-radius: 999px; background: var(--warn-flaeche); color: var(--warn); font: 650 0.75rem/1.5rem var(--sans); }
   .cl-liste.technik .cl-marke { margin: 0 8px 0 0; }
   .cl-pause { margin: 22px 0 0 4rem; padding: 8px 0 8px 22px; border-left: 2px dashed var(--linie-2); color: var(--text-3); font-size: 0.8125rem; }
+  .cl-liste strong:has(.cl-aufwand) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; }
+  .cl-aufwand { display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 0.75rem; font-weight: 550; }
+  .cl-balken { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .cl-balken i { width: 4px; border-radius: 1px; background: var(--linie-2); opacity: 0.45; }
+  .cl-balken i:nth-child(1) { height: 4px; } .cl-balken i:nth-child(2) { height: 7px; } .cl-balken i:nth-child(3) { height: 10px; } .cl-balken i:nth-child(4) { height: 12px; }
+  .cl-aufwand[data-stufe="1"] i:nth-child(-n+1), .cl-aufwand[data-stufe="2"] i:nth-child(-n+2),
+  .cl-aufwand[data-stufe="3"] i:nth-child(-n+3), .cl-aufwand[data-stufe="4"] i { background: var(--akzent); opacity: 1; }
+  .cl-aufwand[data-stufe="4"] { color: var(--akzent-text); }
+  .cl-mehr { margin-top: 8px; }
+  .cl-mehr summary { display: inline-flex; align-items: center; min-height: 32px; color: var(--akzent-text); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+  @media (pointer: coarse) { .cl-mehr summary { min-height: 44px; } }
+  .cl-mehr ul { margin: 4px 0 4px; padding: 12px 16px 12px 2em; border-radius: var(--r); background: var(--bg-2); color: var(--text-2); font: 400 0.9375rem/1.55 var(--serif); }
+  .cl-mehr li + li { margin-top: 6px; }
+  .cl-umfang { margin: -8px 0 22px; }
+  .cl-umfang p { margin: 0 0 8px; }
+  .cl-umfang strong { font-variant-numeric: tabular-nums; }
+  .cl-anteile { display: flex; gap: 2px; height: 10px; overflow: hidden; border-radius: 999px; }
+  .cl-anteile span { min-width: 4px; }
+  .cl-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; padding: 0; color: var(--text-2); font-size: 0.8125rem; list-style: none; }
+  .cl-legende li { display: inline-flex; align-items: center; gap: 6px; }
+  .cl-legende li::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+  .cl-legende span { color: var(--text-3); font-variant-numeric: tabular-nums; }
   @media (max-width: 599.98px) {
     .cl-liste, .cl-pause { margin-left: 6px; }
-    .cl-liste li { padding-left: 18px; }
+    .cl-liste > li { padding-left: 18px; }
     .cl-uhr { position: static; display: block; line-height: 1.3rem; }
   }
   .anleitung .text h2 { margin: 48px 0 12px; font: 700 1.375rem/1.25 var(--sans); letter-spacing: -0.01em; scroll-margin-top: 20px; }
@@ -10799,15 +10821,26 @@ function startZeigen() {
       el('a', { href: 'https://www.instagram.com/xnik243/', target: '_blank', rel: 'noopener' }, '@xnik243'), ' auf Instagram.')].flat().filter(Boolean));
 }
 // Changelog: wie die App entstanden ist. Von Hand gepflegt (nicht aus git erzeugt), damit Internes nicht hineinrutscht.
-// Je Tag: k = Zusammenfassung [Uhrzeit, Titel, Text, 1 = Überlegung], t = jede Änderung im Code [Uhrzeit, Text]. Neue Tage unten anhängen.
+// Je Tag: k = Zusammenfassung [Uhrzeit, Titel, Text, 1 = Überlegung sonst 0, Aufwand 1–4, optional [„Was dahinter steckt“ …]],
+// t = jede Änderung im Code [Uhrzeit, Text]. Neue Tage unten anhängen.
 const CHANGELOG = [
   { d: '2026-10-14', phase: 'Die Idee und das Grundgerüst', k: [
-    ['10:41', 'Der erste Stand', 'Die Idee: Aus den Unterlagen in OLAT soll jede Woche automatisch das Wichtigste pro Fach entstehen. Der erste Stand konnte Dateien aus OLAT abrufen und lief auf iPad und PC.'],
-    ['11:48', 'Für wen baue ich das eigentlich?', 'Bevor es weiterging, habe ich ein Produktprofil und ein Designsystem aufgeschrieben: wer die App nutzt (1. Semester WiWi in Innsbruck), wann und wo gelernt wird und warum ein normaler KI-Chat das nicht kann. Er kennt weder OLAT noch den Terminplan im Syllabus.', 1],
-    ['13:52', '„Diese Woche“ und Stammdaten getrennt', 'Die Ausgabe trennt, was aus den Folien der letzten Einheit kommt, von dem, was das ganze Semester gilt. Dazu Formeln als MathML und Termine mit Details.'],
-    ['19:06', 'Übungen, Fragen und Kalender', 'Übungsaufgaben, ein Chat nur zu den Unterlagen des Fachs, ein Kalender und die ersten Englisch-Werkzeuge. Am Abend kamen ein Einrichten-Assistent, die QR-Verbindung zwischen Geräten und eine Anleitung dazu.'],
-    ['21:28', 'Ruhiges Werkzeug statt Zeitung', 'Das erste Design war eine lachsrosa Wirtschaftszeitung. Für den täglichen Gebrauch habe ich es neu gedacht: ruhige App mit Seitenleiste am Computer, Leiste unten am Handy und Königsblau als einziger Akzentfarbe.', 1],
-    ['23:36', 'Vorlesungen nacharbeiten', 'Auch für vergangene Vorlesungen lässt sich eine Ausgabe zum damaligen Stand erstellen.']], t: [
+    ['10:41', 'Der erste Stand', 'Die Idee: Aus den Unterlagen in OLAT soll jede Woche automatisch das Wichtigste pro Fach entstehen. Der erste Stand konnte Dateien aus OLAT abrufen und lief auf iPad und PC.', 0, 4, [
+      'Anmeldung bei OLAT: Die Uni-Anmeldung mit Authenticator lässt sich nicht einfach von einem Programm erledigen. Darum öffnet das PC-Programm einen echten Browser, merkt sich die Sitzung und fragt nur nach, wenn sie abläuft.',
+      'Ordner lesen: OLAT zeigt Dateien seitenweise, Einzeldateien und leere Ordner sehen jeweils anders aus. Das Programm muss alle Fälle erkennen, sonst fehlen Folien.',
+      'Folien zu Text: PDF, PowerPoint und Word werden in reinen Text umgewandelt, damit das Modell sie lesen kann.',
+      'Privat speichern: Die Unterlagen liegen in einem eigenen, privaten Speicher, den die App direkt liest.',
+      'Die eigentliche Aufgabe: Aus Syllabus, Folien und heutigem Datum muss die KI ableiten, welche Einheit zuletzt war und was als Nächstes kommt.',
+      'Von Anfang an mit Tests für das PC-Programm.']],
+    ['11:48', 'Für wen baue ich das eigentlich?', 'Bevor es weiterging, habe ich ein Produktprofil und ein Designsystem aufgeschrieben: wer die App nutzt (1. Semester WiWi in Innsbruck), wann und wo gelernt wird und warum ein normaler KI-Chat das nicht kann. Er kennt weder OLAT noch den Terminplan im Syllabus.', 1, 2],
+    ['13:52', '„Diese Woche“ und Stammdaten getrennt', 'Die Ausgabe trennt, was aus den Folien der letzten Einheit kommt, von dem, was das ganze Semester gilt. Dazu Formeln als MathML und Termine mit Details.', 0, 2],
+    ['19:06', 'Übungen, Fragen und Kalender', 'Übungsaufgaben, ein Chat nur zu den Unterlagen des Fachs, ein Kalender und die ersten Englisch-Werkzeuge. Am Abend kamen ein Einrichten-Assistent, die QR-Verbindung zwischen Geräten und eine Anleitung dazu.', 0, 3],
+    ['21:28', 'Ruhiges Werkzeug statt Zeitung', 'Das erste Design war eine lachsrosa Wirtschaftszeitung. Für den täglichen Gebrauch habe ich es neu gedacht: ruhige App mit Seitenleiste am Computer, Leiste unten am Handy und Königsblau als einziger Akzentfarbe.', 1, 3, [
+      'Die ganze App neu aufgebaut, nicht nur umgefärbt: Seitenleiste ab 900 px Breite, darunter eine Leiste unten wie bei iPhone-Apps.',
+      'Wenige Farbtöne; Königsblau nur für Handlung, Auswahl und Zustand, jedes Fach mit eigener Farbe nur zum Wiedererkennen.',
+      'Gelesen wird in einer Serifenschrift, bedient in einer serifenlosen.',
+      'Nach den Web-Richtlinien von Vercel: sichtbarer Fokus, Fehler direkt am Feld, Rückfragen, saubere Überschriften, sichere Bereiche am iPhone.']],
+    ['23:36', 'Vorlesungen nacharbeiten', 'Auch für vergangene Vorlesungen lässt sich eine Ausgabe zum damaligen Stand erstellen.', 0, 1]], t: [
     ['10:41', 'Erste Fassung: App für iPad und PC, Abruf der Unterlagen aus OLAT'],
     ['10:48', 'OLAT-Abruf: 250 Einträge je Seite, Einzeldateien und leere Ordner richtig erkennen'],
     ['10:55', 'Privaten Datenspeicher bei GitHub vorbereitet'],
@@ -10831,11 +10864,20 @@ const CHANGELOG = [
     ['23:36', 'Frühere Vorlesungen nacharbeiten: Ausgabe zum Stichtag einer vergangenen VO'],
     ['23:41', 'Kalender: vergangene Einheit öffnet ihre Zusammenfassung; kein „false“ über leeren Chats']] },
   { d: '2026-10-15', phase: 'Eigener Server, mehr Werkzeuge', k: [
-    ['07:40', 'Von 15 auf 3 Minuten', 'Eine Wochenausgabe brauchte 9 bis 18 Minuten. Mit einem anderen Modell und gestreamter Antwort samt Fortschrittsanzeige sind es jetzt gut 3.'],
-    ['10:32', 'Vortrag analysieren', 'Aufnahme rein, Transkript mit jedem „äh“ raus, dazu Befunde mit Zeitstempel und konkrete Tipps.'],
-    ['12:17', 'Eigener Server', 'Bisher brauchte jede Person eigene Schlüssel und einen eigenen Speicher bei GitHub. Für Kommiliton:innen ist das zu viel Aufwand, darum gibt es jetzt einen eigenen Server mit Konten.', 1],
-    ['19:25', 'Lernen für die Prüfung', 'Karteikarten, Prüfungs-Countdown mit Lernplan, Probeklausur, Schwächen-Training, Lernskript und eine Podcast-Fassung.'],
-    ['22:18', 'Vortrag mit Maßstab', 'Die Bewertung richtet sich nach anerkannten Rastern: Sprachniveau nach GER, Präsentation nach der VALUE-Rubrik, dazu eine Selbstreflexion zum Abgleich.']], t: [
+    ['07:40', 'Von 15 auf 3 Minuten', 'Eine Wochenausgabe brauchte 9 bis 18 Minuten. Mit einem anderen Modell und gestreamter Antwort samt Fortschrittsanzeige sind es jetzt gut 3.', 0, 2],
+    ['10:32', 'Vortrag analysieren', 'Aufnahme rein, Transkript mit jedem „äh“ raus, dazu Befunde mit Zeitstempel und konkrete Tipps.', 0, 4, [
+      'Nur ein Modell (Gemini) hört genau genug hin, um jedes „äh“ stehen zu lassen. Es nimmt aber höchstens 20 MB pro Anfrage.',
+      'Darum schneidet die App die Tonspur selbst aus dem Video, ohne das Video zu laden, und schickt sie in Teilen von höchstens 5 Minuten.',
+      'Ein 4-GB-Video vom iPad kostet so nur ein paar Megabyte Upload.',
+      'Bei iPhone-Videos steht das Inhaltsverzeichnis der Datei oft ganz am Ende. Auch das muss die App finden.',
+      'Aus dem Transkript entstehen Note, Kennzahlen, Befunde mit Zeitstempel und Tipps.']],
+    ['12:17', 'Eigener Server', 'Bisher brauchte jede Person eigene Schlüssel und einen eigenen Speicher bei GitHub. Für Kommiliton:innen ist das zu viel Aufwand, darum gibt es jetzt einen eigenen Server mit Konten.', 1, 4, [
+      'Konten mit Anmeldung und Sitzungen statt eigener Schlüssel für jede Person.',
+      'Speicher je Konto auf dem Server, mit demselben Aufbau wie vorher bei GitHub, damit die App beides kann.',
+      'KI-Anfragen laufen über den Server, mit einem Kontingent je Konto.',
+      'Die Fassung mit eigenen Schlüsseln läuft weiter; was nur in einer Fassung gilt, ist im Code markiert.']],
+    ['19:25', 'Lernen für die Prüfung', 'Karteikarten, Prüfungs-Countdown mit Lernplan, Probeklausur, Schwächen-Training, Lernskript und eine Podcast-Fassung.', 0, 3],
+    ['22:18', 'Vortrag mit Maßstab', 'Die Bewertung richtet sich nach anerkannten Rastern: Sprachniveau nach GER, Präsentation nach der VALUE-Rubrik, dazu eine Selbstreflexion zum Abgleich.', 0, 2]], t: [
     ['07:40', 'Ausgaben in gut 3 statt 9–18 Minuten, gestreamt mit Fortschritt'],
     ['10:32', 'Vortrag analysieren: Transkript mit jedem „äh“, Befunde mit Zeitstempel, Note und Tipps'],
     ['12:17', 'Eigener Server mit Konten'],
@@ -10845,10 +10887,14 @@ const CHANGELOG = [
     ['19:25', 'Karteikarten, Prüfungs-Countdown mit Lernplan, PDF, Podcast, Probeklausur, Schwächen-Training, Lernskript'],
     ['22:18', 'Vortrag: Selbstreflexion mit Abgleich, Sprachniveau nach GER, Präsentation nach VALUE-Rubrik, eigener Stil für die KI']] },
   { d: '2026-10-16', k: [
-    ['03:48', 'Mac, iPad und klare Grenzen', 'Abgleich auch am Mac, Unterlagen selbst hochladen für alle ohne Computer, Daten-Export und Fehler melden. Dazu ein Abschnitt, was der Lernhelfer ist und was ausdrücklich nicht.'],
-    ['14:13', 'Skizze auf Punktraster', 'Eine neue Startseite mit gezeichnetem Schriftzug. Eine halbe Stunde später wurde der Skizzen-Stil das Design der ganzen App; das alte bleibt in den Einstellungen wählbar.'],
-    ['14:38', 'Updates ohne Ausfall', 'Der Server holt neue Versionen selbst alle 5 Minuten und fällt bei einem Fehler auf den alten Stand zurück.'],
-    ['15:06', 'Dunkler Modus', 'Hell bleibt Standard. Dunkel ist bewusst kein Schwarz mit Neon, sondern ruhiges Graphit mit Elfenbein und Champagner.']], t: [
+    ['03:48', 'Mac, iPad und klare Grenzen', 'Abgleich auch am Mac, Unterlagen selbst hochladen für alle ohne Computer, Daten-Export und Fehler melden. Dazu ein Abschnitt, was der Lernhelfer ist und was ausdrücklich nicht.', 0, 3],
+    ['14:13', 'Skizze auf Punktraster', 'Eine neue Startseite mit gezeichnetem Schriftzug. Eine halbe Stunde später wurde der Skizzen-Stil das Design der ganzen App; das alte bleibt in den Einstellungen wählbar.', 0, 3, [
+      'Rahmen, Unterstreichungen, Kreise und Häkchen sind gezeichnete Formen, die sich jeder Größe anpassen.',
+      'Leicht ungleiche Ecken: Es soll nach Hand aussehen, aber nicht nach Comic.',
+      'Der Schriftzug „Lernhelfer“ ist Buchstabe für Buchstabe als Linien gezeichnet.',
+      'Alles gibt es zweimal: hell auf Papier und dunkel in Graphit.']],
+    ['14:38', 'Updates ohne Ausfall', 'Der Server holt neue Versionen selbst alle 5 Minuten und fällt bei einem Fehler auf den alten Stand zurück.', 0, 2],
+    ['15:06', 'Dunkler Modus', 'Hell bleibt Standard. Dunkel ist bewusst kein Schwarz mit Neon, sondern ruhiges Graphit mit Elfenbein und Champagner.', 0, 2]], t: [
     ['01:35', 'Stil-Feld erst nach dem Einrichten zeigen'],
     ['03:48', 'Mac und iPad: Abgleich am Mac, Unterlagen hochladen; „Was der Lernhelfer ist und was nicht“; Daten-Export, Fehler melden'],
     ['14:13', 'Startseite: Skizze auf Punktraster mit gezeichnetem Schriftzug; die App liegt unter /app'],
@@ -10861,21 +10907,21 @@ const CHANGELOG = [
     ['15:27', 'Nach dem Wechsel zum Server alle Fächer neu hochladen'],
     ['15:29', 'Vortrag: Inhalt, Logik und Belege nur auf Wunsch prüfen']] },
   { d: '2026-10-17', k: [
-    ['18:09', 'Fairere Vortragsbewertung', 'Die Bewertung der Vorträge habe ich nachjustiert, damit sie fairer ausfällt.']], t: [
+    ['18:09', 'Fairere Vortragsbewertung', 'Die Bewertung der Vorträge habe ich nachjustiert, damit sie fairer ausfällt.', 0, 1]], t: [
     ['18:09', 'Fairere Vortragsbewertung']] },
   { d: '2026-10-20', phase: 'Rücksicht, Datenschutz, Arena', k: [
-    ['17:04', 'OLAT schonen', 'Der Abgleich soll sich wie ein Mensch verhalten, nicht wie ein Crawler: seltener, nur tagsüber und mit Pausen zwischen den Seiten.', 1],
-    ['17:04', 'Arena und Videos', 'Die Arena zum gemeinsamen Lernen, dazu Lernvideos, Formel-Erklärungen und GER-Karten.'],
-    ['17:29', 'Datenschutz', 'Kein Training mit KI-Anfragen, Bibliotheken liefert der Lernhelfer selbst aus statt über fremde Server, und die Arena steckt im Daten-Export.']], t: [
+    ['17:04', 'OLAT schonen', 'Der Abgleich soll sich wie ein Mensch verhalten, nicht wie ein Crawler: seltener, nur tagsüber und mit Pausen zwischen den Seiten.', 1, 2],
+    ['17:04', 'Arena und Videos', 'Die Arena zum gemeinsamen Lernen, dazu Lernvideos, Formel-Erklärungen und GER-Karten.', 0, 3],
+    ['17:29', 'Datenschutz', 'Kein Training mit KI-Anfragen, Bibliotheken liefert der Lernhelfer selbst aus statt über fremde Server, und die Arena steckt im Daten-Export.', 0, 2]], t: [
     ['17:04', 'Arena, Videos, Formel-Erklärung, GER-Karten; OLAT-Abgleich schonender'],
     ['17:21', 'Rechtstexte überarbeitet'],
     ['17:29', 'Datenschutz: Arena im Export, kein Training bei KI-Anfragen, Bibliotheken selbst ausgeliefert']] },
   { d: '2026-10-22', k: [
-    ['10:26', 'Startseite für Neue', 'Wer neu ist, sieht zuerst den einen nächsten Schritt und in drei Sätzen, wie alles läuft.'],
-    ['12:35', '„Ist das Programm sicher?“', 'Ein eigener Kasten erklärt, was das PC-Programm tut und was nicht. Python wird beim Einrichten per Prüfsumme kontrolliert.'],
-    ['18:42', 'Fassung je Fach', 'Niveau und Form der Wochenausgabe lassen sich pro Fach wählen. Die Prompts habe ich gegen Formelflut und falsche Vereinfachungen geschärft, „Das Wichtigste“ steht oben.'],
-    ['19:28', 'Arena mit Wertung', 'Wertung über den Server, Serien und Wochenpreise. Word Power bekommt Glossar, Trainer, Time Log und Feedback zur Reflection.'],
-    ['23:39', 'E-Mail-Bestätigung', 'KI und Arena gibt es erst mit bestätigter E-Mail-Adresse.']], t: [
+    ['10:26', 'Startseite für Neue', 'Wer neu ist, sieht zuerst den einen nächsten Schritt und in drei Sätzen, wie alles läuft.', 0, 1],
+    ['12:35', '„Ist das Programm sicher?“', 'Ein eigener Kasten erklärt, was das PC-Programm tut und was nicht. Python wird beim Einrichten per Prüfsumme kontrolliert.', 0, 1],
+    ['18:42', 'Fassung je Fach', 'Niveau und Form der Wochenausgabe lassen sich pro Fach wählen. Die Prompts habe ich gegen Formelflut und falsche Vereinfachungen geschärft, „Das Wichtigste“ steht oben.', 0, 2],
+    ['19:28', 'Arena mit Wertung', 'Wertung über den Server, Serien und Wochenpreise. Word Power bekommt Glossar, Trainer, Time Log und Feedback zur Reflection.', 0, 3],
+    ['23:39', 'E-Mail-Bestätigung', 'KI und Arena gibt es erst mit bestätigter E-Mail-Adresse.', 0, 2]], t: [
     ['10:26', 'Startseite für Neue'],
     ['10:50', 'Anleitung aufgeräumt, Programm-Knopf ganz oben'],
     ['11:03', 'Vorschau mit Beispieldaten, Mac-Befehl mit Kopieren-Knopf auch am iPad'],
@@ -10887,22 +10933,30 @@ const CHANGELOG = [
     ['19:51', 'Arena: Spitzname verschwindet beim Löschen des Kontos auch aus der Gewinnerliste'],
     ['23:39', 'KI und Arena erst nach bestätigter E-Mail']] },
   { d: '2026-10-23', k: [
-    ['00:16', 'Wochenpreise für die Uni', 'Wochenpreise der Arena gibt es nur für Konten mit einer Adresse der Uni Innsbruck.']], t: [
+    ['00:16', 'Wochenpreise für die Uni', 'Wochenpreise der Arena gibt es nur für Konten mit einer Adresse der Uni Innsbruck.', 0, 1]], t: [
     ['00:16', 'Arena: Wochenpreise nur für Konten mit Adresse der Uni Innsbruck']] },
   { d: '2026-10-24', k: [
-    ['16:01', 'Fächer aufteilen', 'Vorlesung und Proseminar lassen sich in zwei Fächer trennen und wieder zusammenführen. Stundenplan und Tests ziehen mit, und die KI weiß, welcher Teil wo liegt.'],
-    ['16:48', 'Fehler statt Null', 'Laden Unterlagen nicht, steht jetzt ein Fehler da statt „0 Dateien“.']], t: [
+    ['16:01', 'Fächer aufteilen', 'Vorlesung und Proseminar lassen sich in zwei Fächer trennen und wieder zusammenführen. Stundenplan und Tests ziehen mit, und die KI weiß, welcher Teil wo liegt.', 0, 3, [
+      'Welcher Teil ein Ordner ist, steht vorn im Ordnernamen (VO, PS …). Daran hängt alles Weitere.',
+      'Stundenplan, Tests und Termine müssen dem richtigen Teil folgen.',
+      'Die KI erfährt, welcher Teil in welchem Fach liegt, und verweist sonst aufs andere Fach.',
+      'Jeder Schritt lässt sich zurücknehmen.']],
+    ['16:48', 'Fehler statt Null', 'Laden Unterlagen nicht, steht jetzt ein Fehler da statt „0 Dateien“.', 0, 1]], t: [
     ['16:01', 'Fächer aufteilen und zusammenlegen (VO und PS getrennt), Stundenplan und Tests folgen'],
     ['16:17', 'Klare Knöpfe „Eigenes Fach“ und „Zurück zu …“'],
     ['16:48', 'Unterlagen: nach dem Neuladen 0 Dateien je Fach behoben, Ladefehler sichtbar'],
     ['16:59', 'Aufgeteiltes Fach zeigt abgegebene Teile; die KI erfährt, welcher Teil wo liegt']] },
   { d: '2026-10-26', k: [
-    ['18:37', 'Word Power in Word-Optik', 'Eine zweite Fassung sieht aus wie die Word-Vorlage, dazu eine Kurzfassung mit Vorschaubild des Talks.']], t: [
+    ['18:37', 'Word Power in Word-Optik', 'Eine zweite Fassung sieht aus wie die Word-Vorlage, dazu eine Kurzfassung mit Vorschaubild des Talks.', 0, 2]], t: [
     ['18:37', 'Word Power: zweite Fassung wie die Word-Vorlage, Kurzfassung mit Vorschaubild; Vorschaubilder für Videos']] },
   { d: '2026-11-12', phase: 'Schaubilder und eine Lernwelt', k: [
-    ['00:44', 'Schaubilder und Lerneinheiten', 'Die KI kann Funktionsgraphen zeichnen. Weil die Sicherheitsregeln der App kein eval erlauben, rechnet ein eigener kleiner Formel-Parser die Kurven. Jeder Abschnitt der Zusammenfassung lässt sich aufklappen und mit einer Check-Frage abhaken.'],
-    ['16:29', 'Saubere Brüche', 'Schreibt die KI a/b in eine Formel, wird daraus ein echter Bruch, außer bei Einheiten wie km/h.'],
-    ['21:50', 'Lernhof', 'Ein kleines Spiel: Lernen bringt Fortschritt auf dem eigenen Hof. Am selben Abend kamen Hof-Stufen, Wochenaufträge, ein Sammelalbum und Tiere dazu.']], t: [
+    ['00:44', 'Schaubilder und Lerneinheiten', 'Die KI kann Funktionsgraphen zeichnen. Weil die Sicherheitsregeln der App kein eval erlauben, rechnet ein eigener kleiner Formel-Parser die Kurven. Jeder Abschnitt der Zusammenfassung lässt sich aufklappen und mit einer Check-Frage abhaken.', 0, 3, [
+      'Die KI beschreibt eine Kurve als Formel, die App zeichnet sie.',
+      'Die Sicherheitsregeln der App verbieten eval. Darum gibt es einen eigenen kleinen Formel-Rechner, der auch 2x und 3(x+1) ohne Malzeichen versteht.',
+      'Polstellen dürfen den Ausschnitt nicht sprengen, Achsen bekommen runde Schritte (1, 2 oder 5 mal eine Zehnerpotenz).',
+      'Jeder Abschnitt der Zusammenfassung wird eine Lerneinheit zum Abhaken; der Stand bleibt auf dem Gerät.']],
+    ['16:29', 'Saubere Brüche', 'Schreibt die KI a/b in eine Formel, wird daraus ein echter Bruch, außer bei Einheiten wie km/h.', 0, 2],
+    ['21:50', 'Lernhof', 'Ein kleines Spiel: Lernen bringt Fortschritt auf dem eigenen Hof. Am selben Abend kamen Hof-Stufen, Wochenaufträge, ein Sammelalbum und Tiere dazu.', 0, 3]], t: [
     ['00:44', 'Schaubilder aus Formeln (eigener Parser, kein eval), Lerneinheiten zum Abhaken mit Check-Frage'],
     ['00:52', 'Schaubilder: Rand so breit wie die längste Zahl'],
     ['07:01', 'Kleine Textlinks bekommen eine greifbare Tipphöhe'],
@@ -10913,19 +10967,24 @@ const CHANGELOG = [
     ['22:16', 'Lernhof: Hof-Stufen, Wochenaufträge, Sammelalbum'],
     ['22:23', 'Lernhof: Tiere, Dekoration, Dorfspende']] },
   { d: '2026-11-13', k: [
-    ['03:20', 'Check-Fragen mit KI-Prüfung', 'Antworten auf Check-Fragen prüft eine KI und sagt, was noch fehlt.'],
-    ['16:00', 'Plan für Campus', 'Bevor ich die 3D-Lernwelt gebaut habe, habe ich sie in 13 Kapiteln durchgeplant: Kreislauf, Währung, Handel, Zusammenspielen, Schutz vor Schummeln, Bauabschnitte, Risiken und offene Entscheidungen.', 1],
-    ['21:45', 'Campus angebunden', 'Die Lernwelt Campus ist mit dem Lernhelfer verbunden: Wer lernt, verdient dort Taler.']], t: [
+    ['03:20', 'Check-Fragen mit KI-Prüfung', 'Antworten auf Check-Fragen prüft eine KI und sagt, was noch fehlt.', 0, 2],
+    ['16:00', 'Plan für Campus', 'Bevor ich die 3D-Lernwelt gebaut habe, habe ich sie in 13 Kapiteln durchgeplant: Kreislauf, Währung, Handel, Zusammenspielen, Schutz vor Schummeln, Bauabschnitte, Risiken und offene Entscheidungen.', 1, 2],
+    ['21:45', 'Campus angebunden', 'Die Lernwelt Campus ist mit dem Lernhelfer verbunden: Wer lernt, verdient dort Taler.', 0, 2]], t: [
     ['02:27', 'Lernhof: Effekte, Töne, Tagesrückblick'],
     ['03:20', 'Check-Fragen mit KI-Prüfung, Arena mit Reitern, Lernhof mit Fächerwahl'],
     ['21:45', 'Campus mit dem Lernhelfer verbunden']] },
   { d: '2026-11-14', k: [
-    ['23:43', 'Campus, Phasen 16 bis 20', 'Inventar, Truhen, Kampf, Ackerbau, Koop und ein Questbuch.']], t: [
+    ['23:43', 'Campus, Phasen 16 bis 20', 'Inventar, Truhen, Kampf, Ackerbau, Koop und ein Questbuch.', 0, 4, [
+      'Eine 3D-Welt aus Blöcken, geschrieben in Rust und als WebAssembly im Browser, Grafik über WebGPU bzw. WebGL 2.',
+      'Ein eigener Spielserver in Rust. Er entscheidet alles (Taler, Rechte, Reichweite), der Browser zeigt nur an.',
+      'Die Welt kommt in Stücken von 16 × 16 × 64 Blöcken; geladen wird nur, was in Sichtweite ist.',
+      'Ziel: 60 Bilder pro Sekunde auf dem iPad und 50 Spieler gleichzeitig, auf einem kleinen Server mit 2 Kernen und 2 GB Speicher.',
+      'Allein Campus hat heute rund 31.000 Zeilen Code.']]], t: [
     ['23:43', 'Campus: Phasen 16–20 (Inventar, Truhen, Kampf, Ackerbau, Koop, Questbuch)']] },
   { d: '2026-11-16', k: [
-    ['00:27', 'Campus, Phasen 21 bis 25', 'Musik, Wetter, Kino und Foto, Architekt, Katakomben und ein Lern-Duell gegeneinander.'],
-    ['15:29', 'Neue Grafik', 'Ein eigener Shader gegen Flimmern, Möbel aus Teilblöcken und eingerichtete Gebäude.'],
-    ['17:59', 'Lern-Duell mit Köpfchen', 'Das Duell fragt Verständnis und Logik statt Rechenaufgaben und kennt die Themen aus dem Lernhelfer.']], t: [
+    ['00:27', 'Campus, Phasen 21 bis 25', 'Musik, Wetter, Kino und Foto, Architekt, Katakomben und ein Lern-Duell gegeneinander.', 0, 4],
+    ['15:29', 'Neue Grafik', 'Ein eigener Shader gegen Flimmern, Möbel aus Teilblöcken und eingerichtete Gebäude.', 0, 3],
+    ['17:59', 'Lern-Duell mit Köpfchen', 'Das Duell fragt Verständnis und Logik statt Rechenaufgaben und kennt die Themen aus dem Lernhelfer.', 0, 2]], t: [
     ['00:27', 'Campus: Phasen 21–25 (Musik, Wetter, Kino und Foto, Architekt, Lern-Duell, Katakomben)'],
     ['15:29', 'Campus: Shader gegen Flimmern, Möbel aus Teilblöcken, eingerichtete Gebäude, Weltversion 3'],
     ['15:30', 'Katakomben-Balken per transform statt width'],
@@ -10937,46 +10996,63 @@ const CHANGELOG = [
     ['17:59', 'Lern-Duell fragt Verständnis und Logik statt Rechenaufgaben'],
     ['20:51', 'Campus: Foto-Modus mit freiem Mauszeiger']] },
   { d: '2026-11-17', phase: 'Sicherheit und Feinschliff', k: [
-    ['19:51', 'Talks vergleichen', 'In Word Power lassen sich mehrere Talks nebeneinander vergleichen.'],
-    ['20:21', 'Lernmethoden in der Arena', 'Energie und Stimmung wählen, die Arena schlägt eine passende Lernmethode vor; danach gibt es XP und Rückmeldung.']], t: [
+    ['19:51', 'Talks vergleichen', 'In Word Power lassen sich mehrere Talks nebeneinander vergleichen.', 0, 1],
+    ['20:21', 'Lernmethoden in der Arena', 'Energie und Stimmung wählen, die Arena schlägt eine passende Lernmethode vor; danach gibt es XP und Rückmeldung.', 0, 3]], t: [
     ['19:27', 'Word Power: Dateiname nach dem Titel des Talks'],
     ['19:51', 'Word Power: mehrere Talks nebeneinander vergleichen'],
     ['20:21', 'Arena: Lernmethoden mit Energie-Regler, Stimmungen und XP'],
     ['20:27', 'Arena-Kachel nennt die Lernmethoden'],
     ['20:49', 'Word Power: mehr Denkzeit beim Text']] },
   { d: '2026-11-18', k: [
-    ['11:10', 'Noten aus OLAT', 'Bewertungen aus OLAT landen im Notentracker. Er rechnet nur zählende Punkte, also etwa die besten n von m.'],
-    ['15:30', 'Sicherheitsprüfung', 'Vor der Veröffentlichung habe ich die App mit einem ausführlichen Prüfauftrag samt Bedrohungsmodell gegenprüfen lassen, jede Fundstelle bewertet und alles in eine Fix-Liste nach Priorität sortiert.', 1],
-    ['18:40', 'Fix-Liste abgearbeitet', 'Am selben Abend: signierte Updates fürs PC-Programm, feste Paketversionen, Schutz gegen Zip-Bomben und Clickjacking, stärkere Passwort-Hashes. Der Zugangsschlüssel steht nicht mehr im Terminal-Verlauf.'],
-    ['20:13', 'Keine Trainingsdaten', 'KI-Modelle laufen nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren.']], t: [
+    ['11:10', 'Noten aus OLAT', 'Bewertungen aus OLAT landen im Notentracker. Er rechnet nur zählende Punkte, also etwa die besten n von m.', 0, 2],
+    ['15:30', 'Sicherheitsprüfung', 'Vor der Veröffentlichung habe ich die App mit einem ausführlichen Prüfauftrag samt Bedrohungsmodell gegenprüfen lassen, jede Fundstelle bewertet und alles in eine Fix-Liste nach Priorität sortiert.', 1, 3, [
+      'Ein Prüfauftrag mit Bedrohungsmodell: Wer greift realistisch an, und was steht auf dem Spiel?',
+      'Jede Fundstelle einzeln bewertet: echt, übertrieben oder schon gelöst.',
+      'Daraus eine Arbeitsliste in Paketen: erst kleine echte Lücken, dann KI-Kosten, dann die Lieferkette.']],
+    ['18:40', 'Fix-Liste abgearbeitet', 'Am selben Abend: signierte Updates fürs PC-Programm, feste Paketversionen, Schutz gegen Zip-Bomben und Clickjacking, stärkere Passwort-Hashes. Der Zugangsschlüssel steht nicht mehr im Terminal-Verlauf.', 0, 3, [
+      'Das PC-Programm nimmt nur noch signierte Updates an.',
+      'Feste Paketversionen statt „immer die neueste“.',
+      'Riesige ZIP-Dateien aus OLAT (Zip-Bomben) werden nicht entpackt.',
+      'Passwörter mit scrypt nach OWASP-Empfehlung; alte Hashes werden bei der nächsten Anmeldung erneuert.',
+      'Die Anmeldung dauert gleich lang, ob es das Konto gibt oder nicht. So verrät sie nichts.']],
+    ['20:13', 'Keine Trainingsdaten', 'KI-Modelle laufen nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren.', 0, 1]], t: [
     ['11:10', 'Bewertungen aus OLAT, Notentracker rechnet nur zählende Punkte; Lernhof aus der Leiste genommen'],
     ['18:40', 'Signiertes Selbst-Update des PC-Programms, feste Paketversionen'],
     ['18:52', 'Schutz vor Zip-Bomben und Clickjacking, stärkere Passwort-Hashes (scrypt)'],
     ['20:11', 'Zugangsschlüssel nicht mehr im Befehl und damit nicht im Terminal-Verlauf'],
     ['20:13', 'KI nur bei Anbietern ohne Training mit den Eingaben']] },
   { d: '2026-11-19', k: [
-    ['10:20', 'Stimme messen', 'Pausen, Tempo und Sprachmelodie misst die App selbst im Gerät. Für die Stimme gehen an die KI nur die Zahlen, nicht die Aufnahme.'],
-    ['11:11', 'Ehrliche Notenprognose', 'Eine Note wird erst hochgerechnet, wenn genug bewertet ist. 21 von 21 Onlinetest-Punkten sind keine 1, solange noch 169 Punkte fehlen.']], t: [
+    ['10:20', 'Stimme messen', 'Pausen, Tempo und Sprachmelodie misst die App selbst im Gerät. Für die Stimme gehen an die KI nur die Zahlen, nicht die Aufnahme.', 0, 3, [
+      'Alle 20 Millisekunden Lautstärke und Tonhöhe, mit einem Verfahren aus der Sprachforschung (YIN, 2002).',
+      'Daraus Pausen, Sprechstrecken, Melodie, Satzenden und Wechsel der Lautstärke.',
+      'Zögerlaute und angenehmes Tempo je Sprache.',
+      'Gerechnet wird im Gerät; an die KI gehen nur die Zahlen.']],
+    ['11:11', 'Ehrliche Notenprognose', 'Eine Note wird erst hochgerechnet, wenn genug bewertet ist. 21 von 21 Onlinetest-Punkten sind keine 1, solange noch 169 Punkte fehlen.', 0, 2]], t: [
     ['10:20', 'Vortrag: Stimme im Gerät messen (Pausen, Tempo, Melodie), mehrere Sprachen'],
     ['10:40', 'Campus: neue Bilder für Figuren, Begleiter und Abzeichen'],
     ['10:46', 'PC-Programm: Unterordner und Kursnamen zuverlässiger'],
     ['10:50', 'Weiterlernen im gezeichneten Rahmen'],
     ['11:11', 'Notenprognose erst, wenn genug bewertet ist; Noten nach Lehrveranstaltung gruppiert']] },
   { d: '2026-11-23', phase: 'Thema lernen und Forum', k: [
-    ['00:21', 'PC-Programm mit Gesicht', 'Logo, Fachfarben und Fortschrittsbalken in der Konsole, auch in der alten Windows-Konsole und am Mac.'],
-    ['15:57', 'Prototyp: Abgleich am Handy', 'Ein erster Versuch, OLAT auch ohne Computer abzugleichen, mit Tests, die dieselben Dateinamen wie am PC verlangen.'],
-    ['22:29', 'Sicherheitsüberblick', 'Ich habe die ganze Architektur für ein Gespräch mit IT-Fachleuten aufgeschrieben: Datenflüsse, wo welche Geheimnisse liegen und wo ich selbst Schwachstellen vermute.', 1],
-    ['22:35', 'Thema lernen', 'Eine Frage stellen, die Antwort kommt in Bausteinen zum Lesen, Ausprobieren und Üben, mit Schiebereglern in den Schaubildern.']], t: [
+    ['00:21', 'PC-Programm mit Gesicht', 'Logo, Fachfarben und Fortschrittsbalken in der Konsole, auch in der alten Windows-Konsole und am Mac.', 0, 2],
+    ['15:57', 'Prototyp: Abgleich am Handy', 'Ein erster Versuch, OLAT auch ohne Computer abzugleichen, mit Tests, die dieselben Dateinamen wie am PC verlangen.', 0, 2],
+    ['22:29', 'Sicherheitsüberblick', 'Ich habe die ganze Architektur für ein Gespräch mit IT-Fachleuten aufgeschrieben: Datenflüsse, wo welche Geheimnisse liegen und wo ich selbst Schwachstellen vermute.', 1, 2],
+    ['22:35', 'Thema lernen', 'Eine Frage stellen, die Antwort kommt in Bausteinen zum Lesen, Ausprobieren und Üben, mit Schiebereglern in den Schaubildern.', 0, 3]], t: [
     ['00:21', 'PC-Programm: Logo, Fortschritt und Farben in der Konsole'],
     ['15:49', 'Konsole: Ersatzzeichen für die alte Windows-Konsole, Fachfarben, helle Mac-Terminals'],
     ['15:57', 'Prototyp: OLAT-Abgleich am Handy, mit Tests gegen das PC-Programm'],
     ['22:35', 'Thema lernen: Frage stellen, Antwort aus Bausteinen mit Reglern']] },
   { d: '2026-11-24', k: [
-    ['17:43', 'Thema lernen mit Semesterbezug', 'Jedes Thema bekommt eine eigene Form und den Bezug zum Stoff des Semesters.'],
-    ['20:07', 'Forum', 'Ein klassisches Forum mit Bereichen, Threads und Personenkarten. Bilder von fremden Seiten sind gesperrt, weil sie die IP der Lesenden verraten würden.'],
-    ['20:37', 'Karteikarten teilen', 'Begriffe eines Fachs lassen sich als Kartenstapel ins Forum stellen und von anderen übernehmen.'],
-    ['22:30', 'Lernstufen', 'Ein Ring um das Profilbild zeigt, wie regelmäßig jemand lernt. Nach außen geht nur die Stufe, nicht die Zahl der Tage.'],
-    ['22:48', 'Thema lernen für alles', 'Nicht nur Uni-Stoff: Schlaf, Ernährung, Geld oder reine Neugier. Allgemeine Fragen werden nicht mehr in ein Fach umgedeutet, nur weil eine Folie dasselbe Wort enthält.']], t: [
+    ['17:43', 'Thema lernen mit Semesterbezug', 'Jedes Thema bekommt eine eigene Form und den Bezug zum Stoff des Semesters.', 0, 1],
+    ['20:07', 'Forum', 'Ein klassisches Forum zum Fragen, Teilen und Mitlesen, im Stil der App.', 0, 4, [
+      'Bereiche, Threads und Beiträge mit Personenkarte wie in klassischen Foren.',
+      'Beiträge können Formeln und Schaubilder enthalten, genau wie die Wochenausgabe.',
+      'Keine Bilder von fremden Seiten: Die würden die IP der Lesenden verraten.',
+      'Volltextsuche, Lesezeichen, Erwähnungen mit @Name und Hinweise auf neue Antworten.',
+      'Ruf aus Reaktionen anderer, mit Grenze pro Tag gegen Absprachen.']],
+    ['20:37', 'Karteikarten teilen', 'Begriffe eines Fachs lassen sich als Kartenstapel ins Forum stellen und von anderen übernehmen.', 0, 2],
+    ['22:30', 'Lernstufen', 'Ein Ring um das Profilbild zeigt, wie regelmäßig jemand lernt. Nach außen geht nur die Stufe, nicht die Zahl der Tage.', 0, 1],
+    ['22:48', 'Thema lernen für alles', 'Nicht nur Uni-Stoff: Schlaf, Ernährung, Geld oder reine Neugier. Allgemeine Fragen werden nicht mehr in ein Fach umgedeutet, nur weil eine Folie dasselbe Wort enthält.', 0, 2]], t: [
     ['17:43', 'Thema lernen: eigene Form je Thema und Bezug zum Semester'],
     ['20:07', 'Forum: Bereiche, Threads, Beiträge mit Personenkarte; keine fremden Bilder'],
     ['20:22', 'Forum: Suche, Lesezeichen, Erwähnungen, Profil'],
@@ -10987,6 +11063,10 @@ const CHANGELOG = [
     ['22:41', 'Projekt-Hinweis unten lässt sich schließen oder 7 Tage ausblenden'],
     ['22:48', 'Thema lernen: allgemeine Fragen ohne erzwungenen Fachbezug']] },
 ];
+// Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
+const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046, 'var(--akzent)'], ['App', 12438, 'var(--f-mathe)'], ['Server', 3143, 'var(--f-vwl)'],
+  ['PC-Programm', 2903, 'var(--f-bwl)'], ['Lernhof', 2315, 'var(--f-englisch)']] };
+const CL_STUFEN = ['', 'klein', 'mittel', 'groß', 'sehr groß'];
 let CL_ANSICHT = (() => { try { return localStorage.getItem('lh-changelog'); } catch { return null; } })() === 'technik' ? 'technik' : 'kurz';
 function changelogZeigen() {
   const technik = CL_ANSICHT === 'technik', tag = s => new Date(s + 'T12:00');
@@ -11001,22 +11081,32 @@ function changelogZeigen() {
       x.phase && el('h2', { class: 'cl-phase' }, el('small', {}, `Phase ${++phase}`), x.phase),
       el('section', { class: 'cl-tag', 'aria-label': lang(x.d) },
         el('h3', { class: 'cl-datum' }, lang(x.d), el('span', {}, `${x.t.length} ${x.t.length === 1 ? 'Änderung' : 'Änderungen'}`)),
-        el('ol', { class: `cl-liste${technik ? ' technik' : ''}` }, eintraege.map(([u, titel, text, idee]) => el('li', { class: idee ? 'idee' : null },
+        el('ol', { class: `cl-liste${technik ? ' technik' : ''}` }, eintraege.map(([u, titel, text, idee, aufwand, mehr]) => el('li', { class: idee ? 'idee' : null },
           el('time', { class: 'cl-uhr', datetime: `${x.d}T${u}` }, u),
-          idee && el('span', { class: 'cl-marke' }, 'Überlegung'),
-          titel && el('strong', {}, titel), text && el(technik && !idee ? 'span' : 'p', {}, text)))))];
+          !!idee && el('span', { class: 'cl-marke' }, 'Überlegung'),
+          titel && el('strong', {}, titel, aufwand && el('span', { class: 'cl-aufwand', 'data-stufe': aufwand },
+            el('span', { class: 'cl-balken', 'aria-hidden': 'true' }, [1, 2, 3, 4].map(() => el('i'))), `Aufwand: ${CL_STUFEN[aufwand]}`)),
+          text && el(technik && !idee ? 'span' : 'p', {}, text),
+          mehr && el('details', { class: 'cl-mehr' }, el('summary', {}, 'Was dahinter steckt'), el('ul', {}, mehr.map(s => el('li', {}, s))))))))];
   }));
+  const zeilen = CL_UMFANG.teile.reduce((n, t) => n + t[1], 0), zahl = n => n.toLocaleString('de-DE');
+  const umfang = el('section', { class: 'cl-umfang', 'aria-label': 'Umfang heute' },
+    el('p', {}, el('strong', {}, `Rund ${zahl(Math.round(zeilen / 100) * 100)} Zeilen Code`),
+      el('span', { class: 'meta' }, ` · Stand ${tag(CL_UMFANG.stand).toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })}, ohne Bibliotheken, Schriften und Bilder`)),
+    el('div', { class: 'cl-anteile', 'aria-hidden': 'true' }, CL_UMFANG.teile.map(([, n, farbe]) => el('span', { style: `flex-grow: ${n}; background: ${farbe}` }))),
+    el('ul', { class: 'cl-legende' }, CL_UMFANG.teile.map(([name, n, farbe]) => el('li', { style: `--c: ${farbe}` }, name, el('span', {}, zahl(n))))));
   const wahl = (k, name) => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(CL_ANSICHT === k),
     onclick: () => { CL_ANSICHT = k; try { localStorage.setItem('lh-changelog', k); } catch {} changelogZeigen(); } }, name);
   $('changelog').replaceChildren(
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Changelog'),
       el('p', { class: 'schlagzeile' }, 'Wie der Lernhelfer entstanden ist, vom ersten Stand bis heute.'),
       el('p', { class: 'meta cl-zahlen' }, `${aenderungen} Änderungen · ${CHANGELOG.length} Arbeitstage · ${ueberlegungen} Überlegungen · seit ${tag(CHANGELOG[0].d).toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' })}`)),
+    umfang,
     el('div', { class: 'cl-kopf' },
       el('div', { class: 'vt-filterreihe', role: 'group', 'aria-label': 'Ansicht' }, wahl('kurz', 'Zusammengefasst'), wahl('technik', 'Technisch')),
       el('button', { type: 'button', class: 'knopf', onclick: () => liste.lastElementChild.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }, 'Zum neuesten Stand')),
     el('p', { class: 'klein' }, technik ? 'Jede Änderung am Code mit Uhrzeit. Ausgelassen sind nur interne Dinge wie Serverbetrieb und Verwaltung.'
-      : 'Die wichtigsten Schritte je Tag. „Überlegung“ markiert Stellen, an denen ich erst geplant und dann gebaut habe.'),
+      : 'Die wichtigsten Schritte je Tag. Die Balken zeigen, wie aufwändig ein Schritt war; bei großen Schritten steht darunter, was dahinter steckt. „Überlegung“ markiert Stellen, an denen ich erst geplant und dann gebaut habe.'),
     liste);
 }
 // Anleitung: der Knopf zum Programm gleich oben, nicht erst unter Start oder Konto
