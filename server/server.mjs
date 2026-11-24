@@ -222,6 +222,10 @@ const SUCHE_REIN = `insert into forum_suche (rowid, titel, text) select b.id, ca
 if (db.prepare('select count(*) n from forum_suche').get().n !== db.prepare('select count(*) n from forum_beitrag where weg = 0').get().n) db.exec(`delete from forum_suche; ${SUCHE_REIN}`);
 try { db.exec('alter table forum_profil add column abzeichen text'); } catch {}  // gewählte Trophäe neben dem Namen („🏆 Best of“)
 try { db.exec('alter table forum_profil add column bild blob; alter table forum_profil add column bild_zeit integer'); } catch {}  // Profilbild (JPEG/WebP, klein), Zeit = Version im Bild-Link
+// Pinnwand: Kommentare auf Profilseiten (profil = wessen Seite, konto = wer schrieb); gelesen = die Person der Seite hat ihn in den Hinweisen gesehen
+db.exec(`create table if not exists forum_pinnwand (id integer primary key, profil integer not null references konten(id) on delete cascade,
+  konto integer references konten(id) on delete set null, text text not null, zeit integer not null, gelesen integer not null default 0);
+create index if not exists forum_pinnwand_profil on forum_pinnwand (profil, id)`);
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -414,7 +418,7 @@ const logSql = db.prepare('insert into nutzung_log (konto, zeit, was) values (?,
 const zaehlen = (id, was, usd = 0, n = 1) => { zaehlenSql.run(id, was, new Date().toISOString().slice(0, 10), n, usd > 0 ? usd : 0); if (n > 0) logSql.run(id, jetzt(), was); };
 // Seiten, die die App beim Öffnen meldet (nur mit Konto), und Funktionen ohne Server, die sie selbst meldet
 const SEITEN = { start: 'Start', titelblatt: 'Heute', ausgabe: 'Wochenausgabe lesen', unterlagen: 'Unterlagen', kalender: 'Kalender', onlinetests: 'Onlinetests', noten: 'Notentracker',
-  karten: 'Karteikarten', thema: 'Thema lernen', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', forum: 'Forum', video: 'Videos',
+  karten: 'Karteikarten', thema: 'Thema lernen', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', wordpower: 'Word Power', anleitung: 'Anleitung', changelog: 'Changelog', upgrade: 'Tarife', einstellungen: 'Konto', arena: 'Arena', forum: 'Forum', video: 'Videos',
   'wp-glossar': 'Word Power: Glossar', 'wp-trainer': 'Word Power: Trainer', 'wp-zeit': 'Word Power: Time Log', 'wp-reflexion': 'Word Power: Reflection-Feedback' };
 const MELDBAR = new Set([...Object.keys(SEITEN).map(x => 'seite:' + x), ...Object.keys(FUNKTIONEN).filter(f => FUNKTIONEN[f] <= 2).map(f => 'gesperrt:' + f), 'export']);
 const bezahlt = id => !!db.prepare("select 1 from bestellungen where konto = ? and status = 'bezahlt'").get(id);
@@ -1080,7 +1084,8 @@ async function exportieren(req, res, k) {
         .map(x => ({ ...x, erstellt: iso(x.erstellt), bearbeitet: iso(x.bearbeitet) })),
       reaktionen: db.prepare('select beitrag, art from forum_reaktion where konto = ?').all(k.id),
       lesezeichen: db.prepare('select beitrag, zeit from forum_lesezeichen where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
-      meldungen: db.prepare('select beitrag, grund, zeit from forum_meldung where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })) },
+      meldungen: db.prepare('select beitrag, grund, zeit from forum_meldung where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
+      pinnwand_geschrieben: db.prepare('select p.name auf_seite_von, w.text, w.zeit from forum_pinnwand w left join forum_profil p on p.konto = w.profil where w.konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })) },
   };
   const fbild = db.prepare('select bild from forum_profil where konto = ? and bild is not null').get(k.id)?.bild;
   const dateien = [...db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id),
@@ -1159,7 +1164,7 @@ const NEU_SEIT = () => jetzt() - 30 * TAG;  // ältere Threads gelten nie als ne
 // Lernstufe 0–3 aus Tagen mit Nutzung in den letzten 30 Tagen (ohne Forum, Konto, Tarife, Anleitung): ab 4 Bronze, ab 10 Silber, ab 20 Gold.
 // Nach außen geht nur die Stufe, nicht die Tageszahl.
 const STUFE = `(select (count(distinct n.tag) >= 4) + (count(distinct n.tag) >= 10) + (count(distinct n.tag) >= 20) from nutzung n
-  where n.konto = b.konto and n.tag >= date('now', '-29 days') and n.was not in ('seite:forum', 'seite:einstellungen', 'seite:upgrade', 'seite:anleitung')
+  where n.konto = b.konto and n.tag >= date('now', '-29 days') and n.was not in ('seite:forum', 'seite:einstellungen', 'seite:upgrade', 'seite:anleitung', 'seite:changelog')
     and n.was not like 'gesperrt:%') stufe`;
 // Personenkarte neben jedem Beitrag: Beiträge, Ruf (Reaktionen anderer), Arena-XP nur bei Teilnahme, Team
 const AUTOR = `p.name, k.erstellt seit, p.abzeichen, p.bild_zeit bild,k.email = ?1 and k.bestaetigt team,
@@ -1192,7 +1197,8 @@ function forumIch(k) {  // gewaehlt: Forum-Name bestätigt; sonst schlägt die A
 const suchIndex = id => { db.prepare('delete from forum_suche where rowid = ?').run(id); db.prepare(SUCHE_REIN + ' and b.id = ?').run(id); };
 const sucheOhneThema = thema => db.prepare('delete from forum_suche where rowid in (select id from forum_beitrag where thema = ?)').run(thema);
 const NR = '(select count(*) from forum_beitrag x where x.thema = b.thema and x.id <= b.id) nr';  // Nummer im Thread: daraus Seite und Sprungmarke
-const ungelesen = k => db.prepare('select count(*) n from forum_hinweis where konto = ? and gelesen = 0').get(k.id).n;
+const ungelesen = k => db.prepare('select count(*) n from forum_hinweis where konto = ? and gelesen = 0').get(k.id).n
+  + db.prepare('select count(*) n from forum_pinnwand where profil = ? and gelesen = 0').get(k.id).n;
 // Hinweise: Zitat („> **Name** schrieb:“) und @Name immer, sonst „antwort“ an alle, die im Thread geschrieben haben. Ungelesene Antworten je Thread werden zusammengezählt
 function benachrichtigen(von, thema, beitrag, text, antwort) {
   const an = new Map(), wer = n => db.prepare('select konto from forum_profil where name = ? collate nocase').get(n)?.konto;
@@ -1555,7 +1561,7 @@ const ROUTEN = {
     const b = FORUM.find(x => x.id === q.get('id')) || nein(404, 'Diesen Bereich gibt es nicht.');
     const n = db.prepare('select count(*) n from forum_thema where bereich = ?').get(b.id).n, seiten = Math.max(1, Math.ceil(n / SEITE));
     const seite = Math.min(seiten, Math.max(1, parseInt(q.get('seite')) || 1));
-    const themen = db.prepare(`select t.id, t.praefix, t.fach, t.titel, t.erstellt, t.letzte, t.antworten, t.aufrufe, t.angeheftet, t.zu, a.name autor, l.name letzter,
+    const themen = db.prepare(`select t.id, t.praefix, t.fach, t.titel, t.erstellt, t.letzte, t.antworten, t.aufrufe, t.angeheftet, t.zu, a.name autor, a.bild_zeit autor_bild, l.name letzter,
         t.letzte > coalesce(g.bis, 0) and t.letzte > ? neu
       from forum_thema t left join forum_profil a on a.konto = t.konto left join forum_profil l on l.konto = t.letzter left join forum_gelesen g on g.thema = t.id and g.konto = ?
       where t.bereich = ? order by t.angeheftet desc, t.letzte desc limit ? offset ?`).all(NEU_SEIT(), k.id, b.id, SEITE, (seite - 1) * SEITE);
@@ -1661,11 +1667,15 @@ const ROUTEN = {
   'GET /api/forum/hinweise': ({ k }) => {  // ansehen = gelesen; gelesene verschwinden nach 60 Tagen
     forumDa(k);
     db.prepare('delete from forum_hinweis where konto = ? and gelesen = 1 and zeit < ?').run(k.id, jetzt() - 60 * TAG);
-    const hinweise = db.prepare(`select h.id, h.art, h.was, h.thema, h.beitrag, h.zeit, h.anzahl, h.gelesen = 0 neu, p.name, t.titel,
+    const hinweise = db.prepare(`select h.id, h.art, h.was, h.thema, h.beitrag, h.zeit, h.anzahl, h.gelesen = 0 neu, p.name, p.bild_zeit bild, t.titel,
         (select count(*) from forum_beitrag x where x.thema = h.thema and x.id <= h.beitrag) nr
       from forum_hinweis h join forum_thema t on t.id = h.thema left join forum_profil p on p.konto = h.von where h.konto = ? order by h.zeit desc, h.id desc limit 50`).all(k.id);
+    const pinnwand = db.prepare(`select 'w' || w.id id, 'pinnwand' art, w.zeit, w.gelesen = 0 neu, p.name, p.bild_zeit bild, substr(w.text, 1, 120) auszug, ich.name ziel
+      from forum_pinnwand w left join forum_profil p on p.konto = w.konto join forum_profil ich on ich.konto = w.profil
+      where w.profil = ? and coalesce(w.konto, 0) != w.profil order by w.id desc limit 30`).all(k.id);
     db.prepare('update forum_hinweis set gelesen = 1 where konto = ? and gelesen = 0').run(k.id);
-    return { hinweise: hinweise.map(h => ({ ...h, neu: !!h.neu })), ich: forumIch(k) };
+    db.prepare('update forum_pinnwand set gelesen = 1 where profil = ? and gelesen = 0').run(k.id);
+    return { hinweise: [...hinweise, ...pinnwand].sort((a, b) => b.zeit - a.zeit).slice(0, 50).map(h => ({ ...h, neu: !!h.neu })), ich: forumIch(k) };
   },
   'GET /api/forum/lesezeichen': ({ k }) => {
     forumDa(k);
@@ -1693,6 +1703,18 @@ const ROUTEN = {
     if (!bildTyp(bild)) nein(400, 'Bitte ein JPEG- oder WebP-Bild.');
     db.prepare('update forum_profil set bild = ?, bild_zeit = ? where konto = ?').run(bild, jetzt(), k.id);
   },
+  'POST /api/forum/pinnwand': ({ req, k, b }) => {  // {name, text}: Kommentar auf die Profilseite von name; {weg: id}: Kommentar löschen
+    if (b.weg) {
+      muss(k);
+      const w = db.prepare('select konto, profil from forum_pinnwand where id = ?').get(Number(b.weg)) || nein(404, 'Diesen Kommentar gibt es nicht mehr.');
+      if (w.konto !== k.id && w.profil !== k.id && !k.ecke) nein(403, 'Das darfst du nicht löschen.');
+      return void db.prepare('delete from forum_pinnwand where id = ?').run(Number(b.weg));
+    }
+    schreiber(req, k, 20);
+    const ziel = db.prepare('select konto from forum_profil where name = ? collate nocase').get(String(b.name || '')) || nein(404, 'Dieses Mitglied gibt es nicht (mehr).');
+    db.prepare('insert into forum_pinnwand (profil, konto, text, zeit, gelesen) values (?, ?, ?, ?, ?)')
+      .run(ziel.konto, k.id, forumText(b.text, 1, 1000, 'Kommentar'), jetzt(), ziel.konto === k.id ? 1 : 0);
+  },
   'GET /api/forum/profil': ({ k, q }) => {  // Zahlen wie auf der Personenkarte, Reaktionen nach Art, Trophäen, die letzten 10 Beiträge
     forumDa(k);
     const { s, reaktionen, trophaeen } = forumStand('p.name = ?2 collate nocase', String(q.get('name') || ''));
@@ -1700,7 +1722,11 @@ const ROUTEN = {
       profil: { name: s.name, seit: s.seit, team: !!s.team, beitraege: s.beitraege, themen: s.themen, ruf: s.ruf, xp: s.xp, stufe: s.stufe, reaktionen, eigen: s.konto === k.id,
         abzeichen: s.abzeichen, bild: s.bild, trophaeen,
         letzte: db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, ${NR}, substr(b.text, 1, 300) auszug from forum_beitrag b join forum_thema t on t.id = b.thema
-          where b.konto = ? and b.weg = 0 order by b.id desc limit 10`).all(s.konto) },
+          where b.konto = ? and b.weg = 0 order by b.id desc limit 10`).all(s.konto),
+        // Pinnwand: neueste zuerst; löschen dürfen, wer schrieb, wessen Seite es ist und die Moderation
+        pinnwand: db.prepare(`select w.id, w.text, w.zeit, p.name, p.bild_zeit bild, w.konto = ?1 or w.profil = ?1 or ?3 darf_weg
+          from forum_pinnwand w left join forum_profil p on p.konto = w.konto where w.profil = ?2 order by w.id desc limit 50`).all(k.id, s.konto, k.ecke ? 1 : 0)
+          .map(w => ({ ...w, darf_weg: !!w.darf_weg })) },
       ich: forumIch(k),
     };
   },

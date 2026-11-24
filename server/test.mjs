@@ -991,6 +991,24 @@ try {
   await chef('POST', '/api/admin/forum', { bildWeg: (await chef('GET', '/api/admin')).j.konten.find(x => x.email === lmail).id });
   assert.equal((await leser('GET', '/api/forum/profil?name=Lena')).j.profil.bild, null, 'Moderation entfernt das Bild');
   assert.equal((await leser('POST', '/api/forum/bild', { bild: '' })).status, 200, 'entfernen geht auch ohne Bild');
+  // Pinnwand: Kommentar auf Lenas Seite → Hinweis für Lena; löschen dürfen Schreiber, Seiteninhaberin, Moderation, sonst niemand
+  const wVorher = (await lern('GET', '/api/forum/hinweise')).j.ich.hinweise;
+  assert.equal((await leser('POST', '/api/forum/pinnwand', { name: 'lena', text: '   ' })).status, 400);
+  assert.equal((await leser('POST', '/api/forum/pinnwand', { name: 'niemand', text: 'Hallo' })).status, 404);
+  assert.equal((await leser('POST', '/api/forum/pinnwand', { name: 'lena', text: 'Danke für den Guide!' })).status, 200);
+  assert.equal((await lern('POST', '/api/forum/pinnwand', { name: 'Lena', text: 'Gern!' })).status, 200);
+  assert.equal(wVorher, 0); assert.equal((await lern('GET', '/api/forum')).j.ich.hinweise, 1, 'nur der fremde Kommentar zählt');
+  const lh = (await lern('GET', '/api/forum/hinweise')).j.hinweise.find(h => h.art === 'pinnwand');
+  assert.deepEqual([lh.ziel, lh.auszug, lh.neu], ['Lena', 'Danke für den Guide!', true]);
+  assert.equal((await lern('GET', '/api/forum')).j.ich.hinweise, 0, 'angesehen = gelesen');
+  const wand = (await chef('GET', '/api/forum/profil?name=Lena')).j.profil.pinnwand;
+  assert.deepEqual(wand.map(w => w.text), ['Gern!', 'Danke für den Guide!']);
+  assert.equal((await chef('GET', '/api/forum/profil?name=Lena')).j.profil.pinnwand.every(w => w.darf_weg), true, 'Moderation');
+  const fremdWand = (await leser('GET', '/api/forum/profil?name=Lena')).j.profil.pinnwand;
+  assert.deepEqual(fremdWand.map(w => w.darf_weg), [false, true]);
+  assert.equal((await leser('POST', '/api/forum/pinnwand', { weg: fremdWand[0].id })).status, 403);
+  assert.equal((await lern('POST', '/api/forum/pinnwand', { weg: fremdWand[1].id })).status, 200, 'Seiteninhaberin löscht fremden Kommentar');
+  assert.equal((await leser('GET', '/api/forum/profil?name=Lena')).j.profil.pinnwand.length, 1);
   // Stufe 3: „Hilfreich“ bringt XP (5, höchstens 25 am Tag), andere Reaktion oder zurücknehmen nimmt sie wieder; Abzeichen; ähnliche Threads; neuestes Mitglied
   const xpVon = async p => (await p('GET', '/api/arena')).j.xp, chefXp = await xpVon(chef);
   await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'hilfreich' });

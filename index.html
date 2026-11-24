@@ -567,6 +567,32 @@
   .anleitung .inhalt { columns: 2 15rem; margin: 0; padding: 14px 18px 14px 2.4em; border-radius: var(--r-l); background: var(--bg-2); font-weight: 550; line-height: 2; }
   .anleitung .inhalt li::marker { color: var(--text-3); }
   .anleitung .text { max-width: none; }
+  /* Changelog: Zeitleiste nach Tagen, Uhrzeit links der Linie, Punkt je Eintrag; Überlegungen hervorgehoben */
+  .changelog { max-width: 760px; }
+  .cl-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .cl-kopf .vt-filterreihe { margin: 0; }
+  .changelog > .klein { margin: 12px 0 8px; }
+  .cl-phase { margin: 44px 0 0; padding-top: 18px; border-top: 1px solid var(--linie); font: 750 1.375rem/1.2 var(--sans); letter-spacing: -0.01em; }
+  .cl-phase small { display: block; margin-bottom: 6px; color: var(--akzent-text); font: 650 0.75rem/1 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+  .cl-datum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 26px 0 12px; font: 650 1rem/1.3 var(--sans); }
+  .cl-datum span { color: var(--text-3); font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .cl-liste { margin: 0 0 0 4rem; padding: 0; border-left: 2px solid var(--linie); list-style: none; }
+  .cl-liste li { position: relative; padding: 0 0 18px 22px; }
+  .cl-liste li:last-child { padding-bottom: 4px; }
+  .cl-liste li::before { content: ""; position: absolute; left: -7px; top: 0.3rem; box-sizing: border-box; width: 12px; height: 12px; border: 2px solid var(--akzent); border-radius: 50%; background: var(--bg); }
+  .cl-liste li.idee::before { border-color: var(--warn); background: var(--warn-flaeche); }
+  .cl-uhr { position: absolute; top: 0; right: calc(100% + 16px); color: var(--text-3); font-size: 0.8125rem; line-height: 1.4rem; font-variant-numeric: tabular-nums; }
+  .cl-liste strong { display: block; color: var(--text); font-weight: 650; line-height: 1.4rem; }
+  .cl-liste p { margin: 3px 0 0; color: var(--text-2); font: 400 1rem/1.55 var(--serif); }
+  .cl-liste.technik li { padding-bottom: 10px; color: var(--text-2); line-height: 1.4rem; }
+  .cl-marke { display: inline-block; margin-bottom: 4px; padding: 0 8px; border-radius: 999px; background: var(--warn-flaeche); color: var(--warn); font: 650 0.75rem/1.5rem var(--sans); }
+  .cl-liste.technik .cl-marke { margin: 0 8px 0 0; }
+  .cl-pause { margin: 22px 0 0 4rem; padding: 8px 0 8px 22px; border-left: 2px dashed var(--linie-2); color: var(--text-3); font-size: 0.8125rem; }
+  @media (max-width: 599.98px) {
+    .cl-liste, .cl-pause { margin-left: 6px; }
+    .cl-liste li { padding-left: 18px; }
+    .cl-uhr { position: static; display: block; line-height: 1.3rem; }
+  }
   .anleitung .text h2 { margin: 48px 0 12px; font: 700 1.375rem/1.25 var(--sans); letter-spacing: -0.01em; scroll-margin-top: 20px; }
   .anleitung .text h3 { margin-top: 1.5em; }
   .anleitung .text ol > li::marker { color: var(--text-3); font: 600 0.9375rem var(--sans); }
@@ -769,6 +795,13 @@
   .fo-stufe-text { margin: 6px 0 0; color: var(--text-2); font-size: 0.8125rem; }
   .fo-stufe-text::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: var(--ring); vertical-align: 0.05em; }
   .fo-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .fo-w-neu { display: grid; gap: 8px; justify-items: end; margin: 0 0 14px; }
+  .fo-w-neu .fo-feld { width: 100%; min-height: 0; }
+  .fo-w-liste { margin: 0; padding: 0; list-style: none; }
+  .fo-w-liste > li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--linie); }
+  .fo-w-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 2px; }
+  .fo-w-kopf .fo-link { margin-left: auto; min-height: 0; padding: 0; }
+  .fo-w-text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
   .fo-bild-knoepfe { display: flex; gap: 4px; margin: 0 0 4px -6px; }
   .fo-bild-knoepfe label { display: inline-flex; align-items: center; }
   .fo-beitrag { display: grid; grid-template-columns: 148px minmax(0, 1fr); margin: 14px 0; border: 1px solid var(--linie); border-radius: 12px; overflow: hidden; }
@@ -1837,7 +1870,11 @@
 
   /* Fuß jeder Seite: eine leise Empfehlung und Links */
   .fuss { max-width: 760px; margin: 72px 0 0; padding-top: 20px; border-top: 1px solid var(--linie); }
-  .empfehlung { padding: 16px 18px; border-radius: var(--r-l); background: var(--bg-2); }
+  .empfehlung { position: relative; padding: 16px 18px; border-radius: var(--r-l); background: var(--bg-2); }
+  .emp-zu { position: absolute; top: 6px; right: 6px; min-height: 36px; width: 36px; padding: 0; }
+  .emp-wahl { margin: -6px -8px 10px 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+  .emp-wahl .knopf { min-height: 36px; padding: 6px 12px; font-size: 0.8125rem; }
+  .empfehlung > .meta:first-of-type { padding-right: 40px; }
   .empfehlung h2 { margin: 2px 0 6px; font-size: 1rem; }
   .empfehlung > p:not(.meta) { margin: 0 0 8px; color: var(--text-2); font-size: 0.875rem; max-width: 68ch; }
   .empfehlung .meta, .fuss-links { color: var(--text-3); font-size: 0.8125rem; }
@@ -1913,6 +1950,7 @@ aussehen();
       <a href="/campus/hilfe.html" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.7M12 16.8v.2"/></svg>So geht Campus</a>
       <a href="/campus/" class="nur-server"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.500v9L12 21l-8-4.500v-9zM4 7.500l8 4.500 8-4.500M12 12v9"/></svg>Campus</a>
       <hr>
+      <a href="#/changelog" data-ansicht="changelog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v4h4"/><path d="M12 7.5V12l3 2"/></svg>Changelog</a>
       <a href="#/unterlagen" data-ansicht="unterlagen" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path d="M12 16.5v-6M9.5 13l2.5-2.5 2.5 2.5"/></svg>Unterlagen</a>
       <a href="#/anleitung" data-ansicht="anleitung"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10.5 5 8.3 4.5 4 4.5v14c4.3 0 6.5.5 8 2 1.5-1.5 3.7-2 8-2v-14c-4.3 0-6.5.5-8 2zM12 6.5v14"/></svg>Anleitung</a>
       <a href="#/einstellungen" data-ansicht="einstellungen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Einrichten</a>
@@ -2087,6 +2125,7 @@ aussehen();
     <section id="admin" hidden class="admin"></section>
 
     <section id="recht" hidden class="werkstatt anleitung"></section>
+    <section id="changelog" hidden class="werkstatt changelog"></section>
 
     <section id="einstellungen" hidden class="werkstatt einrichten">
       <header class="ausgabe-kopf">
@@ -2415,7 +2454,12 @@ aussehen();
       </div>
     </section>
     <footer class="fuss">
-      <aside class="empfehlung" aria-labelledby="ov-titel">
+      <aside class="empfehlung" id="empfehlung" aria-labelledby="ov-titel">
+        <button type="button" class="knopf leise emp-zu" id="emp-zu" aria-label="Hinweis ausblenden" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <div class="emp-wahl" id="emp-wahl" hidden>
+          <button type="button" class="knopf" data-tage="0">Schließen</button>
+          <button type="button" class="knopf" data-tage="7">7 Tage ausblenden</button>
+        </div>
         <p class="meta">Noch ein Projekt von mir</p>
         <h2 id="ov-titel">Du studierst Wiwi oder IWW und interessierst dich für Daytrading?</h2>
         <p>Die meisten Backtests sehen nur gut aus, weil so lange an den Einstellungen gedreht wurde, bis die Zahlen passen. <b translate="no">overfitted.xyz</b> prüft Futures-Strategien ehrlich: Du beschreibst deine Idee in normalen Worten, das Programm rechnet sie mit Walk-Forward und einem unberührten Holdout durch, zählt jeden Versuch mit und zeigt, ob sie eine Prop-Firm-Prüfung überstehen würde. Bevor du echtes Geld riskierst.</p>
@@ -2610,6 +2654,10 @@ ${fassungAuftrag(wahl)}`;
 
 const $ = id => document.getElementById(id);
 const merk = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { return null; } };
+// Empfehlung im Fuß: × fragt „Schließen“ (bis zum Neuladen) oder „7 Tage ausblenden“ (gemerkt).
+if (Date.now() < Number(merk('emp-weg-bis'))) $('empfehlung').hidden = true;
+$('emp-zu').onclick = () => { const offen = $('emp-wahl').hidden; $('emp-wahl').hidden = !offen; $('emp-zu').hidden = offen; $('emp-zu').setAttribute('aria-expanded', offen); if (offen) $('emp-wahl').querySelector('button').focus(); };
+$('emp-wahl').onclick = e => { const t = e.target.closest('[data-tage]'); if (!t) return; if (+t.dataset.tage) merk('emp-weg-bis', String(Date.now() + t.dataset.tage * 864e5)); $('empfehlung').hidden = true; };
 const el = (tag, attrs = {}, ...kinder) => {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -10429,7 +10477,7 @@ async function foBereich(id, seite) {
       darf && el('a', { class: 'knopf voll', href: `#/forum/neu/${b.id}` }, 'Neuer Thread')),
     d.ich.darf && !d.ich.gewaehlt && el('p', { class: 'klein' }, el('a', { href: '#/forum' }, 'Wähl zuerst deinen Namen'), ', dann kannst du hier schreiben.'),
     d.themen.length ? el('ol', { class: 'fo-threads' }, d.themen.map(t => el('li', { class: 'fo-thread', 'data-neu': t.neu ? '' : null },
-      foAvatar(t.autor),
+      foAvatar(t.autor, 0, t.autor_bild),
       el('div', { class: 'fo-t-haupt' },
         el('a', { class: 'fo-t-titel', href: `#/forum/${t.id}` }, foPill(t.praefix), ' ', el('span', {}, t.titel)),
         el('span', { class: 'meta' }, [t.autor || 'Gelöschtes Konto', foZeit(t.erstellt), t.fach, t.angeheftet && 'angeheftet', t.zu && 'geschlossen'].filter(Boolean).join(' · '))),
@@ -10574,15 +10622,16 @@ const FO_HINWEIS = {
   erwaehnung: h => [el('b', {}, h.name || 'Gelöschtes Konto'), ' hat dich in ', el('b', {}, h.titel), ' erwähnt'],
   reaktion: h => [el('b', {}, h.name || 'Gelöschtes Konto'), h.anzahl > 1 ? ` und ${h.anzahl - 1} ${h.anzahl === 2 ? 'weitere Person' : 'weitere'} haben` : ' hat',
     ' auf deinen Beitrag in ', el('b', {}, h.titel), ` reagiert${h.anzahl > 1 ? '' : `: ${FO_REAKTION[h.was]?.join(' ') || ''}`}`],
+  pinnwand: h => [el('b', {}, h.name || 'Gelöschtes Konto'), ' hat auf deine Pinnwand geschrieben: ', `„${h.auszug}${h.auszug.length >= 120 ? ' …' : ''}“`],
 };
 async function foHinweise() {
   const d = await api('forum/hinweise');
   return [
     foLeiste(d.ich),
     foPfad([['#/forum', 'Forum']]),
-    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Hinweise'), el('p', { class: 'schlagzeile' }, 'Antworten in Threads, in denen du geschrieben hast, Zitate, @Erwähnungen und Reaktionen.')),
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Hinweise'), el('p', { class: 'schlagzeile' }, 'Antworten in Threads, in denen du geschrieben hast, Zitate, @Erwähnungen, Reaktionen und Kommentare auf deiner Pinnwand.')),
     d.hinweise.length ? el('ol', { class: 'fo-liste fo-hinweise' }, d.hinweise.map(h => el('li', { 'data-neu': h.neu ? '' : null },
-      el('a', { href: foZu(h.thema, h.nr, h.beitrag) }, foAvatar(h.name), el('span', {}, FO_HINWEIS[h.art]?.(h) || h.art, el('span', { class: 'meta' }, foZeit(h.zeit)))))))
+      el('a', { href: h.art === 'pinnwand' ? `#/forum/mitglied/${encodeURIComponent(h.ziel)}` : foZu(h.thema, h.nr, h.beitrag) }, foAvatar(h.name, 0, h.bild), el('span', {}, FO_HINWEIS[h.art]?.(h) || h.art, el('span', { class: 'meta' }, foZeit(h.zeit)))))))
       : el('p', { class: 'leer' }, 'Noch nichts. Hier landet, wenn jemand in deinen Threads antwortet, dich zitiert, mit @Name erwähnt oder auf deine Beiträge reagiert.'),
   ];
 }
@@ -10599,6 +10648,31 @@ async function foLesezeichen() {
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Lesezeichen'), el('p', { class: 'schlagzeile' }, 'Beiträge, die du dir mit „Merken“ gespeichert hast. Nur du siehst sie.')),
     d.lesezeichen.length ? foTreffer(d.lesezeichen, weg) : el('p', { class: 'leer' }, 'Noch keine. Unter jedem Beitrag steht „Merken“.'),
   ];
+}
+
+function foPinnwand(p, ich) {  // Kommentare auf der Profilseite, wie Profilnachrichten in klassischen Foren; reiner Text, keine Formatierung
+  const key = 'w:' + p.name.toLowerCase();
+  const feld = el('textarea', { class: 'fo-feld', rows: 2, maxlength: 1000, 'aria-label': 'Kommentar', oninput: e => { FO.entwurf[key] = e.target.value; },
+    placeholder: p.eigen ? 'Schreib etwas auf deine Pinnwand …' : `Schreib ${p.name} etwas …` });
+  feld.value = FO.entwurf[key] || '';
+  const senden = async e => {
+    e.preventDefault();
+    const knopf = e.submitter; knopf.disabled = true;
+    try { await api('forum/pinnwand', { name: p.name, text: feld.value }); delete FO.entwurf[key]; forumZeigen(); } catch (err) { status(err.message, true); knopf.disabled = false; }
+  };
+  return el('section', { class: 'fo-kasten fo-pinnwand', id: 'pinnwand' }, el('h2', {}, `Pinnwand${p.pinnwand.length ? ` (${p.pinnwand.length})` : ''}`),
+    ich.darf && ich.gewaehlt && !ich.gesperrt && el('form', { class: 'fo-w-neu', onsubmit: senden }, feld, el('button', { class: 'knopf voll' }, 'Kommentieren')),
+    p.pinnwand.length ? el('ol', { class: 'fo-w-liste' }, p.pinnwand.map(w => el('li', {},
+      foAvatar(w.name, 0, w.bild),
+      el('div', {}, el('p', { class: 'fo-w-kopf' }, foName(w.name), el('span', { class: 'meta' }, foZeit(w.zeit)),
+          w.darf_weg && el('button', { type: 'button', class: 'fo-link', onclick: async e => {
+            if (!confirm('Diesen Kommentar löschen?')) return;
+            e.currentTarget.disabled = true;
+            try { await api('forum/pinnwand', { weg: w.id }); } catch (err) { status(err.message, true); }
+            forumZeigen();
+          } }, 'Löschen')),
+        el('p', { class: 'fo-w-text' }, w.text)))))
+      : el('p', { class: 'leer' }, p.eigen ? 'Noch keine Kommentare. Andere können dir hier etwas schreiben.' : `Noch keine Kommentare. Schreib ${p.name} als Erste:r etwas.`));
 }
 
 async function foMitglied(name) {
@@ -10624,6 +10698,7 @@ async function foMitglied(name) {
     el('dl', { class: 'fo-zahlen' }, [['Beiträge', p.beitraege], ['Threads', p.themen], ['Ruf', p.ruf], ['Trophäen', hat], p.xp > 0 ? ['Level', LEVEL(p.xp)] : null]
       .filter(Boolean).map(([n, w]) => el('div', {}, el('dt', {}, n), el('dd', {}, String(w))))),
     r.length ? el('p', { class: 'fo-reaktionen' }, 'Bekommen: ', r.map(([a, n]) => `${FO_REAKTION[a]?.[0] || ''} ${n}× ${FO_REAKTION[a]?.[1] || a}`).join(' · ')) : null,
+    foPinnwand(p, d.ich),
     el('section', { class: 'fo-kasten' }, el('h2', {}, `Trophäen: ${hat} von ${p.trophaeen.length}`),
       p.eigen && hat > 0 && el('p', { class: 'meta' }, 'Eine deiner Trophäen kannst du als Abzeichen neben deinem Namen zeigen.'),
       el('ul', { class: 'arena-abzeichen' }, p.trophaeen.map(t => {
@@ -10671,7 +10746,7 @@ async function foNeu(id) {
   ];
 }
 
-const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', forum: 'Forum', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', einstellungen: SERVER ? 'Konto' : 'Einrichten',
+const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', forum: 'Forum', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', changelog: 'Changelog', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
 // Word Power sehen nur Konten mit der Englisch-Rolle (Admin-Ecke: Haken je Konto oder Aktion für neue Konten), der Admin und die eigene Version
 const wpSichtbar = () => !SERVER || !!ICH?.admin || !!ICH?.englisch || ICH?.tarif === 'englisch';
@@ -10720,6 +10795,225 @@ function startZeigen() {
     el('p', { class: 'klein' }, 'Alle Details stehen in der ', el('a', { href: '#/anleitung' }, 'Anleitung'), '. Neuigkeiten und schnelle Hilfe: ',
       el('a', { href: 'https://www.instagram.com/xnik243/', target: '_blank', rel: 'noopener' }, '@xnik243'), ' auf Instagram.')].flat().filter(Boolean));
 }
+// Changelog: wie die App entstanden ist. Von Hand gepflegt (nicht aus git erzeugt), damit Internes nicht hineinrutscht.
+// Je Tag: k = Zusammenfassung [Uhrzeit, Titel, Text, 1 = Überlegung], t = jede Änderung im Code [Uhrzeit, Text]. Neue Tage unten anhängen.
+const CHANGELOG = [
+  { d: '2026-10-14', phase: 'Die Idee und das Grundgerüst', k: [
+    ['10:41', 'Der erste Stand', 'Die Idee: Aus den Unterlagen in OLAT soll jede Woche automatisch das Wichtigste pro Fach entstehen. Der erste Stand konnte Dateien aus OLAT abrufen und lief auf iPad und PC.'],
+    ['11:48', 'Für wen baue ich das eigentlich?', 'Bevor es weiterging, habe ich ein Produktprofil und ein Designsystem aufgeschrieben: wer die App nutzt (1. Semester WiWi in Innsbruck), wann und wo gelernt wird und warum ein normaler KI-Chat das nicht kann. Er kennt weder OLAT noch den Terminplan im Syllabus.', 1],
+    ['13:52', '„Diese Woche“ und Stammdaten getrennt', 'Die Ausgabe trennt, was aus den Folien der letzten Einheit kommt, von dem, was das ganze Semester gilt. Dazu Formeln als MathML und Termine mit Details.'],
+    ['19:06', 'Übungen, Fragen und Kalender', 'Übungsaufgaben, ein Chat nur zu den Unterlagen des Fachs, ein Kalender und die ersten Englisch-Werkzeuge. Am Abend kamen ein Einrichten-Assistent, die QR-Verbindung zwischen Geräten und eine Anleitung dazu.'],
+    ['21:28', 'Ruhiges Werkzeug statt Zeitung', 'Das erste Design war eine lachsrosa Wirtschaftszeitung. Für den täglichen Gebrauch habe ich es neu gedacht: ruhige App mit Seitenleiste am Computer, Leiste unten am Handy und Königsblau als einziger Akzentfarbe.', 1],
+    ['23:36', 'Vorlesungen nacharbeiten', 'Auch für vergangene Vorlesungen lässt sich eine Ausgabe zum damaligen Stand erstellen.']], t: [
+    ['10:41', 'Erste Fassung: App für iPad und PC, Abruf der Unterlagen aus OLAT'],
+    ['10:48', 'OLAT-Abruf: 250 Einträge je Seite, Einzeldateien und leere Ordner richtig erkennen'],
+    ['10:55', 'Privaten Datenspeicher bei GitHub vorbereitet'],
+    ['11:48', 'Design im Stil eines Wirtschaftsteils: Fach wählen, Wochenausgabe pro Fach'],
+    ['13:19', 'Formeln als MathML, Termin-Details, Kosten je Ausgabe, Laufband'],
+    ['13:24', 'Meldungen mit gleichmäßigem Rahmen statt farbiger Kopflinie'],
+    ['13:52', 'Ausgabe trennt „Diese Woche“ (aus den Folien) von den Stammdaten des Semesters'],
+    ['14:02', 'Abgeschnittene Antwort des Modells: einmal automatisch mit mehr Denkzeit neu erstellen'],
+    ['14:06', 'Quellenzeile ohne Doppelte, Neuerstellung in der Meta-Zeile vermerkt'],
+    ['18:07', 'Onlinetests: Thema und Bearbeitungszeitraum aus OLAT'],
+    ['19:06', 'Übungsaufgaben, Fragen zur Ausgabe, Kalender, Word Power'],
+    ['19:11', 'Lange Formeln scrollen im Text, statt die Seite zu verbreitern'],
+    ['19:13', 'Word Power: Vorschaubild erst mit echter Bildquelle'],
+    ['19:40', 'Abgleich ohne git über die GitHub-API, Kurse selbst finden, Installer für Windows'],
+    ['19:59', 'Einrichten-Assistent mit OpenRouter-Login, QR-Verbindung, PC-Installer, Anleitung'],
+    ['20:00', 'Lokale Zustandsdateien des Abgleichs vom Repo ausgeschlossen'],
+    ['20:04', 'Anleitung: Hinweis-Kasten wie die übrigen Felder'],
+    ['21:28', 'Neues UI: Seitenleiste bzw. Leiste unten, Königsblau als einziger Akzent, Heute-Seite, Sprungleiste; Fokus, Fehler am Feld und sichere Bereiche nach den Vercel-Richtlinien'],
+    ['23:26', 'Kalender nur aus dem Stundenplan, Heute mit Woche und KI-Chat'],
+    ['23:29', 'Fachmarke als kleines Quadrat, Kalenderdateien mit Namen der Lehrveranstaltung'],
+    ['23:36', 'Frühere Vorlesungen nacharbeiten: Ausgabe zum Stichtag einer vergangenen VO'],
+    ['23:41', 'Kalender: vergangene Einheit öffnet ihre Zusammenfassung; kein „false“ über leeren Chats']] },
+  { d: '2026-10-15', phase: 'Eigener Server, mehr Werkzeuge', k: [
+    ['07:40', 'Von 15 auf 3 Minuten', 'Eine Wochenausgabe brauchte 9 bis 18 Minuten. Mit einem anderen Modell und gestreamter Antwort samt Fortschrittsanzeige sind es jetzt gut 3.'],
+    ['10:32', 'Vortrag analysieren', 'Aufnahme rein, Transkript mit jedem „äh“ raus, dazu Befunde mit Zeitstempel und konkrete Tipps.'],
+    ['12:17', 'Eigener Server', 'Bisher brauchte jede Person eigene Schlüssel und einen eigenen Speicher bei GitHub. Für Kommiliton:innen ist das zu viel Aufwand, darum gibt es jetzt einen eigenen Server mit Konten.', 1],
+    ['19:25', 'Lernen für die Prüfung', 'Karteikarten, Prüfungs-Countdown mit Lernplan, Probeklausur, Schwächen-Training, Lernskript und eine Podcast-Fassung.'],
+    ['22:18', 'Vortrag mit Maßstab', 'Die Bewertung richtet sich nach anerkannten Rastern: Sprachniveau nach GER, Präsentation nach der VALUE-Rubrik, dazu eine Selbstreflexion zum Abgleich.']], t: [
+    ['07:40', 'Ausgaben in gut 3 statt 9–18 Minuten, gestreamt mit Fortschritt'],
+    ['10:32', 'Vortrag analysieren: Transkript mit jedem „äh“, Befunde mit Zeitstempel, Note und Tipps'],
+    ['12:17', 'Eigener Server mit Konten'],
+    ['17:58', 'Word-Power-Vorlage für alle'],
+    ['18:46', 'Ausführlichere Fassung der Wochenausgabe, Notentracker'],
+    ['18:56', 'Knopf fürs PC-Programm: Startdatei mit allem Nötigen statt „undefined“'],
+    ['19:25', 'Karteikarten, Prüfungs-Countdown mit Lernplan, PDF, Podcast, Probeklausur, Schwächen-Training, Lernskript'],
+    ['22:18', 'Vortrag: Selbstreflexion mit Abgleich, Sprachniveau nach GER, Präsentation nach VALUE-Rubrik, eigener Stil für die KI']] },
+  { d: '2026-10-16', k: [
+    ['03:48', 'Mac, iPad und klare Grenzen', 'Abgleich auch am Mac, Unterlagen selbst hochladen für alle ohne Computer, Daten-Export und Fehler melden. Dazu ein Abschnitt, was der Lernhelfer ist und was ausdrücklich nicht.'],
+    ['14:13', 'Skizze auf Punktraster', 'Eine neue Startseite mit gezeichnetem Schriftzug. Eine halbe Stunde später wurde der Skizzen-Stil das Design der ganzen App; das alte bleibt in den Einstellungen wählbar.'],
+    ['14:38', 'Updates ohne Ausfall', 'Der Server holt neue Versionen selbst alle 5 Minuten und fällt bei einem Fehler auf den alten Stand zurück.'],
+    ['15:06', 'Dunkler Modus', 'Hell bleibt Standard. Dunkel ist bewusst kein Schwarz mit Neon, sondern ruhiges Graphit mit Elfenbein und Champagner.']], t: [
+    ['01:35', 'Stil-Feld erst nach dem Einrichten zeigen'],
+    ['03:48', 'Mac und iPad: Abgleich am Mac, Unterlagen hochladen; „Was der Lernhelfer ist und was nicht“; Daten-Export, Fehler melden'],
+    ['14:13', 'Startseite: Skizze auf Punktraster mit gezeichnetem Schriftzug; die App liegt unter /app'],
+    ['14:34', 'Skizzen-Fassung der App als Versuch: Punktraster, gezeichnete Rahmen, dunkel als Tafel'],
+    ['14:38', 'Server holt Updates alle 5 Minuten, mit Rückfall auf den alten Stand'],
+    ['14:46', 'Skizze wird Standard, das alte Design bleibt wählbar'],
+    ['14:47', 'Angemeldet führt „Anmelden“ gleich zur eigenen Woche'],
+    ['15:06', 'Hell als Standard, Schalter „Dunkler Modus“; Dunkel als Graphit mit Elfenbein und Champagner'],
+    ['15:06', 'Hauptknöpfe mit gezeichnetem blauen Rahmen'],
+    ['15:27', 'Nach dem Wechsel zum Server alle Fächer neu hochladen'],
+    ['15:29', 'Vortrag: Inhalt, Logik und Belege nur auf Wunsch prüfen']] },
+  { d: '2026-10-17', k: [
+    ['18:09', 'Fairere Vortragsbewertung', 'Die Bewertung der Vorträge habe ich nachjustiert, damit sie fairer ausfällt.']], t: [
+    ['18:09', 'Fairere Vortragsbewertung']] },
+  { d: '2026-10-20', phase: 'Rücksicht, Datenschutz, Arena', k: [
+    ['17:04', 'OLAT schonen', 'Der Abgleich soll sich wie ein Mensch verhalten, nicht wie ein Crawler: seltener, nur tagsüber und mit Pausen zwischen den Seiten.', 1],
+    ['17:04', 'Arena und Videos', 'Die Arena zum gemeinsamen Lernen, dazu Lernvideos, Formel-Erklärungen und GER-Karten.'],
+    ['17:29', 'Datenschutz', 'Kein Training mit KI-Anfragen, Bibliotheken liefert der Lernhelfer selbst aus statt über fremde Server, und die Arena steckt im Daten-Export.']], t: [
+    ['17:04', 'Arena, Videos, Formel-Erklärung, GER-Karten; OLAT-Abgleich schonender'],
+    ['17:21', 'Rechtstexte überarbeitet'],
+    ['17:29', 'Datenschutz: Arena im Export, kein Training bei KI-Anfragen, Bibliotheken selbst ausgeliefert']] },
+  { d: '2026-10-22', k: [
+    ['10:26', 'Startseite für Neue', 'Wer neu ist, sieht zuerst den einen nächsten Schritt und in drei Sätzen, wie alles läuft.'],
+    ['12:35', '„Ist das Programm sicher?“', 'Ein eigener Kasten erklärt, was das PC-Programm tut und was nicht. Python wird beim Einrichten per Prüfsumme kontrolliert.'],
+    ['18:42', 'Fassung je Fach', 'Niveau und Form der Wochenausgabe lassen sich pro Fach wählen. Die Prompts habe ich gegen Formelflut und falsche Vereinfachungen geschärft, „Das Wichtigste“ steht oben.'],
+    ['19:28', 'Arena mit Wertung', 'Wertung über den Server, Serien und Wochenpreise. Word Power bekommt Glossar, Trainer, Time Log und Feedback zur Reflection.'],
+    ['23:39', 'E-Mail-Bestätigung', 'KI und Arena gibt es erst mit bestätigter E-Mail-Adresse.']], t: [
+    ['10:26', 'Startseite für Neue'],
+    ['10:50', 'Anleitung aufgeräumt, Programm-Knopf ganz oben'],
+    ['11:03', 'Vorschau mit Beispieldaten, Mac-Befehl mit Kopieren-Knopf auch am iPad'],
+    ['12:35', 'Fächer anderer Studien ohne Füllwörter, Kasten „Ist das Programm sicher?“, Prüfsumme für Python am PC'],
+    ['18:09', 'Windows: Anleitung zum Start der PC-Datei angepasst'],
+    ['18:42', 'Fassung je Fach wählbar (Niveau und Form), Prompts gegen Formelflut und falsche Vereinfachung, „Das Wichtigste“ oben'],
+    ['19:28', 'Arena mit Server-Wertung, Serie und Wochenpreisen; Word Power mit Glossar, Trainer, Time Log und Reflection-Feedback; Word Partnerships im Vortrag; Mehr-Menü am Handy'],
+    ['19:45', 'Form „Balanced“ in der Fassung'],
+    ['19:51', 'Arena: Spitzname verschwindet beim Löschen des Kontos auch aus der Gewinnerliste'],
+    ['23:39', 'KI und Arena erst nach bestätigter E-Mail']] },
+  { d: '2026-10-23', k: [
+    ['00:16', 'Wochenpreise für die Uni', 'Wochenpreise der Arena gibt es nur für Konten mit einer Adresse der Uni Innsbruck.']], t: [
+    ['00:16', 'Arena: Wochenpreise nur für Konten mit Adresse der Uni Innsbruck']] },
+  { d: '2026-10-24', k: [
+    ['16:01', 'Fächer aufteilen', 'Vorlesung und Proseminar lassen sich in zwei Fächer trennen und wieder zusammenführen. Stundenplan und Tests ziehen mit, und die KI weiß, welcher Teil wo liegt.'],
+    ['16:48', 'Fehler statt Null', 'Laden Unterlagen nicht, steht jetzt ein Fehler da statt „0 Dateien“.']], t: [
+    ['16:01', 'Fächer aufteilen und zusammenlegen (VO und PS getrennt), Stundenplan und Tests folgen'],
+    ['16:17', 'Klare Knöpfe „Eigenes Fach“ und „Zurück zu …“'],
+    ['16:48', 'Unterlagen: nach dem Neuladen 0 Dateien je Fach behoben, Ladefehler sichtbar'],
+    ['16:59', 'Aufgeteiltes Fach zeigt abgegebene Teile; die KI erfährt, welcher Teil wo liegt']] },
+  { d: '2026-10-26', k: [
+    ['18:37', 'Word Power in Word-Optik', 'Eine zweite Fassung sieht aus wie die Word-Vorlage, dazu eine Kurzfassung mit Vorschaubild des Talks.']], t: [
+    ['18:37', 'Word Power: zweite Fassung wie die Word-Vorlage, Kurzfassung mit Vorschaubild; Vorschaubilder für Videos']] },
+  { d: '2026-11-12', phase: 'Schaubilder und eine Lernwelt', k: [
+    ['00:44', 'Schaubilder und Lerneinheiten', 'Die KI kann Funktionsgraphen zeichnen. Weil die Sicherheitsregeln der App kein eval erlauben, rechnet ein eigener kleiner Formel-Parser die Kurven. Jeder Abschnitt der Zusammenfassung lässt sich aufklappen und mit einer Check-Frage abhaken.'],
+    ['16:29', 'Saubere Brüche', 'Schreibt die KI a/b in eine Formel, wird daraus ein echter Bruch, außer bei Einheiten wie km/h.'],
+    ['21:50', 'Lernhof', 'Ein kleines Spiel: Lernen bringt Fortschritt auf dem eigenen Hof. Am selben Abend kamen Hof-Stufen, Wochenaufträge, ein Sammelalbum und Tiere dazu.']], t: [
+    ['00:44', 'Schaubilder aus Formeln (eigener Parser, kein eval), Lerneinheiten zum Abhaken mit Check-Frage'],
+    ['00:52', 'Schaubilder: Rand so breit wie die längste Zahl'],
+    ['07:01', 'Kleine Textlinks bekommen eine greifbare Tipphöhe'],
+    ['07:26', 'Lernspalte erst daneben, wenn genug Platz ist'],
+    ['16:29', 'Brüche in Formeln, Quellenmarken in der Ausgabe'],
+    ['21:50', 'Lernhof unter /game'],
+    ['22:05', 'Lernhof: Farben, Sprüche, Hofbesuch'],
+    ['22:16', 'Lernhof: Hof-Stufen, Wochenaufträge, Sammelalbum'],
+    ['22:23', 'Lernhof: Tiere, Dekoration, Dorfspende']] },
+  { d: '2026-11-13', k: [
+    ['03:20', 'Check-Fragen mit KI-Prüfung', 'Antworten auf Check-Fragen prüft eine KI und sagt, was noch fehlt.'],
+    ['16:00', 'Plan für Campus', 'Bevor ich die 3D-Lernwelt gebaut habe, habe ich sie in 13 Kapiteln durchgeplant: Kreislauf, Währung, Handel, Zusammenspielen, Schutz vor Schummeln, Bauabschnitte, Risiken und offene Entscheidungen.', 1],
+    ['21:45', 'Campus angebunden', 'Die Lernwelt Campus ist mit dem Lernhelfer verbunden: Wer lernt, verdient dort Taler.']], t: [
+    ['02:27', 'Lernhof: Effekte, Töne, Tagesrückblick'],
+    ['03:20', 'Check-Fragen mit KI-Prüfung, Arena mit Reitern, Lernhof mit Fächerwahl'],
+    ['21:45', 'Campus mit dem Lernhelfer verbunden']] },
+  { d: '2026-11-14', k: [
+    ['23:43', 'Campus, Phasen 16 bis 20', 'Inventar, Truhen, Kampf, Ackerbau, Koop und ein Questbuch.']], t: [
+    ['23:43', 'Campus: Phasen 16–20 (Inventar, Truhen, Kampf, Ackerbau, Koop, Questbuch)']] },
+  { d: '2026-11-16', k: [
+    ['00:27', 'Campus, Phasen 21 bis 25', 'Musik, Wetter, Kino und Foto, Architekt, Katakomben und ein Lern-Duell gegeneinander.'],
+    ['15:29', 'Neue Grafik', 'Ein eigener Shader gegen Flimmern, Möbel aus Teilblöcken und eingerichtete Gebäude.'],
+    ['17:59', 'Lern-Duell mit Köpfchen', 'Das Duell fragt Verständnis und Logik statt Rechenaufgaben und kennt die Themen aus dem Lernhelfer.']], t: [
+    ['00:27', 'Campus: Phasen 21–25 (Musik, Wetter, Kino und Foto, Architekt, Lern-Duell, Katakomben)'],
+    ['15:29', 'Campus: Shader gegen Flimmern, Möbel aus Teilblöcken, eingerichtete Gebäude, Weltversion 3'],
+    ['15:30', 'Katakomben-Balken per transform statt width'],
+    ['16:16', 'Campus: Menü-Gruppen, Wetter-Regler, Lern-Duell mit Lernhelfer-Themen'],
+    ['16:40', 'Lern-Duell: Fächer ausklappbar, Allgemeinwissen, KI-Fragen vorab'],
+    ['16:40', 'Weiterlernen-Karten und Arena-Knöpfe im Lernhelfer-Design'],
+    ['17:00', 'Duell-Wahl scrollbar, KI-Vorabfragen bis 35 s'],
+    ['17:48', 'Lern-Duell wartet mit Live-Stand auf die KI-Fragen'],
+    ['17:59', 'Lern-Duell fragt Verständnis und Logik statt Rechenaufgaben'],
+    ['20:51', 'Campus: Foto-Modus mit freiem Mauszeiger']] },
+  { d: '2026-11-17', phase: 'Sicherheit und Feinschliff', k: [
+    ['19:51', 'Talks vergleichen', 'In Word Power lassen sich mehrere Talks nebeneinander vergleichen.'],
+    ['20:21', 'Lernmethoden in der Arena', 'Energie und Stimmung wählen, die Arena schlägt eine passende Lernmethode vor; danach gibt es XP und Rückmeldung.']], t: [
+    ['19:27', 'Word Power: Dateiname nach dem Titel des Talks'],
+    ['19:51', 'Word Power: mehrere Talks nebeneinander vergleichen'],
+    ['20:21', 'Arena: Lernmethoden mit Energie-Regler, Stimmungen und XP'],
+    ['20:27', 'Arena-Kachel nennt die Lernmethoden'],
+    ['20:49', 'Word Power: mehr Denkzeit beim Text']] },
+  { d: '2026-11-18', k: [
+    ['11:10', 'Noten aus OLAT', 'Bewertungen aus OLAT landen im Notentracker. Er rechnet nur zählende Punkte, also etwa die besten n von m.'],
+    ['15:30', 'Sicherheitsprüfung', 'Vor der Veröffentlichung habe ich die App mit einem ausführlichen Prüfauftrag samt Bedrohungsmodell gegenprüfen lassen, jede Fundstelle bewertet und alles in eine Fix-Liste nach Priorität sortiert.', 1],
+    ['18:40', 'Fix-Liste abgearbeitet', 'Am selben Abend: signierte Updates fürs PC-Programm, feste Paketversionen, Schutz gegen Zip-Bomben und Clickjacking, stärkere Passwort-Hashes. Der Zugangsschlüssel steht nicht mehr im Terminal-Verlauf.'],
+    ['20:13', 'Keine Trainingsdaten', 'KI-Modelle laufen nur bei Anbietern, die laut OpenRouter nicht mit den Eingaben trainieren.']], t: [
+    ['11:10', 'Bewertungen aus OLAT, Notentracker rechnet nur zählende Punkte; Lernhof aus der Leiste genommen'],
+    ['18:40', 'Signiertes Selbst-Update des PC-Programms, feste Paketversionen'],
+    ['18:52', 'Schutz vor Zip-Bomben und Clickjacking, stärkere Passwort-Hashes (scrypt)'],
+    ['20:11', 'Zugangsschlüssel nicht mehr im Befehl und damit nicht im Terminal-Verlauf'],
+    ['20:13', 'KI nur bei Anbietern ohne Training mit den Eingaben']] },
+  { d: '2026-11-19', k: [
+    ['10:20', 'Stimme messen', 'Pausen, Tempo und Sprachmelodie misst die App selbst im Gerät. Für die Stimme gehen an die KI nur die Zahlen, nicht die Aufnahme.'],
+    ['11:11', 'Ehrliche Notenprognose', 'Eine Note wird erst hochgerechnet, wenn genug bewertet ist. 21 von 21 Onlinetest-Punkten sind keine 1, solange noch 169 Punkte fehlen.']], t: [
+    ['10:20', 'Vortrag: Stimme im Gerät messen (Pausen, Tempo, Melodie), mehrere Sprachen'],
+    ['10:40', 'Campus: neue Bilder für Figuren, Begleiter und Abzeichen'],
+    ['10:46', 'PC-Programm: Unterordner und Kursnamen zuverlässiger'],
+    ['10:50', 'Weiterlernen im gezeichneten Rahmen'],
+    ['11:11', 'Notenprognose erst, wenn genug bewertet ist; Noten nach Lehrveranstaltung gruppiert']] },
+  { d: '2026-11-23', phase: 'Thema lernen und Forum', k: [
+    ['00:21', 'PC-Programm mit Gesicht', 'Logo, Fachfarben und Fortschrittsbalken in der Konsole, auch in der alten Windows-Konsole und am Mac.'],
+    ['15:57', 'Prototyp: Abgleich am Handy', 'Ein erster Versuch, OLAT auch ohne Computer abzugleichen, mit Tests, die dieselben Dateinamen wie am PC verlangen.'],
+    ['22:29', 'Sicherheitsüberblick', 'Ich habe die ganze Architektur für ein Gespräch mit IT-Fachleuten aufgeschrieben: Datenflüsse, wo welche Geheimnisse liegen und wo ich selbst Schwachstellen vermute.', 1],
+    ['22:35', 'Thema lernen', 'Eine Frage stellen, die Antwort kommt in Bausteinen zum Lesen, Ausprobieren und Üben, mit Schiebereglern in den Schaubildern.']], t: [
+    ['00:21', 'PC-Programm: Logo, Fortschritt und Farben in der Konsole'],
+    ['15:49', 'Konsole: Ersatzzeichen für die alte Windows-Konsole, Fachfarben, helle Mac-Terminals'],
+    ['15:57', 'Prototyp: OLAT-Abgleich am Handy, mit Tests gegen das PC-Programm'],
+    ['22:35', 'Thema lernen: Frage stellen, Antwort aus Bausteinen mit Reglern']] },
+  { d: '2026-11-24', k: [
+    ['17:43', 'Thema lernen mit Semesterbezug', 'Jedes Thema bekommt eine eigene Form und den Bezug zum Stoff des Semesters.'],
+    ['20:07', 'Forum', 'Ein klassisches Forum mit Bereichen, Threads und Personenkarten. Bilder von fremden Seiten sind gesperrt, weil sie die IP der Lesenden verraten würden.'],
+    ['20:37', 'Karteikarten teilen', 'Begriffe eines Fachs lassen sich als Kartenstapel ins Forum stellen und von anderen übernehmen.'],
+    ['22:30', 'Lernstufen', 'Ein Ring um das Profilbild zeigt, wie regelmäßig jemand lernt. Nach außen geht nur die Stufe, nicht die Zahl der Tage.']], t: [
+    ['17:43', 'Thema lernen: eigene Form je Thema und Bezug zum Semester'],
+    ['20:07', 'Forum: Bereiche, Threads, Beiträge mit Personenkarte; keine fremden Bilder'],
+    ['20:22', 'Forum: Suche, Lesezeichen, Erwähnungen, Profil'],
+    ['20:37', 'Karteikarten und Check-Fragen im Forum teilen'],
+    ['20:40', 'Handy: größere Tippflächen, kein Zoom-Sprung bei Eingaben'],
+    ['21:05', 'Reaktionen im Forum'],
+    ['22:30', 'Lernstufe als Ring um den Avatar'],
+    ['22:41', 'Projekt-Hinweis unten lässt sich schließen oder 7 Tage ausblenden']] },
+];
+let CL_ANSICHT = (() => { try { return localStorage.getItem('lh-changelog'); } catch { return null; } })() === 'technik' ? 'technik' : 'kurz';
+function changelogZeigen() {
+  const technik = CL_ANSICHT === 'technik', tag = s => new Date(s + 'T12:00');
+  const aenderungen = CHANGELOG.reduce((n, x) => n + x.t.length, 0), ueberlegungen = CHANGELOG.reduce((n, x) => n + x.k.filter(e => e[3]).length, 0);
+  const lang = d => tag(d).toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long' });
+  let phase = 0;
+  const liste = el('div', { class: 'cl-zeit' }, CHANGELOG.map((x, i) => {
+    const pause = i && Math.round((tag(x.d) - tag(CHANGELOG[i - 1].d)) / 864e5) - 1;
+    // technisch: jede Änderung, dazwischen die Überlegungen des Tages
+    const eintraege = technik ? [...x.t.map(([u, s]) => [u, '', s]), ...x.k.filter(e => e[3])].sort((a, b) => a[0].localeCompare(b[0])) : x.k;
+    return [pause > 2 && el('p', { class: 'cl-pause' }, `${pause} Tage ohne Änderungen am Code`),
+      x.phase && el('h2', { class: 'cl-phase' }, el('small', {}, `Phase ${++phase}`), x.phase),
+      el('section', { class: 'cl-tag', 'aria-label': lang(x.d) },
+        el('h3', { class: 'cl-datum' }, lang(x.d), el('span', {}, `${x.t.length} ${x.t.length === 1 ? 'Änderung' : 'Änderungen'}`)),
+        el('ol', { class: `cl-liste${technik ? ' technik' : ''}` }, eintraege.map(([u, titel, text, idee]) => el('li', { class: idee ? 'idee' : null },
+          el('time', { class: 'cl-uhr', datetime: `${x.d}T${u}` }, u),
+          idee && el('span', { class: 'cl-marke' }, 'Überlegung'),
+          titel && el('strong', {}, titel), text && el(technik && !idee ? 'span' : 'p', {}, text)))))];
+  }));
+  const wahl = (k, name) => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(CL_ANSICHT === k),
+    onclick: () => { CL_ANSICHT = k; try { localStorage.setItem('lh-changelog', k); } catch {} changelogZeigen(); } }, name);
+  $('changelog').replaceChildren(
+    el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Changelog'),
+      el('p', { class: 'schlagzeile' }, 'Wie der Lernhelfer entstanden ist, vom ersten Stand bis heute.'),
+      el('p', { class: 'meta cl-zahlen' }, `${aenderungen} Änderungen · ${CHANGELOG.length} Arbeitstage · ${ueberlegungen} Überlegungen · seit ${tag(CHANGELOG[0].d).toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' })}`)),
+    el('div', { class: 'cl-kopf' },
+      el('div', { class: 'vt-filterreihe', role: 'group', 'aria-label': 'Ansicht' }, wahl('kurz', 'Zusammengefasst'), wahl('technik', 'Technisch')),
+      el('button', { type: 'button', class: 'knopf', onclick: () => liste.lastElementChild.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }, 'Zum neuesten Stand')),
+    el('p', { class: 'klein' }, technik ? 'Jede Änderung am Code mit Uhrzeit. Ausgelassen sind nur interne Dinge wie Serverbetrieb und Verwaltung.'
+      : 'Die wichtigsten Schritte je Tag. „Überlegung“ markiert Stellen, an denen ich erst geplant und dann gebaut habe.'),
+    liste);
+}
 // Anleitung: der Knopf zum Programm gleich oben, nicht erst unter Start oder Konto
 const programmKasten = () => ICH?.tarif === 'englisch' ? '' : el('section', { class: `start-jetzt${ICH && eingerichtet() ? ' fertig' : ''}`, 'aria-labelledby': 'a-programm-kopf' },
   el('h2', { id: 'a-programm-kopf' }, ICH && !eingerichtet() ? 'Noch nicht eingerichtet? Hier drücken:' : 'Das Programm für deinen PC oder Mac'),
@@ -10730,16 +11024,16 @@ async function zeichne() {
   const anker = location.hash.match(/^#(a-[\w-]+)$/)?.[1];  // Sprungmarken in der Anleitung
   const [teil, tag] = anker ? ['anleitung'] : location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const offen = SERVER && (teil === 'recht' || teil === 'upgrade' && !!TARIFE?.verkauf);  // Preise und Impressum auch ohne Konto; ohne Verkauf keine Tarifseite
-  let neu = teil === 'anleitung' || teil === 'start' && SERVER ? teil : offen ? teil : !fertig() || teil === 'einstellungen' ? (SERVER && !teil ? 'start' : 'einstellungen')
+  let neu = teil === 'anleitung' || teil === 'changelog' || teil === 'start' && SERVER ? teil : offen ? teil : !fertig() || teil === 'einstellungen' ? (SERVER && !teil ? 'start' : 'einstellungen')
     : ['thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin', 'forum'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
     : !teil && !eingerichtet() ? 'start' : 'titelblatt';  // wer noch nichts eingerichtet hat, landet auf Start
   if (betaWeg(neu)) neu = 'titelblatt';
   if (SPERREN[neu] && !darf(SPERREN[neu])) neu = 'gesperrt';  // Server: Funktion ohne passenden Tarif
   if ($('meldung').open) $('meldung').close();
-  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'forum', 'video', 'anleitung', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
+  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'forum', 'video', 'anleitung', 'changelog', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
   ankuendigungZeigen();
-  $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
+  $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung', 'changelog'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
     el('h3', {}, 'Bestätige noch deine E-Mail-Adresse'),
     el('p', { class: 'klein' }, `Erst dann schreibt die KI für dich und du kannst in der Arena mitmachen. Der Link ging an ${ICH.email}. Nichts da? Schau im Spam-Ordner nach oder lass ihn nochmal schicken.`),
     el('div', { class: 'knopfreihe' }, mailNochmal()))] : []);
@@ -10788,6 +11082,7 @@ async function zeichne() {
   else if (neu === 'titelblatt') titelblatt();
   else if (neu === 'start') startZeigen();
   else if (neu === 'anleitung' && SERVER) $('a-programm').replaceChildren(programmKasten());
+  else if (neu === 'changelog') changelogZeigen();
   if (neu !== 'vortrag' && $('vt-spieler') && !$('vt-spieler').hidden) { $('vt-spieler').querySelector('video').pause(); $('vt-spieler').hidden = true; }
   const woanders = location.hash !== ort;  // Seitenwechsel, nicht nur neu gezeichnet
   if (woanders && ort != null) $('inhalt').focus({ preventScroll: true });
