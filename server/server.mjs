@@ -221,6 +221,7 @@ const SUCHE_REIN = `insert into forum_suche (rowid, titel, text) select b.id, ca
   from forum_beitrag b join forum_thema t on t.id = b.thema where b.weg = 0`;
 if (db.prepare('select count(*) n from forum_suche').get().n !== db.prepare('select count(*) n from forum_beitrag where weg = 0').get().n) db.exec(`delete from forum_suche; ${SUCHE_REIN}`);
 try { db.exec('alter table forum_profil add column abzeichen text'); } catch {}  // gewählte Trophäe neben dem Namen („🏆 Best of“)
+try { db.exec('alter table forum_profil add column bild blob; alter table forum_profil add column bild_zeit integer'); } catch {}  // Profilbild (JPEG/WebP, klein), Zeit = Version im Bild-Link
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -1081,7 +1082,9 @@ async function exportieren(req, res, k) {
       lesezeichen: db.prepare('select beitrag, zeit from forum_lesezeichen where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })),
       meldungen: db.prepare('select beitrag, grund, zeit from forum_meldung where konto = ?').all(k.id).map(x => ({ ...x, zeit: iso(x.zeit) })) },
   };
-  const dateien = db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id);
+  const fbild = db.prepare('select bild from forum_profil where konto = ? and bild is not null').get(k.id)?.bild;
+  const dateien = [...db.prepare('select pfad, inhalt from dateien where konto = ? order by pfad').all(k.id),
+    ...fbild ? [{ pfad: `forum-profilbild.${bildTyp(fbild) === 'image/webp' ? 'webp' : 'jpg'}`, inhalt: fbild }] : []];
   const liesmich = `Deine Daten aus dem Lernhelfer, Stand ${new Date().toLocaleString('de-AT')}.\n\nkonto.json: Konto, Tarif, Bestellungen, KI-Kosten pro Monat, welche Bereiche du an welchem Tag genutzt hast, deine Fehlerberichte, dein Arena-Eintrag.\n`
     + 'dateien/: alles in deinem Speicher, so wie es dort liegt: Unterlagen (faecher/), Wochenausgaben (lernseiten/, Markdown), Vorträge, Kalender, Noten, Karteikarten.\n\n'
     + 'campus.json: dein Spielstand in der Lernwelt Campus (Taler, Vorrat, Aussehen, Grundstück, Handel), falls du dort warst. Der Spielstand des Lernhofs liegt als dateien/lernhof.json bei.\n\n'
@@ -1132,6 +1135,9 @@ const REAKTIONEN = ['hilfreich', 'stark', 'danke', 'haha', 'wut', 'ekel', 'runte
 const FORUM_XP = 5, FORUM_XP_TAG = 25;  // Arena: „Hilfreich“ von anderen bringt 5 XP, höchstens 25 am Tag (gegen Absprachen)
 const SEITE = 20, IM_FORUM = new Map();  // Konto → letzter Forum-Aufruf, für „online“ (nur im Speicher)
 const forumDa = k => { IM_FORUM.set(muss(k).id, jetzt()); return k; };
+// Profilbild: nur echte JPEG-/WebP-Dateien (an den ersten Bytes erkannt, nicht am Namen)
+const bildTyp = b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? 'image/jpeg'
+  : Buffer.from(b.subarray(0, 4)).toString('latin1') === 'RIFF' && Buffer.from(b.subarray(8, 12)).toString('latin1') === 'WEBP' ? 'image/webp' : null;
 const forumText = (s, min, max, was) => {
   s = String(s ?? '').replace(/\r\n/g, '\n').trim();
   if (s.length < min || s.length > max) nein(400, `${was}: bitte ${min} bis ${max} Zeichen.`);
@@ -1156,7 +1162,7 @@ const STUFE = `(select (count(distinct n.tag) >= 4) + (count(distinct n.tag) >= 
   where n.konto = b.konto and n.tag >= date('now', '-29 days') and n.was not in ('seite:forum', 'seite:einstellungen', 'seite:upgrade', 'seite:anleitung')
     and n.was not like 'gesperrt:%') stufe`;
 // Personenkarte neben jedem Beitrag: Beiträge, Ruf (Reaktionen anderer), Arena-XP nur bei Teilnahme, Team
-const AUTOR = `p.name, k.erstellt seit, p.abzeichen, k.email = ?1 and k.bestaetigt team,
+const AUTOR = `p.name, k.erstellt seit, p.abzeichen, p.bild_zeit bild,k.email = ?1 and k.bestaetigt team,
   (select count(*) from forum_beitrag x where x.konto = b.konto and x.weg = 0) beitraege,
   (select count(*) from forum_reaktion r join forum_beitrag x on x.id = r.beitrag where x.konto = b.konto and r.konto != b.konto and x.weg = 0
     and r.art not in ('wut', 'ekel', 'runter')) ruf,
@@ -1678,12 +1684,21 @@ const ROUTEN = {
     const t = b.name ? forumStand('p.konto = ?2', k.id).trophaeen.find(x => x.hat && x.name === b.name) || nein(400, 'Diese Trophäe hast du noch nicht.') : null;
     db.prepare('update forum_profil set abzeichen = ? where konto = ?').run(t && `${t.zeichen} ${t.name}`, k.id);
   },
+  'POST /api/forum/bild': ({ req, k, b }) => {  // Profilbild setzen (data:-URL, die App verkleinert vorher auf 256 px) oder mit leerem bild entfernen
+    schreiber(req, k, 20);
+    if (!b.bild) return void db.prepare('update forum_profil set bild = null, bild_zeit = null where konto = ?').run(k.id);
+    const m = String(b.bild).match(/^data:image\/(?:jpeg|webp);base64,([A-Za-z0-9+/=]+)$/) || nein(400, 'Bitte ein JPEG- oder WebP-Bild.');
+    const bild = Buffer.from(m[1], 'base64');
+    if (bild.length > 150e3) nein(413, 'Das Bild ist zu groß.');
+    if (!bildTyp(bild)) nein(400, 'Bitte ein JPEG- oder WebP-Bild.');
+    db.prepare('update forum_profil set bild = ?, bild_zeit = ? where konto = ?').run(bild, jetzt(), k.id);
+  },
   'GET /api/forum/profil': ({ k, q }) => {  // Zahlen wie auf der Personenkarte, Reaktionen nach Art, Trophäen, die letzten 10 Beiträge
     forumDa(k);
     const { s, reaktionen, trophaeen } = forumStand('p.name = ?2 collate nocase', String(q.get('name') || ''));
     return {
       profil: { name: s.name, seit: s.seit, team: !!s.team, beitraege: s.beitraege, themen: s.themen, ruf: s.ruf, xp: s.xp, stufe: s.stufe, reaktionen, eigen: s.konto === k.id,
-        abzeichen: s.abzeichen, trophaeen,
+        abzeichen: s.abzeichen, bild: s.bild, trophaeen,
         letzte: db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, ${NR}, substr(b.text, 1, 300) auszug from forum_beitrag b join forum_thema t on t.id = b.thema
           where b.konto = ? and b.weg = 0 order by b.id desc limit 10`).all(s.konto) },
       ich: forumIch(k),
@@ -1842,6 +1857,7 @@ const ROUTEN = {
     }
     if (b.meldung) db.prepare('update forum_meldung set erledigt = ? where id = ?').run(jetzt(), Number(b.meldung));
     if (b.konto) db.prepare('update forum_profil set gesperrt = ? where konto = ?').run(b.sperren ? 1 : 0, Number(b.konto));
+    if (b.bildWeg) db.prepare('update forum_profil set bild = null, bild_zeit = null where konto = ?').run(Number(b.bildWeg));
   },
   'POST /api/admin/arena': ({ k, b }) => {  // aus der Bestenliste nehmen (darf wieder mitmachen), sperren bzw. entsperren, XP dieser Woche löschen
     admin(k);
@@ -2016,6 +2032,12 @@ createServer(async (req, res) => {
     if (url.pathname === '/api/sprache' && req.method === 'POST') return await sprache(req, res, muss(k));
     if (url.pathname === '/api/export' && req.method === 'GET') return await exportieren(req, res, muss(k));
     if (url.pathname === '/api/campus/verdienst' && req.method === 'GET') return json(res, 200, campusVerdienst(req, url));
+    if (url.pathname === '/api/forum/bild' && req.method === 'GET') {  // Profilbild nach Name; ?v= ist die Version, darum lange zwischenspeichern
+      muss(k);
+      const p = db.prepare('select bild from forum_profil where name = ? collate nocase and bild is not null').get(String(url.searchParams.get('name') || '')) || nein(404, 'Kein Bild.');
+      res.writeHead(200, { 'Content-Type': bildTyp(p.bild), 'Cache-Control': 'private, max-age=31536000, immutable' });
+      return res.end(Buffer.from(p.bild));
+    }
     const route = ROUTEN[`${req.method} ${url.pathname}`];
     if (!route) nein(404, 'Gibt es nicht.');
     const b = req.method === 'POST' ? await liesJson(req) : {};

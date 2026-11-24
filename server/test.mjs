@@ -976,6 +976,21 @@ try {
   assert.equal(await stufe(), 2, '10 Tage = Silber');
   assert.equal((await leser('GET', `/api/forum/thema?id=${tid}`)).j.beitraege[0].stufe, 2);
   sdb.prepare("delete from nutzung where konto = ? and tag != ?").run(lid, tagVor(0)); sdb.close();
+  // Profilbild: nur echte JPEG/WebP-Bytes, Größe begrenzt, ausliefern nach Name, Moderation kann es entfernen
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(100)]).toString('base64');
+  assert.equal((await lern('POST', '/api/forum/bild', { bild: 'data:image/jpeg;base64,' + Buffer.from('<svg onload=alert(1)>').toString('base64') })).status, 400, 'kein JPEG');
+  assert.equal((await lern('POST', '/api/forum/bild', { bild: 'data:image/svg+xml;base64,' + jpeg })).status, 400, 'kein SVG');
+  assert.equal((await lern('POST', '/api/forum/bild', { bild: 'data:image/jpeg;base64,' + Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(160e3)]).toString('base64') })).status, 413);
+  assert.equal((await lern('POST', '/api/forum/bild', { bild: 'data:image/jpeg;base64,' + jpeg })).status, 200);
+  const lbild = (await leser('GET', '/api/forum/profil?name=Lena')).j.profil.bild;
+  assert.ok(lbild > 0); assert.equal((await leser('GET', `/api/forum/thema?id=${tid}`)).j.beitraege[0].bild, lbild);
+  const bildAntwort = await fetch(`${BASIS}/api/forum/bild?name=lena&v=${lbild}`);
+  assert.equal(bildAntwort.status, 401, 'nur angemeldet');
+  assert.equal((await leser('GET', `/api/forum/bild?name=lena&v=${lbild}`)).status, 200);
+  assert.equal((await leser('GET', '/api/forum/bild?name=Tom')).status, 404);
+  await chef('POST', '/api/admin/forum', { bildWeg: (await chef('GET', '/api/admin')).j.konten.find(x => x.email === lmail).id });
+  assert.equal((await leser('GET', '/api/forum/profil?name=Lena')).j.profil.bild, null, 'Moderation entfernt das Bild');
+  assert.equal((await leser('POST', '/api/forum/bild', { bild: '' })).status, 200, 'entfernen geht auch ohne Bild');
   // Stufe 3: „Hilfreich“ bringt XP (5, höchstens 25 am Tag), andere Reaktion oder zurücknehmen nimmt sie wieder; Abzeichen; ähnliche Threads; neuestes Mitglied
   const xpVon = async p => (await p('GET', '/api/arena')).j.xp, chefXp = await xpVon(chef);
   await lern('POST', '/api/forum/reaktion', { beitrag: aid, art: 'hilfreich' });

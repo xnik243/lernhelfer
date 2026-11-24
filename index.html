@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com https://i.ytimg.com; img-src data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com https://i.ytimg.com; img-src 'self' data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernhelfer">
@@ -768,6 +768,9 @@
   .fo-stufe[data-stufe="gold"] { color: #2a1d00; }
   .fo-stufe-text { margin: 6px 0 0; color: var(--text-2); font-size: 0.8125rem; }
   .fo-stufe-text::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: var(--ring); vertical-align: 0.05em; }
+  .fo-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .fo-bild-knoepfe { display: flex; gap: 4px; margin: 0 0 4px -6px; }
+  .fo-bild-knoepfe label { display: inline-flex; align-items: center; }
   .fo-beitrag { display: grid; grid-template-columns: 148px minmax(0, 1fr); margin: 14px 0; border: 1px solid var(--linie); border-radius: 12px; overflow: hidden; }
   .fo-beitrag.fo-weg { display: block; padding: 12px 18px; }
   .fo-person { display: grid; align-content: start; justify-items: center; gap: 4px; padding: 16px 10px; background: var(--bg-2); text-align: center; }
@@ -10310,10 +10313,18 @@ function foEntwurf(bereich, praefix, fach, titel, text) {  // „Im Forum fragen
 // Lernstufe vom Server (Tage mit Nutzung in den letzten 30): Ring um den Avatar, automatisch
 const FO_STUFE = [null, ['bronze', 'Bronze', 'an 4+'], ['silber', 'Silber', 'an 10+'], ['gold', 'Gold', 'an 20+']];
 const foStufe = s => FO_STUFE[s] && `${FO_STUFE[s][1]}: hat ${FO_STUFE[s][2]} der letzten 30 Tage mit dem Lernhelfer gelernt`;
-const foAvatar = (name, stufe) => {
+const foAvatar = (name, stufe, bild) => {  // bild: Version vom Server (Zeit des Hochladens), fehlt = Anfangsbuchstabe
   let h = 0; for (const c of name || '?') h = (h * 31 + c.codePointAt(0)) % 360;
-  return el('span', { class: 'fo-avatar', style: `--h:${h}`, 'data-stufe': FO_STUFE[stufe]?.[0] || null, title: foStufe(stufe) || null, 'aria-hidden': 'true' }, [...(name || '?')][0].toUpperCase());
+  return el('span', { class: 'fo-avatar', style: `--h:${h}`, 'data-stufe': FO_STUFE[stufe]?.[0] || null, title: foStufe(stufe) || null, 'aria-hidden': 'true' },
+    name && bild ? el('img', { src: `api/forum/bild?name=${encodeURIComponent(name)}&v=${bild}`, alt: '', loading: 'lazy', decoding: 'async' }) : [...(name || '?')][0].toUpperCase());
 };
+async function foBildWaehlen(datei) {  // mittig quadratisch zuschneiden, 256 px, JPEG: klein genug für den Server, scharf genug für 72 px auf Retina
+  let quelle;
+  try { quelle = await createImageBitmap(datei); } catch { throw new Error('Dieses Bild kann der Browser nicht öffnen. Versuch ein JPEG oder PNG.'); }
+  const s = Math.min(quelle.width, quelle.height), c = Object.assign(document.createElement('canvas'), { width: 256, height: 256 });
+  c.getContext('2d').drawImage(quelle, (quelle.width - s) / 2, (quelle.height - s) / 2, s, s, 0, 0, 256, 256);
+  await api('forum/bild', { bild: c.toDataURL('image/jpeg', 0.85) });
+}
 const foDatum = (t, lang) => new Date(t).toLocaleDateString('de-AT', lang ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: '2-digit', month: '2-digit', year: 'numeric' });
 const foPill = p => el('span', { class: 'fo-praefix', 'data-p': p }, FO_PRAEFIX[p] || p);
 const foPfad = teile => el('nav', { class: 'fo-pfad', 'aria-label': 'Pfad' }, teile.map(([h, n]) => el('a', { href: h }, n)));
@@ -10486,7 +10497,7 @@ async function foThread(id, seite) {
         abbrechen: () => { FO.bearbeiten = null; delete FO.entwurf['e' + p.id]; delete FO.entwurf['e' + p.id + ':t']; forumZeigen(); } })
       : foText(el('div', { class: 'fo-text' }), p.text, t.fach);
     return el('article', { class: 'fo-beitrag', id: 'b' + p.id },
-      el('aside', { class: 'fo-person' }, foAvatar(p.name, p.stufe), foName(p.name),
+      el('aside', { class: 'fo-person' }, foAvatar(p.name, p.stufe, p.bild), foName(p.name),
         p.name && el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)),
         p.name && p.abzeichen && el('span', { class: 'fo-abzeichen' }, p.abzeichen),
         p.name && el('dl', { class: 'fo-p-daten' }, [['Beiträge', p.beitraege], ['Ruf', p.ruf], p.xp > 0 && ['Arena', `Level ${LEVEL(p.xp)}`],
@@ -10514,6 +10525,7 @@ async function foThread(id, seite) {
               el('button', { type: 'button', class: 'fo-link', onclick: () => loeschen(p) }, 'Löschen')],
             !p.eigen && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => melden(p) }, 'Melden'),
             ich.mod && p.weg === 2 && el('button', { type: 'button', class: 'fo-link', onclick: tun('admin/forum', { beitrag: p.id, weg: false }) }, 'Zurückholen'),
+            ich.mod && p.bild && p.konto && el('button', { type: 'button', class: 'fo-link', onclick: tun('admin/forum', { bildWeg: p.konto }) }, 'Bild entfernen'),
             ich.mod && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: e => {
               const g = prompt('Grund, den alle sehen (z. B. „Regel 1: Lösungen zu einem laufenden Test“):'); if (g?.trim()) tun('admin/forum', { beitrag: p.id, weg: true, grund: g })(e);
             } }, 'Entfernen'),
@@ -10595,8 +10607,17 @@ async function foMitglied(name) {
   return [
     foLeiste(d.ich),
     foPfad([['#/forum', 'Forum']]),
-    el('header', { class: 'fo-profil' }, foAvatar(p.name, p.stufe),
+    el('header', { class: 'fo-profil' }, foAvatar(p.name, p.stufe, p.bild),
       el('div', {}, el('h1', {}, p.name),
+        p.eigen && el('p', { class: 'fo-bild-knoepfe' },
+          el('label', { class: 'fo-link' }, p.bild ? 'Profilbild ändern' : 'Profilbild hinzufügen',
+            el('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
+              const f = e.currentTarget.files[0]; if (!f) return;
+              try { status('Bild wird hochgeladen …'); await foBildWaehlen(f); status('Profilbild gespeichert.'); forumZeigen(); } catch (err) { status(err.message, true); }
+            } })),
+          p.bild && el('button', { type: 'button', class: 'fo-link', onclick: async () => {
+            try { await api('forum/bild', { bild: '' }); forumZeigen(); } catch (err) { status(err.message, true); }
+          } }, 'Entfernen')),
         el('p', { class: 'unterzeile' }, el('span', { class: 'fo-rang', 'data-team': p.team ? '' : null }, foRang(p)), p.abzeichen && el('span', { class: 'fo-abzeichen' }, p.abzeichen),
           el('span', {}, `dabei seit ${foDatum(p.seit, true)}`)),
         p.stufe > 0 && el('p', { class: 'fo-stufe-text', 'data-stufe': FO_STUFE[p.stufe][0] }, foStufe(p.stufe)))),
