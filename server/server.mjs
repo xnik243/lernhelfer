@@ -1128,7 +1128,7 @@ const FORUM = [
   ['offtopic', 'Off Topic', 'Alles andere.'],
 ].map(([id, name, text, team]) => ({ id, name, text, team: !!team }));
 const PRAEFIXE = ['guide', 'frage', 'diskussion', 'lernlog', 'karten', 'motivation', 'dampf', 'news'];  // news nur fürs Team
-const REAKTIONEN = ['hilfreich', 'stark', 'danke', 'haha'];
+const REAKTIONEN = ['hilfreich', 'stark', 'danke', 'haha', 'wut', 'ekel', 'runter'];  // die letzten drei zählen nicht zum Ruf
 const FORUM_XP = 5, FORUM_XP_TAG = 25;  // Arena: „Hilfreich“ von anderen bringt 5 XP, höchstens 25 am Tag (gegen Absprachen)
 const SEITE = 20, IM_FORUM = new Map();  // Konto → letzter Forum-Aufruf, für „online“ (nur im Speicher)
 const forumDa = k => { IM_FORUM.set(muss(k).id, jetzt()); return k; };
@@ -1151,9 +1151,10 @@ const gelesen = (konto, thema, bis) => db.prepare('insert into forum_gelesen (ko
 const erster = thema => db.prepare('select min(id) id from forum_beitrag where thema = ?').get(thema).id;
 const NEU_SEIT = () => jetzt() - 30 * TAG;  // ältere Threads gelten nie als neu (wie bei XenForo)
 // Personenkarte neben jedem Beitrag: Beiträge, Ruf (Reaktionen anderer), Arena-XP nur bei Teilnahme, Team
-const AUTOR = `p.name, p.seit, p.abzeichen, k.email = ?1 and k.bestaetigt team,
+const AUTOR = `p.name, k.erstellt seit, p.abzeichen, k.email = ?1 and k.bestaetigt team,
   (select count(*) from forum_beitrag x where x.konto = b.konto and x.weg = 0) beitraege,
-  (select count(*) from forum_reaktion r join forum_beitrag x on x.id = r.beitrag where x.konto = b.konto and r.konto != b.konto and x.weg = 0) ruf,
+  (select count(*) from forum_reaktion r join forum_beitrag x on x.id = r.beitrag where x.konto = b.konto and r.konto != b.konto and x.weg = 0
+    and r.art not in ('wut', 'ekel', 'runter')) ruf,
   (select coalesce(sum(xp), 0) from arena_xp a where a.konto = b.konto and exists (select 1 from arena where konto = b.konto and aus = 0)) xp`;
 function forumStart(k) {
   const t = jetzt(), da = [...IM_FORUM].filter(([, z]) => t - z < 15 * 60e3).map(([id]) => id);
@@ -1210,7 +1211,7 @@ const TROPHAEEN = [  // aus den Zahlen berechnet, nicht gespeichert
   ['🔦', 'Sehr hilfreich', '50-mal als hilfreich markiert.', s => s.hilfreich >= 50],
   ['👀', 'Gern gelesen', 'Ein eigener Thread mit 100 Aufrufen.', s => s.aufrufe >= 100],
   ['🏆', 'Best of', 'Ein eigener Thread steht im Best of.', s => s.best >= 1],
-  ['🎂', 'Ein Jahr dabei', 'Seit einem Jahr im Forum.', s => jetzt() - s.seit >= 365 * TAG],
+  ['🎂', 'Ein Jahr dabei', 'Seit einem Jahr dabei.', s => jetzt() - s.seit >= 365 * TAG],
 ];
 function forumStand(bed, wert) {  // Zahlen wie auf der Personenkarte, Reaktionen nach Art, Trophäen; bed: Bedingung auf p mit ?2
   const s = db.prepare(`select ${AUTOR}, b.konto,

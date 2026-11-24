@@ -788,6 +788,14 @@
   .fo-aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 12px; }
   .fo-r { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 2px 10px; border: 1px solid var(--linie); border-radius: 999px; background: none; color: var(--text-2); font: inherit; font-size: 0.8125rem; cursor: pointer; }
   .fo-r[aria-pressed="true"] { border-color: var(--akzent); background: var(--akzent-flaeche); color: var(--akzent-text); font-weight: 650; }
+  .fo-r-wahl { position: relative; display: inline-flex; }
+  .fo-r-menu { display: none; position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 5; gap: 2px; padding: 4px; border: 1px solid var(--linie); border-radius: 999px; background: var(--bg); box-shadow: 0 6px 20px rgb(0 0 0 / 0.14); }
+  .fo-r-menu::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 8px; }  /* Brücke, damit Hover beim Hinüberfahren nicht abreißt */
+  .fo-r-wahl:hover .fo-r-menu, .fo-r-wahl:focus-within .fo-r-menu, .fo-r-wahl.offen .fo-r-menu { display: flex; }
+  .fo-r-menu button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: none; font-size: 1.3rem; line-height: 1; cursor: pointer; transition: transform 120ms ease; }
+  .fo-r-menu button:hover, .fo-r-menu button:focus-visible { transform: scale(1.2); }
+  .fo-r-menu button[aria-pressed="true"] { background: var(--akzent-flaeche); }
+  @media (prefers-reduced-motion: reduce) { .fo-r-menu button { transition: none; } .fo-r-menu button:hover { transform: none; } }
   .fo-links { display: flex; flex-wrap: wrap; gap: 2px; margin-left: auto; }
   .fo-link { min-height: 32px; padding: 2px 6px; border: 0; background: none; color: var(--text-2); font: inherit; font-size: 0.8125rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
   @media (hover: hover) { .fo-link:hover { color: var(--text); } }
@@ -10223,7 +10231,8 @@ const ENGLISCH_VORN = ['wordpower', 'vortrag'];
 const GRUPPEN = [['Lernen', ['thema', 'karten', 'pruefung', 'arena', 'video']], ['Austausch', ['forum']], ['Planen', ['kalender', 'onlinetests', 'noten']], ['Englisch', ['wordpower', 'vortrag']]];
 /* ---------- Forum (nur Server): Bereiche → Threads → Beiträge mit Personenkarte, wie ein klassisches Forum ---------- */
 const FO_PRAEFIX = { guide: 'Guide', frage: 'Frage', diskussion: 'Diskussion', lernlog: 'Lernlog', karten: 'Karteikarten', motivation: 'Motivation', dampf: 'Dampf ablassen', news: 'News' };
-const FO_REAKTION = { hilfreich: ['💡', 'Hilfreich'], stark: ['💪', 'Stark'], danke: ['🙏', 'Danke'], haha: ['😂', 'Haha'] };
+const FO_REAKTION = { hilfreich: ['💡', 'Hilfreich'], stark: ['💪', 'Stark'], danke: ['🙏', 'Danke'], haha: ['😂', 'Haha'],
+  wut: ['😠', 'Wut'], ekel: ['🤢', 'Ekel'], runter: ['👎', 'Daumen runter'] };
 const FO_RANG = [[400, 'Legende'], [150, 'Lernmaxxer'], [75, 'Tutor:in'], [30, 'Durchblick'], [10, 'Stammgast'], [0, 'Ersti']];  // nach Ruf (Reaktionen anderer)
 const FO_STANDARD = { lernen: 'guide', stoff: 'frage', pruefungen: 'lernlog', kopf: 'motivation' };  // Vorauswahl der Art je Bereich
 const FO_GUIDE = '## Worum es geht\n\n\n## Warum es funktioniert\n(Studie oder Quelle: wer, was gemacht, was rauskam)\n\n\n## So gehst du vor\n1. \n2. \n3. \n\n## Typische Fehler\n- \n\n## Quellen\n- ';
@@ -10474,8 +10483,14 @@ async function foThread(id, seite) {
         text,
         p.reaktionen.length > 0 && el('p', { class: 'fo-reaktionen' }, Object.entries(zahl).map(([a, n]) => `${FO_REAKTION[a][0]} ${n}`).join('  '), ' · ', foNamen(p.reaktionen.map(r => r.name || 'Gelöscht'))),
         el('div', { class: 'fo-aktionen' },
-          !p.eigen && darf && !p.weg && Object.entries(FO_REAKTION).map(([a, [zeichen, name]]) => el('button', { type: 'button', class: 'fo-r', 'aria-pressed': String(meine === a),
-            onclick: tun('forum/reaktion', { beitrag: p.id, art: meine === a ? '' : a }) }, zeichen, el('span', {}, name))),
+          !p.eigen && darf && !p.weg && el('span', { class: 'fo-r-wahl' },
+            // Knopf zeigt die eigene Reaktion (antippen nimmt sie zurück), sonst öffnet er die Auswahl; am Desktop reicht Hover
+            el('button', { type: 'button', class: 'fo-r', 'aria-pressed': String(!!meine), 'aria-haspopup': 'true',
+              onclick: meine ? tun('forum/reaktion', { beitrag: p.id, art: '' }) : e => e.currentTarget.parentNode.classList.toggle('offen') },
+              meine ? FO_REAKTION[meine][0] : '🙂', el('span', {}, meine ? FO_REAKTION[meine][1] : 'Reagieren')),
+            el('span', { class: 'fo-r-menu', role: 'group', 'aria-label': 'Reaktion wählen' },
+              Object.entries(FO_REAKTION).map(([a, [zeichen, name]]) => el('button', { type: 'button', title: name, 'aria-label': name, 'aria-pressed': String(meine === a),
+                onclick: tun('forum/reaktion', { beitrag: p.id, art: meine === a ? '' : a }) }, zeichen)))),
           el('span', { class: 'fo-links' },
             darf && !t.zu && !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: () => zitat(p) }, 'Zitieren'),
             !p.weg && el('button', { type: 'button', class: 'fo-link', onclick: e => teilen(e, p, i) }, 'Teilen'),
