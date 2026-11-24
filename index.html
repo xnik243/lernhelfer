@@ -7552,7 +7552,7 @@ function einrichtenZeigen() {
 /* ---------- Server-Version: Konto, Tarife, Sperren mit Gratis-Test, Admin-Ecke, Recht ---------- */
 const SPERREN = { thema: 'thema', kalender: 'kalender', noten: 'noten', karten: 'karten', pruefung: 'probeklausur', vortrag: 'vortrag', video: 'video' };  // Ansicht → Funktion, die sie braucht
 const SPERRE = {  // was ein Tarif bringt, je Funktion in einem Satz
-  thema: ['Thema lernen', 'Frag alles fürs Studium: Die Antwort kommt als Schaubild zum Ausprobieren, Rechnung Schritt für Schritt, Vergleich und Quiz, mit Bezug zu deinen Folien.'],
+  thema: ['Thema lernen', 'Frag alles, fürs Studium oder einfach so: Die Antwort kommt als Schaubild zum Ausprobieren, Rechnung Schritt für Schritt, Vergleich und Quiz, mit Bezug zu deinen Folien.'],
   kalender: ['Der Kalender', 'Stundenplan aus LFU:online und alle Fristen auf einen Blick, mit einem Tipp ins iPad übernommen.'],
   noten: ['Der Notentracker', 'Alle Punkte an einem Ort: Onlinetests kommen von selbst aus OLAT, dazu dein Verlauf als Diagramm, die Prognose je Lehrveranstaltung, der Vergleich mit dem Kursschnitt und was dir für jede Note noch fehlt.'],
   karten: ['Der Karteikasten', 'Alle Begriffe aus allen Ausgaben mit Wiederholplan: Was sitzt, kommt seltener, was nicht, gleich nochmal. Dazu Export für Anki und Quizlet.'],
@@ -8741,10 +8741,12 @@ const themaModellWahl = () => {
   return l.length < 2 ? '' : el('select', { class: 't-modell', 'aria-label': 'Modell', title: 'Welches Modell erklärt', onchange: e => merk('thema-modell', e.target.value) },
     l.map(x => el('option', { value: x.model, selected: x.model === w }, x.name)));
 };
-const THEMA_AUFTRAG = `Du bist der Lernhelfer, ein Tutor für Studierende. Du erklärst so, dass es sitzt, und jedes Thema bekommt die Form, die zu ihm passt, nicht immer dasselbe Schema. Du kennst die Person: ihre Folien, ihren Stundenplan, ihre Prüfungen und Onlinetests, ihre Karteikarten. Du antwortest nie mit Fließtext, sondern mit Bausteinen, die die App als Schaubilder, Regler, Spiele und Übungen zeichnet.
+const THEMA_AUFTRAG = `Du bist der Lernhelfer: Hier lernt die Person alles, was sie verstehen will, Stoff aus dem Studium genauso wie Fragen aus dem Leben oder aus Neugier (Schlaf, Ernährung, Training, Geld anlegen, wie Chaostheorie mit Daytrading zusammenhängt). Du erklärst so, dass es sitzt, und jedes Thema bekommt die Form, die zu ihm passt, nicht immer dasselbe Schema. Du kennst die Person: ihre Folien, ihren Stundenplan, ihre Prüfungen und Onlinetests, ihre Karteikarten. Du antwortest nie mit Fließtext, sondern mit Bausteinen, die die App als Schaubilder, Regler, Spiele und Übungen zeichnet.
+
+Zuerst: Worum geht es wirklich? Nimm die Frage wörtlich. „Warum schlafe ich schlecht?“ fragt nach dem eigenen Schlaf, also erklärst du Schlaf (Körper, Gewohnheiten, was hilft), nicht einen Begriff aus einem Fach, das zufällig dasselbe Wort benutzt. Deute eine Frage nie in ein Studienfach um. Gehört sie zu keinem Fach, ist "fach" null, "quellen" leer, und es gibt weder folie noch bezug. Verbindet die Frage selbst zwei Gebiete, erklär genau diese Verbindung, mit dem, was daran trägt und was nicht.
 
 Ausgabe: nur JSON-Objekte, eines pro Zeile, nichts davor, nichts danach, keine Codeblöcke.
-Erstes Objekt immer: {"typ":"meta","titel":"Thema in 2 bis 6 Wörtern","fach":"eines der Fächer unten oder null","form":"eine der Formen unten","quellen":[Nummern der Folien-Stellen, die du genutzt hast]}
+Erstes Objekt immer: {"typ":"meta","titel":"Thema in 2 bis 6 Wörtern","fach":"eines der Fächer unten, nur wenn die Frage Stoff dieses Fachs ist, sonst null","form":"eine der Formen unten","quellen":[Nummern der Folien-Stellen, die du genutzt hast]}
 
 Formen (die App gestaltet jede anders; die Reihenfolge der Bausteine ergibt sich aus der Form):
 - "spielwiese": Eine Wirkung oder Kurve, die man selbst entdecken kann. Ein großes diagramm mit Reglern trägt alles und kommt früh; der kern folgt als Erkenntnis danach, dann wenig Text.
@@ -8759,7 +8761,7 @@ Nimm die Form, die am besten passt. Passen zwei ähnlich gut, nimm eine, die zul
 Bausteine:
 {"typ":"kern","text":"Der Kern in einem Satz, so klar, dass man ihn sich merkt."} Genau einer, an der Stelle, die die Form vorgibt.
 {"typ":"text","md":"Absatz, höchstens 70 Wörter"}
-{"typ":"beispiel","titel":"kurz","md":"Beispiel aus dem Alltag von Studierenden, konkret, mit Zahlen oder Namen"}
+{"typ":"beispiel","titel":"kurz","md":"Beispiel aus dem Alltag der Person (Studium, WG, Nebenjob, Freizeit), konkret, mit Zahlen oder Namen"}
 {"typ":"diagramm","titel":"…","x":"Menge","y":"Preis","von":0,"bis":10,"kurven":[{"f":"10 - a*x","name":"Nachfrage"},{"f":"2 + 0.6*x","name":"Angebot"}],"punkte":[{"x":"8/(a+0.6)","y":"2 + 0.6*8/(a+0.6)","name":"Gleichgewicht"}],"parameter":[{"name":"a","label":"Wie stark die Nachfrage auf den Preis reagiert","von":0.5,"bis":2,"start":1,"schritt":0.1}],"werte":[{"name":"Gleichgewichtsmenge","f":"8/(a+0.6)","einheit":"Stück"}],"frage":"Was passiert mit der Menge, wenn a steigt? Probier es aus."}
 {"typ":"schritte","titel":"…","schritte":[{"titel":"…","md":"…"}]} Rechenweg, Herleitung oder Vorgehen in 3 bis 6 Schritten; man deckt sie einzeln auf.
 {"typ":"vergleich","titel":"…","spalten":["A","B"],"zeilen":[{"merkmal":"…","werte":["…","…"]}]} 2 bis 3 Spalten, 3 bis 6 Zeilen, Zellen kurz.
@@ -8780,8 +8782,8 @@ Regeln:
 - 4 bis 9 Bausteine, mindestens einer zum Sehen (diagramm, ablauf, vergleich, folie, formel) und einer zum Mitmachen (raten, fall, sortieren, quiz, schritte oder ein Regler). Hat das Thema eine Kurve, eine Menge oder eine Wirkung, ist ein diagramm mit Regler der beste Baustein.
 - Richte dich nach dem Vorwissen unten: neu heißt Bild und Alltag zuerst, Formeln spät und erklärt; grob heißt Grundlagen in einem Satz, dann das, was oft schiefgeht, und üben; prüfungsfest heißt exakte Definitionen, Formeln, typische Fallen und Aufgaben im Stil der Prüfung.
 - Vor weiter etwas zum Üben (quiz, sortieren oder fall), außer die Antwort hat schon damit begonnen.
-- Fachlich exakt auf Uni-Niveau, in einfacher Sprache, Du-Form, Deutsch. Keine Floskeln wie „Gute Frage“.
-- Die Folien-Stellen kommen aus den Unterlagen der Person. Passt eine, nimm ihre Begriffe und Schreibweise und nenne ihre Nummer in "quellen". Passt keine, erklär aus deinem Wissen und lass "quellen" leer; erfinde nie, was in den Folien steht.
+- Fachlich exakt: Studienstoff auf Uni-Niveau, Gesundheit, Ernährung oder Geld nach dem Stand der Forschung und ehrlich, wo sie unsicher ist. In einfacher Sprache, Du-Form, Deutsch. Keine Floskeln wie „Gute Frage“.
+- Die Folien-Stellen kommen aus einer Stichwortsuche in den Unterlagen der Person und treffen oft nur über ein gemeinsames Wort. Nimm eine nur, wenn sie genau das Gefragte behandelt: dann ihre Begriffe und Schreibweise und ihre Nummer in "quellen". Sonst übergeh sie ganz, erklär aus deinem Wissen und lass "quellen" leer; erfinde nie, was in den Folien steht.
 - Aufgaben aus einem laufenden bewerteten Test rechnest du nicht mit den Originalzahlen vor, sondern zeigst den Weg an einem Beispiel mit anderen Zahlen.
 - Formeln im Text in LaTeX zwischen \\\\( und \\\\). Im JSON verdoppelst du jeden Backslash: "\\\\(\\\\frac{a}{b}\\\\)".`;
 const THEMA_ARTEN = [
@@ -8854,7 +8856,7 @@ function themaNachricht(t, auftrag, quellen, ueberDich) {
     `Was der Lernhelfer über dich weiß:\n${ueberDich || '- noch nichts, was hierzu passt'}`,
     zuletzt.length && `Zuletzt benutzte Formen: ${zuletzt.join(', ')}`,
     bisher && `Bisher in diesem Thema (${t.titel}):\n${bisher}`,
-    quellen.length ? `Folien-Stellen aus den Unterlagen der Person:\n${quellen.map(q => `[${q.nr}] ${q.f} · ${q.datei}${q.seite ? `, S. ${q.seite}` : ''}: ${q.text}`).join('\n')}` : 'Folien-Stellen: keine passenden gefunden.',
+    quellen.length ? `Folien-Stellen aus der Stichwortsuche (nur nehmen, wenn sie genau das Gefragte behandeln):\n${quellen.map(q => `[${q.nr}] ${q.f} · ${q.datei}${q.seite ? `, S. ${q.seite}` : ''}: ${q.text}`).join('\n')}` : 'Folien-Stellen: keine passenden gefunden.',
     `Auftrag: ${auftrag}`].filter(Boolean).join('\n\n');
 }
 // Vollständige JSON-Objekte aus einem wachsenden Text, ab Position ab; egal ob eines pro Zeile, eingerückt oder in einer Liste
@@ -9249,10 +9251,11 @@ function themaOffen(b, t) {
 }
 
 /* Seiten */
+const T_BEISPIELE = ['Warum ist die Nachfrage nach Insulin so unelastisch?', 'Wie optimiere ich meinen Schlaf?', 'Was macht eine gute Ernährung aus?', 'Was hat Chaostheorie mit Daytrading zu tun?'];
 const enterSendet = e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); } };
 function themaFeld(gross) {
   const id = 'tf-' + ++chatNr, faecher = Object.keys(R);
-  const feld = el('textarea', { id, rows: gross ? 3 : 2, maxlength: 600, enterkeyhint: 'go', placeholder: 'Etwa: Warum ist die Nachfrage nach Insulin so unelastisch?',
+  const feld = el('textarea', { id, rows: gross ? 3 : 2, maxlength: 600, enterkeyhint: 'go', placeholder: `Etwa: ${T_BEISPIELE[chatNr % T_BEISPIELE.length]}`,
     oninput: e => { THEMA.entwurf = e.target.value; }, onkeydown: enterSendet }, THEMA.entwurf);
   return el('form', { class: `t-feld${gross ? ' gross' : ''}`, onsubmit: e => { e.preventDefault(); themaNeu({ frage: feld.value, fach: THEMA.fach, stand: THEMA.stand }); } },
     el('label', { for: id, class: 'sr' }, 'Was willst du verstehen?'), feld,
@@ -9330,7 +9333,7 @@ async function themaZeigen(id) {
   const themen = THEMEN_D.daten.themen, v = themaVorlauf(), j = THEMA.job;
   s.replaceChildren(
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Thema lernen'),
-      el('p', { class: 'schlagzeile' }, 'Frag alles, was du fürs Studium verstehen willst. Du bekommst ein Bild zum Ausprobieren, ein Beispiel und eine Frage, ob es sitzt.')),
+      el('p', { class: 'schlagzeile' }, 'Frag alles, was du verstehen willst, fürs Studium oder einfach so. Du bekommst ein Bild zum Ausprobieren, ein Beispiel und eine Frage, ob es sitzt.')),
     themaFeld(true),
     (v || j) ? el('div', { class: 'vorschlaege t-tipps' }, j && el('a', { class: 'vorschlag', href: `#/thema/${j.t.id}` }, `Läuft gerade: ${j.t.titel || j.runde.frage}`), v && vorlaufKnopf(v)) : '',
     el('h2', { class: 't-liste-kopf' }, 'Deine Themen'),
@@ -10972,7 +10975,8 @@ const CHANGELOG = [
     ['17:43', 'Thema lernen mit Semesterbezug', 'Jedes Thema bekommt eine eigene Form und den Bezug zum Stoff des Semesters.'],
     ['20:07', 'Forum', 'Ein klassisches Forum mit Bereichen, Threads und Personenkarten. Bilder von fremden Seiten sind gesperrt, weil sie die IP der Lesenden verraten würden.'],
     ['20:37', 'Karteikarten teilen', 'Begriffe eines Fachs lassen sich als Kartenstapel ins Forum stellen und von anderen übernehmen.'],
-    ['22:30', 'Lernstufen', 'Ein Ring um das Profilbild zeigt, wie regelmäßig jemand lernt. Nach außen geht nur die Stufe, nicht die Zahl der Tage.']], t: [
+    ['22:30', 'Lernstufen', 'Ein Ring um das Profilbild zeigt, wie regelmäßig jemand lernt. Nach außen geht nur die Stufe, nicht die Zahl der Tage.'],
+    ['22:48', 'Thema lernen für alles', 'Nicht nur Uni-Stoff: Schlaf, Ernährung, Geld oder reine Neugier. Allgemeine Fragen werden nicht mehr in ein Fach umgedeutet, nur weil eine Folie dasselbe Wort enthält.']], t: [
     ['17:43', 'Thema lernen: eigene Form je Thema und Bezug zum Semester'],
     ['20:07', 'Forum: Bereiche, Threads, Beiträge mit Personenkarte; keine fremden Bilder'],
     ['20:22', 'Forum: Suche, Lesezeichen, Erwähnungen, Profil'],
@@ -10980,7 +10984,8 @@ const CHANGELOG = [
     ['20:40', 'Handy: größere Tippflächen, kein Zoom-Sprung bei Eingaben'],
     ['21:05', 'Reaktionen im Forum'],
     ['22:30', 'Lernstufe als Ring um den Avatar'],
-    ['22:41', 'Projekt-Hinweis unten lässt sich schließen oder 7 Tage ausblenden']] },
+    ['22:41', 'Projekt-Hinweis unten lässt sich schließen oder 7 Tage ausblenden'],
+    ['22:48', 'Thema lernen: allgemeine Fragen ohne erzwungenen Fachbezug']] },
 ];
 let CL_ANSICHT = (() => { try { return localStorage.getItem('lh-changelog'); } catch { return null; } })() === 'technik' ? 'technik' : 'kurz';
 function changelogZeigen() {
