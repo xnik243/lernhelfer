@@ -174,9 +174,9 @@ function zeichnen() {
 const datei = (n) => new URL(n, location.href).href;
 const h = location.host;
 const frage = `Ein Mitstudent an meiner Uni hat eine Lern-App gebaut („Lernhelfer”, ${h}) und dazu ein kleines Open-Source-Programm, das auf meinem PC oder Mac läuft. Es holt meine Kursunterlagen aus OLAT (dem Lernportal unserer Uni) und lädt ihren Text in mein Konto beim Lernhelfer. Der ganze Code ist öffentlich, bitte lies ihn dir durch:
-- ${datei(“einrichten.ps1”)} richtet es am Windows-PC ein (PowerShell)
-- ${datei(“einrichten-mac.sh”)} richtet es am Mac ein (Bash)
-- ${datei(“holen.py”)} ist das eigentliche Programm (Python, ca. 1800 Zeilen)
+- ${datei("einrichten.ps1")} richtet es am Windows-PC ein (PowerShell)
+- ${datei("einrichten-mac.sh")} richtet es am Mac ein (Bash)
+- ${datei("holen.py")} ist das eigentliche Programm (Python, ca. 1800 Zeilen)
 
 Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen persönlichen Schlüssel für meinen Speicher, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac geht dasselbe über einen Terminal-Befehl. Die Stellen im Code, die GitHub nennen, gehören zu einer selbst betriebenen Variante ohne Server; bei ${h} gehen die Daten an diesen Server.
 
