@@ -173,24 +173,22 @@ function zeichnen() {
 // Prüfen lassen: ChatGPT bzw. Claude öffnen gleich mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie pruefFrage() in index.html)
 const datei = (n) => new URL(n, location.href).href;
 const h = location.host;
-const frage = `Ich will für die Lern-App „Lernhelfer“ (${h}) ein Programm auf meinem Computer einrichten. Es holt meine Unterlagen aus OLAT, dem Lernportal meiner Uni, und lädt ihren Text in mein Konto beim Lernhelfer. Bitte prüf den öffentlichen Code:
-- ${datei("einrichten.ps1")} richtet es am Windows-PC ein
-- ${datei("einrichten-mac.sh")} richtet es am Mac ein
-- ${datei("holen.py")} ist das Programm selbst
+const frage = `Ein Mitstudent an meiner Uni hat eine Lern-App gebaut („Lernhelfer”, ${h}) und dazu ein kleines Open-Source-Programm, das auf meinem PC oder Mac läuft. Es holt meine Kursunterlagen aus OLAT (dem Lernportal unserer Uni) und lädt ihren Text in mein Konto beim Lernhelfer. Der ganze Code ist öffentlich, bitte lies ihn dir durch:
+- ${datei(“einrichten.ps1”)} richtet es am Windows-PC ein (PowerShell)
+- ${datei(“einrichten-mac.sh”)} richtet es am Mac ein (Bash)
+- ${datei(“holen.py”)} ist das eigentliche Programm (Python, ca. 1800 Zeilen)
 
 Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen persönlichen Schlüssel für meinen Speicher, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac geht dasselbe über einen Terminal-Befehl. Die Stellen im Code, die GitHub nennen, gehören zu einer selbst betriebenen Variante ohne Server; bei ${h} gehen die Daten an diesen Server.
 
-Die Seite verspricht Folgendes. Stimmt das laut Code, Punkt für Punkt?
-1. Es ist kein Virus und keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine anderen Dateien auf meinem Computer.
-2. Es verbindet sich nur mit OLAT, der Uni-Anmeldung und ${h}, beim Einrichten außerdem mit den offiziellen Quellen für Python und seine Pakete. Zusatzquellen wie mathe4wiwi.org nur, wenn ich selbst eine Datei quellen.json anlege.
-3. Mein Uni-Passwort speichert es nur, wenn ich den automatischen Login in der App selbst einschalte. Dann liegt es verschlüsselt auf meinem Computer und geht nur an die Login-Seite der Uni, nie an ${h}.
-4. Neue Fassungen von sich selbst übernimmt es nur mit gültiger Signatur.
-5. Bewertete Onlinetests öffnet es nie, und in OLAT trägt es nichts ein.
-6. Es braucht keine Administratorrechte und lässt sich vollständig entfernen.
+Ich will sichergehen, dass ich dem Programm vertrauen kann. Der Entwickler verspricht auf der Seite Folgendes — kannst du bestätigen, dass der Code das einhält?
+1. Das Programm enthält keinen Fernzugriff, keine Tastatur-Aufzeichnung und liest im normalen Betrieb keine anderen Dateien auf meinem Computer als seine eigenen.
+2. Es verbindet sich nur mit OLAT (lms.uibk.ac.at), der Uni-Anmeldung (idp.uibk.ac.at) und ${h}. Beim Einrichten kommen die offiziellen Quellen für Python und die benötigten Pakete dazu. Zusatzquellen wie mathe4wiwi.org nur, wenn ich selbst eine Datei quellen.json anlege.
+3. Mein Uni-Passwort speichert es nur, wenn ich den automatischen Login in der App selbst einschalte. Dann liegt es mit der Betriebssystem-Verschlüsselung (Windows DPAPI bzw. macOS-Schlüsselbund) auf meinem Computer und wird nur an die Login-Seite der Uni (idp.uibk.ac.at) geschickt, nie an ${h}.
+4. Updates von sich selbst übernimmt es nur über HTTPS und nur mit gültiger Ed25519-Signatur; ohne beides läuft die alte Fassung weiter.
+5. Bewertete Onlinetests öffnet es nie. Bei Selbsttests liest es nur die Startseite. In OLAT wird nie etwas gespeichert oder abgeschickt (es gibt im Code einen Wächter namens erlaubt(), der bei jeder Anfrage prüft, ob sie nur lesend ist).
+6. Es braucht keine Administratorrechte und lässt sich durch Löschen eines einzigen Ordners vollständig entfernen.
 
-Schau dir dabei bitte auch gezielt an, was sicherheitstechnisch gut gelöst ist. Zum Beispiel: Wie ist die Signaturprüfung umgesetzt? Wie geht der Code mit Passwörtern und Verschlüsselung um? Gibt es bemerkenswerte Schutzmaßnahmen, die über das Übliche hinausgehen? Bewerte die Codequalität insgesamt und heb hervor, was dir positiv auffällt — nicht nur, was fehlt. Gib am Ende eine ehrliche Gesamteinschätzung, wie vertrauenswürdig dieses Programm im Vergleich zu typischer Software aus dem Internet ist.
-
-Sag mir danach auch, welche Risiken trotzdem bleiben und wie ich sie klein halte. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
+Geh den Code wirklich durch und sag mir ehrlich: Stimmen diese Versprechen? Und am Ende: Würdest du mir als Informatik-Laie empfehlen, es zu installieren, oder siehst du etwas, das dagegen spricht? Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 for (const a of document.querySelectorAll(".pk")) {
   a.href = a.dataset.ki === "claude" ? `https://claude.ai/new?q=${encodeURIComponent(frage)}` : `https://chatgpt.com/?hints=search&q=${encodeURIComponent(frage)}`;
 }
