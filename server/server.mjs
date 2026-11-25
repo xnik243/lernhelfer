@@ -3,7 +3,7 @@
 // Keine Pakete, nur Node 24 (http, sqlite, crypto). Start: node server/server.mjs, Einstellungen über Umgebungsvariablen (README.md).
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
+import { constants, createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, generateKeyPairSync, privateDecrypt, publicEncrypt, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -226,16 +226,34 @@ try { db.exec('alter table forum_profil add column bild blob; alter table forum_
 db.exec(`create table if not exists forum_pinnwand (id integer primary key, profil integer not null references konten(id) on delete cascade,
   konto integer references konten(id) on delete set null, text text not null, zeit integer not null, gelesen integer not null default 0);
 create index if not exists forum_pinnwand_profil on forum_pinnwand (profil, id)`);
-// Anonym: nur verschlüsselte Blobs (AES-GCM, der Schlüssel bleibt im Browser), kein Konto, keine IP. Die Zeit ist auf die Stunde abgerundet,
-// damit sie sich nicht mit dem Nutzungslog einer Person deckt. antwort_auf: Antwort auf einen Beitrag (eine Ebene).
-// anon_reports: Meldungen mit dem Text, den der Browser des Meldenden entschlüsselt hat, ebenfalls ohne Konto und IP; erledigt = gelöscht
-db.exec(`create table if not exists anon_posts (id integer primary key, antwort_auf integer references anon_posts(id) on delete cascade,
-  encrypted_text text not null, iv text not null, created_at integer not null);
-create index if not exists anon_posts_faden on anon_posts (antwort_auf, id);
-create table if not exists anon_reports (id integer primary key, post_id integer not null references anon_posts(id) on delete cascade,
-  grund text not null, text text not null, notiz text not null default '', zeit integer not null);
-create index if not exists anon_reports_post on anon_reports (post_id)`);
-const AN_GRUENDE = new Set(['beleidigung', 'handel', 'doxxing', 'urheberrecht', 'sonstiges']);
+// Anonyme Bereiche im Forum: Beiträge ohne Konto (konto null), loesch = SHA-256 eines Geheimnisses, das nur der Browser der Person kennt.
+// anon_marke_weg: eingelöste Marken (SHA-256), damit jede nur einmal gilt. Die erste Fassung (verschlüsselte Blobs) ist ersetzt
+db.exec(`drop table if exists anon_reports; drop table if exists anon_posts;
+create table if not exists anon_marke_weg (h text primary key)`);
+try { db.exec('alter table forum_beitrag add column loesch text'); } catch {}
+// Marken: Chaum-Blindsignatur mit RSA-FDH. Das Konto lässt sich vorab geblendete Zahlen signieren und löst sie später ohne Anmeldung ein;
+// beim Signieren sieht der Server nur Zufall, beim Einlösen kein Konto, darum kann er beides nicht zusammenführen. Eigener Schlüssel nur dafür
+const MARKE = (() => {
+  const datei = join(DATEN, 'anon-marke.pem');
+  if (!existsSync(datei)) writeFileSync(datei, generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
+  const priv = createPrivateKey(readFileSync(datei)), pub = createPublicKey(priv), j = pub.export({ format: 'jwk' });
+  return { priv, pub, n: BigInt('0x' + Buffer.from(j.n, 'base64url').toString('hex')), oeffentlich: { n: j.n, e: j.e } };
+})();
+const markeHash = m => {  // FDH: acht SHA-256 über (Marke, i) hintereinander, mod n; der Browser rechnet genauso
+  const h = Buffer.concat(Array.from({ length: 8 }, (_, i) => createHash('sha256').update(m).update(Buffer.from([i])).digest()));
+  return Buffer.from((BigInt('0x' + h.toString('hex')) % MARKE.n).toString(16).padStart(512, '0'), 'hex');
+};
+const MARKEN_TAG = 20, MARKEN = new Map();  // ponytail: Zähler je Konto und Tag nur im Speicher (ein Neustart setzt ihn zurück); Tabelle, falls das je ausgenutzt wird
+function markeEinloesen(req, k, b) {  // erst nach allen anderen Prüfungen aufrufen: eine falsche Eingabe verbraucht keine Marke. 410 = Marke neu holen
+  if (k) nein(400, 'Anonyme Beiträge gehen ohne Anmeldung raus. Bitte lade die Seite neu.');
+  bremse(req, 30);
+  const m = String(b.marke?.m || ''), s = Buffer.from(String(b.marke?.s || ''), 'base64url');
+  let echt = false;
+  try { echt = /^[\w-]{43}$/.test(m) && s.length === 256 && publicEncrypt({ key: MARKE.pub, padding: constants.RSA_NO_PADDING }, s).equals(markeHash(m)); } catch {}
+  if (!echt) nein(410, 'Diese Marke gilt nicht mehr.');
+  if (!db.prepare('insert or ignore into anon_marke_weg (h) values (?)').run(createHash('sha256').update(m).digest('hex')).changes) nein(410, 'Diese Marke ist schon verbraucht.');
+}
+const loeschHash = g => typeof g === 'string' && /^[\w-]{32,100}$/.test(g) ? createHash('sha256').update(g).digest('hex') : null;
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -1159,8 +1177,14 @@ const FORUM = [
   ['kopf', 'Kopf und Motivation', 'Aufschieben, Stress, Fokus, Schlaf. Und Dampf ablassen.'],
   ['uni', 'Uni-Leben', 'Innsbruck, Studium, Organisatorisches.'],
   ['offtopic', 'Off Topic', 'Alles andere.'],
-].map(([id, name, text, team]) => ({ id, name, text, team: !!team }));
-const PRAEFIXE = ['guide', 'frage', 'diskussion', 'lernlog', 'karten', 'motivation', 'dampf', 'news'];  // news nur fürs Team
+  // anonym: geschrieben wird nur über /api/anon-forum (ohne Anmeldung, mit Marke); zum Konto wird hier nichts gespeichert, auch kein Gelesen, keine Reaktion, kein Lesezeichen
+  ['anon-lehre', 'Lehre und Prüfungen', 'Ehrliche Erfahrungen mit Lehrveranstaltungen, Lehrenden, Prüfungen und Betreuung.', false, true],
+  ['anon-gesundheit', 'Gesundheit und Leistung', 'Erfahrungen mit Nootropika, Koffein, Medikamenten, Schlaf und Stress. Erfahrungen ja; Beratung, Bezugsquellen und Handel nein.', false, true],
+  ['anon-offen', 'Offen gesagt', 'Alles, was du lieber ohne Namen sagst.', false, true],
+].map(([id, name, text, team, anonym]) => ({ id, name, text, team: !!team, anonym: !!anonym }));
+const anonym = bereich => !!FORUM.find(x => x.id === bereich)?.anonym;
+const stunde = () => Math.floor(jetzt() / 3600e3) * 3600e3;  // anonyme Zeiten: auf die Stunde abgerundet, damit sie sich nicht mit anderem Verhalten decken
+const PRAEFIXE = ['guide', 'frage', 'diskussion', 'erfahrung', 'lernlog', 'karten', 'motivation', 'dampf', 'news'];  // news nur fürs Team
 const REAKTIONEN = ['hilfreich', 'stark', 'danke', 'haha', 'wut', 'ekel', 'runter'];  // die letzten drei zählen nicht zum Ruf
 const FORUM_XP = 5, FORUM_XP_TAG = 25;  // Arena: „Hilfreich“ von anderen bringt 5 XP, höchstens 25 am Tag (gegen Absprachen)
 const SEITE = 20, IM_FORUM = new Map();  // Konto → letzter Forum-Aufruf, für „online“ (nur im Speicher)
@@ -1205,7 +1229,7 @@ function forumStart(k) {
     where t.letzte > coalesce(g.bis, 0) and t.letzte > ? group by t.bereich`).all(k.id, NEU_SEIT()).map(x => [x.bereich, x.n]));
   const letztes = db.prepare('select t.id, t.titel, t.letzte zeit, p.name from forum_thema t left join forum_profil p on p.konto = t.letzter where t.bereich = ? order by t.letzte desc limit 1');
   return {
-    bereiche: FORUM.map(b => ({ ...b, themen: zahlen[b.id]?.themen || 0, beitraege: zahlen[b.id]?.beitraege || 0, neu: neu[b.id] || 0, letztes: letztes.get(b.id) || null })),
+    bereiche: FORUM.map(b => ({ ...b, themen: zahlen[b.id]?.themen || 0, beitraege: zahlen[b.id]?.beitraege || 0, neu: !b.anonym && neu[b.id] || 0, letztes: letztes.get(b.id) || null })),
     neueste: db.prepare(`select t.id, t.titel, t.praefix, t.bereich, t.antworten, t.letzte, p.name from forum_thema t left join forum_profil p on p.konto = t.letzter
       order by t.letzte desc limit 8`).all(),
     online: da.length, teamOnline: da.some(id => istAdmin(kontoMit(id) || {})),
@@ -1593,7 +1617,7 @@ const ROUTEN = {
         t.letzte > coalesce(g.bis, 0) and t.letzte > ? neu
       from forum_thema t left join forum_profil a on a.konto = t.konto left join forum_profil l on l.konto = t.letzter left join forum_gelesen g on g.thema = t.id and g.konto = ?
       where t.bereich = ? order by t.angeheftet desc, t.letzte desc limit ? offset ?`).all(NEU_SEIT(), k.id, b.id, SEITE, (seite - 1) * SEITE);
-    return { bereich: b, themen, seite, seiten, ich: forumIch(k) };
+    return { bereich: b, themen: b.anonym ? themen.map(t => ({ ...t, neu: 0 })) : themen, seite, seiten, ich: forumIch(k) };
   },
   'GET /api/forum/thema': ({ k, q }) => {  // seite=letzte: die letzte Seite (aus „Neueste Beiträge“)
     forumDa(k);
@@ -1603,24 +1627,26 @@ const ROUTEN = {
         exists (select 1 from forum_lesezeichen l where l.beitrag = b.id and l.konto = ?2) gemerkt
       from forum_beitrag b left join forum_profil p on p.konto = b.konto left join konten k on k.id = b.konto
       where b.thema = ?3 order by b.id limit ?4 offset ?5`).all(ADMIN, k.id, t.id, SEITE, (seite - 1) * SEITE);
-    const ids = beitraege.map(x => x.id), reaktionen = ids.length ? db.prepare(`select r.beitrag, r.art, r.konto = ? meine, p.name from forum_reaktion r
+    const anon = anonym(t.bereich), ids = anon ? [] : beitraege.map(x => x.id);  // anonym: nichts zum Konto speichern, sonst verrät „zuerst gelesen“ den Autor
+    const reaktionen = ids.length ? db.prepare(`select r.beitrag, r.art, r.konto = ? meine, p.name from forum_reaktion r
       left join forum_profil p on p.konto = r.konto where r.beitrag in (${ids.map(() => '?').join()}) order by r.rowid desc`).all(k.id, ...ids) : [];
     db.prepare('update forum_thema set aufrufe = aufrufe + 1 where id = ?').run(t.id);
-    if (beitraege.length) gelesen(k.id, t.id, seite === seiten ? t.letzte : beitraege.at(-1).erstellt);
-    db.prepare('update forum_hinweis set gelesen = 1 where konto = ? and thema = ? and gelesen = 0').run(k.id, t.id);  // Thread angesehen: seine Hinweise sind erledigt
+    if (beitraege.length && !anon) gelesen(k.id, t.id, seite === seiten ? t.letzte : beitraege.at(-1).erstellt);
+    if (!anon) db.prepare('update forum_hinweis set gelesen = 1 where konto = ? and thema = ? and gelesen = 0').run(k.id, t.id);  // Thread angesehen: seine Hinweise sind erledigt
     const erst = erster(t.id), mod = !!k.ecke, woerter = [...new Set(t.titel.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) || [])].filter(w => !STOPP.has(w)).slice(0, 8);
     const aehnlich = woerter.length ? db.prepare(`select t.id, t.titel, t.praefix, t.antworten, t.letzte from forum_suche s join forum_beitrag b on b.id = s.rowid join forum_thema t on t.id = b.thema
       where forum_suche match ? and t.id != ? order by rank limit 5`).all(`titel : (${woerter.map(w => `"${w}"`).join(' OR ')})`, t.id) : [];
     return {
-      thema: { ...t, konto: undefined, letzter: undefined, eigen: t.konto === k.id, bereichName: FORUM.find(x => x.id === t.bereich)?.name || t.bereich },
+      thema: { ...t, konto: undefined, letzter: undefined, eigen: t.konto === k.id, anonym: anon, bereichName: FORUM.find(x => x.id === t.bereich)?.name || t.bereich },
       beitraege: beitraege.map(({ konto, ...x }) => ({ ...x, eigen: konto === k.id, gemerkt: !!x.gemerkt, erster: x.id === erst, konto: mod ? konto : undefined,
         text: x.weg && !(mod && x.weg === 2) ? '' : x.text, reaktionen: reaktionen.filter(r => r.beitrag === x.id).map(({ art, name, meine }) => ({ art, name, meine: !!meine })) })),
-      seite, seiten, aehnlich, ich: forumIch(k), bereiche: mod ? FORUM.map(({ id, name }) => ({ id, name })) : undefined,
+      seite, seiten, aehnlich, ich: forumIch(k), bereiche: mod ? FORUM.filter(x => x.anonym === anon).map(({ id, name }) => ({ id, name })) : undefined,
     };
   },
   'POST /api/forum/thema': ({ req, k, b }) => {
     schreiber(req, k, 6);
     const ber = FORUM.find(x => x.id === b.bereich) || nein(400, 'Diesen Bereich gibt es nicht.');
+    if (ber.anonym) nein(400, 'Hier wird nur anonym geschrieben.');
     if (ber.team && !istAdmin(k)) nein(403, 'Hier eröffnet nur das Team neue Threads.');
     if (!PRAEFIXE.includes(b.praefix) || b.praefix === 'news' && !istAdmin(k)) nein(400, 'Bitte wähl, was für ein Thread das ist.');
     const titel = forumText(b.titel, 5, 120, 'Titel').replace(/\s+/g, ' '), text = forumText(b.text, 20, 30000, 'Text'), t = jetzt();
@@ -1634,6 +1660,7 @@ const ROUTEN = {
   'POST /api/forum/antwort': ({ req, k, b }) => {
     schreiber(req, k, 30);
     const t = forumThema(b.thema), text = forumText(b.text, 2, 30000, 'Antwort'), z = jetzt();
+    if (anonym(t.bereich)) nein(400, 'Hier wird nur anonym geschrieben.');
     if (t.zu && !istAdmin(k)) nein(403, 'Dieser Thread ist geschlossen.');
     const id = Number(db.prepare('insert into forum_beitrag (thema, konto, text, erstellt) values (?, ?, ?, ?)').run(t.id, k.id, text, z).lastInsertRowid);
     db.prepare('update forum_thema set antworten = antworten + 1, letzte = ?, letzter = ? where id = ?').run(z, k.id, t.id);
@@ -1662,6 +1689,7 @@ const ROUTEN = {
   'POST /api/forum/reaktion': ({ req, k, b }) => {  // art leer: zurücknehmen
     schreiber(req, k, 120);
     const p = forumBeitrag(b.beitrag);
+    if (anonym(forumThema(p.thema).bereich)) nein(400, 'Im anonymen Bereich gibt es keine Reaktionen.');
     if (p.konto === k.id) nein(400, 'Eigene Beiträge kannst du nicht bewerten.');
     if (p.weg) nein(410, 'Dieser Beitrag ist gelöscht.');
     const xpArt = `forum:${p.id}:${k.id}`, xpWeg = () => p.konto && db.prepare('delete from arena_xp where konto = ? and art = ?').run(p.konto, xpArt);  // zurückgenommen: XP wieder weg
@@ -1679,15 +1707,15 @@ const ROUTEN = {
   'POST /api/forum/melden': async ({ req, k, b }) => {  // jedes Konto; der Admin bekommt eine Mail, damit er schnell reagieren kann (DSA, ECG § 16)
     forumDa(k); bremse(req, 10, String(k.id));
     if (!darfSchreiben(k)) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');  // je Meldung geht eine Mail raus: nicht für Wegwerf-Konten
-    const p = forumBeitrag(b.beitrag), grund = forumText(b.grund, 3, 1000, 'Grund');
-    if (db.prepare('select 1 from forum_meldung where beitrag = ? and konto = ? and erledigt = 0').get(p.id, k.id)) return;
-    db.prepare('insert into forum_meldung (beitrag, konto, grund, zeit) values (?, ?, ?, ?)').run(p.id, k.id, grund, jetzt());
+    const p = forumBeitrag(b.beitrag), grund = forumText(b.grund, 3, 1000, 'Grund'), anon = anonym(forumThema(p.thema).bereich);
+    if (!anon && db.prepare('select 1 from forum_meldung where beitrag = ? and konto = ? and erledigt = 0').get(p.id, k.id)) return;
+    db.prepare('insert into forum_meldung (beitrag, konto, grund, zeit) values (?, ?, ?, ?)').run(p.id, anon ? null : k.id, grund, anon ? stunde() : jetzt());  // anonym: auch wer meldet, bleibt ungespeichert
     if (ADMIN) await mail(ADMIN, 'Lernhelfer: Forum-Beitrag gemeldet', `Gemeldet wurde ein Beitrag in „${forumThema(p.thema).titel}“.\n\nGrund: ${grund}\n\n${BASIS}/app#/forum/${p.thema}\nAdmin-Ecke → Forum${gruss}`);
   },
   'GET /api/forum/suche': ({ k, q }) => {  // jedes Wort als Wortanfang, alle müssen vorkommen; Fundstellen zwischen \x02 und \x03
     forumDa(k);
     const woerter = (String(q.get('q') || '').normalize('NFKC').match(/[\p{L}\p{N}]+/gu) || []).slice(0, 8);
-    const treffer = woerter.join('').length < 2 ? [] : db.prepare(`select b.id, b.thema, t.titel, t.praefix, b.erstellt, p.name, ${NR},
+    const treffer = woerter.join('').length < 2 ? [] : db.prepare(`select b.id, b.thema, t.titel, t.praefix, t.bereich, b.erstellt, p.name, ${NR},
         snippet(forum_suche, -1, char(2), char(3), ' … ', 24) auszug
       from forum_suche join forum_beitrag b on b.id = forum_suche.rowid join forum_thema t on t.id = b.thema left join forum_profil p on p.konto = b.konto
       where forum_suche match ? order by forum_suche.rank limit 40`).all(woerter.map(w => `"${w}"*`).join(' '));
@@ -1716,6 +1744,7 @@ const ROUTEN = {
     forumDa(k);
     const p = forumBeitrag(b.beitrag);
     if (!b.an) return void db.prepare('delete from forum_lesezeichen where konto = ? and beitrag = ?').run(k.id, p.id);
+    if (anonym(forumThema(p.thema).bereich)) nein(400, 'Im anonymen Bereich gibt es keine Lesezeichen.');
     db.prepare('insert or ignore into forum_lesezeichen (konto, beitrag, zeit) values (?, ?, ?)').run(k.id, p.id, jetzt());
   },
   'POST /api/forum/abzeichen': ({ req, k, b }) => {  // eine verdiente Trophäe neben dem Namen zeigen; name leer: keine
@@ -1759,44 +1788,55 @@ const ROUTEN = {
       ich: forumIch(k),
     };
   },
-  // Anonym: lesen jedes Konto, schreiben mit bestätigter Adresse; gespeichert wird nur der Blob, nie von wem (die Bremse hält das Konto 15 Minuten im Speicher).
-  // Hier nichts loggen: keine IP, keine Header, kein Konto
-  'GET /api/anon-forum/posts': ({ k, q }) => {  // 20 Beiträge je Seite, neueste zuerst, mit allen Antworten; vor = id: die älteren
-    muss(k);
-    const posts = db.prepare('select id, encrypted_text c, iv, created_at t from anon_posts where antwort_auf is null and id < ? order by id desc limit 21').all(Number(q.get('vor')) || 2 ** 53);
-    const mehr = posts.length > 20; posts.length = Math.min(posts.length, 20);
-    const antworten = posts.length ? db.prepare(`select id, antwort_auf, encrypted_text c, iv, created_at t from anon_posts where antwort_auf in (${posts.map(() => '?').join()}) order by id`)
-      .all(...posts.map(p => p.id)) : [];
-    return { posts: posts.map(p => ({ ...p, antworten: antworten.filter(a => a.antwort_auf === p.id).map(({ antwort_auf, ...a }) => a) })), mehr };
-  },
-  'POST /api/anon-forum/post': ({ req, k, b }) => {  // {c, iv, antwort_auf?}: Base64, IV 12 Byte; Klartext sieht der Server nie
+  // Anonym schreiben: Marken holt das Konto vorab (geblendet), Beiträge gehen ohne Anmeldung raus. Hier nichts loggen: keine IP, keine Header
+  'GET /api/anon-forum/marke': () => MARKE.oeffentlich,
+  'POST /api/anon-forum/marken': ({ req, k, b }) => {  // {blind: [geblendete Zahlen]} → Signaturen; höchstens MARKEN_TAG je Konto und Tag
     muss(k);
     if (!darfSchreiben(k)) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');
     if (db.prepare('select gesperrt from forum_profil where konto = ?').get(k.id)?.gesperrt) nein(403, 'Du kannst im Forum gerade nicht schreiben.');
     bremse(req, 10, String(k.id));
-    const c = String(b.c || ''), iv = String(b.iv || '');
-    if (!/^[A-Za-z0-9+/]{16}$/.test(iv) || c.length < 24 || c.length > 40000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(c)) nein(400, 'Kein gültiger verschlüsselter Beitrag.');
-    const auf = b.antwort_auf == null ? null
-      : (db.prepare('select id from anon_posts where id = ? and antwort_auf is null').get(Number(b.antwort_auf)) || nein(404, 'Diesen Beitrag gibt es nicht (mehr).')).id;
-    return { id: Number(db.prepare('insert into anon_posts (antwort_auf, encrypted_text, iv, created_at) values (?, ?, ?, ?)').run(auf, c, iv, Math.floor(jetzt() / 3600e3) * 3600e3).lastInsertRowid) };
+    const blind = Array.isArray(b.blind) && b.blind.length <= 10 ? b.blind.map(x => Buffer.from(String(x), 'base64url')) : [];  // höchstens 10 auf einmal
+    const tag = wienTag(), z = MARKEN.get(k.id)?.tag === tag ? MARKEN.get(k.id) : { tag, n: 0 };
+    if (!blind.length || blind.some(x => x.length !== 256)) nein(400, 'Keine gültigen Marken angefragt.');
+    if (z.n + blind.length > MARKEN_TAG) nein(429, 'Für heute hast du genug anonyme Beiträge. Morgen geht es weiter.');
+    const signaturen = blind.map(x => { try { return privateDecrypt({ key: MARKE.priv, padding: constants.RSA_NO_PADDING }, x).toString('base64url'); } catch { nein(400, 'Keine gültigen Marken angefragt.'); } });
+    MARKEN.set(k.id, { tag, n: z.n + blind.length });
+    return { signaturen };
   },
-  // Melden (DSA Art. 16): der Browser des Meldenden schickt nur diesen einen Beitrag entschlüsselt mit; vom Meldenden wird nichts gespeichert
-  'POST /api/anon-forum/melden': async ({ req, k, b }) => {
-    muss(k);
-    bremse(req, 10, String(k.id));
-    const grund = String(b.reason || ''), text = String(b.decrypted_text ?? '').trim().slice(0, 6000), notiz = String(b.note ?? '').trim().slice(0, 1000);
-    if (!AN_GRUENDE.has(grund) || !text) nein(400, 'Bitte wähl einen Grund.');
-    const id = (db.prepare('select id from anon_posts where id = ?').get(Number(b.post_id)) || nein(404, 'Diesen Beitrag gibt es nicht (mehr).')).id;
-    db.prepare('insert into anon_reports (post_id, grund, text, notiz, zeit) values (?, ?, ?, ?, ?)').run(id, grund, text, notiz, Math.floor(jetzt() / 3600e3) * 3600e3);
-    if (ADMIN) await mail(ADMIN, `Anonym: neue Meldung zu Beitrag #${id}`, `Grund: ${grund}\n\nDen Text siehst du nur in der Admin-Ecke: ${BASIS}/app#/admin`);  // Text nicht per Mail (Brevo)
+  'POST /api/anon-forum/thema': ({ req, k, b }) => {  // {marke, bereich, praefix, titel, text, fach, loesch}
+    const ber = FORUM.find(x => x.id === b.bereich && x.anonym) || nein(400, 'Diesen Bereich gibt es nicht.');
+    if (!PRAEFIXE.includes(b.praefix) || b.praefix === 'news') nein(400, 'Bitte wähl, was für ein Thread das ist.');
+    const titel = forumText(b.titel, 5, 120, 'Titel').replace(/\s+/g, ' '), text = forumText(b.text, 20, 30000, 'Text'), t = stunde();
+    const fach = String(b.fach || '').replace(/\s+/g, ' ').trim().slice(0, 40) || null;
+    markeEinloesen(req, k, b);
+    const id = Number(db.prepare('insert into forum_thema (bereich, praefix, fach, titel, konto, erstellt, letzte, letzter) values (?, ?, ?, ?, null, ?, ?, null)')
+      .run(ber.id, b.praefix, fach, titel, t, t).lastInsertRowid);
+    const bid = Number(db.prepare('insert into forum_beitrag (thema, konto, text, erstellt, loesch) values (?, null, ?, ?, ?)').run(id, text, t, loeschHash(b.loesch)).lastInsertRowid);
+    suchIndex(bid);
+    return { id, beitrag: bid };
   },
-  // Rechtswidriges entfernen: nur die Admin-Ecke, nach Nummer, endgültig (secure_delete); Antworten und Meldungen gehen mit
-  'POST /api/anon-forum/loeschen': ({ k, b }) => { admin(k); return { geloescht: Number(db.prepare('delete from anon_posts where id = ?').run(Number(b.id)).changes) }; },
-  'GET /api/anon-forum/meldungen': ({ k }) => {  // mit dem Blob, damit die Ecke mit Schlüssel prüfen kann, ob der gemeldete Text stimmt
-    admin(k);
-    return { meldungen: db.prepare('select r.id, r.post_id, r.grund, r.text, r.notiz, r.zeit, p.encrypted_text c, p.iv from anon_reports r join anon_posts p on p.id = r.post_id order by r.id').all() };
+  'POST /api/anon-forum/antwort': ({ req, k, b }) => {  // {marke, thema, text, loesch}
+    const t = forumThema(b.thema), text = forumText(b.text, 2, 30000, 'Antwort'), z = stunde();
+    if (!anonym(t.bereich)) nein(400, 'Dieser Thread ist nicht anonym.');
+    if (t.zu) nein(403, 'Dieser Thread ist geschlossen.');
+    markeEinloesen(req, k, b);
+    const id = Number(db.prepare('insert into forum_beitrag (thema, konto, text, erstellt, loesch) values (?, null, ?, ?, ?)').run(t.id, text, z, loeschHash(b.loesch)).lastInsertRowid);
+    db.prepare('update forum_thema set antworten = antworten + 1, letzte = ?, letzter = null where id = ?').run(z, t.id);
+    suchIndex(id);
+    return { id };
   },
-  'POST /api/anon-forum/verwerfen': ({ k, b }) => { admin(k); db.prepare('delete from anon_reports where id = ?').run(Number(b.id)); },
+  'POST /api/anon-forum/loeschen': ({ req, k, b }) => {  // {beitrag, geheim}: nur wer das Geheimnis aus dem eigenen Browser hat
+    if (k) nein(400, 'Anonyme Beiträge löschst du ohne Anmeldung. Bitte lade die Seite neu.');
+    bremse(req, 30);
+    const p = forumBeitrag(b.beitrag);
+    if (!p.loesch || p.loesch !== loeschHash(b.geheim)) nein(403, 'Löschen kann nur, wer den Beitrag geschrieben hat, auf demselben Gerät.');
+    if (p.id === erster(p.thema) && !db.prepare('select 1 from forum_beitrag where thema = ? and id != ? and weg = 0').get(p.thema, p.id)) {
+      sucheOhneThema(p.thema); db.prepare('delete from forum_thema where id = ?').run(p.thema);
+      return { thema: null };
+    }
+    db.prepare("update forum_beitrag set weg = 1, text = '', loesch = null where id = ?").run(p.id); suchIndex(p.id);
+    return { thema: p.thema };
+  },
   'POST /api/nutzung': ({ k, b }) => { muss(k); if (MELDBAR.has(b.was)) zaehlen(k.id, b.was); },  // Seite geöffnet, gesperrte Funktion angetippt, PDF
   'POST /api/fehler': async ({ req, k, b }) => {  // „Fehler melden“, auch ohne Konto (etwa beim Registrieren); 5 je 15 Minuten
     bremse(req, 5);
@@ -1940,12 +1980,18 @@ const ROUTEN = {
       if (b.loeschen) { sucheOhneThema(t.id); return void db.prepare('delete from forum_thema where id = ?').run(t.id); }
       if (b.angeheftet != null) db.prepare('update forum_thema set angeheftet = ? where id = ?').run(b.angeheftet ? 1 : 0, t.id);
       if (b.zu != null) db.prepare('update forum_thema set zu = ? where id = ?').run(b.zu ? 1 : 0, t.id);
-      if (b.bereich) db.prepare('update forum_thema set bereich = ? where id = ?').run((FORUM.find(x => x.id === b.bereich) || nein(400, 'Diesen Bereich gibt es nicht.')).id, t.id);
+      if (b.bereich) {
+        const ziel = FORUM.find(x => x.id === b.bereich) || nein(400, 'Diesen Bereich gibt es nicht.');
+        if (ziel.anonym !== anonym(t.bereich)) nein(400, 'Zwischen anonymen und normalen Bereichen lässt sich nichts verschieben.');
+        db.prepare('update forum_thema set bereich = ? where id = ?').run(ziel.id, t.id);
+      }
     }
     if (b.beitrag) {
-      const p = forumBeitrag(b.beitrag);
+      const p = forumBeitrag(b.beitrag), anon = anonym(forumThema(p.thema).bereich);
       if (p.weg === 1) nein(409, 'Den Beitrag hat die Person selbst gelöscht.');
-      db.prepare('update forum_beitrag set weg = ?, grund = ? where id = ?').run(b.weg ? 2 : 0, b.weg ? forumText(b.grund, 3, 300, 'Grund') : null, p.id); suchIndex(p.id);
+      if (!b.weg && anon) nein(409, 'Im anonymen Bereich ist Entferntes endgültig gelöscht.');
+      // anonym: der Text wird sofort überschrieben (secure_delete), nur der Grund bleibt sichtbar
+      db.prepare(`update forum_beitrag set weg = ?, grund = ?${anon ? ", text = ''" : ''} where id = ?`).run(b.weg ? 2 : 0, b.weg ? forumText(b.grund, 3, 300, 'Grund') : null, p.id); suchIndex(p.id);
       if (b.weg) db.prepare('update forum_meldung set erledigt = ? where beitrag = ? and erledigt = 0').run(jetzt(), p.id);
     }
     if (b.meldung) db.prepare('update forum_meldung set erledigt = ? where id = ?').run(jetzt(), Number(b.meldung));
