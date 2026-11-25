@@ -1528,6 +1528,24 @@ def tests(browser, fach, kurs_ids=None):
     return neu
 
 
+KALENDER = "kalender/OLAT.ics"  # die App liest alle kalender/*.ics und zeigt doppelte Termine (auch aus LFU:online) nur einmal
+
+
+def kalender(page):
+    """OLAT-Kalender mit allen Kurs-, Gruppen- und eigenen Terminen: Kalender → „Persönlicher aggregierter iCal Feed-Link“
+    (am echten OLAT 26.11.2026 geprüft). Der Link trägt ein Token und bleibt am PC, in die App geht nur die .ics."""
+    oeffne(page, OLAT + "/auth/MyCoursesSite/0")
+    oeffne(page, OLAT + page.locator("a.o_sel_user_tools-calendar").first.get_attribute("href"))
+    page.locator(".fc-aggregatedfeed-button").click()
+    url = page.locator(".o_cal_event_callout input[type=text]").first.input_value()
+    if not url.startswith(OLAT + "/ical/"):  # nie eine fremde Adresse abrufen
+        raise RuntimeError("OLAT zeigte keinen iCal-Link")
+    r = page.context.request.get(url)
+    if not r.ok or b"BEGIN:VCALENDAR" not in r.body():
+        raise RuntimeError(f"OLAT lieferte keine Kalenderdatei (HTTP {r.status})")
+    return r.body()
+
+
 def api(methode, pfad, body=None, roh=False):
     """GitHub-API mit dem Token aus zugang.json (darf nur das eigene Daten-Repo lesen und schreiben); roh: Dateiinhalt als Bytes, auch über 1 MB."""
     z = json.loads(ZUGANG.read_text("utf-8"))
@@ -1786,7 +1804,7 @@ if __name__ == "__main__":
                              "autologin": stand.get("autologin_an") and {"eingerichtet": bool(login_lesen()), "fehler": stand.get("autologin_fehler")}}
         try:
             for pfad, inhalt in [*dateien, ("abgleich.json", stand["abgleich"])]:
-                hochladen(stand, pfad, json.dumps(inhalt, ensure_ascii=False).encode())
+                hochladen(stand, pfad, inhalt if isinstance(inhalt, bytes) else json.dumps(inhalt, ensure_ascii=False).encode())
         finally:
             json_schreiben(STAND, stand)
 
@@ -1895,10 +1913,18 @@ if __name__ == "__main__":
         ANZEIGE.ok("Tests und Punkte", f"{z['tests']} gelesen, " + (f"{len(neu_tests)} neu oder geändert" if neu_tests else "nichts geändert")
                    + ", keine Antwort abgeschickt")
         neu += neu_tests
+        ANZEIGE.schritt("Kalender")
+        ANZEIGE.jetzt("holt deine Termine", "OLAT-Kalender")
+        try:
+            ics = kalender(page)
+            ANZEIGE.ok("Kalender", anzahl(ics.count(b"BEGIN:VEVENT"), "Termin", "Termine"))
+        except Exception as e:  # Beiwerk wie die Tests: Unterlagen kommen trotzdem an
+            ics = None
+            ANZEIGE.warnung(f"OLAT-Kalender nicht gelesen ({fehlertext(e)})", zaehlt=True)
         browser.close()
     ANZEIGE.schritt("Lese deine Dateien", len(faecher), hinweis="nur der Text geht in die App, die Dateien bleiben am PC")
     tests_alle = [t for f in KURSE for t in testliste(f)]
-    dateien = [(f"faecher/{f}.json", fach_json(f, hochgeladene(f))) for f in faecher] + [("onlinetests.json", tests_alle)]
+    dateien = [(f"faecher/{f}.json", fach_json(f, hochgeladene(f))) for f in faecher] + [("onlinetests.json", tests_alle)] + ([(KALENDER, ics)] if ics else [])
     ANZEIGE.ok(f"Text aus {anzahl(ANZEIGE.z['gelesen'], 'Datei', 'Dateien')} gelesen")
     stand["dauer"] = int(time.monotonic() - ANZEIGE.start)
     ANZEIGE.schritt("Lade alles in deine App", len(dateien) + 1)
@@ -1910,7 +1936,7 @@ if __name__ == "__main__":
         json_schreiben(STAND, stand)
         raise
     if ANZEIGE.an:
-        name = lambda pfad: pfad.removeprefix("faecher/").removesuffix(".json") if pfad.startswith("faecher/") else "Tests"
+        name = lambda pfad: {"onlinetests.json": "Tests", KALENDER: "Kalender"}.get(pfad) or pfad.removeprefix("faecher/").removesuffix(".json")
         geschickt = [name(pf) for pf, g in ANZEIGE.geschickt if g and pf != "abgleich.json"]
         gleich = [name(pf) for pf, g in ANZEIGE.geschickt if not g and pf != "abgleich.json"]
         if geschickt:

@@ -2358,7 +2358,7 @@ aussehen();
 
         <h2 id="a-termine">Termine und Kalender</h2>
         <ul>
-          <li><b>Stundenplan:</b> Vorlesungen und Proseminare kommen nur aus LFU:online. Dort pro Lehrveranstaltung die .ics-Datei herunterladen und im Kalender mit „ICS-Datei hinzufügen“ hochladen. Sie erscheinen dann auf allen Geräten, mit dem Thema der Einheit aus der Wochenausgabe.</li>
+          <li><b>Stundenplan:</b> Vorlesungen und Proseminare kommen nur aus LFU:online. Dort pro Lehrveranstaltung die .ics-Datei herunterladen und im Kalender mit „ICS-Datei hinzufügen“ hochladen. Hast du das PC-Programm, holt es zusätzlich deinen OLAT-Kalender von selbst. Sie erscheinen dann auf allen Geräten, mit dem Thema der Einheit aus der Wochenausgabe.</li>
           <li><b>Fristen</b> (Abgaben, Onlinetests) kommen aus den Wochenausgaben. Auf <b>Heute</b> stehen sie unter „Als Nächstes“ und lassen sich abhaken; daneben steht die Woche, ein Tag zum Antippen.</li>
           <li>Der <b>Kalender</b> zeigt Montag bis Freitag. Was zur selben Zeit stattfindet, steht nebeneinander; Fristen vom Wochenende stehen beim Freitag.</li>
           <li><b>Ins iPad übernehmen:</b> Im Kalender auf „Neue Fristen übernehmen“ tippen, die Datei öffnen und „Alle hinzufügen“ wählen. Das iPad erinnert dann einen Tag und zwei Stunden vor jeder Frist, auch wenn der Lernhelfer zu ist.</li>
@@ -4706,8 +4706,8 @@ function icsLesen(text, name) {
               if (d >= start.d && d <= bis && tage.length < max) tage.push(d);
             }
         }
-        // „VO Grundlagen der Volkswirtschaft (LV 432002-0 26W)“ → VWL, VO; den Titel liefert später die Ausgabe (Thema der Einheit)
-        const lv = klar(e.SUMMARY).replace(/\s*\(LV [^)]*\)\s*$/, '') || 'Termin', art = lv.match(/^(VO|PS|UE|VU|SE|KS|AG)\b/)?.[1];
+        // „VO Grundlagen der Volkswirtschaft (LV 432002-0 26W)“ bzw. aus OLAT „(2026W432002 Gruppe 0)“ → VWL, VO; den Titel liefert später die Ausgabe (Thema der Einheit)
+        const lv = klar(e.SUMMARY).replace(/\s*\((?:LV |\d{4}[WS]\d{6}\b)[^)]*\)\s*$/, '') || 'Termin', art = lv.match(/^(VO|PS|UE|VU|SE|KS|AG)\b/)?.[1];
         const fach = LV_FACH.find(([r]) => r.test(lv))?.[1] || ALLE_FAECHER.find(f => lv.toLowerCase().includes(f.toLowerCase()));  // andere Studien: Fachname steht im LV-Titel
         for (const d of tage.filter(d => !ex.has(+d)))
           aus.push({ datum: iso(d), zeit: start.ganz ? null : uhr(d), ende: !start.ganz && dauer ? uhr(new Date(+d + dauer)) : null,
@@ -4727,7 +4727,10 @@ function icsLesen(text, name) {
 async function kalenderLaden(neu) {
   if (KAL && !neu) return KAL;
   const liste = ((await gh('kalender', { roh: false })) || []).filter(d => /\.ics$/i.test(d.name));
+  liste.sort((a, b) => (a.name === 'OLAT.ics') - (b.name === 'OLAT.ics'));  // OLAT.ics (PC-Abgleich) zuletzt: was LFU:online schon hat, fällt dort weg
   KAL = await Promise.all(liste.map(async d => ({ name: d.name.replace(/\.ics$/i, ''), sha: d.sha, termine: icsLesen(await gh(`kalender/${d.name}`) || '', d.name.replace(/\.ics$/i, '')) })));
+  const da = new Set();
+  for (const k of KAL) k.termine = k.termine.filter(t => !da.has(`${t.datum}|${t.zeit}|${t.lv}`) && da.add(`${t.datum}|${t.zeit}|${t.lv}`));
   return KAL;
 }
 async function kalenderHochladen(dateien) {
@@ -4832,9 +4835,9 @@ function kalenderZeigen() {
           kuenftig.length > neue.length && el('button', { class: 'knopf', type: 'button', onclick: () => icsExport(kuenftig) }, 'Alle noch einmal'))),
       el('div', { class: 'kal-panel' },
         el('h2', {}, 'Eigene Kalender (.ics)'),
-        el('p', { class: 'klein' }, 'Der Stundenplan aus LFU:online, eine Datei pro Lehrveranstaltung. Vorlesungen und Proseminare kommen nur von hier; die Ausgaben ergänzen das Thema der Einheit. Die Dateien liegen im privaten Daten-Repo und erscheinen so auf allen Geräten.'),
+        el('p', { class: 'klein' }, 'Der Stundenplan aus LFU:online, eine Datei pro Lehrveranstaltung. Mit dem PC-Programm kommt dein OLAT-Kalender von selbst dazu. Vorlesungen und Proseminare kommen nur von hier; die Ausgaben ergänzen das Thema der Einheit. Die Dateien liegen im privaten Daten-Repo und erscheinen so auf allen Geräten.'),
         KAL == null ? el('p', { class: 'meta' }, 'Lade Kalender …') : el('ul', { class: 'kal-liste' }, KAL.map(k => el('li', {},
-          el('span', {}, `${k.termine[0]?.lv || k.name}, ${k.termine.length} Termine`),
+          el('span', {}, `${k.name === 'OLAT' ? 'OLAT-Kalender (vom PC-Abgleich)' : k.termine[0]?.lv || k.name}, ${k.termine.length} Termine`),
           el('button', { class: 'knopf', type: 'button', onclick: () => kalenderLoeschen(k) }, 'Entfernen')))),
         el('div', { class: 'knopfreihe' }, el('label', { class: 'knopf' }, 'ICS-Datei hinzufügen',
           el('input', { type: 'file', accept: '.ics,text/calendar', multiple: true, class: 'sr', onchange: e => kalenderHochladen([...e.target.files]) }))))));
@@ -11358,9 +11361,13 @@ const CHANGELOG = [
     ['22:25', 'PC-Programm: Name, Matrikelnummer und Klausur-ID aus Mathe-Rückgaben bleiben am PC, in die App gehen nur Punkte und Auswertung'],
     ['22:35', 'PC-Programm: lädt Rückgabe-Dateien per „Herunterladen“-Klick (OLAT nennt dort keine Adressen), Datum aus „erstellt am“; am echten OLAT geprüft']] },
   { d: '2026-11-26', k: [
-    ['00:30', 'Die Wochenausgaben zuerst', 'Auf Heute stand vor den Fächern viel anderes. Jetzt kommen ganz oben die Wochenausgaben, darunter „Was willst du verstehen?“, Weiterlernen und „Frag den Lernhelfer“.', 0, 1]], t: [
+    ['00:30', 'Die Wochenausgaben zuerst', 'Auf Heute stand vor den Fächern viel anderes. Jetzt kommen ganz oben die Wochenausgaben, darunter „Was willst du verstehen?“, Weiterlernen und „Frag den Lernhelfer“.', 0, 1],
+    ['00:45', 'Der OLAT-Kalender kommt von selbst', 'Bisher musste man für den Stundenplan jede .ics-Datei einzeln aus LFU:online laden. Jetzt holt das PC-Programm bei jedem Abgleich auch den OLAT-Kalender mit allen Kurs-, Gruppen- und eigenen Terminen.', 0, 2, [
+      'OLAT bietet einen „aggregierten iCal-Feed“ mit allen Kalendern, auf die man Zugriff hat. Das Programm liest den Link dazu aus der Kalender-Seite und lädt nur die Termine in die App, der Link selbst bleibt am PC.',
+      'Viele Vorlesungen stehen in beiden Kalendern, mit leicht anderem Titel. Die App erkennt doppelte Termine an Tag, Uhrzeit und Lehrveranstaltung und zeigt sie nur einmal.']]], t: [
     ['00:30', 'Heute: Fächer an erster Stelle, dann Thema lernen, Weiterlernen, Frag den Lernhelfer'],
-    ['00:30', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen']] },
+    ['00:30', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen'],
+    ['00:45', 'Kalender: PC-Programm holt den OLAT-Kalender automatisch, doppelte Termine erscheinen nur einmal']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

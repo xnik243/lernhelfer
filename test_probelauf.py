@@ -2,7 +2,7 @@
 Lernhelfer-Server auf 127.0.0.1. Fängt, was Einzeltests nicht sehen, etwa einen Fehler im Hauptteil, der erst bei der ersten
 Warnung den ganzen Abgleich abbricht (25.11.2026). Läuft vor jedem Commit von holen.py (.git/hooks/pre-commit).
 
-  gut:     ein Dokument, drei Testbausteine (Rückgabe ohne ladbare Datei, Rückgabe als HTML, kaputter Link) → alles kommt an
+  gut:     ein Dokument, drei Testbausteine (Rückgabe ohne ladbare Datei, Rückgabe als HTML, kaputter Link), der OLAT-Kalender → alles kommt an
   absturz: der Server lehnt onlinetests.json ab → Fehlerbericht an /api/fehler und „abgebrochen“ in abgleich.json"""
 import base64, hashlib, json, os, shutil, subprocess, sys, tempfile, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -13,7 +13,11 @@ HIER = Path(__file__).parent
 DRIN = "<p>Eingeloggt als Probe</p>"
 li = lambda i, titel, icon: f'<li data-nodeid="{i}"><div><span class="o_tree_link"><a href="#"><i class="o_icon {icon}"></i> {titel}</a></span></div></li>'
 SEITEN = {
-    "/auth/MyCoursesSite/0": DRIN,
+    "/auth/MyCoursesSite/0": DRIN + '<a class="o_sel_user_tools-calendar" href="/auth/HomeSite/1/calendar/0">Kalender</a>',
+    # wie die echte Seite (Kalender › „Persönlicher aggregierter iCal Feed-Link“, 26.11.2026): der Knopf öffnet eine Sprechblase mit dem Link
+    "/auth/HomeSite/1/calendar/0": DRIN + '<button class="fc-aggregatedfeed-button" onclick="feed()">Feed</button>'
+        "<script>function feed() { const d = document.createElement('div'); d.className = 'o_callout_content o_cal_event_callout';"
+        " d.innerHTML = '<input type=text>'; d.firstChild.value = location.origin + '/ical/paggregated/1/geheim'; document.body.append(d); }</script>",
     "/auth/RepositoryEntry/222": DRIN + '<div id="o_main_center_content_inner"><a href="/files/VO1.txt">Herunterladen</a></div>',
     "/auth/RepositoryEntry/111": DRIN + '<div class="o_tree"><ul><li data-nodeid="0"><div><span class="o_tree_link"><a href="#"><i class="o_icon o_CourseModule_icon"></i> PS</a></span></div>'
         f'<ul>{li(1, "Testergebnisse", "o_gta_icon")}{li(2, "PS-Test 2", "o_gta_icon")}{li(3, "Kaputt", "o_gta_icon")}</ul></li></ul></div>',
@@ -36,6 +40,7 @@ SEITEN = {
 }
 DATEIEN = {
     "/files/VO1.txt": "Grenzwerte und Ableitungen",
+    "/ical/paggregated/1/geheim": "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nDTSTART;TZID=Europe/Vienna:20261005T094500\r\nSUMMARY:Teamtreffen\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
     # Aufbau wie die echten Klausurergebnisse der Mathe-PS-Tests (Prüfungsbeleg als eingebettetes Bild), Person erfunden
     "/files/PS2.html": "<h3>Klausurergebnisse</h3><table>\n<tr><td>Name:</td><td>Muster Max</td></tr>\n<tr><td>Matrikelnummer:</td><td>00000000</td></tr>\n"
         "<tr><td>Klausur-ID:</td><td>26111600000</td></tr>\n<tr><td>Punkte:</td><td>8</td></tr>\n</table>\n<h3>Auswertung</h3><table>\n"
@@ -123,6 +128,7 @@ def test_probelauf():
     assert tests["PS2"]["bis"] == "2026-10-20", tests["PS2"]
     assert g_klicks == ["cid=download"], f"Testschutz: nur der eine Herunterladen-Klick darf OLAT erreichen, nicht {g_klicks}"
     assert "Grenzwerte und Ableitungen" in g_speicher["faecher/Mathematik.json"].decode(), "Unterlage kam nicht an"
+    assert b"SUMMARY:Teamtreffen" in g_speicher.get("kalender/OLAT.ics", b""), f"OLAT-Kalender kam nicht an\n{g_aus[-3000:]}"
     assert not g_berichte, f"Fehlerbericht ohne Absturz: {g_berichte}"
 
     assert k_code != 0, "Absturz-Lauf endete ohne Fehler"
