@@ -2426,7 +2426,7 @@ aussehen();
             <li><b>Es spricht nur mit OLAT und dem Lernhelfer.</b> Es lädt die Unterlagen deiner Kurse und die Startseiten der Onlinetests und schickt ihren Text in <span class="nur-server">dein Konto</span><span class="nur-eigen">deinen privaten Speicher</span>. Andere Dateien auf deinem Computer liest es nicht. Neue Fassungen von sich selbst holt es von dieser Seite.</li>
             <li><b>Der Schlüssel im Befehl bzw. in der Datei</b> öffnet nur deinen Speicher, nicht <span class="nur-server">dein Konto und nicht </span>deine Passwörter. Gib ihn trotzdem nie weiter.<span class="nur-server"> Holst du Befehl oder Datei neu, gilt der alte Schlüssel nicht mehr.</span></li>
             <li><b>Die Windows-Sperre</b> (SmartScreen, „Der Computer wurde durch Windows geschützt“) kommt, weil die Datei keine gekaufte Signatur hat, nicht weil etwas Gefährliches gefunden wurde. „Als Administrator ausführen“ ist nur der Weg daran vorbei. Das Programm braucht die Rechte nicht: Es richtet sich nur im Ordner oben ein, und der Abgleich danach läuft ohne sie.</li>
-            <li><b>Selbst nachlesen:</b> Der ganze Code ist öffentlich: <a href="einrichten-mac.sh" target="_blank" rel="noopener">Einrichten am Mac</a>, <a href="einrichten.ps1" target="_blank" rel="noopener">Einrichten am PC</a> und das <a href="holen.py" target="_blank" rel="noopener">Abgleich-Programm</a>. Am einfachsten lässt du ihn von einer KI prüfen: Ein Klick öffnet ChatGPT oder Claude mit einer kritischen Frage dazu.<div id="a-pruefen"></div></li>
+            <li><b>Selbst nachlesen:</b> Der ganze Code ist öffentlich: <a href="einrichten-mac.sh" target="_blank" rel="noopener">Einrichten am Mac</a>, <a href="einrichten.ps1" target="_blank" rel="noopener">Einrichten am PC</a> und das <a href="holen.py" target="_blank" rel="noopener">Abgleich-Programm</a>. Am einfachsten lässt du ihn von einer KI prüfen: Ein Klick öffnet ChatGPT oder Claude, die KI prüft Punkt für Punkt, ob stimmt, was hier steht, und nennt die Risiken, die trotzdem bleiben.<div id="a-pruefen"></div></li>
             <li><b>Wieder entfernen</b> geht mit ein paar Klicks bzw. einer Zeile, siehe <a href="#a-pc">Der Abgleich am PC oder Mac</a>.</li>
           </ul>
         </div>
@@ -7764,22 +7764,23 @@ async function pcLaden(e) {
 // öffnet ChatGPT bzw. Claude mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie in startseite.js)
 function pruefFrage() {
   const datei = n => new URL(n, location.href).href;
-  return `Ich überlege, für die Lern-App „Lernhelfer“ (${location.host}) ein Programm auf meinem Computer einzurichten. Es soll meine Unterlagen aus OLAT holen, dem Lernportal meiner Uni. Den Entwickler kenne ich nicht, und ich will wissen, ob ich dem Programm trauen kann.
-
-Der Code ist öffentlich:
+  const h = location.host;
+  return `Ich will für die Lern-App „Lernhelfer“ (${h}) ein Programm auf meinem Computer einrichten. Es holt meine Unterlagen aus OLAT, dem Lernportal meiner Uni, und lädt ihren Text in mein Konto beim Lernhelfer. Bitte prüf den öffentlichen Code:
 - ${datei('einrichten.ps1')} richtet es am Windows-PC ein
 - ${datei('einrichten-mac.sh')} richtet es am Mac ein
 - ${datei('holen.py')} ist das Programm selbst
 
-Am PC lädt man aus der App eine kurze Startdatei „Lernhelfer-PC-einrichten.cmd“. Sie setzt einen persönlichen Zugangsschlüssel, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac kopiert man stattdessen einen Terminal-Befehl, der einrichten-mac.sh lädt und ausführt.
+Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen persönlichen Schlüssel für meinen Speicher, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac geht dasselbe über einen Terminal-Befehl. Die Stellen im Code, die GitHub nennen, gehören zu einer selbst betriebenen Variante ohne Server; bei ${h} gehen die Daten an diesen Server.
 
-Bitte lies den Code und sei kritisch:
-1. Was macht das Programm genau, und wohin schickt es Daten?
-2. Was passiert mit meinem Uni-Login und Passwort?
-3. Ist etwas daran verdächtig, gefährlich oder unnötig?
-4. Würdest du es an meiner Stelle installieren?
+Die Seite verspricht Folgendes. Stimmt das laut Code, Punkt für Punkt?
+1. Es ist kein Virus und keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine anderen Dateien auf meinem Computer.
+2. Es verbindet sich nur mit OLAT, der Uni-Anmeldung und ${h}, beim Einrichten außerdem mit den offiziellen Quellen für Python und seine Pakete. Zusatzquellen wie mathe4wiwi.org nur, wenn ich selbst eine Datei quellen.json anlege.
+3. Mein Uni-Passwort speichert es nur, wenn ich den automatischen Login in der App selbst einschalte. Dann liegt es verschlüsselt auf meinem Computer und geht nur an die Login-Seite der Uni, nie an ${h}.
+4. Neue Fassungen von sich selbst übernimmt es nur mit gültiger Signatur.
+5. Bewertete Onlinetests öffnet es nie, und in OLAT trägt es nichts ein.
+6. Es braucht keine Administratorrechte und lässt sich vollständig entfernen.
 
-Falls du die Links nicht öffnen kannst, sag es mir, dann lade ich die Dateien hoch.`;
+Sag mir danach ehrlich, welche Risiken trotzdem bleiben und wie ich sie klein halte. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 }
 function pruefKnoepfe() {
   const f = encodeURIComponent(pruefFrage());
@@ -11327,7 +11328,9 @@ const CHANGELOG = [
     ['13:45', 'Anonym: kein Konto, keine IP, Uhrzeit auf die Stunde; kein Gelesen, keine Reaktionen, keine Lesezeichen; löschen nur auf dem eigenen Gerät; Regeln vor dem ersten Besuch'],
     ['13:45', 'Forum: Melden mit Gründen zur Auswahl statt Freitext'],
     ['15:05', 'Startseite: „Wer dahintersteckt“ mit Foto, ein paar Sätzen von mir und Kontakt'],
-    ['15:05', 'Beim PC-Programm: Notiz „Erst prüfen, dann laden“; ChatGPT oder Claude öffnen mit einer kritischen Frage zum öffentlichen Code, auch in der Anleitung']] },
+    ['15:05', 'Beim PC-Programm: Notiz „Erst prüfen, dann laden“; ChatGPT oder Claude öffnen mit einer kritischen Frage zum öffentlichen Code, auch in der Anleitung'],
+    ['15:50', 'Prüfen lassen: Die KI prüft jetzt jedes Versprechen der Seite einzeln gegen den Code und nennt, welche Risiken bleiben'],
+    ['15:50', 'PC-Programm: Beschreibung im Code auf dem aktuellen Stand (Daten gehen an den Server, automatischer Login ist aus, bis man ihn einschaltet)']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

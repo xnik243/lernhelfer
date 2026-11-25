@@ -172,22 +172,23 @@ function zeichnen() {
 
 // Prüfen lassen: ChatGPT bzw. Claude öffnen gleich mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie pruefFrage() in index.html)
 const datei = (n) => new URL(n, location.href).href;
-const frage = `Ich überlege, für die Lern-App „Lernhelfer“ (${location.host}) ein Programm auf meinem Computer einzurichten. Es soll meine Unterlagen aus OLAT holen, dem Lernportal meiner Uni. Den Entwickler kenne ich nicht, und ich will wissen, ob ich dem Programm trauen kann.
-
-Der Code ist öffentlich:
+const h = location.host;
+const frage = `Ich will für die Lern-App „Lernhelfer“ (${h}) ein Programm auf meinem Computer einrichten. Es holt meine Unterlagen aus OLAT, dem Lernportal meiner Uni, und lädt ihren Text in mein Konto beim Lernhelfer. Bitte prüf den öffentlichen Code:
 - ${datei("einrichten.ps1")} richtet es am Windows-PC ein
 - ${datei("einrichten-mac.sh")} richtet es am Mac ein
 - ${datei("holen.py")} ist das Programm selbst
 
-Am PC lädt man aus der App eine kurze Startdatei „Lernhelfer-PC-einrichten.cmd“. Sie setzt einen persönlichen Zugangsschlüssel, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac kopiert man stattdessen einen Terminal-Befehl, der einrichten-mac.sh lädt und ausführt.
+Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen persönlichen Schlüssel für meinen Speicher, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac geht dasselbe über einen Terminal-Befehl. Die Stellen im Code, die GitHub nennen, gehören zu einer selbst betriebenen Variante ohne Server; bei ${h} gehen die Daten an diesen Server.
 
-Bitte lies den Code und sei kritisch:
-1. Was macht das Programm genau, und wohin schickt es Daten?
-2. Was passiert mit meinem Uni-Login und Passwort?
-3. Ist etwas daran verdächtig, gefährlich oder unnötig?
-4. Würdest du es an meiner Stelle installieren?
+Die Seite verspricht Folgendes. Stimmt das laut Code, Punkt für Punkt?
+1. Es ist kein Virus und keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine anderen Dateien auf meinem Computer.
+2. Es verbindet sich nur mit OLAT, der Uni-Anmeldung und ${h}, beim Einrichten außerdem mit den offiziellen Quellen für Python und seine Pakete. Zusatzquellen wie mathe4wiwi.org nur, wenn ich selbst eine Datei quellen.json anlege.
+3. Mein Uni-Passwort speichert es nur, wenn ich den automatischen Login in der App selbst einschalte. Dann liegt es verschlüsselt auf meinem Computer und geht nur an die Login-Seite der Uni, nie an ${h}.
+4. Neue Fassungen von sich selbst übernimmt es nur mit gültiger Signatur.
+5. Bewertete Onlinetests öffnet es nie, und in OLAT trägt es nichts ein.
+6. Es braucht keine Administratorrechte und lässt sich vollständig entfernen.
 
-Falls du die Links nicht öffnen kannst, sag es mir, dann lade ich die Dateien hoch.`;
+Sag mir danach ehrlich, welche Risiken trotzdem bleiben und wie ich sie klein halte. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 for (const a of document.querySelectorAll(".pk")) {
   a.href = a.dataset.ki === "claude" ? `https://claude.ai/new?q=${encodeURIComponent(frage)}` : `https://chatgpt.com/?hints=search&q=${encodeURIComponent(frage)}`;
 }

@@ -1,4 +1,5 @@
-"""Holt neue Unterlagen aus OLAT und lädt ihren Text ins private Daten-Repo (über die GitHub-API, ohne git).
+"""Holt neue Unterlagen aus OLAT und lädt ihren Text in den eigenen Speicher: mit dem Lernhelfer-Server (lernhelfer.xyz) auf
+diesen Server, nur in der selbst betriebenen Variante ohne Server in ein privates GitHub-Repo (über die GitHub-API, ohne git).
 
 Einrichten: in der App unter Einrichten bzw. Konto. Windows: einrichten.ps1 (Python, dieses Skript und die Aufgabenplanung nach
 %LOCALAPPDATA%\\Lernhelfer); Mac: einrichten-mac.sh (nach ~/Library/Lernhelfer, launchd statt Aufgabenplanung).
@@ -6,8 +7,9 @@ Start von Hand: python holen.py [Fach ...]; --auto = Lauf aus der Aufgabenplanun
 Die Aufgabenplanung ruft alle 30 Minuten auf, OLAT sieht davon aber nur einen Abgleich etwa alle 12 Stunden, tagsüber und mit
 Pausen zwischen den Seiten wie beim Klicken von Hand (faellig(), pause()); dazwischen geht keine einzige Anfrage an OLAT.
 Ist die OLAT-Sitzung abgelaufen, öffnet sich Chrome (am Mac ohne Chrome: Chromium): dort selbst einloggen (SSO + Authenticator).
-Automatischer Login (Standard, abschaltbar in der App): Der nächste Start von Hand fragt einmal Kennung, Passwort und
-2FA-Schlüssel ab; danach loggt er sich unsichtbar selbst ein (siehe autologin()).
+Automatischer Login: aus, bis man ihn in der App einschaltet und den Hinweisen zustimmt. Dann fragt der nächste Start von Hand
+einmal Kennung, Passwort und 2FA-Schlüssel ab, speichert sie verschlüsselt auf diesem Computer (Windows: DPAPI, Mac: Schlüsselbund)
+und schickt sie nur an die Login-Seite der Uni, nie an den Lernhelfer. Schalter wieder aus = gespeicherte Daten gelöscht (autologin()).
 
 Tests: Gelesen werden die Startseiten (Zeitraum, Punkte, Versuche), nach Ablauf stehen Fragen und Lösung dort. Selbsttests
 werden einmal angesehen und mit „Test unterbrechen“ + „Ok“ verlassen. Bewertete Tests startet er nie. Ein Wächter im
@@ -65,10 +67,12 @@ BASIS = Path(__file__).parent
 MATERIAL = BASIS / "material"
 KURSDATEI = BASIS / "kurse.json"  # fehlt sie, sucht der erste Abgleich die Kurse selbst (kurse_finden)
 KURSE = json_lesen(KURSDATEI, None)
-ZUGANG = BASIS / "zugang.json"  # {"repo": "name/lernhelfer-daten", "token": "github_pat_…", "api": Lernhelfer-Server oder null, "app": Adresse der App}, schreibt das Einrichten
+# {"repo", "token", "api", "app"}, schreibt das Einrichten. Mit Server: token öffnet nur den eigenen Speicher dort (kein Konto-Passwort),
+# api und app zeigen auf den Server. Selbst betriebene Variante: repo = privates Daten-Repo, token = GitHub-Token nur dafür, api = null.
+ZUGANG = BASIS / "zugang.json"
 STAND = BASIS / ".stand.json"  # letzter Abgleich, hochgeladene Dateiversionen, wann das Login-Fenster zuletzt kam
-APP = "https://xnik243.github.io/lernhelfer/"
-API = os.environ.get("LH_API", "https://api.github.com")  # der Prüfstand setzt hier eine Attrappe ein
+APP = "https://xnik243.github.io/lernhelfer/"  # nur ohne Server; mit Server steht die Adresse als "app" in zugang.json
+API = os.environ.get("LH_API", "https://api.github.com")  # ebenso, mit Server gilt "api" aus zugang.json; der Prüfstand setzt hier eine Attrappe ein
 # Angemeldet erkennt man an der Kopfzeile; auch mit OLAT auf Englisch, sonst gälte die Sitzung immer als abgelaufen
 EINGELOGGT = re.compile(r"Eingeloggt als|Logged in as", re.I)
 API_PAUSE = 5  # Sekunden vor dem ersten Nachfassen, wenn das Hochladen am Netz scheitert (Tests setzen 0)
