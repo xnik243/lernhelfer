@@ -276,6 +276,6 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 
 /* Changelog: Linie gezeichnet, sonst nur Tinte und Grau */
 .cl-liste { border-left: 0; background: var(--strich-senkrecht) left top / 6px 100% no-repeat; }
-.cl-liste > li::before { left: -3px; }
+.cl-liste > li::before { left: -2px; }
 .cl-pause { border-left-style: dotted; }
 .cl-phase { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }

@@ -567,52 +567,35 @@
   .anleitung .inhalt { columns: 2 15rem; margin: 0; padding: 14px 18px 14px 2.4em; border-radius: var(--r-l); background: var(--bg-2); font-weight: 550; line-height: 2; }
   .anleitung .inhalt li::marker { color: var(--text-3); }
   .anleitung .text { max-width: none; }
-  /* Changelog: Zeitleiste nach Tagen, Uhrzeit links der Linie, Punkt je Eintrag; Überlegungen hervorgehoben */
+  /* Changelog: Zeitleiste nach Tagen, Uhrzeit links der Linie, Punkt je Eintrag. Schlicht: Farbe nur für Überlegungen und Links */
   .changelog { max-width: 760px; }
-  .cl-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .cl-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 4px; }
   .cl-kopf .vt-filterreihe { margin: 0; }
   .changelog > .klein { margin: 12px 0 8px; }
-  .cl-phase { margin: 44px 0 0; padding-top: 18px; border-top: 1px solid var(--linie); font: 750 1.375rem/1.2 var(--sans); letter-spacing: -0.01em; }
-  .cl-phase small { display: block; margin-bottom: 6px; color: var(--text-3); font: 550 0.8125rem/1 var(--sans); }
-  .cl-datum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 26px 0 12px; font: 650 1rem/1.3 var(--sans); }
+  .cl-phase { margin: 56px 0 0; padding-top: 18px; border-top: 1px solid var(--linie); font: 750 1.375rem/1.2 var(--sans); letter-spacing: -0.01em; text-wrap: balance; }
+  .cl-datum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 28px 0 12px; font: 650 1rem/1.3 var(--sans); }
   .cl-datum span { color: var(--text-3); font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; }
   .cl-liste { margin: 0 0 0 4rem; padding: 0; border-left: 2px solid var(--linie); list-style: none; }
-  .cl-liste > li { position: relative; padding: 0 0 18px 22px; }
+  .cl-liste > li { position: relative; padding: 0 0 20px 22px; }
   .cl-liste > li:last-child { padding-bottom: 4px; }
-  .cl-liste > li::before { content: ""; position: absolute; left: -7px; top: 0.3rem; box-sizing: border-box; width: 12px; height: 12px; border: 2px solid var(--text-3); border-radius: 50%; background: var(--bg); }
-  .cl-liste > li.idee::before { border-color: var(--text); background: var(--text); }
+  .cl-liste > li::before { content: ""; position: absolute; left: -6px; top: 0.4rem; box-sizing: border-box; width: 10px; height: 10px; border: 1.5px solid var(--text-3); border-radius: 50%; background: var(--bg); }
+  .cl-liste > li.idee::before { border-color: var(--akzent); background: var(--akzent); }
   .cl-uhr { position: absolute; top: 0; right: calc(100% + 16px); color: var(--text-3); font-size: 0.8125rem; line-height: 1.4rem; font-variant-numeric: tabular-nums; }
   .cl-liste strong { display: block; color: var(--text); font-weight: 650; line-height: 1.4rem; }
   .cl-liste p { margin: 3px 0 0; color: var(--text-2); font: 400 1rem/1.55 var(--serif); }
   .cl-liste.technik > li { padding-bottom: 10px; color: var(--text-2); line-height: 1.4rem; }
-  .cl-marke { display: inline-block; margin-bottom: 2px; color: var(--text-3); font: 600 0.75rem/1.5rem var(--sans); }
-  .cl-liste.technik .cl-marke { margin: 0 8px 0 0; }
+  .cl-marke { margin-left: 8px; color: var(--akzent-text); font-size: 0.8125rem; font-weight: 600; white-space: nowrap; }
   .cl-pause { margin: 22px 0 0 4rem; padding: 8px 0 8px 22px; border-left: 2px dashed var(--linie-2); color: var(--text-3); font-size: 0.8125rem; }
-  .cl-liste strong:has(.cl-aufwand) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; }
-  .cl-aufwand { display: inline-flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 0.75rem; font-weight: 550; }
-  .cl-balken { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
-  .cl-balken i { width: 4px; border-radius: 1px; background: var(--linie-2); opacity: 0.45; }
-  .cl-balken i:nth-child(1) { height: 4px; } .cl-balken i:nth-child(2) { height: 7px; } .cl-balken i:nth-child(3) { height: 10px; } .cl-balken i:nth-child(4) { height: 12px; }
-  .cl-aufwand[data-stufe="1"] i:nth-child(-n+1), .cl-aufwand[data-stufe="2"] i:nth-child(-n+2),
-  .cl-aufwand[data-stufe="3"] i:nth-child(-n+3), .cl-aufwand[data-stufe="4"] i { background: var(--text-2); opacity: 1; }
-  .cl-mehr { margin-top: 8px; }
-  .cl-mehr summary { display: inline-flex; align-items: center; min-height: 32px; color: var(--text-2); text-decoration: underline 1px var(--linie-2); text-underline-offset: 3px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+  .cl-mehr { margin-top: 6px; }
+  .cl-mehr summary { display: inline-flex; align-items: center; min-height: 32px; color: var(--akzent-text); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
   @media (pointer: coarse) { .cl-mehr summary { min-height: 44px; } }
-  .cl-mehr ul { margin: 4px 0 4px; padding: 12px 16px 12px 2em; border-radius: var(--r); background: var(--bg-2); color: var(--text-2); font: 400 0.9375rem/1.55 var(--serif); }
+  .cl-mehr ul { margin: 2px 0 4px; padding-left: 1.2em; color: var(--text-2); font: 400 0.9375rem/1.55 var(--serif); }
   .cl-mehr li + li { margin-top: 6px; }
-  .cl-umfang { margin: -8px 0 22px; }
-  .cl-umfang p { margin: 0 0 8px; }
-  .cl-umfang strong { font-variant-numeric: tabular-nums; }
-  .cl-anteile { display: flex; gap: 2px; height: 10px; overflow: hidden; border-radius: 999px; }
-  .cl-anteile span { min-width: 4px; }
-  .cl-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; padding: 0; color: var(--text-2); font-size: 0.8125rem; list-style: none; }
-  .cl-legende li { display: inline-flex; align-items: center; gap: 6px; }
-  .cl-legende li::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
-  .cl-legende span { color: var(--text-3); font-variant-numeric: tabular-nums; }
   @media (max-width: 599.98px) {
     .cl-liste, .cl-pause { margin-left: 6px; }
     .cl-liste > li { padding-left: 18px; }
     .cl-uhr { position: static; display: block; line-height: 1.3rem; }
+    .cl-kopf .knopf.leise { padding-inline: 0; }
   }
   .anleitung .text h2 { margin: 48px 0 12px; font: 700 1.375rem/1.25 var(--sans); letter-spacing: -0.01em; scroll-margin-top: 20px; }
   .anleitung .text h3 { margin-top: 1.5em; }
@@ -11062,53 +11045,40 @@ const CHANGELOG = [
     ['22:41', 'Projekt-Hinweis unten lässt sich schließen oder 7 Tage ausblenden'],
     ['22:48', 'Thema lernen: allgemeine Fragen ohne erzwungenen Fachbezug']] },
   { d: '2026-11-25', k: [
-    ['07:10', 'Ruhigerer Changelog', 'Diese Seite war zu bunt. Zeitleiste, Balken und Markierungen sind jetzt nur noch Schwarz und Grau, wie der Rest der App.', 0, 1]], t: [
-    ['07:10', 'Changelog: weniger Farbe, nur Tinte und Grau']] },
+    ['07:10', 'Schlichterer Changelog', 'Weniger auf einmal: kein Zahlenbalken und keine Aufwand-Balken mehr. Farbe bleibt dort, wo sie etwas sagt: Blau markiert Überlegungen und Links.', 0, 1]], t: [
+    ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
-const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046, 'var(--text)'], ['App', 12438, 'var(--text-2)'], ['Server', 3143, 'var(--text-3)'],
-  ['PC-Programm', 2903, 'var(--linie-2)'], ['Lernhof', 2315, 'var(--linie)']] };  // Graustufen statt Fachfarben: die Seite soll ruhig bleiben
-const CL_STUFEN = ['', 'klein', 'mittel', 'groß', 'sehr groß'];
+const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
 let CL_ANSICHT = (() => { try { return localStorage.getItem('lh-changelog'); } catch { return null; } })() === 'technik' ? 'technik' : 'kurz';
 function changelogZeigen() {
   const technik = CL_ANSICHT === 'technik', tag = s => new Date(s + 'T12:00');
-  const aenderungen = CHANGELOG.reduce((n, x) => n + x.t.length, 0), ueberlegungen = CHANGELOG.reduce((n, x) => n + x.k.filter(e => e[3]).length, 0);
+  const aenderungen = CHANGELOG.reduce((n, x) => n + x.t.length, 0), zeilen = CL_UMFANG.teile.reduce((n, t) => n + t[1], 0);
   const lang = d => tag(d).toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long' });
-  let phase = 0;
   const liste = el('div', { class: 'cl-zeit' }, CHANGELOG.map((x, i) => {
     const pause = i && Math.round((tag(x.d) - tag(CHANGELOG[i - 1].d)) / 864e5) - 1;
     // technisch: jede Änderung, dazwischen die Überlegungen des Tages
     const eintraege = technik ? [...x.t.map(([u, s]) => [u, '', s]), ...x.k.filter(e => e[3])].sort((a, b) => a[0].localeCompare(b[0])) : x.k;
     return [pause > 2 && el('p', { class: 'cl-pause' }, `${pause} Tage ohne Änderungen am Code`),
-      x.phase && el('h2', { class: 'cl-phase' }, el('small', {}, `Phase ${++phase}`), x.phase),
+      x.phase && el('h2', { class: 'cl-phase' }, x.phase),
       el('section', { class: 'cl-tag', 'aria-label': lang(x.d) },
         el('h3', { class: 'cl-datum' }, lang(x.d), el('span', {}, `${x.t.length} ${x.t.length === 1 ? 'Änderung' : 'Änderungen'}`)),
-        el('ol', { class: `cl-liste${technik ? ' technik' : ''}` }, eintraege.map(([u, titel, text, idee, aufwand, mehr]) => el('li', { class: idee ? 'idee' : null },
+        el('ol', { class: `cl-liste${technik ? ' technik' : ''}` }, eintraege.map(([u, titel, text, idee, , mehr]) => el('li', { class: idee ? 'idee' : null },
           el('time', { class: 'cl-uhr', datetime: `${x.d}T${u}` }, u),
-          !!idee && el('span', { class: 'cl-marke' }, 'Überlegung'),
-          titel && el('strong', {}, titel, aufwand && el('span', { class: 'cl-aufwand', 'data-stufe': aufwand },
-            el('span', { class: 'cl-balken', 'aria-hidden': 'true' }, [1, 2, 3, 4].map(() => el('i'))), `Aufwand: ${CL_STUFEN[aufwand]}`)),
+          titel && el('strong', {}, titel, !!idee && el('span', { class: 'cl-marke' }, 'Überlegung')),
           text && el(technik && !idee ? 'span' : 'p', {}, text),
           mehr && el('details', { class: 'cl-mehr' }, el('summary', {}, 'Was dahinter steckt'), el('ul', {}, mehr.map(s => el('li', {}, s))))))))];
   }));
-  const zeilen = CL_UMFANG.teile.reduce((n, t) => n + t[1], 0), zahl = n => n.toLocaleString('de-DE');
-  const umfang = el('section', { class: 'cl-umfang', 'aria-label': 'Umfang heute' },
-    el('p', {}, el('strong', {}, `Rund ${zahl(Math.round(zeilen / 100) * 100)} Zeilen Code`),
-      el('span', { class: 'meta' }, ` · Stand ${tag(CL_UMFANG.stand).toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })}, ohne Bibliotheken, Schriften und Bilder`)),
-    el('div', { class: 'cl-anteile', 'aria-hidden': 'true' }, CL_UMFANG.teile.map(([, n, farbe]) => el('span', { style: `flex-grow: ${n}; background: ${farbe}` }))),
-    el('ul', { class: 'cl-legende' }, CL_UMFANG.teile.map(([name, n, farbe]) => el('li', { style: `--c: ${farbe}` }, name, el('span', {}, zahl(n))))));
   const wahl = (k, name) => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(CL_ANSICHT === k),
     onclick: () => { CL_ANSICHT = k; try { localStorage.setItem('lh-changelog', k); } catch {} changelogZeigen(); } }, name);
   $('changelog').replaceChildren(
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Changelog'),
       el('p', { class: 'schlagzeile' }, 'Wie der Lernhelfer entstanden ist, vom ersten Stand bis heute.'),
-      el('p', { class: 'meta cl-zahlen' }, `${aenderungen} Änderungen · ${CHANGELOG.length} Arbeitstage · ${ueberlegungen} Überlegungen · seit ${tag(CHANGELOG[0].d).toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' })}`)),
-    umfang,
+      el('p', { class: 'meta cl-zahlen' }, `Seit ${tag(CHANGELOG[0].d).toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' })} · ${CHANGELOG.length} Arbeitstage · ${aenderungen} Änderungen · rund ${(Math.round(zeilen / 100) * 100).toLocaleString('de-DE')} Zeilen Code`)),
     el('div', { class: 'cl-kopf' },
       el('div', { class: 'vt-filterreihe', role: 'group', 'aria-label': 'Ansicht' }, wahl('kurz', 'Zusammengefasst'), wahl('technik', 'Technisch')),
-      el('button', { type: 'button', class: 'knopf', onclick: () => liste.lastElementChild.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }, 'Zum neuesten Stand')),
-    el('p', { class: 'klein' }, technik ? 'Jede Änderung am Code mit Uhrzeit. Ausgelassen sind nur interne Dinge wie Serverbetrieb und Verwaltung.'
-      : 'Die wichtigsten Schritte je Tag. Die Balken zeigen, wie aufwändig ein Schritt war; bei großen Schritten steht darunter, was dahinter steckt. „Überlegung“ markiert Stellen, an denen ich erst geplant und dann gebaut habe.'),
+      el('button', { type: 'button', class: 'knopf leise', onclick: () => liste.lastElementChild.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }, 'Zum neuesten Stand')),
+    ...technik ? [el('p', { class: 'klein' }, 'Jede Änderung am Code mit Uhrzeit. Ausgelassen sind nur interne Dinge wie Serverbetrieb und Verwaltung.')] : [],
     liste);
 }
 // Anleitung: der Knopf zum Programm gleich oben, nicht erst unter Start oder Konto
