@@ -215,7 +215,12 @@ try {
   assert.equal((await person()('POST', '/api/anmelden', { email: 'alt@example.com', passwort: 'altes-passwort-1' })).status, 200, 'alter Hash gilt');
   assert.match(tdb.prepare("select pw from konten where email = 'alt@example.com'").get().pw, /^s2:/, 'beim Anmelden neu gehasht');
   assert.match(tdb.prepare("select pw from konten where email = 'anna@student.uibk.ac.at'").get().pw, /^s2:/, 'neue Konten mit neuen Werten');
-  tdb.prepare("delete from konten where email = 'alt@example.com'").run(); tdb.close();
+  tdb.prepare("delete from konten where email = 'alt@example.com'").run();
+  // Mail-Kontingent (Brevo 300 am Tag) fast leer: keine neuen Konten, deren Bestätigungslink nie ankäme
+  const mails = 'mails:' + new Date().toISOString().slice(0, 10), vorher = tdb.prepare('select wert from werte where name = ?').get(mails)?.wert ?? 0;
+  tdb.prepare('insert into werte (name, wert) values (?, 280) on conflict (name) do update set wert = 280').run(mails);
+  assert.equal((await person()('POST', '/api/registrieren', { email: 'voll@example.com', passwort: 'voll-passwort-1', agb: true })).status, 503);
+  tdb.prepare('update werte set wert = ? where name = ?').run(vorher, mails); tdb.close();
 
   // Speicher wie GitHub
   let r = await anna('PUT', gh('faecher/BWL.json'), { message: 'x', content: b64('{"dateien":[]}') });

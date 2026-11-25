@@ -304,7 +304,11 @@ function bremse(req, max, wer = '') {
   l.push(t); VERSUCHE.set(schluessel, l);
 }
 
+// Brevo schickt gratis 300 Mails am Tag; darüber gehen sie still verloren. Darum zählen, ab MAIL_TAG keine neuen Konten (die brauchen den Link)
+const MAIL_TAG = Number(E.LH_MAIL_TAG || 280), mailTag = () => 'mails:' + new Date().toISOString().slice(0, 10);
 async function mail(an, betreff, text) {  // über Brevo (EU); ohne Schlüssel landet die Mail im Log, zum Testen
+  if (wert(mailTag(), 0) >= MAIL_TAG + 15) return console.error(`Mail-Kontingent voll, nicht gesendet: ${betreff}`);  // 15 Reserve für Passwort-Links und Meldungen
+  wertDazu.run(mailTag(), 1);
   if (!E.LH_BREVO) return console.log(`[Mail an ${an}] ${betreff}\n${text}\n`);
   try {
     const r = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: { 'api-key': E.LH_BREVO, 'Content-Type': 'application/json' },
@@ -1357,6 +1361,7 @@ const ROUTEN = {
     bremse(req, 20);
     const email = String(b.email || '').trim().toLowerCase(), pw = passwortPruefen(String(b.passwort || ''));
     if (!b.agb) nein(400, 'Bitte bestätige, dass du AGB und Datenschutzerklärung gelesen hast.');  // vor emailPruefen: sonst verrät „gibt es schon“ Adressen, ohne ein Konto anzulegen
+    if (wert(mailTag(), 0) >= MAIL_TAG) nein(503, 'Heute haben sich schon sehr viele angemeldet. Bitte versuch es morgen nochmal.');  // sonst käme der Bestätigungslink nie an
     emailPruefen(email);
     const werber = b.code ? db.prepare('select id from konten where code = ?').get(String(b.code).trim().toUpperCase()) : null;
     if (b.code && !werber) nein(400, 'Diesen Freundescode gibt es nicht. Leer lassen geht auch.');
@@ -1390,7 +1395,7 @@ const ROUTEN = {
   'POST /api/bestaetigung-senden': async ({ req, k }) => { muss(k); bremse(req, 3, k.email); if (!k.bestaetigt) await bestaetigungSenden(k.id, k.email); },
   'POST /api/passwort-vergessen': async ({ req, b }) => {
     const email = String(b.email || '').trim().toLowerCase();
-    bremse(req, 3, email);
+    bremse(req, 3, email); bremse(req, 10);  // je Adresse und insgesamt je IP: sonst Mails an beliebig viele fremde Adressen
     const k = db.prepare('select * from konten where email = ?').get(email);
     if (k) await mail(k.email, 'Lernhelfer: Neues Passwort', `Hallo,\n\nhier kannst du ein neues Passwort setzen:\n${BASIS}/app#passwort=${marke(k.id, 'passwort', 3600e3)}\n\nDer Link gilt eine Stunde. Hast du nichts angefordert, ignoriere diese Mail.` + gruss);
   },  // antwortet immer gleich, damit niemand ausprobieren kann, welche Adressen ein Konto haben
@@ -2035,6 +2040,7 @@ async function aufraeumen() {
   try { sichern(); } catch (e) { console.error('Sicherung:', e.message); }
   db.prepare('delete from marken where bis < ?').run(t);
   db.prepare("delete from werte where name like 'ki-tag:%' and name < ?").run('ki-tag:' + new Date(t - 7 * TAG).toISOString().slice(0, 10));  // Not-Aus braucht nur heute
+  db.prepare("delete from werte where name like 'mails:%' and name < ?").run('mails:' + new Date(t - 7 * TAG).toISOString().slice(0, 10));
   db.prepare("update bestellungen set status = 'verfallen' where status = 'offen' and erstellt < ?").run(t - 14 * TAG);
   db.prepare('delete from nutzung where tag < ?').run(new Date(t - 400 * TAG).toISOString().slice(0, 10));
   db.prepare('delete from nutzung_log where zeit < ?').run(t - 30 * TAG);
