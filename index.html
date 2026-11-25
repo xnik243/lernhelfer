@@ -416,7 +416,7 @@
 
   /* Kalender */
   .kal-nav { display: flex; flex-wrap: wrap; gap: 8px; }
-  .woche { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--linie); border-radius: var(--r-l); overflow: hidden; }
+  .woche { display: grid; grid-template-columns: repeat(var(--tage, 5), minmax(0, 1fr)); border: 1px solid var(--linie); border-radius: var(--r-l); overflow: hidden; }
   .kal-tag { min-width: 0; min-height: 14rem; padding: 10px 8px 12px; }
   .kal-tag + .kal-tag { border-left: 1px solid var(--linie); }
   .kal-tag h2 { margin: 0 0 8px; padding: 0 2px; color: var(--text-2); font: 600 0.8125rem/1.3 var(--sans); font-variant-numeric: tabular-nums; }
@@ -2756,7 +2756,9 @@ function texBruch(t) {
 // Nur eindeutige Stücke: Zahl, ein Buchstabe mit Index, Klammer. VO/PS, km/h, und/oder und 2025/26 bleiben, wie sie sind.
 const BRUCH_STUECK = String.raw`(\((?:[^()]|\([^()]*\))+\)[²³]?|Δ?[A-Za-zα-ωΑ-Ω](?:[₀-₉]+|_\w+)?[²³]?|\d+(?:[.,]\d+)?[²³]?)`;
 const bruchRe = () => new RegExp(String.raw`(?<![\p{L}\d/.,_)-])${BRUCH_STUECK} ?\/ ?${BRUCH_STUECK}(?![\p{L}\d/_(²³])`, 'gu');
-const bruchOk = (a, b) => ![a, b].some(x => /^\d{4,}$/.test(x)) && !/^(w\/o|s\/w|i\/o|n\/a)$/i.test(`${a}/${b}`);
+const bruchOk = (a, b) => ![a, b].some(x => /^\d{4,}$/.test(x)) && !/^(w\/o|s\/w|i\/o|n\/a|24\/7)$/i.test(`${a}/${b}`);
+// davor ein Wort wie „WS 25/26“, „Teil A/B“, „Seite 3/10“: dann ist der Schrägstrich kein Bruch
+const KEIN_BRUCH = /(?:^|[\s(])(?:WS|SS|WiSe|SoSe|Semester|Studienjahr|Teile?|Seiten?|S\.|Nr\.|Kapitel|Kap\.|Folien?|Woche|Aufgaben?|Übung|Version|Variante|Gruppe)\s*$/i;
 function klarTex(s) {  // ein Stück Klartext → TeX
   s = s.replace(/^\(([\s\S]*)\)$/, '$1');
   const fertig = [];
@@ -2779,7 +2781,7 @@ function bruechen(knoten) {
     const t = n.nodeValue, teile = [];
     let pos = 0;
     for (const m of t.matchAll(bruchRe())) {
-      if (!bruchOk(m[1], m[2])) continue;
+      if (!bruchOk(m[1], m[2]) || KEIN_BRUCH.test(t.slice(Math.max(0, m.index - 24), m.index))) continue;
       teile.push(t.slice(pos, m.index), formelSpan(`\\frac{${klarTex(m[1])}}{${klarTex(m[2])}}`));
       pos = m.index + m[0].length;
     }
@@ -4759,8 +4761,10 @@ function nebeneinander(liste) {
 function kalenderZeigen() {
   const s = $('kalender');
   const montag = wochenMontag(woche);
-  const tage = Array.from({ length: 5 }, (_, i) => new Date(montag.getFullYear(), montag.getMonth(), montag.getDate() + i));
   const alle = kalenderTermine().sort(nachZeit);
+  // Mo–Fr; Samstag und Sonntag nur, wenn dort ein Termin liegt (Blocktermin, Klausur). Fristen vom Wochenende nimmt sonst der Freitag mit
+  const tage = Array.from({ length: 7 }, (_, i) => new Date(montag.getFullYear(), montag.getMonth(), montag.getDate() + i))
+    .filter((d, i) => i < 5 || alle.some(t => t.datum === iso(d) && !FRISTEN.has(t.art)));
   const kuenftig = alleTermine().filter(t => FRISTEN.has(t.art) && tageBis(t.datum) >= 0);
   const neue = kuenftig.filter(t => !merk('ics:' + terminId(t)));
   const eintrag = (t, tag) => el('button', { class: `kal-eintrag${FRISTEN.has(t.art) ? ' ist-frist' : ''}`, 'data-fach': t.fach, type: 'button', onclick: () => meldung(t, false) },
@@ -4771,14 +4775,14 @@ function kalenderZeigen() {
   s.replaceChildren(
     el('header', { class: 'seitenkopf' },
       el('div', {}, el('h1', {}, 'Kalender'),
-        el('p', { class: 'unterzeile' }, el('span', {}, `Kalenderwoche ${kw(montag)}`), el('span', {}, `${montag.toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })} bis ${tage[4].toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' })}`))),
+        el('p', { class: 'unterzeile' }, el('span', {}, `Kalenderwoche ${kw(montag)}`), el('span', {}, `${montag.toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })} bis ${tage.at(-1).toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' })}`))),
       el('div', { class: 'kal-nav' },
         el('button', { class: 'knopf', type: 'button', onclick: () => { woche--; kalenderZeigen(); } }, 'Woche zurück'),
         el('button', { class: 'knopf', type: 'button', disabled: woche === 0, onclick: () => { woche = 0; kalenderZeigen(); } }, 'Diese Woche'),
         el('button', { class: 'knopf', type: 'button', onclick: () => { woche++; kalenderZeigen(); } }, 'Woche vor'))),
-    el('div', { class: 'woche' }, tage.map((d, i) => {
+    el('div', { class: 'woche', style: `--tage: ${tage.length}` }, tage.map((d, i) => {
       // Freitag nimmt Fristen vom Wochenende mit, damit keine verloren geht
-      const liste = alle.filter(t => t.datum === iso(d) || (i === 4 && FRISTEN.has(t.art) && [1, 2].includes(tageBis(t.datum) - tageBis(iso(d)))));
+      const liste = alle.filter(t => t.datum === iso(d) || (i === 4 && FRISTEN.has(t.art) && [1, 2].includes(tageBis(t.datum) - tageBis(iso(d))) && !tage.some(x => iso(x) === t.datum)));
       return el('section', { class: `kal-tag${iso(d) === HEUTE ? ' heute' : ''}${liste.length ? '' : ' ohne'}`, 'aria-label': datum(iso(d), { weekday: 'long', day: 'numeric', month: 'long' }) },
         el('h2', {}, d.toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit' }), iso(d) === HEUTE ? ', heute' : ''),
         nebeneinander(liste).map(z => z.length > 1 ? el('div', { class: 'kal-block' }, z.map(t => eintrag(t, iso(d)))) : eintrag(z[0], iso(d))));
@@ -11094,7 +11098,9 @@ const CHANGELOG = [
     ['08:40', 'Forum: Beiträge können keine eigenen Stile und Formularfelder mehr einbauen'],
     ['09:00', 'Arena: Im Sicherheits-Quiz bringen schnelle Zufallsklicks keine XP mehr; wer überlegt oder die Hälfte weiß, bekommt sie wie bisher'],
     ['09:20', 'PC-Programm: zeigt OLAT einmal keine Kurse, bleiben die bisherigen samt Testfristen (neuer Versuch am nächsten Tag); Hochladen fasst bei Netzfehlern zweimal nach, sonst neuer Versuch nach 2 statt 12 Stunden; Zustand übersteht einen Stromausfall beim Speichern'],
-    ['09:35', 'PC-Programm: erkennt die OLAT-Anmeldung auch mit OLAT auf Englisch; merkt eine mitten im Lauf abgelaufene Sitzung, statt „Nichts Neues“ zu melden; speichert keine Fehlerseiten und keine halben Downloads mehr']] },
+    ['09:35', 'PC-Programm: erkennt die OLAT-Anmeldung auch mit OLAT auf Englisch; merkt eine mitten im Lauf abgelaufene Sitzung, statt „Nichts Neues“ zu melden; speichert keine Fehlerseiten und keine halben Downloads mehr'],
+    ['09:45', 'Kalender zeigt Samstag und Sonntag, wenn dort ein Termin liegt (Blocktermin, Klausur); sonst bleibt es bei Mo–Fr'],
+    ['09:45', '„WS 25/26“, „Teil A/B“, „Seite 3/10“ und „24/7“ werden nicht mehr als Bruch gesetzt']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
