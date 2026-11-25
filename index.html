@@ -1447,12 +1447,12 @@
   .t-feld { display: grid; gap: 10px; }
   .t-feld textarea { width: 100%; font: 500 1.0625rem/1.45 var(--sans); resize: vertical; }
   .t-feld.gross textarea { padding: 14px 16px; font-size: clamp(1.125rem, 2.2vw, 1.3125rem); }
-  .t-feld-fuss { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .t-feld-fuss { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; }
   .t-fachwahl { display: flex; flex-wrap: wrap; gap: 6px; }
   .t-tipps { margin: 14px 0 0; }
   .t-vorlauf { display: inline-flex; align-items: center; gap: 6px; }
-  /* Handy: Feld in normaler Schrift (16px, sonst zoomt iOS), „Wie gut“ als drei gleich breite Felder,
-     Modell und Knopf über die ganze Breite, Fächer und Arena-Reiter als wischbare Zeile statt drei Reihen */
+  /* Handy: Feld in normaler Schrift (16px, sonst zoomt iOS), „Wie gut“-Regler und Knopf über die ganze Breite,
+     Fächer und Arena-Reiter als wischbare Zeile statt drei Reihen */
   @media (max-width: 640px) {
     .t-feld textarea, .t-feld.gross textarea { padding: 10px 12px; font-size: 1rem; }
     /* Lange Fächerzeile oder langer Modellname dürfen die Seite nicht verbreitern */
@@ -1460,6 +1460,8 @@
     .t-feld-fuss > * { min-width: 0; }
     .t-los { flex: 1 1 100%; flex-wrap: nowrap; }
     .t-modell { flex: 1; min-width: 0; max-width: none; font-size: 1rem; }
+    .t-niveau { flex-basis: 100%; max-width: none; }
+    .t-los > .knopf:only-child { flex: 1; }
     :is(.t-fachwahl, .arena-tabs) { flex-wrap: nowrap; margin-inline: -16px; padding: 4px 16px; overflow-x: auto; scrollbar-width: none; }
     :is(.t-fachwahl, .arena-tabs)::-webkit-scrollbar { display: none; }
     :is(.t-fachwahl, .arena-tabs) > * { flex: none; }
@@ -1552,13 +1554,37 @@
   .t-fuss { margin-top: 44px; }
 
   /* Formen: jede Antwort bekommt die Gestalt, die zum Thema passt (Spielwiese, Rätsel, Fall, Folie, Duell …) */
-  .t-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-  .t-stand .meta { margin-right: 4px; }
-  @media (max-width: 640px) {
-    .t-stand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .t-stand .meta { grid-column: 1 / -1; }
-    .t-stand .vt-filter { justify-content: center; padding-inline: 6px; text-align: center; line-height: 1.2; }
-  }
+  /* Wie gut kennst du das: Regler mit Stufen. Strich und Stufenmarken (::after) liegen über der Füllung (::before),
+     der Knopf des Reglers über beidem; --p ist die Stellung von 0 bis 1, --t die Knopfbreite */
+  .t-niveau { --t: 24px; --strich: linear-gradient(var(--bg-3), var(--bg-3)) center / 100% 4px no-repeat; display: grid; flex: 1 1 280px; max-width: 420px; padding-top: 6px; }
+  .t-niveau-bahn { position: relative; isolation: isolate; }
+  .t-niveau-bahn::before, .t-niveau-bahn::after { content: ''; position: absolute; pointer-events: none; }
+  .t-niveau-bahn::before { z-index: 0; top: 50%; left: 0; width: calc(var(--t) / 2 + var(--p) * (100% - var(--t))); height: 4px; translate: 0 -50%; border-radius: 2px; background: var(--akzent); transition: width 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+  .t-niveau.leer .t-niveau-bahn::before { width: 0; }
+  .t-niveau-bahn::after { z-index: 1; inset: 0;
+    background: linear-gradient(var(--linie-2), var(--linie-2)) calc(var(--t) / 2 - 1px) center / 2px 12px no-repeat,
+      linear-gradient(var(--linie-2), var(--linie-2)) center / 2px 12px no-repeat,
+      linear-gradient(var(--linie-2), var(--linie-2)) right calc(var(--t) / 2 - 1px) center / 2px 12px no-repeat, var(--strich); }
+  .t-niveau input { position: relative; z-index: 2; display: block; width: 100%; min-height: 40px; margin: 0; padding: 0; border: 0; background: none; -webkit-appearance: none; appearance: none; cursor: pointer; }
+  .t-niveau input:active { cursor: grabbing; }
+  .t-niveau input::-webkit-slider-runnable-track { height: var(--t); background: none; }
+  .t-niveau input::-moz-range-track { background: none; }
+  .t-niveau input::-moz-range-progress { background: none; }
+  .t-niveau input::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: var(--t); height: var(--t); border: 3px solid var(--bg); border-radius: 50%; background: var(--akzent); transition: scale 0.15s; }
+  .t-niveau input::-moz-range-thumb { box-sizing: border-box; width: var(--t); height: var(--t); border: 3px solid var(--bg); border-radius: 50%; background: var(--akzent); }
+  .t-niveau.leer input::-webkit-slider-thumb { border: 2px dashed var(--linie-2); background: var(--bg); }
+  .t-niveau.leer input::-moz-range-thumb { border: 2px dashed var(--linie-2); background: var(--bg); }
+  .t-niveau input:active::-webkit-slider-thumb { scale: 1.12; }
+  .t-niveau input:focus-visible { outline: none; }
+  .t-niveau input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  .t-niveau input:focus-visible::-moz-range-thumb { outline: 2px solid var(--akzent); outline-offset: 2px; }
+  .t-niveau-stufen { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin-top: -4px; color: var(--text-3); font: 550 0.8125rem/1.25 var(--sans); }
+  .t-niveau-stufen span { padding: 2px 0 6px; cursor: pointer; transition: color 0.2s; }
+  .t-niveau-stufen span:not(:first-child, :last-child) { text-align: center; }
+  .t-niveau-stufen span:last-child { text-align: right; }
+  .t-niveau-stufen .an { color: var(--text); font-weight: 700; }
+  @media (hover: hover) { .t-niveau-stufen span:hover { color: var(--text); } }
+  @media (prefers-reduced-motion: reduce) { .t-niveau-bahn::before { transition: none; } }
   .t-form-name { padding: 4px 10px; border-radius: 999px; background: var(--akzent-flaeche); color: var(--akzent-text); font: 750 0.75rem/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; }
   .t-eyebrow { margin: 0; color: var(--akzent-text); font: 750 0.75rem/1.2 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
   .t-bloecke > .t-baustein { transition: filter 0.6s ease, opacity 0.6s ease; }
@@ -8873,8 +8899,10 @@ function themaModelle() {
   const l = Object.entries(MODELLE).map(([name, v]) => ({ name, model: v.model })), vor = themaVorgabe();
   return l.some(x => x.model === vor) ? l : [{ name: `Schnell · ${vor.split('/').pop()}`, model: vor }, ...l];
 }
-const themaModell = () => { const l = themaModelle(), w = merk('thema-modell'); return (l.find(x => x.model === w) || l.find(x => x.model === themaVorgabe()) || l[0]).model; };
+const T_MODELLWAHL = false;  // erstmal verborgen: alle bekommen die Vorgabe, auch wer früher etwas anderes gewählt hat
+const themaModell = () => { const l = themaModelle(), w = T_MODELLWAHL && merk('thema-modell'); return (l.find(x => x.model === w) || l.find(x => x.model === themaVorgabe()) || l[0]).model; };
 const themaModellWahl = () => {
+  if (!T_MODELLWAHL) return '';
   const l = themaModelle(), w = themaModell();
   return l.length < 2 ? '' : el('select', { class: 't-modell', 'aria-label': 'Modell', title: 'Welches Modell erklärt', onchange: e => merk('thema-modell', e.target.value) },
     l.map(x => el('option', { value: x.model, selected: x.model === w }, x.name)));
@@ -9404,14 +9432,33 @@ function themaFeld(gross) {
     oninput: e => { THEMA.entwurf = e.target.value; }, onkeydown: enterSendet }, THEMA.entwurf);
   return el('form', { class: `t-feld${gross ? ' gross' : ''}`, onsubmit: e => { e.preventDefault(); themaNeu({ frage: feld.value, fach: THEMA.fach, stand: THEMA.stand }); } },
     el('label', { for: id, class: 'sr' }, 'Was willst du verstehen?'), feld,
-    el('div', { class: 't-stand', role: 'group', 'aria-label': 'Wie gut kennst du das schon?' }, el('span', { class: 'meta' }, 'Wie gut kennst du das?'),
-      Object.entries(THEMA_STAND).map(([k, [name]]) => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.stand === k),
-        onclick: e => { THEMA.stand = THEMA.stand === k ? '' : k; for (const x of e.currentTarget.parentNode.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === e.currentTarget && THEMA.stand === k)); } }, name))),
-    el('div', { class: 't-feld-fuss' },
-      gross && faecher.length > 1 ? el('div', { class: 't-fachwahl', role: 'group', 'aria-label': 'Fach' }, ['', ...faecher].map(f => el('button', {
-        type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.fach === f),
-        onclick: e => { THEMA.fach = f; for (const k of e.currentTarget.parentNode.children) k.setAttribute('aria-pressed', String(k === e.currentTarget)); } }, f || 'Alle Fächer'))) : el('span'),
+    gross && faecher.length > 1 && el('div', { class: 't-fachwahl', role: 'group', 'aria-label': 'Fach' }, ['', ...faecher].map(f => el('button', {
+      type: 'button', class: 'vt-filter', 'aria-pressed': String(THEMA.fach === f),
+      onclick: e => { THEMA.fach = f; for (const k of e.currentTarget.parentNode.children) k.setAttribute('aria-pressed', String(k === e.currentTarget)); } }, f || 'Alle Fächer'))),
+    el('div', { class: 't-feld-fuss' }, themaNiveau(),
       el('div', { class: 't-los' }, themaModellWahl(), el('button', { class: 'knopf voll', disabled: !!THEMA.job }, THEMA.job ? 'Erklärt gerade …' : 'Erklär’s mir'))));
+}
+// „Wie gut kennst du das?“ als gezeichneter Regler: je weiter rechts, desto mehr Textmarker. Ohne Angabe steht ein
+// gestrichelter Knopf in der Mitte und der Lernhelfer schätzt das Vorwissen aus der Frage; die aktive Stufe nochmal antippen hebt die Angabe auf.
+function themaNiveau() {
+  const stufen = Object.entries(THEMA_STAND), id = 'tn-' + ++chatNr;
+  const regler = el('input', { id, type: 'range', min: 0, max: stufen.length - 1, step: 1 });
+  const namen = stufen.map(([k, [name]], i) => el('span', { onclick: () => { THEMA.stand = THEMA.stand === k ? '' : k; regler.value = i; zeige(); } }, name));
+  const box = el('div', { class: 't-niveau' }, el('label', { for: id, class: 'meta' }, 'Wie gut kennst du das?'),
+    el('div', { class: 't-niveau-bahn' }, regler), el('div', { class: 't-niveau-stufen', 'aria-hidden': 'true' }, namen));
+  const zeige = () => {
+    const i = stufen.findIndex(([k]) => k === THEMA.stand);
+    box.classList.toggle('leer', i < 0);
+    box.style.setProperty('--p', i < 0 ? 0 : i / (stufen.length - 1));
+    regler.setAttribute('aria-valuetext', i < 0 ? 'Keine Angabe, der Lernhelfer schätzt es aus der Frage' : stufen[i][1][0]);
+    namen.forEach((n, j) => n.classList.toggle('an', j === i));
+  };
+  // click fängt das Antippen des gestrichelten Knopfs ab, dabei ändert sich der Wert nicht und input kommt nicht
+  regler.oninput = regler.onclick = () => { THEMA.stand = stufen[regler.value][0]; zeige(); };
+  const start = stufen.findIndex(([k]) => k === THEMA.stand);
+  regler.value = start < 0 ? 1 : start;
+  zeige();
+  return box;
 }
 // Vor der nächsten Einheit (heute später oder morgen): was laut Ausgabe drankommt, in zwei Minuten vorbereitet
 function themaVorlauf() {
@@ -11380,12 +11427,14 @@ const CHANGELOG = [
     ['00:45', 'Der OLAT-Kalender kommt von selbst', 'Bisher musste man für den Stundenplan jede .ics-Datei einzeln aus LFU:online laden. Jetzt holt das PC-Programm bei jedem Abgleich auch den OLAT-Kalender mit allen Kurs-, Gruppen- und eigenen Terminen.', 0, 2, [
       'OLAT bietet einen „aggregierten iCal-Feed“ mit allen Kalendern, auf die man Zugriff hat. Das Programm liest den Link dazu aus der Kalender-Seite und lädt nur die Termine in die App, der Link selbst bleibt am PC.',
       'Viele Vorlesungen stehen in beiden Kalendern, mit leicht anderem Titel. Die App erkennt doppelte Termine an Tag, Uhrzeit und Lehrveranstaltung und zeigt sie nur einmal.']],
-    ['00:55', 'Karteikarten nach Woche', 'Neue Karten kamen immer von der ältesten Woche zuerst. Wer nur den Stoff dieser Woche lernen wollte, musste sich erst durch alte Begriffe klicken. Jetzt gibt es neben „Fach“ eine Auswahl „Woche“: diese Woche, letzte Woche oder eine ältere.', 0, 1]], t: [
+    ['00:55', 'Karteikarten nach Woche', 'Neue Karten kamen immer von der ältesten Woche zuerst. Wer nur den Stoff dieser Woche lernen wollte, musste sich erst durch alte Begriffe klicken. Jetzt gibt es neben „Fach“ eine Auswahl „Woche“: diese Woche, letzte Woche oder eine ältere.', 0, 1],
+    ['00:55', '„Wie gut kennst du das?“ als Regler', 'Unter „Thema lernen“ standen drei gleich aussehende Knöpfe. Jetzt ist es ein gezeichneter Regler: je weiter nach rechts, desto mehr Textmarker. Wer nichts einstellt, sieht einen gestrichelten Knopf, dann schätzt der Lernhelfer das Vorwissen aus der Frage.', 0, 1]], t: [
     ['00:30', 'Heute: Fächer an erster Stelle, dann Thema lernen, Weiterlernen, Frag den Lernhelfer'],
     ['00:30', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen'],
     ['00:45', 'Kalender: PC-Programm holt den OLAT-Kalender automatisch, doppelte Termine erscheinen nur einmal'],
     ['00:50', 'Noten: PS-Test-Punkte aus OLAT bekommen das Datum der Bewertung statt des Abgleich-Tags'],
-    ['00:55', 'Karteikarten: Auswahl nach Woche, gilt auch für Statistik, Export und Teilen im Forum']] },
+    ['00:55', 'Karteikarten: Auswahl nach Woche, gilt auch für Statistik, Export und Teilen im Forum'],
+    ['00:55', 'Thema lernen: Vorwissen per Regler statt drei Knöpfen, Fächer über der Zeile mit „Erklär’s mir“, Modellwahl vorerst ausgeblendet']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

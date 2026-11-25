@@ -232,6 +232,13 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 .energie input[type="range"]::-webkit-slider-runnable-track { height: 6px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
 .energie input[type="range"]::-moz-range-track { height: 6px; background: var(--strich-waagrecht) center / 100% 6px no-repeat; }
 .energie input[type="range"]::-moz-range-progress { background: none; }
+/* Wie gut kennst du das: gezogener Tintenstrich, darunter der Textmarker bis zum Knopf; der Knopf ein gelb gefüllter Kreis von Hand */
+.t-niveau { --strich: var(--strich-waagrecht) center / 100% 6px no-repeat; }
+.t-niveau-bahn::before { height: 16px; border-radius: 0; background: var(--marker) center / 100% 100% no-repeat; }
+.t-niveau input::-webkit-slider-thumb { border: 1.6px solid var(--tinte); border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%; background: var(--marker) center / 170% 170% no-repeat, var(--bg); rotate: -12deg; }
+.t-niveau input::-moz-range-thumb { border: 1.6px solid var(--tinte); border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%; background: var(--marker) center / 170% 170% no-repeat, var(--bg); }
+.t-niveau.leer input::-webkit-slider-thumb { border: 1.6px dashed var(--linie-2); background: var(--bg); }
+.t-niveau.leer input::-moz-range-thumb { border: 1.6px dashed var(--linie-2); background: var(--bg); }
 
 /* Thema lernen: gezeichnet. Kern mit Textmarker, Antworten und Stationen in Strich-Rahmen, Beispiel und Rückfrage als Zettel */
 .t-kern > span { padding: 0 0.1em; background: var(--marker) 0 78% / 100% 42% no-repeat; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
