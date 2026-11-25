@@ -424,3 +424,43 @@ if __name__ == "__main__":
     test()
     test_anzeige()
     test_zugang()
+
+
+ECHT_API = holen.api  # test_zugang ersetzt holen.api durch eine Attrappe
+
+
+def test_robust():
+    """Zustand übersteht Stromausfall beim Schreiben; das Hochladen fasst bei Netzfehlern nach, statt den Abgleich zu verlieren."""
+    with tempfile.TemporaryDirectory() as t:
+        p = Path(t) / "stand.json"
+        p.write_text('{"halb', "utf-8")  # PC ging mitten im Schreiben aus
+        assert holen.json_lesen(p, {}) == {} and holen.json_lesen(Path(t) / "fehlt.json", None) is None
+        holen.json_schreiben(p, {"ä": 1})
+        assert holen.json_lesen(p, {}) == {"ä": 1} and not (Path(t) / "stand.json.neu").exists()
+
+        z = Path(t) / "zugang.json"
+        z.write_text('{"repo": "a/b", "token": "x", "api": "http://test"}', "utf-8")
+        alt = holen.ZUGANG, holen.urlopen, holen.API_PAUSE
+        holen.ZUGANG, holen.API_PAUSE = z, 0
+        antworten = [HTTPError("u", 503, "weg", {}, None), holen.URLError("kein Netz")]
+
+        class Antwort:
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def read(self): return b'{"ok": 1}'
+
+        def urlopen(anfrage, timeout):
+            if antworten:
+                raise antworten.pop(0)
+            return Antwort()
+        try:
+            holen.urlopen = urlopen
+            assert ECHT_API("GET", "x.json") == {"ok": 1}, "nach 503 und Netzfehler klappt der dritte Versuch"
+            antworten[:] = [HTTPError("u", 404, "fehlt", {}, None)]
+            try:
+                ECHT_API("GET", "x.json")
+                assert False, "404 wird nicht wiederholt"
+            except HTTPError as e:
+                assert e.code == 404
+        finally:
+            holen.ZUGANG, holen.urlopen, holen.API_PAUSE = alt

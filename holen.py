@@ -35,7 +35,7 @@ import unicodedata
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
 from urllib.request import Request, urlopen
 
@@ -46,14 +46,30 @@ if sys.platform == "darwin":  # Mac: Zertifikate aus dem Schlüsselbund wie in S
     except ImportError:
         pass
 
+def json_lesen(pfad, leer):
+    """Eigene Zustandsdatei lesen; kaputt (Strom weg beim Schreiben) zählt als leer, statt jeden Lauf still abstürzen zu lassen."""
+    try:
+        return json.loads(pfad.read_text("utf-8")) if pfad.exists() else leer
+    except ValueError:
+        return leer
+
+
+def json_schreiben(pfad, daten, **kw):
+    """Erst in eine Nebendatei, dann umbenennen: geht der PC mitten im Schreiben aus, bleibt die alte Fassung ganz."""
+    neu = pfad.with_name(pfad.name + ".neu")
+    neu.write_text(json.dumps(daten, ensure_ascii=False, **kw), "utf-8")
+    os.replace(neu, pfad)
+
+
 BASIS = Path(__file__).parent
 MATERIAL = BASIS / "material"
 KURSDATEI = BASIS / "kurse.json"  # fehlt sie, sucht der erste Abgleich die Kurse selbst (kurse_finden)
-KURSE = json.loads(KURSDATEI.read_text("utf-8")) if KURSDATEI.exists() else None
+KURSE = json_lesen(KURSDATEI, None)
 ZUGANG = BASIS / "zugang.json"  # {"repo": "name/lernhelfer-daten", "token": "github_pat_…", "api": Lernhelfer-Server oder null, "app": Adresse der App}, schreibt das Einrichten
 STAND = BASIS / ".stand.json"  # letzter Abgleich, hochgeladene Dateiversionen, wann das Login-Fenster zuletzt kam
 APP = "https://xnik243.github.io/lernhelfer/"
 API = os.environ.get("LH_API", "https://api.github.com")  # der Prüfstand setzt hier eine Attrappe ein
+API_PAUSE = 5  # Sekunden vor dem ersten Nachfassen, wenn das Hochladen am Netz scheitert (Tests setzen 0)
 SITZUNG = BASIS / ".olat-sitzung.json"
 PROFIL = BASIS / ".olat-chrome"  # eigenes Chrome-Profil nur fürs OLAT-Login
 if sys.platform == "darwin":  # Mac: Chrome, sonst das Chromium von Playwright (lädt das Einrichten, wenn Chrome fehlt)
@@ -173,7 +189,7 @@ class Anzeige:
     def _kopf(self):
         j = datetime.now()
         try:
-            st = json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}
+            st = json_lesen(STAND, {})
             a = st.get("abgleich") or {}
             t = datetime.fromisoformat(a["zeit"])
             drei = f"zuletzt {wann(t)} {t:%H:%M} · " + (a.get("text", "") if a.get("ok") is not False else "ging nicht: " + a.get("text", ""))
@@ -1381,8 +1397,17 @@ def api(methode, pfad, body=None, roh=False):
     anfrage = Request(f"{z.get('api') or API}/repos/{z['repo']}/contents/{quote(pfad)}", method=methode, data=body and json.dumps(body).encode(),
                       headers={"Authorization": "Bearer " + z["token"], "Accept": "application/vnd.github.raw+json" if roh else "application/vnd.github+json",
                                "User-Agent": "Lernhelfer"})
-    with urlopen(anfrage, timeout=120) as r:
-        return r.read() if roh else json.loads(r.read())
+    for versuch in range(3):  # Netz weg, Server startet gerade neu, GitHub bremst: zweimal nachfassen statt den ganzen Abgleich zu verlieren
+        try:
+            with urlopen(anfrage, timeout=120) as r:
+                return r.read() if roh else json.loads(r.read())
+        except HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or versuch == 2:
+                raise
+        except (URLError, TimeoutError):
+            if versuch == 2:
+                raise
+        time.sleep(API_PAUSE * (versuch + 1))
 
 
 def hochgeladene(fach):
@@ -1495,7 +1520,9 @@ def aktualisieren():
         if not signatur_gilt(neu, base64.b64decode(urlopen(app + "/holen.py.sig", timeout=30).read().strip())):
             raise ValueError("Signatur passt nicht, die bisherige Fassung läuft weiter")
         compile(neu, "holen.py", "exec")
-        Path(__file__).write_bytes(neu)
+        tmp = Path(__file__).with_name("holen.py.neu")  # nie eine halb geschriebene holen.py: die könnte sich nicht mehr selbst reparieren
+        tmp.write_bytes(neu)
+        os.replace(tmp, __file__)
         print("holen.py aktualisiert.")
     except Exception as e:
         print("Aktualisierung übersprungen:", e)
@@ -1552,7 +1579,7 @@ if __name__ == "__main__":
     from playwright.sync_api import TimeoutError as Zeitueberschreitung, sync_playwright
 
     auto = "--auto" in sys.argv  # aus der Aufgabenplanung bzw. launchd: ohne Konsole, Ausgaben ins Log
-    if auto and not faellig(json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}, datetime.now()):
+    if auto and not faellig(json_lesen(STAND, {}), datetime.now()):
         sys.exit()  # noch nicht dran: OLAT bleibt in Ruhe, auch kein Wachhalten der Sitzung
     if auto:
         sys.stdout = sys.stderr = open(BASIS / "holen.log", "a", encoding="utf-8", buffering=1)
@@ -1591,7 +1618,7 @@ if __name__ == "__main__":
             aktualisieren()
         sys.exit(0 if auto else 1)
     ANZEIGE.schritt(None)  # vor autologin(): dessen Fragen laufen ohne Live-Bereich
-    stand = json.loads(STAND.read_text("utf-8")) if STAND.exists() else {}
+    stand = json_lesen(STAND, {})
     alt = stand.get("abgleich", {})
     jetzt = datetime.now()
 
@@ -1602,7 +1629,7 @@ if __name__ == "__main__":
             for pfad, inhalt in [*dateien, ("abgleich.json", stand["abgleich"])]:
                 hochladen(stand, pfad, json.dumps(inhalt, ensure_ascii=False).encode())
         finally:
-            STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+            json_schreiben(STAND, stand)
 
     def aufzaehlung(namen):
         return namen[0] if len(namen) == 1 else ", ".join(namen[:-1]) + " und " + namen[-1]
@@ -1611,12 +1638,12 @@ if __name__ == "__main__":
         # Login-Fenster aus der Aufgabenplanung höchstens alle 8 Stunden (z. B. morgens nach dem Einschalten), sonst nervt es
         def fenster_auf():
             stand["fenster"] = datetime.now().isoformat(timespec="minutes")
-            STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+            json_schreiben(STAND, stand)
 
         def login_fehler(grund):
             ANZEIGE.warnung(f"Automatischer Login ging nicht: {grund}")
             stand["autologin_fehler"] = grund
-            STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+            json_schreiben(STAND, stand)
         try:
             browser, ctx, page = olat_login(p, sichtbar=not auto or jetzt - datetime.fromisoformat(stand.get("fenster", "2000-01-01")) > timedelta(hours=8),
                                             fenster_auf=fenster_auf, login=autologin(p, stand, von_hand=not auto), login_fehler=login_fehler)
@@ -1624,7 +1651,7 @@ if __name__ == "__main__":
             ANZEIGE.fehler("OLAT-Anmeldung abgelaufen. Starte den Abgleich neu und logge dich ein." if ANZEIGE.an else "OLAT-Anmeldung abgelaufen.",
                            type(e).__name__)
             weiter(stand, 4)  # abgelaufen: in rund 4 Stunden wieder versuchen, von Hand jederzeit
-            STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+            json_schreiben(STAND, stand)
             text = (f"Automatischer OLAT-Login ging nicht ({stand['autologin_fehler']}) – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken"
                     " und die Zugangsdaten neu eintragen oder selbst einloggen." if stand.get("autologin_fehler") else
                     f"OLAT-Anmeldung am {GERAET} abgelaufen – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken und einloggen.")
@@ -1635,14 +1662,19 @@ if __name__ == "__main__":
             sys.exit(0 if auto else 1)
         ctx.storage_state(path=SITZUNG)
         weiter(stand, 12)  # gleich speichern: bricht der Lauf ab, kommt OLAT trotzdem erst in 12 Stunden wieder dran
-        STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+        json_schreiben(STAND, stand)
         alte_ids = {k for d in stand.get("kurs_ids", {}).values() for k in d}
         if KURSE is None or "--kurse" in sys.argv or kurse_suchen(stand, jetzt):
+            such_zeit = jetzt
             try:
                 ANZEIGE.schritt("Suche deine Kurse", hinweis="zum ersten Mal: dauert etwas länger" if KURSE is None else "einmal pro Woche: neue Kurse und Ordner")
                 ids = {}
-                KURSE = kurse_finden(page, jetzt, KURSE, ids)
-                KURSDATEI.write_text(json.dumps(KURSE, ensure_ascii=False, indent=2), "utf-8")
+                gefunden = kurse_finden(page, jetzt, KURSE, ids)
+                if not gefunden and KURSE:  # OLAT zeigte keine Kurse (Seite geändert, zu langsam, neues Semester noch leer): nichts wegwerfen
+                    such_zeit = jetzt - timedelta(days=6)  # morgen nochmal statt in einer Woche
+                    raise RuntimeError("OLAT zeigte unter „Meine Kurse“ keinen Kurs an")
+                KURSE = gefunden
+                json_schreiben(KURSDATEI, KURSE, indent=2)
                 stand["kurse_semester"], stand["kurs_ids"] = semester(jetzt), ids
                 if ANZEIGE.an:
                     neu_dabei = [f"{f} {t or ''}".strip() for f, d in ids.items() for k, t in d.items() if alte_ids and k not in alte_ids]
@@ -1654,9 +1686,9 @@ if __name__ == "__main__":
                 if KURSE is None:
                     raise
                 ANZEIGE.warnung(f"Kurse neu suchen ging nicht, es bleibt bei den bisherigen: {fehlertext(e)}")
-            stand["kurse_zeit"] = jetzt.isoformat(timespec="minutes")
+            stand["kurse_zeit"] = such_zeit.isoformat(timespec="minutes")
             if "--kurse" in sys.argv:
-                STAND.write_text(json.dumps(stand, ensure_ascii=False), "utf-8")
+                json_schreiben(STAND, stand)
                 ANZEIGE.schritt(None)  # planmäßiges Ende, kein „Abgebrochen“
                 sys.exit()
         elif stand.get("kurse_semester") and stand.get("kurse_zeit"):
@@ -1692,7 +1724,12 @@ if __name__ == "__main__":
     ANZEIGE.ok(f"Text aus {anzahl(ANZEIGE.z['gelesen'], 'Datei', 'Dateien')} gelesen")
     stand["dauer"] = int(time.monotonic() - ANZEIGE.start)
     ANZEIGE.schritt("Lade alles in deine App", len(dateien) + 1)
-    melde(True, anzahl(len(neu), "neue Unterlage", "neue Unterlagen") if neu else "Nichts Neues in OLAT", dateien)
+    try:
+        melde(True, anzahl(len(neu), "neue Unterlage", "neue Unterlagen") if neu else "Nichts Neues in OLAT", dateien)
+    except Exception:
+        weiter(stand, 2)  # Hochladen ging trotz Nachfassen nicht (Netz, Server): in 2 Stunden nochmal statt erst in 12
+        json_schreiben(STAND, stand)
+        raise
     if ANZEIGE.an:
         name = lambda pfad: pfad.removeprefix("faecher/").removesuffix(".json") if pfad.startswith("faecher/") else "Tests"
         geschickt = [name(pf) for pf, g in ANZEIGE.geschickt if g and pf != "abgleich.json"]
