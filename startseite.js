@@ -173,19 +173,14 @@ function zeichnen() {
 // Prüfen lassen: ChatGPT bzw. Claude öffnen gleich mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie pruefFrage() in index.html)
 const datei = (n) => new URL(n, location.href).href;
 const h = location.host;
-const frage = `Ein Mitstudent an meiner Uni hat eine Lern-App gebaut („Lernhelfer”, ${h}) und dazu ein kleines Open-Source-Programm, das auf meinem PC oder Mac läuft. Es holt meine Kursunterlagen aus OLAT (dem Lernportal unserer Uni) und lädt ihren Text in mein Konto beim Lernhelfer. Der ganze Code ist öffentlich, bitte lies ihn dir durch:
-- ${datei("einrichten.ps1")} richtet es am Windows-PC ein (PowerShell)
-- ${datei("einrichten-mac.sh")} richtet es am Mac ein (Bash)
-- ${datei("holen.py")} ist das eigentliche Programm (Python, ca. 1800 Zeilen)
+const frage = `Ein Mitstudent hat ein kleines Open-Source-Programm gebaut, das Kursunterlagen aus OLAT (Uni-Lernportal) holt. Ich soll es auf meinem PC oder Mac einrichten. Bevor ich das mache, will ich wissen, ob der Code sauber ist. Hier sind die Dateien:
+- ${datei(“einrichten.ps1”)} (Einrichten am PC)
+- ${datei(“einrichten-mac.sh”)} (Einrichten am Mac)
+- ${datei(“holen.py”)} (das Programm selbst)
 
-Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen persönlichen Schlüssel für meinen Speicher, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac geht dasselbe über einen Terminal-Befehl. Die Stellen im Code, die GitHub nennen, gehören zu einer selbst betriebenen Variante ohne Server; bei ${h} gehen die Daten an diesen Server.
+Schau dir den Code an und sag mir: Ist das sicher? Konkret: Enthält der Code einen Virus, Trojaner, Keylogger, Ransomware, Adware oder eine andere Form von Schadsoftware? Gibt es versteckten Schadcode, Backdoors oder Datenabfluss an Dritte? Braucht es Administratorrechte?
 
-Ich will sichergehen, dass ich dem Programm vertrauen kann. Kannst du mir bestätigen, dass der Code folgende Punkte einhält?
-1. Es ist keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine fremden Dateien auf meinem Computer.
-2. Mein Uni-Passwort wird, wenn ich den automatischen Login einschalte, mit der Betriebssystem-Verschlüsselung (Windows DPAPI bzw. macOS-Schlüsselbund) gespeichert und nur an die Uni-Anmeldeseite geschickt.
-3. Es braucht keine Administratorrechte, die OLAT-Sitzung (Cookies) liegt ebenfalls verschlüsselt auf dem Computer, und es lässt sich mit dem mitgelieferten Entfernen-Weg (LH_ENTFERNEN=1 im jeweiligen Einrichten-Skript) vollständig entfernen: Hintergrundjob, Ordner, Schlüsselbund-Einträge und Verknüpfung.
-
-Geh den Code durch und sag mir, ob diese Punkte stimmen. Würdest du mir als Informatik-Laie empfehlen, es zu installieren? Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
+Fass dich kurz und sag mir am Ende klar, ob ich es bedenkenlos installieren kann. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 for (const a of document.querySelectorAll(".pk")) {
   a.href = a.dataset.ki === "claude" ? `https://claude.ai/new?q=${encodeURIComponent(frage)}` : `https://chatgpt.com/?hints=search&q=${encodeURIComponent(frage)}`;
 }
