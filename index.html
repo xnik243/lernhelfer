@@ -2672,7 +2672,9 @@ const el = (tag, attrs = {}, ...kinder) => {
   return e;
 };
 // Formeln vor marked herausnehmen (sonst frisst es die Backslashes), als MathML setzen und erst danach alles gemeinsam säubern
-const markdown = (knoten, s, inline) => {
+// fremd: Text anderer Leute (Forum) – ohne style und Formularfelder, sonst könnte ein Beitrag die ganze App überdecken
+const FREMD = { FORBID_ATTR: ['style'], FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'] };
+const markdown = (knoten, s, inline, fremd) => {
   if (!window.marked || !window.DOMPurify) { knoten.textContent = s || ''; return knoten; }
   const formeln = [];
   if (window.katex) s = (s || '').replace(/\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)/g, (_, block, imText) => {
@@ -2681,7 +2683,7 @@ const markdown = (knoten, s, inline) => {
     return `${formeln.length - 1}`;
   });
   const html = (inline ? marked.parseInline : marked.parse)(s || '').replace(/(\d+)/g, (_, i) => formeln[i]);
-  knoten.innerHTML = DOMPurify.sanitize(html);
+  knoten.innerHTML = DOMPurify.sanitize(html, fremd ? FREMD : {});
   bilder(knoten);
   bruechen(knoten);
   return knoten;
@@ -7810,9 +7812,10 @@ function kontoZeigen() {
             el('span', {}, 'Ich habe die ', el('a', { href: '#/recht' }, 'AGB und die Datenschutzerklärung'), ' gelesen. Ich nutze den Lernhelfer zum Lernen und halte mich an die Regeln meiner Lehrveranstaltungen zu KI und Hilfsmitteln (',
               el('a', { href: '#a-grenzen' }, 'was der Lernhelfer ist und was nicht'), ').'))],
           'Kostenlos registrieren', async d => {
-            await api('registrieren', { email: d.email, passwort: d.passwort, code: d.code, agb: !!d.agb });
+            const k = await api('registrieren', { email: d.email, passwort: d.passwort, code: d.code, agb: !!d.agb });
             merk('ref', null);
-            neuLaden('Willkommen! Wir haben dir eine Mail geschickt: Bestätige darin deine Adresse, dann kannst du Ultra 24 Stunden gratis testen.');
+            neuLaden(`Willkommen! Wir haben dir eine Mail geschickt: Bestätige darin deine Adresse, ${k.testFrei ? 'dann kannst du Ultra 24 Stunden gratis testen.'  // nur das versprechen, was das Konto wirklich bekommt
+              : k.tarif === 'start' && k.bis ? `dann ist bis ${new Date(k.bis).toLocaleDateString('de-AT', { day: 'numeric', month: 'long' })} alles freigeschaltet.` : 'dann schreibt die KI für dich.'}`);
           }, el('p', { class: 'klein' }, merk('ref') && p ? `Mit dem Freundescode zahlst du im ersten Monat ${p.pro.rabatt} % weniger bei Pro und ${p.ultra.rabatt} % weniger bei Ultra.${TARIFE.launch.aktiv ? ' ' + LAUNCH_RABATT : ''}`
             : 'Base ist kostenlos und bleibt es: jede Woche eine Ausgabe pro Fach aus deinen OLAT-Unterlagen.')),
         el('div', {},
@@ -10360,7 +10363,7 @@ function foZeit(t) {
 const foText = (knoten, s, fach) => {
   const karten = [];  // ```karten roh herausnehmen: markdown() setzt Formeln auch in Codeblöcken schon um
   s = (s || '').replace(/^```karten\n([\s\S]*?)^```/gm, (_, roh) => '```karten\n' + (karten.push(roh) - 1) + '\n```');
-  markdown(knoten, s.replace(/!\[([^\]]*)\]\((?!data:)/g, '[Bild: $1](').replace(/<(?=\/?\s*(img|video|audio|source|picture|iframe|object|embed|link|style)\b)/gi, '&lt;'));
+  markdown(knoten, s.replace(/!\[([^\]]*)\]\((?!data:)/g, '[Bild: $1](').replace(/<(?=\/?\s*(img|video|audio|source|picture|iframe|object|embed|link|style)\b)/gi, '&lt;'), false, true);
   knoten.querySelectorAll('a[href]').forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer nofollow ugc'; });
   for (const c of knoten.querySelectorAll('pre > code.language-karten')) c.parentNode.replaceWith(foKarten(karten[c.textContent.trim()] ?? '', fach));
   return knoten;
@@ -10370,7 +10373,7 @@ function foKarten(roh, fach) {  // ```karten-Block: eine Karte je Zeile „Vorde
   const f = fach || 'Forum', zeig = 6;
   if (!karten.length) return el('p', { class: 'leer' }, 'Leerer Kartenstapel: eine Karte je Zeile, „Vorderseite :: Rückseite“.');
   const liste = el('ol', { class: 'fo-k-liste' }, karten.map((x, i) => el('li', { hidden: i >= zeig ? true : null },
-    el('details', { class: 'fo-k' }, markdown(el('summary'), x.b, true), markdown(el('div'), x.d, true)))));
+    el('details', { class: 'fo-k' }, markdown(el('summary'), x.b, true, true), markdown(el('div'), x.d, true, true)))));
   return el('figure', { class: 'fo-karten' },
     el('figcaption', {}, `🗂 ${karten.length} ${karten.length === 1 ? 'Karteikarte' : 'Karteikarten'}`, el('span', { class: 'meta' }, `${f} · antippen zum Aufdecken`)),
     liste,
@@ -11086,7 +11089,9 @@ const CHANGELOG = [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
-    ['08:30', 'Nach Mitternacht lädt die App beim Zurückkommen neu; Thema lernen speichert abgebrochene Antworten']] },
+    ['08:30', 'Nach Mitternacht lädt die App beim Zurückkommen neu; Thema lernen speichert abgebrochene Antworten'],
+    ['08:40', 'Willkommenstext nach dem Registrieren nennt, was das neue Konto wirklich bekommt'],
+    ['08:40', 'Forum: Beiträge können keine eigenen Stile und Formularfelder mehr einbauen']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
