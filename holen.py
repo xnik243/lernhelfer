@@ -33,6 +33,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import unicodedata
 import zipfile
 from datetime import datetime, timedelta
@@ -87,7 +88,8 @@ else:
 BROWSER = {"chrome": "Chrome", "msedge": "Edge"}.get(KANAL, "Chromium")
 GERAET, ABLAGE = ("Mac", "Schreibtisch") if sys.platform == "darwin" else ("PC", "Desktop")
 HOCHGELADEN = "Hochgeladen/"  # Dateien, die die App selbst hochgeladen hat (iPad, Mac ohne Programm): bleiben beim Abgleich erhalten
-OLAT = "https://lms.uibk.ac.at"
+OLAT = os.environ.get("LH_OLAT", "") if re.fullmatch(r"http://127\.0\.0\.1:\d+", os.environ.get("LH_OLAT", "")) else "https://lms.uibk.ac.at"  # nur die lokale Attrappe von test_probelauf.py
+FASSUNG = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:8]  # für Fehlerberichte; beim Start gelesen, das Selbst-Update tauscht die Datei mitten im Lauf
 ARTEN = ["folien", "ps", "syllabus"]
 TESTS = "Tests"  # material/<Fach>/Tests: Startseiten der Onlinetests, Fragen der Selbsttests
 # Knöpfe, die im Test vor jedem Klick aus der Seite entfernt werden („Test unterbrechen“ bleibt, ist aber bis zum Schluss gesperrt)
@@ -1693,6 +1695,25 @@ def zugang_kaputt():
     return None
 
 
+def absturz_bericht(stand, e, schritt):
+    """Bricht ein Abgleich unerwartet ab, geht ein Fehlerbericht an den Lernhelfer-Server (Admin-Ecke und Mail an den Betreiber):
+    Art, Programmzeilen und Fassung, ohne Pfade und Seiteninhalte. Derselbe Fehler nur einmal, bis ein Lauf wieder durchgeht.
+    Die eigene GitHub-Version hat keinen Server und meldet nichts."""
+    z = json.loads(ZUGANG.read_text("utf-8"))
+    # nicht __file__: im sys.excepthook ist es schon weg (Python 3.14, fand test_probelauf.py)
+    zeilen = [f"Zeile {f.lineno} in {f.name}" for f in traceback.extract_tb(e.__traceback__) if Path(f.filename).name == "holen.py"]
+    kennung = f"{type(e).__name__} {FASSUNG} {' '.join(zeilen)}"
+    if not z.get("api") or stand.get("absturz") == kennung:
+        return
+    ohne_pfade = lambda x: re.sub(r"[A-Za-z]:\\\S*|/(?:Users|home)/\S*", "…", fehlertext(x))  # der Windows-Benutzername steckt im Pfad
+    davor = f"\nwährend: {type(e.__context__).__name__}: {ohne_pfade(e.__context__)}" if e.__context__ else ""
+    body = {"seite": "PC-Programm", "meldung": f"{type(e).__name__}: {ohne_pfade(e)}", "text": f"Abgebrochen bei: {schritt or '?'}{davor}\n" + "\n".join(zeilen),
+            "geraet": f"{sys.platform} · Python {sys.version.split()[0]} · holen.py {FASSUNG}"}
+    urlopen(Request(z["api"].rsplit("/api/", 1)[0] + "/api/fehler", json.dumps(body).encode(),
+                    {"Authorization": "Bearer " + z["token"], "Content-Type": "application/json", "User-Agent": "Lernhelfer"}), timeout=15).close()
+    stand["absturz"] = kennung
+
+
 def sperre():
     """Nur ein Abgleich gleichzeitig: Aufgabe bzw. launchd und der Doppelklick teilen Sitzung, Chrome-Profil und Stand.
     Gibt die offene Sperrdatei zurück (bis zum Ende behalten) oder None, wenn schon einer läuft."""
@@ -1768,6 +1789,22 @@ if __name__ == "__main__":
                 hochladen(stand, pfad, json.dumps(inhalt, ensure_ascii=False).encode())
         finally:
             json_schreiben(STAND, stand)
+
+    def absturz(typ, e, tb):
+        """Unerwarteter Abbruch: Traceback wie bisher, dann Fehlerbericht an den Server und ein Hinweis in der App,
+        sonst stünde dort weiter der letzte gute Abgleich und niemand merkte etwas."""
+        sys.__excepthook__(typ, e, tb)
+        if issubclass(typ, KeyboardInterrupt):
+            return
+        schritt = " · ".join(x for x in (ANZEIGE.titel, ANZEIGE.ort) if x)
+        for tun in (lambda: absturz_bericht(stand, e, schritt),
+                    lambda: melde(False, f"Abgleich am {GERAET} abgebrochen{' bei ' + schritt if schritt else ''} ({typ.__name__}). "
+                                         f"Nochmal versuchen: am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken.")):
+            try:
+                tun()
+            except Exception:  # kein Netz, Server weg: das Fenster zeigt den Fehler trotzdem
+                pass
+    sys.excepthook = absturz
 
     def aufzaehlung(namen):
         return namen[0] if len(namen) == 1 else ", ".join(namen[:-1]) + " und " + namen[-1]
@@ -1865,6 +1902,7 @@ if __name__ == "__main__":
     ANZEIGE.ok(f"Text aus {anzahl(ANZEIGE.z['gelesen'], 'Datei', 'Dateien')} gelesen")
     stand["dauer"] = int(time.monotonic() - ANZEIGE.start)
     ANZEIGE.schritt("Lade alles in deine App", len(dateien) + 1)
+    stand.pop("absturz", None)  # derselbe Fehler darf wieder gemeldet werden, falls er zurückkommt
     try:
         melde(True, anzahl(len(neu), "neue Unterlage", "neue Unterlagen") if neu else "Nichts Neues in OLAT", dateien)
     except Exception:

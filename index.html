@@ -11324,7 +11324,10 @@ const CHANGELOG = [
     ['20:00', 'Ein Fehler stoppt nicht mehr alles', 'Bei einem Kommilitonen brach der erste Abgleich am PC nach sieben Minuten ab. Der Grund lag in meinem Code: Kann das Programm eine einzelne Seite in OLAT nicht lesen, soll es das melden und weitermachen. Genau diese Meldung ist abgestürzt und hat den ganzen Abgleich mitgerissen, seit zwei Tagen bei allen, bei denen irgendwo so eine Seite war. Jetzt bleibt es bei einer Warnung, und die Unterlagen kommen trotzdem in die App.', 0, 2, [
       'Ein Name im Code hieß genauso wie die Funktion, die Fehler in verständliche Sätze übersetzt, und hat sie überschrieben. Ein neuer Test schlägt an, sobald so etwas wieder passiert.',
       'Rückgaben, deren Datei sich nicht direkt laden lässt, liest das Programm jetzt als Text der Seite, statt aufzugeben.',
-      'Wer nach einem Fehler per Doppelklick neu startet, bekommt vorher die neueste Fassung, nicht erst beim nächsten automatischen Lauf.']]], t: [
+      'Wer nach einem Fehler per Doppelklick neu startet, bekommt vorher die neueste Fassung, nicht erst beim nächsten automatischen Lauf.']],
+    ['22:15', 'Ich merke es jetzt selbst', 'Den Fehler von vorhin hätte ich ohne das Foto eines Kommilitonen nie gesehen. Jetzt schickt das PC-Programm bei einem Absturz eine kurze Meldung an mich: welcher Fehler, an welcher Stelle im Code, welche Fassung. Keine Namen, keine Inhalte aus OLAT, keine Pfade vom Computer. In der App steht dann „Abgleich abgebrochen“, statt still der letzte gute Stand.', 1, 2, [
+      'Vor jedem Commit laufen jetzt Prüfungen: beim PC-Programm ein Probelauf des ganzen Programms gegen ein nachgebautes OLAT, beim Server seine Tests, bei der App, ob sie überhaupt startet. Ist etwas rot, geht nichts live.',
+      'Der Probelauf hat beim ersten Mal gleich einen Fehler in der neuen Absturzmeldung gefunden, bevor sie bei jemandem ankam. Baut man den Fehler von vorhin wieder ein, bricht er mit genau der Meldung ab, die mein Kommilitone gesehen hat.']]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
@@ -11348,7 +11351,9 @@ const CHANGELOG = [
     ['18:10', 'PC-Programm: OLAT-Sitzung verschlüsselt gespeichert (Windows DPAPI, Mac mit Schlüssel im Schlüsselbund); alte Klartext-Datei wird beim nächsten Abgleich ersetzt'],
     ['18:10', 'Anleitung: Entfernen-Datei für Windows und Terminal-Zeile für den Mac (Hintergrundjob, Ordner, Schlüsselbund, Verknüpfung)'],
     ['20:00', 'PC-Programm: eine nicht lesbare Seite bricht den Abgleich nicht mehr ab (die Warnung selbst stürzte ab); Rückgabe ohne ladbare Datei wird als Seitentext gelesen; geht bei einem Fach gar nichts, kommen die Unterlagen trotzdem an'],
-    ['20:00', 'PC-Programm: Start per Doppelklick holt vorher die neueste Fassung']] },
+    ['20:00', 'PC-Programm: Start per Doppelklick holt vorher die neueste Fassung'],
+    ['22:15', 'PC-Programm: meldet Abstürze an den Server (ohne Inhalte und Pfade); die App zeigt dann „Abgleich abgebrochen“'],
+    ['22:15', 'Vor jedem Commit: Tests und Probelauf des PC-Programms gegen nachgebautes OLAT, Server-Tests, Startprüfung der App']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

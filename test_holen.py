@@ -471,6 +471,9 @@ def test_schatten():
                 yield c
                 yield from modulebene(c)
     schatten = [(n.id, n.lineno) for n in modulebene(baum) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id in funktionen]
+    schatten += [(c.name, c.lineno) for n in modulebene(baum) for c in ast.iter_child_nodes(n)  # def im __main__-Block
+                 if isinstance(c, (ast.FunctionDef, ast.ClassDef)) and c.name in funktionen]
+    schatten += [(n.name, n.lineno) for n in modulebene(baum) if isinstance(n, ast.ExceptHandler) and n.name in funktionen]
     assert not schatten, f"überschreibt Funktionen: {schatten}"
     print("ok schatten")
 
