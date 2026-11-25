@@ -3855,7 +3855,9 @@ const notenLaden = () => NOTEN_P ??= (async () => {
       if (!alt.hand && !alt.weg && (alt.punkte !== pm[0] || alt.max !== pm[1])) { alt.punkte = pm[0]; alt.max = pm[1]; neu++; }
       continue;
     }
-    NOTEN.eintraege.push({ id: crypto.randomUUID(), olat: testId(t), lv, titel: t.titel, datum: (t.bis || HEUTE).slice(0, 10), punkte: pm[0], max: pm[1] });
+    // Bewertungsbaustein ohne Rückgabedatum (VWL-PS-Tests): Tag der letzten Punktzahl im Änderungsverlauf, „um 16:39, 23.10.2026“ ↵ „Punktzahl: 12.0“
+    const am = t.art === 'bewertung' && [...(t.startseite || '').matchAll(/um \d\d:\d\d, (\d\d)\.(\d\d)\.(\d{4})\s+Punktzahl/g)].at(-1);
+    NOTEN.eintraege.push({ id: crypto.randomUUID(), olat: testId(t), lv, titel: t.titel, datum: t.bis?.slice(0, 10) || (am ? `${am[3]}-${am[2]}-${am[1]}` : HEUTE), punkte: pm[0], max: pm[1] });
     neu++;
   }
   for (const f of Object.keys(R)) for (const x of aktuell(f)?.pruefungen || []) {  // derselbe Tag im selben Fach ist dieselbe Prüfung
@@ -11367,7 +11369,8 @@ const CHANGELOG = [
       'Viele Vorlesungen stehen in beiden Kalendern, mit leicht anderem Titel. Die App erkennt doppelte Termine an Tag, Uhrzeit und Lehrveranstaltung und zeigt sie nur einmal.']]], t: [
     ['00:30', 'Heute: Fächer an erster Stelle, dann Thema lernen, Weiterlernen, Frag den Lernhelfer'],
     ['00:30', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen'],
-    ['00:45', 'Kalender: PC-Programm holt den OLAT-Kalender automatisch, doppelte Termine erscheinen nur einmal']] },
+    ['00:45', 'Kalender: PC-Programm holt den OLAT-Kalender automatisch, doppelte Termine erscheinen nur einmal'],
+    ['00:50', 'Noten: PS-Test-Punkte aus OLAT bekommen das Datum der Bewertung statt des Abgleich-Tags']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
