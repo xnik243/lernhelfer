@@ -182,7 +182,7 @@ const frage = `Ein Mitstudent hat ein kleines Open-Source-Programm gebaut, das K
 
 Schau dir den Code an und sag mir: Ist das sicher? Konkret: Enthält der Code einen Virus, Trojaner, Keylogger, Ransomware, Adware oder eine andere Form von Schadsoftware? Gibt es versteckten Schadcode, Backdoors oder Datenabfluss an Dritte? Braucht es Administratorrechte?
 
-Fass dich kurz und sag mir am Ende klar, ob ich es bedenkenlos installieren kann. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
+Fass dich kurz und sag mir am Ende klar, ob es laut deiner Analyse Schadsoftware ist oder nicht. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 for (const a of document.querySelectorAll(".pk")) {
   a.href = a.dataset.ki === "claude" ? `https://claude.ai/new?q=${encodeURIComponent(frage)}` : `https://chatgpt.com/?hints=search&q=${encodeURIComponent(frage)}`;
 }
