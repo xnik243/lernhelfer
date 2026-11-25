@@ -1215,7 +1215,26 @@ KNOTEN_JS = r"""() => [...document.querySelectorAll('.o_tree li[data-nodeid]')].
   const a = li => li?.querySelector(':scope > div .o_tree_link a');
   return {id: li.dataset.nodeid, titel: a(li)?.innerText.trim(),
           icon: [...(a(li)?.querySelector('i')?.classList || [])].find(c => /^o_\w+_icon$/.test(c)),
+          // hat Unterbausteine: schon aufgeklappt oder mit Pfeil vor dem Link (auch Ordner wie „PS-Tests“ mit den Bewertungen darunter)
+          kinder: !!li.querySelector(':scope > ul li') || [...li.querySelectorAll(':scope > div :is(a, i)')].some(x => !x.closest('.o_tree_link')),
           eltern: a(li.parentElement.closest('li[data-nodeid]'))?.innerText.trim()}; })"""
+# Rückgabe und Feedback eines Aufgaben-Bausteins: Dateien der Betreuer:innen [Name, Adresse, Datum]; eigene Abgaben und die Aufgabenstellung nicht
+RUECKGABE_JS = r"""() => {
+  const main = document.querySelector('#o_main_center_content_inner'), dateien = new Map();
+  let teile = [...main.querySelectorAll('[id*="review"], [id*="revision"], [class*="o_review"], [class*="o_correction"]')];
+  if (!teile.length) teile = [...main.querySelectorAll('h2, h3, h4, h5, legend, .panel-heading, .o_title')]
+    .filter(h => /^\s*(Rückgabe|Feedback|Korrektur)/i.test(h.innerText)).map(h => h.closest('.o_step, .panel, fieldset, section')).filter(Boolean);
+  for (const a of teile.flatMap(t => [...t.querySelectorAll('a[href]')])) {
+    const href = a.getAttribute('href');
+    if (/^(javascript:|#|mailto:)/i.test(href)) continue;
+    const name = [a.getAttribute('download'), a.innerText.trim(), decodeURIComponent(href.split('?')[0].split('/').pop())].find(n => /\.(html?|pdf|docx?|txt)$/i.test(n || ''));
+    let z = a;
+    for (let i = 0; i < 5 && z && !/\d\d\.\d\d\.\d{4}/.test(z.innerText); i++) z = z.parentElement;
+    if (name && !dateien.has(name)) dateien.set(name, [name, a.href, z?.innerText.match(/\d\d\.\d\d\.\d{4}/)?.[0] || null]);
+  }
+  return [...dateien.values()];
+}"""
+AUFGABE = ("o_gta_icon", "o_ta_icon")
 # Eingaben als [Wert] bzw. [x] in den Text, zugeklappte Lösungen aufklappen (nur in der eigenen Seitenkopie)
 LESEN_JS = r"""m => {
   m.querySelectorAll('input[type=text], textarea').forEach(i => i.replaceWith(` [${i.value}] `));
@@ -1239,7 +1258,7 @@ def knoten(page, kurs):
         for k in page.evaluate(KNOTEN_JS):
             if k["id"] not in alle:
                 alle[k["id"]] = k
-                if k["icon"] == "o_st_icon":
+                if k["icon"] == "o_st_icon" or k.get("kinder") and k.get("eltern"):  # ohne Eltern: die Kurswurzel, die ist schon offen
                     offen.append(f"/CourseNode/{k['id']}")
     return list(alle.values())
 
@@ -1322,8 +1341,9 @@ def testliste(fach):
             continue
         t, fragen = f.read_text("utf-8"), ordner / f"{f.stem} – Fragen.txt"
         if t.startswith("OLAT-Bewertung „"):  # Bewertungs-Baustein (PS-Test, Präsentation …): Punkte liest die App aus dem Text
-            lv = re.match(r"OLAT-Bewertung „.*?“ \((\w*)\)", t)
-            aus.append({"fach": fach, "titel": f.stem, "art": "bewertung", "lv": lv and lv.group(1) or None, "startseite": t})
+            lv, am = re.match(r"OLAT-Bewertung „.*?“ \((\w*)\)", t), re.search(r"^Rückgabe vom (\d\d)\.(\d\d)\.(\d{4})$", t, re.M)
+            aus.append({"fach": fach, "titel": f.stem, "art": "bewertung", "lv": lv and lv.group(1) or None, "startseite": t,
+                        "bis": am and f"{am[3]}-{am[2]}-{am[1]}"})
             continue
         if t.startswith("Selbsttest „"):  # Selbsttest-Baustein: die Datei enthält schon die Fragen
             aus.append({"fach": fach, "titel": f.stem, "art": "selbsttest", "fragen": t})
@@ -1337,6 +1357,23 @@ def testliste(fach):
                     "ergebnis": "Dies sind Ihre Testresultate" in t,
                     "uebung": bool(re.search(r"nicht relevant für die Leistungsbeurteilung|ohne Notendruck|nur zur Übung", t)
                                    or "Selbsttest" in f.stem)})
+    return aus
+
+
+def rueckgabe(ctx, page, ziel, lv):
+    """Dateien unter „Rückgabe und Feedback“ eines Aufgaben-Bausteins laden und je Datei eine Bewertung bauen [(Datei, Text, Titel)].
+    Die Punkte liest die App aus dem Text, wie bei einem Bewertungs-Baustein; das Original bleibt unter Tests/Rückgabe."""
+    aus = []
+    for name, adresse, datum in page.evaluate(RUECKGABE_JS):
+        r = ctx.request.get(urljoin(page.url, adresse))
+        if not r.ok:
+            raise RuntimeError(f"OLAT antwortete {r.status}")
+        roh = ziel / "Rückgabe" / sicherer_name(name)
+        roh.parent.mkdir(exist_ok=True)
+        roh.write_bytes(r.body())
+        titel = roh.stem
+        inhalt = re.sub(r"\s*\n\s*", "\n", re.sub(r"[ \t\xa0]+", " ", text(roh))).strip()
+        aus.append((ziel / f"{titel}.txt", f"OLAT-Bewertung „{titel}“ ({lv})\n" + (f"Rückgabe vom {datum}\n" if datum else "") + "\n" + inhalt, titel))
     return aus
 
 
@@ -1365,7 +1402,7 @@ def tests(browser, fach, kurs_ids=None):
         ANZEIGE.jetzt("liest den Kursbaum", fach + (f" · {arten[kurs]}" if arten.get(kurs) else ""))
         for k in knoten(page, kurs):
             # ponytail: Altklausuren (Klausurarchiv) übersprungen – eigener Prüfungsmodus, falls gewünscht
-            if k["icon"] not in ("o_iqtest_icon", "o_iqself_icon", "o_ms_icon") or k["eltern"] == "Klausurarchiv":
+            if k["icon"] not in (*TESTICONS, *AUFGABE) or k["eltern"] == "Klausurarchiv":
                 continue
             name = re.sub(r'[\\/:*?"<>|]', "-", k["titel"])
             if name in namen:
@@ -1374,34 +1411,40 @@ def tests(browser, fach, kurs_ids=None):
             datei, fragen = ziel / f"{name}.txt", ziel / f"{name} – Fragen.txt"
             if k["icon"] == "o_iqself_icon" and datei.exists():  # Selbsttests ändern sich nicht
                 continue
-            ANZEIGE.jetzt({"o_ms_icon": "liest die Bewertung", "o_iqself_icon": "sieht die Fragen an"}.get(k["icon"], "liest die Startseite"),
-                          f"{fach} · {k['titel']}")
+            # PS-Tests liegen oft im VO-Kurs (VWL: Proseminare › PS-Tests) oder in einem Kurs ohne Art im Namen (Mathe: PS-2026-W)
+            lv = "PS" if re.search(r"\bPS\b|Proseminar", f"{k['titel']} {k['eltern'] or ''}") else arten.get(kurs, "")
+            ANZEIGE.jetzt({"o_ms_icon": "liest die Bewertung", "o_iqself_icon": "sieht die Fragen an"}.get(k["icon"], "liest die Rückgabe" if k["icon"] in AUFGABE
+                          else "liest die Startseite"), f"{fach} · {k['titel']}")
             pause(page)
             page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
             page.wait_for_load_state("networkidle")
             try:
-                if k["icon"] == "o_ms_icon":  # Bewertung: nur lesen, die Seite hat für Teilnehmende nichts zum Abschicken
-                    # ponytail: nur Bewertungs-Bausteine; Punkte in Aufgaben-Bausteinen (o_gta_icon) erst, wenn eine echte Seite dazu vorliegt
+                if k["icon"] in AUFGABE:  # Aufgabe: Punkte stehen in den Dateien unter „Rückgabe und Feedback“ (Mathe-PS-Tests als HTML)
+                    aus = rueckgabe(ctx, page, ziel, lv)
+                    if not aus and page.get_by_text(re.compile(r"Dokumente für Sie|Beurteilungen herunterladen")).count():
+                        raise RuntimeError("Rückgabe da, aber keine Datei mit Adresse gefunden")
+                elif k["icon"] == "o_ms_icon":  # Bewertung: nur lesen, die Seite hat für Teilnehmende nichts zum Abschicken
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
-                    t = f"OLAT-Bewertung „{k['titel']}“ ({arten.get(kurs, '')})\n\n" + seite
+                    aus = [(datei, f"OLAT-Bewertung „{k['titel']}“ ({lv})\n\n" + seite, k["titel"])]
                 elif k["icon"] == "o_iqself_icon":
-                    t = f"Selbsttest „{k['titel']}“ (anonyme, unbewertete Übung) – Fragen ohne Lösung\n\n" + test_lesen(page, frei, "Selbsttest starten")
+                    aus = [(datei, f"Selbsttest „{k['titel']}“ (anonyme, unbewertete Übung) – Fragen ohne Lösung\n\n" + test_lesen(page, frei, "Selbsttest starten"), k["titel"])]
                 else:
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
-                    t = f"OLAT-Test „{k['titel']}“ – Startseite (ob er bewertet wird, steht im Text)\n\n" + seite
+                    aus = [(datei, f"OLAT-Test „{k['titel']}“ – Startseite (ob er bewertet wird, steht im Text)\n\n" + seite, k["titel"])]
                     # nach Abschluss stehen Fragen samt Lösung auf der Startseite; Fragen-Dateien älterer Fassungen gehen weg
                     fragen.unlink(missing_ok=True)
             except Exception as e:  # ein Test soll den Rest nicht aufhalten
                 ANZEIGE.warnung(f"{fach}: {k['titel']} nicht lesbar ({fehlertext(e)})", f"{fach} · {k['titel']} nicht lesbar: {grund(e)}", zaehlt=True)
                 continue
-            ANZEIGE.z["tests"] += 1
-            if not datei.exists() or datei.read_text("utf-8") != t:
-                vorher = datei.read_text("utf-8") if datei.exists() else None
-                art = ("neu" if vorher is None else "Ergebnis ist da" if "Testresultate" in t and "Testresultate" not in vorher
-                       else "Punkte geändert" if k["icon"] == "o_ms_icon" else "geändert")
-                neu.append(f"{fach}: {TESTS}/{datei.name}")
-                ANZEIGE.fund(fach, f"Test „{k['titel']}“", art=art, name=k["titel"])
-                datei.write_text(t, "utf-8")
+            for datei, t, titel in aus:
+                ANZEIGE.z["tests"] += 1
+                if not datei.exists() or datei.read_text("utf-8") != t:
+                    vorher = datei.read_text("utf-8") if datei.exists() else None
+                    art = ("neu" if vorher is None else "Ergebnis ist da" if "Testresultate" in t and "Testresultate" not in vorher
+                           else "Punkte geändert" if t.startswith("OLAT-Bewertung") else "geändert")
+                    neu.append(f"{fach}: {TESTS}/{datei.name}")
+                    ANZEIGE.fund(fach, f"Test „{titel}“", art=art, name=titel)
+                    datei.write_text(t, "utf-8")
     ctx.close()
     return neu
 

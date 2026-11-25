@@ -3817,14 +3817,19 @@ const notenLaden = () => NOTEN_P ??= (async () => {
   let neu = 0;
   for (const t of TESTS) {
     const m = t.art === 'test' && t.ergebnis && !t.uebung && t.startseite?.match(/Erreichte Punktzahl\s*(-?[\d.,]+) von ([\d.,]+) Punkt/);
-    const pm = m ? [zahl(m[1]), zahl(m[2])] : t.art === 'bewertung' && bewertungPunkte(t.startseite);
+    // Rückgaben (Mathe-PS-Tests) nennen oft nur die eigenen Punkte: möglich sind dann so viele, wie das Schema je Test vorsieht
+    const pm = m ? [zahl(m[1]), zahl(m[2])] : t.art === 'bewertung' && bewertungPunkte(t.startseite, terminPunkte(t.fach, t.titel));
     if (!pm) continue;
+    const lv = LV_ART.test(t.fach) ? t.fach : `${t.fach} ${t.lv || 'PS'}`;
+    // schon von Hand eingetragen (gleiche LV, gleicher Name): verknüpfen statt doppelt zählen, die eigenen Zahlen bleiben
+    const hand = NOTEN.eintraege.find(e => !e.olat && e.lv === lv && norm(e.titel) === norm(t.titel));
+    if (hand) { hand.olat = testId(t); hand.hand = true; neu++; continue; }
     const alt = NOTEN.eintraege.find(e => e.olat === testId(t));
     if (alt) {  // nachträglich korrigierte Punkte übernehmen, außer der Eintrag wurde von Hand geändert
       if (!alt.hand && !alt.weg && (alt.punkte !== pm[0] || alt.max !== pm[1])) { alt.punkte = pm[0]; alt.max = pm[1]; neu++; }
       continue;
     }
-    NOTEN.eintraege.push({ id: crypto.randomUUID(), olat: testId(t), lv: LV_ART.test(t.fach) ? t.fach : `${t.fach} ${t.lv || 'PS'}`, titel: t.titel, datum: (t.bis || HEUTE).slice(0, 10), punkte: pm[0], max: pm[1] });
+    NOTEN.eintraege.push({ id: crypto.randomUUID(), olat: testId(t), lv, titel: t.titel, datum: (t.bis || HEUTE).slice(0, 10), punkte: pm[0], max: pm[1] });
     neu++;
   }
   for (const f of Object.keys(R)) for (const x of aktuell(f)?.pruefungen || []) {  // derselbe Tag im selben Fach ist dieselbe Prüfung
@@ -3859,8 +3864,12 @@ function lvStand(name) {
 const LV_ART = /\s(VO|PS|UE|VU|SE|UV|KS)$/;  // Fächer wie „BWL VO“ sind schon eine Lehrveranstaltung
 const bewLvs = () => Object.values(NOTEN?.bewertung || {}).flatMap(b => b.lvs || []);
 const norm = s => String(s || '').toLowerCase().replace(/[-–_\s]+/g, ' ').trim();
-// ohne Suchwort (Mitarbeit, Diskussionsbeitrag) zählt ein Eintrag, der den Namen des Teils trägt, wie „Ergebnis eintragen“ ihn vorschlägt
-const trifft = (t, titel) => !!(t.suche || t.titel) && norm(titel).includes(norm(t.suche || t.titel));
+// ohne Suchwort (Mitarbeit, Diskussionsbeitrag) zählt ein Eintrag, der den Namen des Teils trägt, wie „Ergebnis eintragen“ ihn vorschlägt;
+// die Wörter dürfen getrennt stehen: „PS-4b-Test“ und „PS-Test Woche 4“ sind beide ein „PS-Test“
+const trifft = (t, titel) => {
+  const s = norm(t.suche || t.titel), n = norm(titel), w = n.split(' ');
+  return !!s && (n.includes(s) || s.split(' ').every(x => w.includes(x)));
+};
 const kommendeTests = fach => (TESTS ? [...TESTS, ...erwarteteTests()] : [])
   .filter(x => x.fach === fach && x.art === 'test' && !x.uebung && (x.erwartet || ['offen', 'bald'].includes(teststand(x).gruppe)))
   .sort((a, b) => (a.bis || '9').localeCompare(b.bis || '9'));
@@ -3879,12 +3888,13 @@ function teilStand(t, e, fach) {
 // Wie viele Punkte ein Termin (Prüfung, PS-Test, Präsentation) laut Schema bringt
 const terminPunkte = (fach, titel) => bewLvs().filter(l => l.fach === fach).flatMap(l => l.teile).filter(t => trifft(t, titel))
   .sort((a, b) => norm(b.suche).length - norm(a.suche).length).map(t => t.max_je ?? (t.anzahl && t.max != null ? t.max / t.anzahl : t.max))[0] ?? null;
-// Punkte aus einem OLAT-Bewertungsbaustein (PS-Test, Präsentation …): „Punkte: 12,5“, „Erreichte Punkte 12.5 von 15“, dazu „Max. Punktzahl: 15“
-function bewertungPunkte(text) {
+// Punkte aus einem OLAT-Bewertungsbaustein (PS-Test, Präsentation …): „Punkte: 12,5“, „Erreichte Punkte 12.5 von 15“, dazu „Max. Punktzahl: 15“;
+// steht nirgends, wie viele möglich waren, gilt maxSonst (aus dem Bewertungsschema)
+function bewertungPunkte(text, maxSonst = null) {
   if (!text || /noch nicht bewertet|keine bewertung/i.test(text)) return null;
   const max = text.match(/Max(?:imale|imal|\.)?\s*(?:Punktzahl|Punkte)\s*:?\s*(-?[\d.,]+)/i), z = text.split('\n').filter(l => !/max|min/i.test(l)).join('\n');
   const p = z.match(/(?:Erreichte\s+)?(?:Punktzahl|Punkte)\s*:?\s*(-?[\d.,]+)(?:\s*(?:von|\/)\s*([\d.,]+))?/i);
-  const pm = p && [zahl(p[1]), zahl(p[2] || max?.[1])];
+  const pm = p && [zahl(p[1]), zahl(p[2] || max?.[1]) ?? maxSonst];
   return pm && Number.isFinite(pm[0]) && pm[1] > 0 ? pm : null;  // ponytail: Muster nach OpenOLAT, ohne echte UIBK-Seite geprüft; passt es nicht, bleibt der Eintrag weg
 }
 const BEW_KI = { model: 'google/gemini-3.8-flash', max_tokens: 4000 }, BEW_LAEUFT = new Set();
@@ -11089,7 +11099,8 @@ const CHANGELOG = [
     ['07:10', 'Schlichterer Changelog', 'Weniger auf einmal: kein Zahlenbalken und keine Aufwand-Balken mehr. Farbe bleibt dort, wo sie etwas sagt: Blau markiert Überlegungen und Links.', 0, 1],
     ['08:25', 'Zwei Geräte, ein Karteikasten', 'Wer abwechselnd am Handy und am iPad lernt, verliert nichts mehr. Hat das andere Gerät inzwischen gespeichert, führt die App beide Stände zusammen: Je Karte gilt die zuletzt beantwortete. Vorher klappte ab diesem Moment kein Speichern mehr, bis man neu lud. Auch eine fertige Wochenausgabe geht dabei nicht mehr verloren.', 0, 2],
     ['08:27', 'Formeln brechen nichts mehr', 'Schreibt die KI eine Formel wie \\frac mit einfachem Backslash, war die Antwort technisch kaputt. In der Wochenausgabe fehlten dann still Termine und Begriffe, die Probeklausur brach ab. Jetzt repariert die App solche Antworten überall, wie schon bei Thema lernen.', 0, 1],
-    ['08:30', 'Ein neuer Tag ist ein neuer Tag', 'Wer die App am Handy offen lässt, sah am nächsten Morgen noch gestern: falsche Fristen, falsche fällige Karten. Jetzt lädt sie beim Zurückkommen nach Mitternacht neu, außer es läuft gerade etwas oder ein angefangener Text würde verloren gehen. Und reißt bei Thema lernen die Verbindung ab, bleibt das schon Angekommene gespeichert.', 0, 1]], t: [
+    ['08:30', 'Ein neuer Tag ist ein neuer Tag', 'Wer die App am Handy offen lässt, sah am nächsten Morgen noch gestern: falsche Fristen, falsche fällige Karten. Jetzt lädt sie beim Zurückkommen nach Mitternacht neu, außer es läuft gerade etwas oder ein angefangener Text würde verloren gehen. Und reißt bei Thema lernen die Verbindung ab, bleibt das schon Angekommene gespeichert.', 0, 1],
+    ['12:55', 'PS-Tests zählen mit', 'Selbst eingetragene PS-Tests wie „PS-4b-Test“ zählen jetzt bei den PS-Test-Punkten der Lehrveranstaltung mit, vorher blieb es dort bei 0. Und das PC-Programm holt die Ergebnisse selbst: in Mathe aus den Rückgabe-Dateien unter Testergebnisse, in VWL aus den Bewertungen im Ordner PS-Tests. Was du schon eingetragen hast, wird dabei nicht doppelt gezählt.', 0, 2]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
@@ -11100,7 +11111,9 @@ const CHANGELOG = [
     ['09:20', 'PC-Programm: zeigt OLAT einmal keine Kurse, bleiben die bisherigen samt Testfristen (neuer Versuch am nächsten Tag); Hochladen fasst bei Netzfehlern zweimal nach, sonst neuer Versuch nach 2 statt 12 Stunden; Zustand übersteht einen Stromausfall beim Speichern'],
     ['09:35', 'PC-Programm: erkennt die OLAT-Anmeldung auch mit OLAT auf Englisch; merkt eine mitten im Lauf abgelaufene Sitzung, statt „Nichts Neues“ zu melden; speichert keine Fehlerseiten und keine halben Downloads mehr'],
     ['09:45', 'Kalender zeigt Samstag und Sonntag, wenn dort ein Termin liegt (Blocktermin, Klausur); sonst bleibt es bei Mo–Fr'],
-    ['09:45', '„WS 25/26“, „Teil A/B“, „Seite 3/10“ und „24/7“ werden nicht mehr als Bruch gesetzt']] },
+    ['09:45', '„WS 25/26“, „Teil A/B“, „Seite 3/10“ und „24/7“ werden nicht mehr als Bruch gesetzt'],
+    ['12:55', 'Noten: Einträge zählen zu einem Teil, auch wenn die Wörter getrennt stehen (PS-4b-Test → PS-Test); Bewertungen ohne Höchstpunkte nehmen sie aus dem Schema; gleichnamige eigene Einträge werden verknüpft statt doppelt gezählt'],
+    ['12:55', 'PC-Programm: liest Rückgabe-Dateien aus Aufgaben-Bausteinen als Bewertung mit Datum, klappt auch Ordner mit Unterbausteinen auf und ordnet PS-Tests aus dem VO-Kurs dem PS zu']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

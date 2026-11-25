@@ -30,6 +30,10 @@ def test():
         assert [x["datei"] for x in d] == ["VO/vo2.txt", "VO/vo10.pdf", "Syl/a.html", "Tests/Thema 2.txt"]
         assert d[1]["text"].startswith("(Text nicht lesbar")  # kaputtes PDF bricht nicht ab
         assert d[3]["art"] == "test" and d[3]["text"] == "f(x)<3"  # Testtext bleibt unverändert
+        # Rückgabe aus einem Aufgaben-Baustein: Art und Datum kommen aus dem Kopf, die Punkte liest die App
+        (t / "m/F/Tests/PS-2a-Test.txt").write_text("OLAT-Bewertung „PS-2a-Test“ (PS)\nRückgabe vom 20.10.2026\n\nPunkte: 7", "utf-8")
+        b = [x for x in holen.testliste("F") if x["art"] == "bewertung"]
+        assert [(x["titel"], x["lv"], x["bis"]) for x in b] == [("PS-2a-Test", "PS", "2026-10-20")]
 
     # Testschutz mit echten OLAT-Anfragen (Selbsttest Mathematik, 14.10.2026)
     frei = {"start": "/auth/7:1:1109209465:2:1/", "selectItem": "o_fi1109214309"}
