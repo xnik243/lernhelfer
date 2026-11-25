@@ -1491,14 +1491,15 @@ def tests(browser, fach, kurs_ids=None):
             lv = "PS" if re.search(r"\bPS\b|Proseminar", f"{k['titel']} {k['eltern'] or ''}") else arten.get(kurs, "")
             ANZEIGE.jetzt({"o_ms_icon": "liest die Bewertung", "o_iqself_icon": "sieht die Fragen an"}.get(k["icon"], "liest die Rückgabe" if k["icon"] in AUFGABE
                           else "liest die Startseite"), f"{fach} · {k['titel']}")
-            pause(page)
-            page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
-            page.wait_for_load_state("networkidle")
-            try:
+            try:  # auch das Öffnen: eine Zeitüberschreitung auf einer Testseite hält die anderen nicht auf
+                pause(page)
+                page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
+                page.wait_for_load_state("networkidle")
                 if k["icon"] in AUFGABE:  # Aufgabe: Punkte stehen in den Dateien unter „Rückgabe und Feedback“ (Mathe-PS-Tests als HTML)
                     aus = rueckgabe(ctx, page, ziel, lv)
                     if not aus and page.get_by_text(re.compile(r"Dokumente für Sie|Beurteilungen herunterladen")).count():
-                        raise RuntimeError("Rückgabe da, aber keine Datei mit Adresse gefunden")
+                        # ponytail: Rückgabe ohne ladbare Datei (Bild, Link ohne Adresse) → Seitentext wie bei einer Bewertung; RUECKGABE_JS an einer echten Seite schärfen
+                        aus = [(datei, f"OLAT-Bewertung „{k['titel']}“ ({lv})\n\n" + page.locator("#o_main_center_content_inner").evaluate(LESEN_JS), k["titel"])]
                 elif k["icon"] == "o_ms_icon":  # Bewertung: nur lesen, die Seite hat für Teilnehmende nichts zum Abschicken
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
                     aus = [(datei, f"OLAT-Bewertung „{k['titel']}“ ({lv})\n\n" + seite, k["titel"])]
@@ -1658,6 +1659,7 @@ def aktualisieren():
         tmp.write_bytes(neu)
         os.replace(tmp, __file__)
         print("holen.py aktualisiert.")
+        return True
     except Exception as e:
         print("Aktualisierung übersprungen:", e)
 
@@ -1715,6 +1717,8 @@ if __name__ == "__main__":
     auto = "--auto" in sys.argv  # aus der Aufgabenplanung bzw. launchd: ohne Konsole, Ausgaben ins Log
     if auto and not faellig(json_lesen(STAND, {}), datetime.now()):
         sys.exit()  # noch nicht dran: OLAT bleibt in Ruhe, auch kein Wachhalten der Sitzung
+    if not auto and aktualisieren():  # von Hand gleich mit der neuen Fassung, sonst liefe ein schon behobener Fehler bis zum nächsten automatischen Lauf weiter
+        sys.exit(subprocess.run([sys.executable, __file__, *sys.argv[1:]]).returncode)
     if auto:
         sys.stdout = sys.stderr = open(BASIS / "holen.log", "a", encoding="utf-8", buffering=1)
         print(f"--- {datetime.now():%d.%m.%Y %H:%M}")
@@ -1746,8 +1750,8 @@ if __name__ == "__main__":
         if auto:
             aktualisieren()  # neue Fassungen kommen trotzdem an, ohne OLAT zu berühren
         sys.exit(0 if auto else 1)
-    if grund := zugang_kaputt():
-        ANZEIGE.fehler(grund)
+    if kaputt := zugang_kaputt():  # nicht „grund“: das überschrieb die Funktion grund() und jede Warnung brach den ganzen Abgleich ab
+        ANZEIGE.fehler(kaputt)
         if auto:
             aktualisieren()
         sys.exit(0 if auto else 1)
@@ -1786,11 +1790,11 @@ if __name__ == "__main__":
                            type(e).__name__)
             weiter(stand, 4)  # abgelaufen: in rund 4 Stunden wieder versuchen, von Hand jederzeit
             json_schreiben(STAND, stand)
-            text = (f"Automatischer OLAT-Login ging nicht ({stand['autologin_fehler']}) – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken"
-                    " und die Zugangsdaten neu eintragen oder selbst einloggen." if stand.get("autologin_fehler") else
-                    f"OLAT-Anmeldung am {GERAET} abgelaufen – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken und einloggen.")
-            if (alt.get("ok") is not False or alt.get("text") != text) and ZUGANG.exists():
-                melde(False, text)
+            hinweis = (f"Automatischer OLAT-Login ging nicht ({stand['autologin_fehler']}) – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken"
+                       " und die Zugangsdaten neu eintragen oder selbst einloggen." if stand.get("autologin_fehler") else
+                       f"OLAT-Anmeldung am {GERAET} abgelaufen – am {GERAET} „Lernhelfer OLAT“ auf dem {ABLAGE} doppelklicken und einloggen.")
+            if (alt.get("ok") is not False or alt.get("text") != hinweis) and ZUGANG.exists():
+                melde(False, hinweis)
             if auto:
                 aktualisieren()  # sonst käme eine neue Fassung erst nach dem nächsten Login an
             sys.exit(0 if auto else 1)
@@ -1846,7 +1850,10 @@ if __name__ == "__main__":
         ANZEIGE.schritt("Tests und Punkte", len(faecher), hinweis="Testschutz an: nur lesen, nichts abschicken", faecher=faecher)
         neu_tests = []
         for f in faecher:
-            neu_tests += tests(browser, f, stand.get("kurs_ids", {}).get(f))
+            try:
+                neu_tests += tests(browser, f, stand.get("kurs_ids", {}).get(f))
+            except Exception as e:  # Tests sind Beiwerk: die Unterlagen kommen trotzdem in die App
+                ANZEIGE.warnung(f"{f}: Tests nicht gelesen ({fehlertext(e)})", f"{f} · Tests nicht gelesen: {grund(e)}", zaehlt=True)
             ANZEIGE.plus()
         ANZEIGE.ok("Tests und Punkte", f"{z['tests']} gelesen, " + (f"{len(neu_tests)} neu oder geändert" if neu_tests else "nichts geändert")
                    + ", keine Antwort abgeschickt")

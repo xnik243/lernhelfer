@@ -230,7 +230,7 @@ def test():
     k = bytes(range(32))
     for daten in (b"", b"x", b'{"cookies": [1]}' * 500):
         blob = holen.versiegeln(k, daten)
-        assert holen.entsiegeln(k, blob) == daten and (not daten or daten not in blob)
+        assert holen.entsiegeln(k, blob) == daten and (len(daten) < 8 or daten not in blob)  # ein Byte steht zufällig oft im Chiffrat
         for falsch in (blob[:-1] + bytes([blob[-1] ^ 1]), bytes([blob[0] ^ 1]) + blob[1:], blob[:20]):
             try:
                 holen.entsiegeln(k, falsch)
@@ -457,10 +457,29 @@ def test_zugang():
     print("ok zugang")
 
 
+def test_schatten():
+    """Keine Zuweisung auf Modulebene (auch im __main__-Block) überschreibt eine Funktion: „if grund := …“ machte grund() zu None,
+    und die erste Warnung (Test nicht lesbar) brach jeden Abgleich ab."""
+    import ast
+    baum = ast.parse(Path(holen.__file__).read_text("utf-8"))
+    funktionen = {n.name for n in baum.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
+    eigener_bereich = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+
+    def modulebene(k):
+        for c in ast.iter_child_nodes(k):
+            if not isinstance(c, eigener_bereich):
+                yield c
+                yield from modulebene(c)
+    schatten = [(n.id, n.lineno) for n in modulebene(baum) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id in funktionen]
+    assert not schatten, f"überschreibt Funktionen: {schatten}"
+    print("ok schatten")
+
+
 if __name__ == "__main__":
     test()
     test_anzeige()
     test_zugang()
+    test_schatten()
 
 
 ECHT_API = holen.api  # test_zugang ersetzt holen.api durch eine Attrappe
