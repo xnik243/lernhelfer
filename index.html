@@ -4228,6 +4228,13 @@ function kartenAntwort(gewusst) {
   kartenZeigen();
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && KARTEN_UHR) kartenSichern(); });
+// Über Mitternacht im Hintergrund offen: heute/HEUTE stehen seit dem Laden fest (Fristen, fällige Karten, Datum der Ausgabe).
+// Darum beim Zurückkommen neu laden, aber nie mitten in einer KI-Arbeit, Fokus-Runde oder mit angefangenem Text.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || iso(new Date()) === HEUTE || wachZahl || RUNDE || KARTEN_UHR
+    || [...document.querySelectorAll('textarea, input[type=text]')].some(x => x.value.trim())) return;
+  location.reload();
+});
 document.addEventListener('keydown', e => {  // am PC: Leertaste dreht um, 1 nochmal, 2 gewusst
   if (document.body.dataset.ansicht !== 'karten' || e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, select, textarea, button, a')) return;
   const karte = $('karten').querySelector('.karte');
@@ -8935,8 +8942,11 @@ async function themaRunde(t, frage, auftrag) {
     t.titel ||= frage.slice(0, 60);
     await themaSichern(t);
   } catch (e) {
-    if (!runde.bloecke.length) t.runden.splice(t.runden.indexOf(runde), 1);
-    THEMA.fehler = e.message;
+    if (!runde.bloecke.length) { t.runden.splice(t.runden.indexOf(runde), 1); THEMA.fehler = e.message; }
+    else {  // Verbindung riss mitten im Strom ab: das schon Angekommene ist bezahlt, also aufheben
+      t.titel ||= frage.slice(0, 60);
+      THEMA.fehler = await themaSichern(t).then(() => `Die Antwort brach ab (${e.message}). Was bis dahin kam, ist gespeichert.`, () => e.message);
+    }
   }
   THEMA.job = null;
   wach(false);
@@ -11071,10 +11081,12 @@ const CHANGELOG = [
   { d: '2026-11-25', k: [
     ['07:10', 'Schlichterer Changelog', 'Weniger auf einmal: kein Zahlenbalken und keine Aufwand-Balken mehr. Farbe bleibt dort, wo sie etwas sagt: Blau markiert Überlegungen und Links.', 0, 1],
     ['08:25', 'Zwei Geräte, ein Karteikasten', 'Wer abwechselnd am Handy und am iPad lernt, verliert nichts mehr. Hat das andere Gerät inzwischen gespeichert, führt die App beide Stände zusammen: Je Karte gilt die zuletzt beantwortete. Vorher klappte ab diesem Moment kein Speichern mehr, bis man neu lud. Auch eine fertige Wochenausgabe geht dabei nicht mehr verloren.', 0, 2],
-    ['08:27', 'Formeln brechen nichts mehr', 'Schreibt die KI eine Formel wie \\frac mit einfachem Backslash, war die Antwort technisch kaputt. In der Wochenausgabe fehlten dann still Termine und Begriffe, die Probeklausur brach ab. Jetzt repariert die App solche Antworten überall, wie schon bei Thema lernen.', 0, 1]], t: [
+    ['08:27', 'Formeln brechen nichts mehr', 'Schreibt die KI eine Formel wie \\frac mit einfachem Backslash, war die Antwort technisch kaputt. In der Wochenausgabe fehlten dann still Termine und Begriffe, die Probeklausur brach ab. Jetzt repariert die App solche Antworten überall, wie schon bei Thema lernen.', 0, 1],
+    ['08:30', 'Ein neuer Tag ist ein neuer Tag', 'Wer die App am Handy offen lässt, sah am nächsten Morgen noch gestern: falsche Fristen, falsche fällige Karten. Jetzt lädt sie beim Zurückkommen nach Mitternacht neu, außer es läuft gerade etwas oder ein angefangener Text würde verloren gehen. Und reißt bei Thema lernen die Verbindung ab, bleibt das schon Angekommene gespeichert.', 0, 1]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
-    ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz']] },
+    ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
+    ['08:30', 'Nach Mitternacht lädt die App beim Zurückkommen neu; Thema lernen speichert abgebrochene Antworten']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
