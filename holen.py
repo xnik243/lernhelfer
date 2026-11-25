@@ -69,6 +69,8 @@ ZUGANG = BASIS / "zugang.json"  # {"repo": "name/lernhelfer-daten", "token": "gi
 STAND = BASIS / ".stand.json"  # letzter Abgleich, hochgeladene Dateiversionen, wann das Login-Fenster zuletzt kam
 APP = "https://xnik243.github.io/lernhelfer/"
 API = os.environ.get("LH_API", "https://api.github.com")  # der Prüfstand setzt hier eine Attrappe ein
+# Angemeldet erkennt man an der Kopfzeile; auch mit OLAT auf Englisch, sonst gälte die Sitzung immer als abgelaufen
+EINGELOGGT = re.compile(r"Eingeloggt als|Logged in as", re.I)
 API_PAUSE = 5  # Sekunden vor dem ersten Nachfassen, wenn das Hochladen am Netz scheitert (Tests setzen 0)
 SITZUNG = BASIS / ".olat-sitzung.json"
 PROFIL = BASIS / ".olat-chrome"  # eigenes Chrome-Profil nur fürs OLAT-Login
@@ -624,7 +626,8 @@ def fach_json(fach, hochgeladen=()):
     """Alle geladenen Dateien eines Fachs samt Text, Folien zuerst; in der App Hochgeladenes kommt unverändert ans Ende."""
     dateien = []
     alle = [(q, f) for q in sorted(KURSE[fach], key=lambda q: ARTEN.index(q["art"]))
-            for f in sorted((MATERIAL / fach / q["name"]).iterdir() if (MATERIAL / fach / q["name"]).exists() else [], key=lambda f: natur(f.name))]
+            for f in sorted((MATERIAL / fach / q["name"]).iterdir() if (MATERIAL / fach / q["name"]).exists() else [], key=lambda f: natur(f.name))
+            if not f.name.endswith(".part")]  # halbe Downloads (speichern_als) sind keine Unterlagen
     for i, (q, f) in enumerate(alle, 1):
         ANZEIGE.jetzt(f"liest den Text aus „{f.name}“ ({i} von {len(alle)})", fach)
         ANZEIGE.z["gelesen"] += 1
@@ -807,7 +810,7 @@ def auto_einloggen(seite, login):
                 return "der 2FA-Code wurde nicht angenommen (2FA-Schlüssel prüfen)"
     ANZEIGE.jetzt("zurück zu OLAT")
     seite.goto(OLAT + "/auth/MyCoursesSite/0")
-    return None if seite.get_by_text("Eingeloggt als").count() else "OLAT hat die Anmeldung nicht angenommen"
+    return None if seite.get_by_text(EINGELOGGT).count() else "OLAT hat die Anmeldung nicht angenommen"
 
 
 def profil(p, unsichtbar):
@@ -926,7 +929,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         ctx = browser.new_context(storage_state=SITZUNG if SITZUNG.exists() else None, accept_downloads=True)
         page = ctx.new_page()
         page.goto(OLAT + "/auth/MyCoursesSite/0")
-        if page.get_by_text("Eingeloggt als").count():  # OLAT zeigt die Login-Seite unter derselben URL
+        if page.get_by_text(EINGELOGGT).count():  # OLAT zeigt die Login-Seite unter derselben URL
             if versuch == 1:
                 ANZEIGE.ok("Bei OLAT eingeloggt", "deine gespeicherte Anmeldung gilt noch")
             return browser, ctx, page
@@ -954,7 +957,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         print(f"Bitte im {BROWSER}-Fenster bei OLAT einloggen (10 Minuten Zeit) …", flush=True)
         ANZEIGE.schritt("Warte auf deinen Login", frist=600, hinweis="Kein Stress, das Fenster wartet bis zu 10 Minuten.")
         ANZEIGE.jetzt("dort mit Uni-Kennung und Authenticator-App einloggen", f"{BROWSER}-Fenster")
-        seite.get_by_text("Eingeloggt als").wait_for(timeout=600_000)
+        seite.get_by_text(EINGELOGGT).first.wait_for(timeout=600_000)
         ANZEIGE.melden("Eingeloggt. Das Fenster schließt sich, der Abgleich läuft unsichtbar weiter.")
         fenster.storage_state(path=SITZUNG)
         fenster.close()
@@ -1121,12 +1124,21 @@ def sync(ctx, page, fach):
     return neu
 
 
+def speichern_als(download, pfad):
+    """Erst fertig laden, dann umbenennen: ein halber Download (PC geht aus) zählte sonst für immer als „schon da“."""
+    teil = pfad.with_name(pfad.name + ".part")
+    download.save_as(teil)
+    os.replace(teil, pfad)
+
+
 def eintrag_laden(ctx, page, fach, q):
     neu = []
     ziel = MATERIAL / fach / q["name"]
     ziel.mkdir(parents=True, exist_ok=True)
     url = f"{OLAT}/auth/RepositoryEntry/{q['url']}"
     oeffne(page, url)
+    if not page.get_by_text(EINGELOGGT).count():  # Sitzung mitten im Lauf abgelaufen: sonst hieße es still „Nichts Neues“
+        raise RuntimeError("OLAT-Sitzung abgelaufen")
     main = page.locator("#o_main_center_content_inner")
     herunterladen = main.locator("a:visible", has_text="Herunterladen")
     seite = main.locator("iframe[src*='/m/']:not([src*='viewer.html'])")  # HTML-Seite, kein PDF-Betrachter
@@ -1147,7 +1159,7 @@ def eintrag_laden(ctx, page, fach, q):
             karten.filter(has=page.get_by_text(titel, exact=True)).locator("a:has(.o_icon_actions)").click()  # Karte über den Originaltitel
             with page.expect_download() as dl:
                 page.get_by_role("link", name="Herunterladen", exact=True).last.click()
-            dl.value.save_as(ziel / sicherer_name(titel))
+            speichern_als(dl.value, ziel / sicherer_name(titel))
             neu.append(f"{fach}: {q['name']}/{sicherer_name(titel)}")
             ANZEIGE.fund(fach, f"{q['name']} / {sicherer_name(titel)}", groesse_b=bytes_von(ziel / sicherer_name(titel)))
     elif herunterladen.count():  # einzelne Datei
@@ -1159,7 +1171,7 @@ def eintrag_laden(ctx, page, fach, q):
         ist_neu = not (ziel / name).exists()
         if ist_neu:
             neu.append(f"{fach}: {q['name']}/{name}")
-        dl.value.save_as(ziel / name)
+        speichern_als(dl.value, ziel / name)
         if ist_neu:
             ANZEIGE.fund(fach, f"{q['name']} / {name}", groesse_b=bytes_von(ziel / name))
     elif seite.count():  # eingebettete HTML-Seite
@@ -1170,7 +1182,10 @@ def eintrag_laden(ctx, page, fach, q):
         ist_neu = not (ziel / name).exists()
         if ist_neu:
             neu.append(f"{fach}: {q['name']}/{name}")
-        (ziel / name).write_bytes(ctx.request.get(urljoin(OLAT, src)).body())
+        r = ctx.request.get(urljoin(OLAT, src))
+        if not r.ok:  # sonst landete eine Fehler- oder Login-Seite als „Syllabus“ in der App
+            raise RuntimeError(f"OLAT antwortete {r.status}")
+        (ziel / name).write_bytes(r.body())
         if ist_neu:
             ANZEIGE.fund(fach, f"{q['name']} / {name}", groesse_b=bytes_von(ziel / name))
     return neu
