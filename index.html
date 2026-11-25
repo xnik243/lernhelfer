@@ -2902,20 +2902,31 @@ function bilder(knoten) {  // was sich nicht zeichnen lässt (kaputtes JSON, unb
   }
 }
 // Eine JSON-Datei im Speicher (Noten, Karteikarten): einmal laden, nacheinander schreiben, immer mit der neuesten sha
-function datei(pfad, leer) {
+// mischen(lokal, fern): hat ein anderes Gerät inzwischen gespeichert, dessen Stand in lokal einarbeiten und nochmal schreiben
+const konflikt = e => e.status === 409 || e.status === 422;  // sha passt nicht mehr: ein anderes Gerät war schneller
+function datei(pfad, leer, mischen) {
   const d = { daten: null, sha: null, p: null };
+  const lesen = j => j ? JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\s/g, '')), c => c.charCodeAt(0)))) : leer();
   d.laden = () => d.p ??= gh(pfad, { roh: false }).then(j => {
     d.sha = j?.sha || null;
-    return d.daten = j ? JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\s/g, '')), c => c.charCodeAt(0)))) : leer();
+    return d.daten = lesen(j);
   }).catch(e => { d.p = null; throw e; });
-  d.speichern = () => nacheinander(async () => {
+  const schreiben = async () => {
     d.sha = (await gh(pfad, { method: 'PUT', roh: false, body: { message: pfad, content: base64(JSON.stringify(d.daten)), sha: d.sha || undefined } })).content.sha;
-  });
+  };
+  d.speichern = () => nacheinander(() => schreiben().catch(async e => {
+    if (!konflikt(e)) throw e;
+    if (!mischen) throw Object.assign(new Error('Auf einem anderen Gerät wurde inzwischen gespeichert. Lade die Seite neu, dann geht es hier weiter.'), { status: e.status });
+    const j = await gh(pfad, { roh: false });
+    d.sha = j?.sha || null;
+    mischen(d.daten, lesen(j));
+    await schreiben();
+  }));
   d.vergessen = () => { d.p = null; d.daten = null; d.sha = null; };
   return d;
 }
 // Textdatei überschreiben (Training, Lernskript, Podcast-Gespräch): erst die sha holen, die GitHub zum Überschreiben braucht
-const textSchreiben = async (pfad, text) => { const alt = await gh(pfad, { roh: false }); await nacheinander(() => gh(pfad, { method: 'PUT', roh: false, body: { message: pfad, content: base64(text), sha: alt?.sha } })); };
+const textSchreiben = (pfad, text) => nacheinander(async () => gh(pfad, { method: 'PUT', roh: false, body: { message: pfad, content: base64(text), sha: (await gh(pfad, { roh: false }))?.sha } }));
 const plusTage = n => iso(new Date(heute.getFullYear(), heute.getMonth(), heute.getDate() + n));
 const escHtml = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
 // Druckfassung als eigene Seite: der Browser macht daraus ein PDF („Als PDF sichern“, am iPad über Teilen → Drucken)
@@ -3009,10 +3020,13 @@ async function gh(pfad, { method = 'GET', body, roh = true } = {}) {  // Server:
     headers: { ...!SERVER && { Authorization: 'Bearer ' + cfg.github }, Accept: roh ? 'application/vnd.github.raw+json' : 'application/vnd.github+json' },
   });
   if (r.status === 404 && method === 'GET') return null;
-  if (SERVER && !r.ok) { const j = await r.json().catch(() => ({})); throw new Error(r.status === 401 ? 'Bitte neu anmelden.' : j.error?.message || `Der Server antwortet ${r.status}.`); }
-  if (r.status === 401) throw new Error('GitHub kennt den Speicher-Schlüssel nicht mehr (nach einem Jahr läuft er ab). Unter Einrichten bei Schritt 2 einen neuen einfügen.');
-  if (r.status === 403) throw new Error('Der Speicher-Schlüssel darf das nicht. Beim Erzeugen „Contents: Read and write“ und das Repo lernhelfer-daten wählen.');
-  if (!r.ok) throw new Error(`GitHub antwortet ${r.status}. Unter Einrichten Schritt 2 prüfen.`);
+  if (!r.ok) {  // status hängt am Fehler, damit Aufrufer einen Konflikt (409/422) erkennen
+    const j = SERVER ? await r.json().catch(() => ({})) : {};
+    throw Object.assign(new Error(SERVER ? (r.status === 401 ? 'Bitte neu anmelden.' : j.error?.message || `Der Server antwortet ${r.status}.`)
+      : r.status === 401 ? 'GitHub kennt den Speicher-Schlüssel nicht mehr (nach einem Jahr läuft er ab). Unter Einrichten bei Schritt 2 einen neuen einfügen.'
+      : r.status === 403 ? 'Der Speicher-Schlüssel darf das nicht. Beim Erzeugen „Contents: Read and write“ und das Repo lernhelfer-daten wählen.'
+      : `GitHub antwortet ${r.status}. Unter Einrichten Schritt 2 prüfen.`), { status: r.status });
+  }
   return roh ? r.text() : r.json();
 }
 let kette = Promise.resolve();  // GitHub verträgt keine gleichzeitigen Commits auf denselben Branch
@@ -3166,7 +3180,7 @@ async function bilderSpaeter(f, tag) {
     const roh = await gh(`lernseiten/${f}/${tag}.md`), nach = roh && await bilderNach(roh, $('modell').value);
     if (!nach?.neu.length) return;
     const alt = R[f].ausgaben.find(a => a.datum === tag);
-    const antwort = await nacheinander(() => gh(`lernseiten/${f}/${tag}.md`, { method: 'PUT', roh: false, body: { message: `Schaubilder ${f} ${tag}`, content: base64(nach.text), sha: alt?.sha } }));
+    const antwort = await textSchreiben(`lernseiten/${f}/${tag}.md`, nach.text);  // sha frisch: ein anderes Gerät kann inzwischen gespeichert haben
     if (alt) alt.sha = antwort.content.sha;
     R[f].cache[tag] = zerlege(nach.text, tag);
     kosten();
@@ -3198,8 +3212,7 @@ async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausga
     merk(`bilder-nach:${f}:${d}`, '1');
     r.hinweis = 'Speichert …';
     const text = `*${modell}${tief ? ' · Ultra-Fassung' : ''} · Fassung ${wahl.niveau}/${wahl.form} · ${datum(d, { day: '2-digit', month: '2-digit', year: 'numeric' })} · Kosten ${+(antwortKI.preis + (nach?.preis || 0)).toFixed(4)} $*\n\n` + (nach?.text || antwortKI.text);
-    const alt = r.ausgaben.find(a => a.datum === d);
-    const antwort = await nacheinander(() => gh(`lernseiten/${f}/${d}.md`, { method: 'PUT', roh: false, body: { message: `Ausgabe ${f} ${d}`, content: base64(text), sha: alt?.sha } }));
+    const antwort = await textSchreiben(`lernseiten/${f}/${d}.md`, text);  // sha frisch holen: sonst wäre die bezahlte Ausgabe bei einem Konflikt weg
     r.ausgaben = [{ datum: d, sha: antwort.content.sha }, ...r.ausgaben.filter(a => a.datum !== d)].sort((a, b) => b.datum.localeCompare(a.datum));
     r.cache[d] = zerlege(text, d);
     if (d !== HEUTE) location.hash = `#/${encodeURIComponent(f)}/${d}`;
@@ -4124,7 +4137,11 @@ async function lernenKurz() {  // Heute (ab Pro): Karteikarten, nächste Prüfun
 // karten.json: { karten: { "Fach|begriff": { f, b, d, datum, box, faellig } }, gelesen: { "Fach/Datum": sha }, neu: { datum, n } }
 // Box 0 heißt neu; gewusst rückt eine Box weiter (1, 3, 7, 14, 30 Tage), „Nochmal“ schickt die Karte in Box 1 und heute noch einmal.
 const ABSTAND = [0, 1, 3, 7, 14, 30], NEU_PRO_TAG = 20;
-const KARTEN_D = datei('karten.json', () => ({ karten: {}, gelesen: {} }));
+const KARTEN_D = datei('karten.json', () => ({ karten: {}, gelesen: {} }), (lokal, fern) => {  // zwei Geräte: je Karte gilt die zuletzt beantwortete (t)
+  for (const [id, k] of Object.entries(fern.karten || {})) if (!lokal.karten[id] || (k.t || 0) > (lokal.karten[id].t || 0)) lokal.karten[id] = k;
+  lokal.gelesen = { ...fern.gelesen, ...lokal.gelesen };
+  if (fern.neu?.datum === HEUTE && fern.neu.n > (lokal.neu?.datum === HEUTE ? lokal.neu.n : 0)) lokal.neu = fern.neu;
+});
 let KARTEN = null, KARTEN_FACH = '', STAPEL = null, KARTEN_UHR = null, KARTEN_P = Promise.resolve();
 function kartenMischen(f, a, sha) {  // Begriffe einer Ausgabe in den Stapel; neuere Definitionen ersetzen ältere
   for (const x of a.begriffe) {
@@ -4156,7 +4173,7 @@ async function kartenDazu(liste) {  // Check-Fragen und falsche Klausuraufgaben 
     for (const x of liste) {
       const id = `${x.f}|?${x.frage.trim().toLowerCase().slice(0, 200)}`, k = KARTEN.karten[id] ??= { f: x.f, art: 'frage', box: 0 };
       const box = x.gewusst ? Math.max(k.box, 2) : 1;
-      Object.assign(k, { b: x.frage.trim(), d: x.antwort.trim(), datum: x.datum, box, faellig: plusTage(x.gewusst ? ABSTAND[box] : 0) });
+      Object.assign(k, { b: x.frage.trim(), d: x.antwort.trim(), datum: x.datum, box, faellig: plusTage(x.gewusst ? ABSTAND[box] : 0), t: Date.now() });
     }
     STAPEL = null;
     await kartenSichern();
@@ -4204,6 +4221,7 @@ function kartenAntwort(gewusst) {
   if (!k.box) KARTEN.neu = { datum: HEUTE, n: (KARTEN.neu?.datum === HEUTE ? KARTEN.neu.n : 0) + 1 };
   k.box = gewusst ? Math.min(5, k.box + 1) : 1;
   k.faellig = plusTage(gewusst ? ABSTAND[k.box] : 0);
+  k.t = Date.now();
   if (!gewusst) STAPEL.push(id);
   clearTimeout(KARTEN_UHR); KARTEN_UHR = setTimeout(kartenSichern, 3000);  // gesammelt speichern, nicht nach jeder Karte
   kartenZeigen();
@@ -11045,8 +11063,10 @@ const CHANGELOG = [
     ['22:41', 'Projekt-Hinweis unten lässt sich schließen oder 7 Tage ausblenden'],
     ['22:48', 'Thema lernen: allgemeine Fragen ohne erzwungenen Fachbezug']] },
   { d: '2026-11-25', k: [
-    ['07:10', 'Schlichterer Changelog', 'Weniger auf einmal: kein Zahlenbalken und keine Aufwand-Balken mehr. Farbe bleibt dort, wo sie etwas sagt: Blau markiert Überlegungen und Links.', 0, 1]], t: [
-    ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt']] },
+    ['07:10', 'Schlichterer Changelog', 'Weniger auf einmal: kein Zahlenbalken und keine Aufwand-Balken mehr. Farbe bleibt dort, wo sie etwas sagt: Blau markiert Überlegungen und Links.', 0, 1],
+    ['08:25', 'Zwei Geräte, ein Karteikasten', 'Wer abwechselnd am Handy und am iPad lernt, verliert nichts mehr. Hat das andere Gerät inzwischen gespeichert, führt die App beide Stände zusammen: Je Karte gilt die zuletzt beantwortete. Vorher klappte ab diesem Moment kein Speichern mehr, bis man neu lud. Auch eine fertige Wochenausgabe geht dabei nicht mehr verloren.', 0, 2]], t: [
+    ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
+    ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

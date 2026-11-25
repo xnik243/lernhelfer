@@ -10,6 +10,34 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// Speicher (index.html): zwei Geräte speichern dieselbe Datei – der Karteikasten führt zusammen, statt ab dann nie mehr zu speichern
+{
+  const app = readFileSync(join(import.meta.dirname, '..', 'index.html'), 'utf8').replace(/\r\n/g, '\n');
+  const teil = (von, bis) => app.slice(app.indexOf(von), app.indexOf(bis));
+  const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64');
+  const ablage = { sha: 'a', inhalt: { karten: { x: { box: 1, t: 1 }, y: { box: 0 } }, gelesen: { 'F/1': 's' } } };
+  const gh = async (pfad, o = {}) => {
+    if (o.method !== 'PUT') return { sha: ablage.sha, content: b64(ablage.inhalt) };
+    if (o.body.sha !== ablage.sha) throw Object.assign(new Error('Konflikt'), { status: 409 });
+    ablage.inhalt = JSON.parse(Buffer.from(o.body.content, 'base64').toString()); ablage.sha += '+';
+    return { content: { sha: ablage.sha } };
+  };
+  const { KARTEN_D, datei } = new Function('gh', 'nacheinander', 'base64', 'HEUTE',
+    `${teil('const konflikt', '// Textdatei überschreiben')}${teil('const KARTEN_D', 'let KARTEN = null')}return { KARTEN_D, datei };`)(
+    gh, fn => fn(), s => Buffer.from(s).toString('base64'), '2026-11-25');
+  const k = await KARTEN_D.laden();
+  k.karten.y = { box: 2, t: 5 };  // dieses Gerät beantwortet y …
+  ablage.inhalt = { karten: { x: { box: 3, t: 9 }, y: { box: 0 }, z: { box: 0 } }, gelesen: {} }; ablage.sha = 'b';  // … das andere x und legt z an
+  await KARTEN_D.speichern();
+  assert.deepEqual([ablage.inhalt.karten.x.box, ablage.inhalt.karten.y.box, !!ablage.inhalt.karten.z, ablage.inhalt.gelesen['F/1']], [3, 2, true, 's']);
+  assert.equal(KARTEN_D.daten, k, 'derselbe Stand im Gerät');
+  k.karten.y.box = 3; await KARTEN_D.speichern();
+  assert.equal(ablage.inhalt.karten.y.box, 3, 'danach speichert es wieder normal');
+  const ohne = datei('noten.json', () => ({})); await ohne.laden(); ablage.sha = 'c';
+  await assert.rejects(ohne.speichern(), /anderen Gerät/, 'ohne mischen: verständliche Meldung');
+  console.log('Speicher mit zwei Geräten: ok');
+}
+
 // Vortrag (index.html): Stimme messen an einem künstlichen Ton mit bekannter Tonhöhe und Pause, Sprache erkennen
 {
   const app = readFileSync(join(import.meta.dirname, '..', 'index.html'), 'utf8').replace(/\r\n/g, '\n');
