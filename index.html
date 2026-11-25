@@ -10573,7 +10573,7 @@ async function foStart() {
         el('div', { class: 'fo-bereiche' }, d.bereiche.filter(b => !b.anonym).map(karte)),
         el('section', { class: 'fo-anon-gruppe', 'aria-labelledby': 'fo-anon-titel' },
           el('h2', { id: 'fo-anon-titel' }, foSchloss(), 'Anonym'),
-          el('p', {}, 'Hier steht nie ein Name. Dein Beitrag geht ohne dein Konto raus, darum weiß niemand, von wem er ist, auch der Betreiber nicht.'),
+          el('p', {}, 'Gepostet wird ohne Session, nur mit einer Einmal-Marke per Chaum-Blindsignatur (RSA-FDH). Beim Signieren sieht der Server nur geblendete Zufallszahlen, beim Einlösen kein Konto. Beides lässt sich nicht verknüpfen, auch nicht vom Betreiber. Zeitstempel sind auf die Stunde gerundet.'),
           el('div', { class: 'fo-bereiche' }, d.bereiche.filter(b => b.anonym).map(karte)))),
       el('aside', { class: 'fo-seite' },
         el('section', { class: 'fo-kasten' }, el('h2', {}, 'Neueste Beiträge'),
@@ -11360,7 +11360,7 @@ const CHANGELOG = [
   { d: '2026-11-26', k: [
     ['00:30', 'Die Wochenausgaben zuerst', 'Auf Heute stand vor den Fächern viel anderes. Jetzt kommen ganz oben die Wochenausgaben, darunter „Was willst du verstehen?“, Weiterlernen und „Frag den Lernhelfer“.', 0, 1]], t: [
     ['00:30', 'Heute: Fächer an erster Stelle, dann Thema lernen, Weiterlernen, Frag den Lernhelfer'],
-    ['13:00', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen']] },
+    ['00:30', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
