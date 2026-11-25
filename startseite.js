@@ -172,11 +172,13 @@ function zeichnen() {
 
 // Prüfen lassen: ChatGPT bzw. Claude öffnen gleich mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie pruefFrage() in index.html)
 const datei = (n) => new URL(n, location.href).href;
+// Links als Variablen, damit im Prompt-Text keine Anführungszeichen stehen (Editoren machen daraus gern “ ” und dann bricht das ganze Skript)
+const ps1 = datei("einrichten.ps1"), sh = datei("einrichten-mac.sh"), py = datei("holen.py");
 const h = location.host;
 const frage = `Ein Mitstudent hat ein kleines Open-Source-Programm gebaut, das Kursunterlagen aus OLAT (Uni-Lernportal) holt. Ich soll es auf meinem PC oder Mac einrichten. Bevor ich das mache, will ich wissen, ob der Code sauber ist. Hier sind die Dateien:
-- ${datei(“einrichten.ps1”)} (Einrichten am PC)
-- ${datei(“einrichten-mac.sh”)} (Einrichten am Mac)
-- ${datei(“holen.py”)} (das Programm selbst)
+- ${ps1} (Einrichten am PC)
+- ${sh} (Einrichten am Mac)
+- ${py} (das Programm selbst)
 
 Schau dir den Code an und sag mir: Ist das sicher? Konkret: Enthält der Code einen Virus, Trojaner, Keylogger, Ransomware, Adware oder eine andere Form von Schadsoftware? Gibt es versteckten Schadcode, Backdoors oder Datenabfluss an Dritte? Braucht es Administratorrechte?
 
