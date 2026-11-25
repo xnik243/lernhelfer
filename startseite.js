@@ -188,7 +188,9 @@ Die Seite verspricht Folgendes. Stimmt das laut Code, Punkt für Punkt?
 5. Bewertete Onlinetests öffnet es nie, und in OLAT trägt es nichts ein.
 6. Es braucht keine Administratorrechte und lässt sich vollständig entfernen.
 
-Sag mir danach ehrlich, welche Risiken trotzdem bleiben und wie ich sie klein halte. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
+Schau dir dabei bitte auch gezielt an, was sicherheitstechnisch gut gelöst ist. Zum Beispiel: Wie ist die Signaturprüfung umgesetzt? Wie geht der Code mit Passwörtern und Verschlüsselung um? Gibt es bemerkenswerte Schutzmaßnahmen, die über das Übliche hinausgehen? Bewerte die Codequalität insgesamt und heb hervor, was dir positiv auffällt — nicht nur, was fehlt. Gib am Ende eine ehrliche Gesamteinschätzung, wie vertrauenswürdig dieses Programm im Vergleich zu typischer Software aus dem Internet ist.
+
+Sag mir danach auch, welche Risiken trotzdem bleiben und wie ich sie klein halte. Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 for (const a of document.querySelectorAll(".pk")) {
   a.href = a.dataset.ki === "claude" ? `https://claude.ai/new?q=${encodeURIComponent(frage)}` : `https://chatgpt.com/?hints=search&q=${encodeURIComponent(frage)}`;
 }
