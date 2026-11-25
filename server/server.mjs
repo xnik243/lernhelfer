@@ -1255,7 +1255,7 @@ const ROUTEN = {
     modelle: { model: E.LH_MODELL || BASIS_KI.model, denken: E.LH_MODELL_DENKEN || 'max', transkript: E.LH_MODELL_TRANSKRIPT || '', check: E.LH_MODELL_CHECK || '', liste: wahlModelle(), thema: themaModell(),
       wpTranskript: E.LH_WP_TRANSKRIPT || '', wpVergleich: E.LH_WP_VERGLEICH || '', wpText: E.LH_WP_TEXT || '', wpReflexion: E.LH_WP_REFLEXION || '',
       wpDenken: { wpTranskript: E.LH_WP_TRANSKRIPT_DENKEN || '', wpVergleich: E.LH_WP_VERGLEICH_DENKEN || '', wpText: E.LH_WP_TEXT_DENKEN || '', wpReflexion: E.LH_WP_REFLEXION_DENKEN || '' } },
-    zahlung: { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } }),
+    zahlung: verkauf() ? { empfaenger: E.LH_EMPFAENGER || '', iban: E.LH_IBAN || '', bic: E.LH_BIC || '', paypal: E.LH_PAYPAL || '' } : {} }),  // Bankdaten nur, solange verkauft wird (Route ist öffentlich)
   'GET /api/recht': () => ({ text: existsSync(join(DATEN, 'recht.md')) ? readFileSync(join(DATEN, 'recht.md'), 'utf8') : '' }),
   'GET /api/ich': ({ k }) => ich(muss(k)),
 
