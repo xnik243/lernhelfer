@@ -183,7 +183,7 @@ Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen pers�
 Ich will sichergehen, dass ich dem Programm vertrauen kann. Kannst du mir bestätigen, dass der Code folgende Punkte einhält?
 1. Es ist keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine fremden Dateien auf meinem Computer.
 2. Mein Uni-Passwort wird, wenn ich den automatischen Login einschalte, mit der Betriebssystem-Verschlüsselung (Windows DPAPI bzw. macOS-Schlüsselbund) gespeichert und nur an die Uni-Anmeldeseite geschickt.
-3. Es braucht keine Administratorrechte und lässt sich durch Löschen eines einzigen Ordners vollständig entfernen.
+3. Es braucht keine Administratorrechte, die OLAT-Sitzung (Cookies) liegt ebenfalls verschlüsselt auf dem Computer, und es lässt sich mit dem mitgelieferten Entfernen-Weg (LH_ENTFERNEN=1 im jeweiligen Einrichten-Skript) vollständig entfernen: Hintergrundjob, Ordner, Schlüsselbund-Einträge und Verknüpfung.
 
 Geh den Code durch und sag mir, ob diese Punkte stimmen. Würdest du mir als Informatik-Laie empfehlen, es zu installieren? Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 for (const a of document.querySelectorAll(".pk")) {

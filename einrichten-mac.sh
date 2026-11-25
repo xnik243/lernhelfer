@@ -23,6 +23,29 @@ fehler() { printf '\n \033[31mFehler: %s\033[0m\n\n' "$1" >&2; exit 1; }
 trap 'printf "\n \033[31mEtwas hat nicht geklappt (Zeile %s). Die Meldung oben und die Anleitung im Lernhelfer helfen weiter.\033[0m\n\n" "$LINENO" >&2' ERR
 
 [ "$(uname -s)" = Darwin ] || fehler 'Das ist das Mac-Programm. Für Windows gibt es in der App die Datei „Lernhelfer-PC-einrichten“.'
+# LH_ENTFERNEN=1 (Befehl aus der App): alles wieder weg, was das Einrichten angelegt hat, auch die Einträge im Schlüsselbund.
+if [ -n "${LH_ENTFERNEN:-}" ]; then
+  printf '\n \033[33mLERNHELFER · OLAT-Abgleich vom Mac entfernen\033[0m\n'
+  launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || launchctl unload "$PLIST" 2>/dev/null || true
+  rm -f "$PLIST"
+  info 'automatischen Abgleich (launchd) entfernt'
+  pkill -f "$LH/" 2>/dev/null || true  # laufender Abgleich und sein Browser
+  for DIENST in 'Lernhelfer OLAT' 'Lernhelfer OLAT Sitzung'; do
+    while security delete-generic-password -s "$DIENST" >/dev/null 2>&1; do :; done
+  done
+  info 'gespeicherten Uni-Login und Sitzungsschlüssel aus dem Schlüsselbund gelöscht'
+  [ -n "${LH_ORT:-}" ] || rm -f "$HOME/Desktop/Lernhelfer OLAT.command"
+  [ -n "$LH" ] && rm -rf "$LH"
+  info "Ordner $LH gelöscht (Programm, Zugang, OLAT-Sitzung, Browser-Profil)"
+  if [ -d "$HOME/Library/Caches/ms-playwright" ]; then
+    info 'Übrig ist ~/Library/Caches/ms-playwright (Chromium, etwa 250 MB). Brauchst du es nicht für andere Programme:'
+    info 'rm -rf ~/Library/Caches/ms-playwright'
+  fi
+  printf '\n \033[32mFertig. Der Lernhelfer-Abgleich ist von diesem Mac entfernt.\033[0m\n'
+  echo ' Deine Unterlagen in der App bleiben. Löschen: in der App unter Konto → Konto löschen (ohne Server: dein Daten-Repo bei GitHub).'
+  echo
+  exit 0
+fi
 # Der Zugangsschlüssel steht nicht im Befehl (sonst bliebe er im Terminal-Verlauf), sondern wird hier unsichtbar eingefügt.
 # Ältere Befehle mit LH_TOKEN='…' davor gehen weiter.
 if [ -z "${LH_TOKEN:-}" ]; then

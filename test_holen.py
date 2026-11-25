@@ -226,6 +226,39 @@ def test():
     assert holen.totp("gezd gnbv gy3t qojq gezd gnbv gy3t qojq", 59) == "287082"
     if holen.sys.platform == "win32":  # DPAPI hin und zurück
         assert holen._dpapi(holen._dpapi(b'{"a": 1}', True), False) == b'{"a": 1}'
+    # Versiegeln (Mac-Sitzung): hin und zurück, jede Änderung und ein fremder Schlüssel fallen auf
+    k = bytes(range(32))
+    for daten in (b"", b"x", b'{"cookies": [1]}' * 500):
+        blob = holen.versiegeln(k, daten)
+        assert holen.entsiegeln(k, blob) == daten and (not daten or daten not in blob)
+        for falsch in (blob[:-1] + bytes([blob[-1] ^ 1]), bytes([blob[0] ^ 1]) + blob[1:], blob[:20]):
+            try:
+                holen.entsiegeln(k, falsch)
+                raise AssertionError("verändert, aber angenommen")
+            except ValueError:
+                pass
+        try:
+            holen.entsiegeln(bytes(32), blob)
+            raise AssertionError("fremder Schlüssel angenommen")
+        except ValueError:
+            pass
+    assert holen.versiegeln(k, b"abc") != holen.versiegeln(k, b"abc")  # jedes Mal neue Nonce
+    if holen.sys.platform == "win32":  # Sitzung: alte Klartext-Datei wird gelesen, beim Speichern verschlüsselt ersetzt
+        with tempfile.TemporaryDirectory() as t:
+            alt_s, alt_a = holen.SITZUNG, holen.SITZUNG_ALT
+            holen.SITZUNG, holen.SITZUNG_ALT = Path(t) / ".olat-sitzung", Path(t) / ".olat-sitzung.json"
+            try:
+                assert holen.sitzung_lesen() is None
+                holen.SITZUNG_ALT.write_text('{"cookies": [{"name": "JSESSIONID", "value": "geheim123"}]}', "utf-8")
+                zustand = holen.sitzung_lesen()
+                assert zustand["cookies"][0]["value"] == "geheim123"
+                holen.sitzung_speichern(type("Ctx", (), {"storage_state": lambda self: zustand})())
+                assert not holen.SITZUNG_ALT.exists() and b"geheim123" not in holen.SITZUNG.read_bytes()
+                assert holen.sitzung_lesen() == zustand
+                holen.SITZUNG.write_bytes(b"kaputt")
+                assert holen.sitzung_lesen() is None  # dann eben neu einloggen
+            finally:
+                holen.SITZUNG, holen.SITZUNG_ALT = alt_s, alt_a
 
     # Dateinamen aus OLAT: nie ein Pfad, normale Namen bleiben
     for roh, rein in (("../../holen.py", "holen.py"), ("..%2F..%2Fx.bat", "x.bat"), ("a\\b.pdf", "b.pdf"), (".versteckt", "versteckt"),

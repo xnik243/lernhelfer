@@ -14,6 +14,36 @@ $OhneBom = New-Object Text.UTF8Encoding $false
 
 function Schritt($nr, $text) { Write-Host ''; Write-Host " $nr/5  $text" -ForegroundColor Cyan }
 
+# LH_ENTFERNEN=1 (Datei „Lernhelfer-PC-entfernen.cmd“ aus der App): alles wieder weg, was das Einrichten angelegt hat.
+# Der verschlüsselte Login (.olat-login), die Sitzung und das Chrome-Profil liegen im Lernhelfer-Ordner und gehen mit ihm.
+if ($env:LH_ENTFERNEN) {
+  try {
+    Write-Host ''
+    Write-Host ' LERNHELFER · OLAT-Abgleich vom PC entfernen' -ForegroundColor Yellow
+    Unregister-ScheduledTask -TaskName $Aufgabe -Confirm:$false -ErrorAction SilentlyContinue
+    Write-Host ('      Aufgabe „' + $Aufgabe + '“ gelöscht')
+    # laufenden Abgleich und sein Chrome beenden, sonst sind Dateien im Ordner gesperrt
+    Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -like "$LH\*" -or $_.CommandLine -like "*$LH\*" } |
+      ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    if (-not $env:LH_ORT) { Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Lernhelfer OLAT.lnk') -Force -ErrorAction SilentlyContinue }
+    foreach ($versuch in 1..5) {
+      if (Test-Path $LH) { Remove-Item $LH -Recurse -Force -ErrorAction SilentlyContinue }
+      if (-not (Test-Path $LH)) { break }
+      Start-Sleep 2
+    }
+    if (Test-Path $LH) { throw "Der Ordner $LH ließ sich nicht ganz löschen. Bitte den PC neu starten und diesen Ordner von Hand löschen." }
+    Write-Host "      Ordner $LH gelöscht (Programm, Zugang, gespeicherter Uni-Login, OLAT-Sitzung, Chrome-Profil)"
+    Write-Host ''
+    Write-Host ' Fertig. Auf diesem PC ist vom Lernhelfer nichts mehr übrig.' -ForegroundColor Green
+    Write-Host ' Deine Unterlagen in der App bleiben. Löschen: in der App unter Konto → Konto löschen (ohne Server: dein Daten-Repo bei GitHub).'
+    exit 0
+  } catch {
+    Write-Host ''
+    Write-Host (' Fehler: ' + $_.Exception.Message) -ForegroundColor Red
+    exit 1
+  }
+}
+
 try {
   if (-not $env:LH_REPO -or -not $env:LH_TOKEN -or $env:LH_REPO -eq 'undefined' -or $env:LH_TOKEN -eq 'undefined') { throw 'Bitte die Datei „Lernhelfer-PC-einrichten.cmd“ aus der App starten (Einrichten → PC).' }
   Write-Host ''

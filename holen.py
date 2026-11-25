@@ -76,7 +76,8 @@ API = os.environ.get("LH_API", "https://api.github.com")  # ebenso, mit Server g
 # Angemeldet erkennt man an der Kopfzeile; auch mit OLAT auf Englisch, sonst gälte die Sitzung immer als abgelaufen
 EINGELOGGT = re.compile(r"Eingeloggt als|Logged in as", re.I)
 API_PAUSE = 5  # Sekunden vor dem ersten Nachfassen, wenn das Hochladen am Netz scheitert (Tests setzen 0)
-SITZUNG = BASIS / ".olat-sitzung.json"
+SITZUNG = BASIS / ".olat-sitzung"  # OLAT-Cookies, verschlüsselt wie der Login (sitzung_speichern)
+SITZUNG_ALT = BASIS / ".olat-sitzung.json"  # frühere Klartext-Fassung: wird noch gelesen, beim nächsten Speichern gelöscht
 PROFIL = BASIS / ".olat-chrome"  # eigenes Chrome-Profil nur fürs OLAT-Login
 if sys.platform == "darwin":  # Mac: Chrome, sonst das Chromium von Playwright (lädt das Einrichten, wenn Chrome fehlt)
     KANAL = "chrome" if Path("/Applications/Google Chrome.app").exists() else None
@@ -741,13 +742,26 @@ def _dpapi(daten, verschluesseln):
         frei(raus.p)
 
 
+def _bund_lesen(dienst):
+    """Mac: Base64-Wert aus dem Anmelde-Schlüsselbund oder None."""
+    r = subprocess.run(["security", "find-generic-password", "-s", dienst, "-w"], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def _bund_setzen(dienst, wert):
+    """Mac: Befehl über stdin an `security -i`, damit der Wert nie in der Prozessliste (ps) steht; Base64 braucht keine Anführungszeichen."""
+    subprocess.run(["security", "-i"], input=f'add-generic-password -U -s "{dienst}" -a lernhelfer -w {wert}\n', text=True, capture_output=True)
+    if _bund_lesen(dienst) != wert:  # ponytail: ungetestet auf echtem Mac; klappt -i nicht, wie bisher über die Argumente (kurz in ps sichtbar)
+        subprocess.run(["security", "add-generic-password", "-U", "-s", dienst, "-a", "lernhelfer", "-w", wert], check=True, capture_output=True)
+
+
 def login_lesen():
     try:
         if sys.platform == "win32" and LOGIN.exists():
             return json.loads(_dpapi(LOGIN.read_bytes(), False))
         if sys.platform == "darwin":
-            r = subprocess.run(["security", "find-generic-password", "-s", SCHLUESSELBUND, "-w"], capture_output=True, text=True)
-            return json.loads(base64.b64decode(r.stdout.strip())) if r.returncode == 0 else None
+            wert = _bund_lesen(SCHLUESSELBUND)
+            return json.loads(base64.b64decode(wert)) if wert else None
     except (OSError, ValueError):
         return None
     return None
@@ -757,13 +771,71 @@ def login_speichern(login):
     roh = json.dumps(login).encode()
     if sys.platform == "win32":
         LOGIN.write_bytes(_dpapi(roh, True))
-    else:  # Befehl über stdin an `security -i`, damit der Wert nie in der Prozessliste (ps) steht; Base64 braucht keine Anführungszeichen
-        wert = base64.b64encode(roh).decode()
-        subprocess.run(["security", "-i"], input=f'add-generic-password -U -s "{SCHLUESSELBUND}" -a lernhelfer -w {wert}\n',
-                       text=True, capture_output=True)
-        if login_lesen() != login:  # ponytail: ungetestet auf echtem Mac; klappt -i nicht, wie bisher über die Argumente (kurz in ps sichtbar)
-            subprocess.run(["security", "add-generic-password", "-U", "-s", SCHLUESSELBUND, "-a", "lernhelfer", "-w", wert],
-                           check=True, capture_output=True)
+    else:
+        _bund_setzen(SCHLUESSELBUND, base64.b64encode(roh).decode())
+
+
+# OLAT-Sitzung (Cookies): Windows verschlüsselt sie mit DPAPI. Am Mac ist sie zu groß für den Schlüsselbund; dort liegt nur ein
+# zufälliger Schlüssel darin, die Datei wird damit versiegelt. Python hat kein AES eingebaut, darum HMAC-SHA256 als Schlüsselstrom
+# (Zählermodus) und danach HMAC über alles (Encrypt-then-MAC).
+# ponytail: Eigenbau aus Standard-Bausteinen; auf AES-GCM (Paket cryptography) umstellen, falls das Paket einmal ohnehin dazukommt.
+SCHLUESSELBUND_SITZUNG = "Lernhelfer OLAT Sitzung"
+
+
+def _teilschluessel(schluessel):
+    return hmac.new(schluessel, b"lernhelfer-enc", "sha256").digest(), hmac.new(schluessel, b"lernhelfer-mac", "sha256").digest()
+
+
+def _strom(schluessel, nonce, daten):
+    s = b"".join(hmac.new(schluessel, nonce + i.to_bytes(8, "big"), "sha256").digest() for i in range(-(-len(daten) // 32)))
+    return (int.from_bytes(daten, "big") ^ int.from_bytes(s[:len(daten)], "big")).to_bytes(len(daten), "big")
+
+
+def versiegeln(schluessel, daten):
+    ke, km = _teilschluessel(schluessel)
+    nonce = os.urandom(16)
+    c = _strom(ke, nonce, daten)
+    return nonce + c + hmac.new(km, nonce + c, "sha256").digest()
+
+
+def entsiegeln(schluessel, blob):
+    ke, km = _teilschluessel(schluessel)
+    nonce, c, tag = blob[:16], blob[16:-32], blob[-32:]
+    if len(blob) < 48 or not hmac.compare_digest(tag, hmac.new(km, nonce + c, "sha256").digest()):
+        raise ValueError("Sitzung verändert oder mit einem anderen Schlüssel versiegelt")
+    return _strom(ke, nonce, c)
+
+
+def _sitzungsschluessel():
+    wert = _bund_lesen(SCHLUESSELBUND_SITZUNG)
+    if wert:
+        return base64.b64decode(wert)
+    neu = os.urandom(32)
+    _bund_setzen(SCHLUESSELBUND_SITZUNG, base64.b64encode(neu).decode())
+    return neu
+
+
+def sitzung_lesen():
+    """Gespeicherte OLAT-Anmeldung für Playwright (storage_state) oder None, dann wird neu eingeloggt."""
+    try:
+        if SITZUNG.exists():
+            roh = SITZUNG.read_bytes()
+            return json.loads(_dpapi(roh, False) if sys.platform == "win32" else entsiegeln(_sitzungsschluessel(), roh))
+        if SITZUNG_ALT.exists():
+            return json.loads(SITZUNG_ALT.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def sitzung_speichern(ctx):
+    """Nie im Klartext: Klappt das Verschlüsseln nicht (z. B. Schlüsselbund gesperrt), bleibt die Sitzung ungespeichert."""
+    roh = json.dumps(ctx.storage_state()).encode()
+    try:
+        SITZUNG.write_bytes(_dpapi(roh, True) if sys.platform == "win32" else versiegeln(_sitzungsschluessel(), roh))
+    except (OSError, subprocess.CalledProcessError) as e:
+        logging.info("Sitzung nicht gespeichert: %s", e)
+    SITZUNG_ALT.unlink(missing_ok=True)
 
 
 def login_loeschen():
@@ -883,7 +955,7 @@ Nichts eingeben und Enter = überspringen, dann loggst du dich wie bisher selbst
         fenster.clear_cookies(domain=IDP)  # sonst kennt der IdP die Anmeldung noch und prüft gar nichts
         grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
         if grund is None:
-            fenster.storage_state(path=SITZUNG)
+            sitzung_speichern(fenster)
     except Exception as e:
         grund = f"unterbrochen ({type(e).__name__})"
     finally:
@@ -930,7 +1002,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         if versuch == 2:
             ANZEIGE.schritt("Verbinde mit OLAT")
         ANZEIGE.jetzt("öffnet lms.uibk.ac.at", "OLAT")
-        ctx = browser.new_context(storage_state=SITZUNG if SITZUNG.exists() else None, accept_downloads=True)
+        ctx = browser.new_context(storage_state=sitzung_lesen(), accept_downloads=True)
         page = ctx.new_page()
         page.goto(OLAT + "/auth/MyCoursesSite/0")
         if page.get_by_text(EINGELOGGT).count():  # OLAT zeigt die Login-Seite unter derselben URL
@@ -943,7 +1015,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
             try:
                 grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
                 if grund is None:
-                    fenster.storage_state(path=SITZUNG)
+                    sitzung_speichern(fenster)
                     ANZEIGE.melden("Automatisch bei OLAT eingeloggt.", "Automatisch eingeloggt", "Kennung, Passwort und 2FA-Code, ohne dein Handy")
                     continue
                 login_fehler(grund)
@@ -963,7 +1035,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         ANZEIGE.jetzt("dort mit Uni-Kennung und Authenticator-App einloggen", f"{BROWSER}-Fenster")
         seite.get_by_text(EINGELOGGT).first.wait_for(timeout=600_000)
         ANZEIGE.melden("Eingeloggt. Das Fenster schließt sich, der Abgleich läuft unsichtbar weiter.")
-        fenster.storage_state(path=SITZUNG)
+        sitzung_speichern(fenster)
         fenster.close()
 
 
@@ -1393,7 +1465,7 @@ def tests(browser, fach, kurs_ids=None):
             return route.abort()
         route.continue_()
 
-    ctx = browser.new_context(storage_state=SITZUNG)
+    ctx = browser.new_context(storage_state=sitzung_lesen())
     ctx.route("**/*", waechter)
     page = ctx.new_page()
     ziel = MATERIAL / fach / TESTS
@@ -1722,7 +1794,7 @@ if __name__ == "__main__":
             if auto:
                 aktualisieren()  # sonst käme eine neue Fassung erst nach dem nächsten Login an
             sys.exit(0 if auto else 1)
-        ctx.storage_state(path=SITZUNG)
+        sitzung_speichern(ctx)
         weiter(stand, 12)  # gleich speichern: bricht der Lauf ab, kommt OLAT trotzdem erst in 12 Stunden wieder dran
         json_schreiben(STAND, stand)
         alte_ids = {k for d in stand.get("kurs_ids", {}).values() for k in d}
@@ -1770,7 +1842,7 @@ if __name__ == "__main__":
         gefunden = sum(ANZEIGE.funde.values())  # wie die Karte: auch Dateien aus einem Ordner, der danach abbrach
         ANZEIGE.ok("Unterlagen", f"{z['stellen']} Ordner und Dokumente geprüft, {anzahl(z['gesehen'], 'Datei', 'Dateien')}, "
                    + (f"{gefunden} neu" + (f" ({groesse(z['bytes'])})" if z["bytes"] else "") if gefunden else "nichts Neues"))
-        ctx.storage_state(path=SITZUNG)
+        sitzung_speichern(ctx)
         ANZEIGE.schritt("Tests und Punkte", len(faecher), hinweis="Testschutz an: nur lesen, nichts abschicken", faecher=faecher)
         neu_tests = []
         for f in faecher:

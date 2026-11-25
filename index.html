@@ -2412,8 +2412,7 @@ aussehen();
           <li>War der Computer lange aus, ist die OLAT-Anmeldung abgelaufen. Dann öffnet sich nach dem Einschalten Chrome mit der OLAT-Anmeldung, einfach einloggen. Oder auf dem Desktop bzw. Schreibtisch <b>Lernhelfer OLAT</b> doppelklicken.</li>
           <li>Sofort abgleichen, etwa wenn gerade neue Folien hochgeladen wurden: ebenfalls <b>Lernhelfer OLAT</b> doppelklicken.</li>
           <li>Neue Kurse sucht der Lernhelfer zu Beginn jedes Semesters selbst unter „Meine Kurse“ in OLAT. Was du zusätzlich unter <a href="#/unterlagen">Unterlagen</a> hochlädst, bleibt beim Abgleich erhalten.</li>
-          <li>Entfernen am Windows-PC: In der Aufgabenplanung die Aufgabe „Lernhelfer OLAT-Abgleich“ löschen, dann den Ordner <code>%LOCALAPPDATA%\Lernhelfer</code> und die Desktop-Verknüpfung.</li>
-          <li>Entfernen am Mac: im Terminal <code>launchctl bootout gui/$(id -u)/at.lernhelfer.olat; rm -rf ~/Library/Lernhelfer ~/Library/LaunchAgents/at.lernhelfer.olat.plist</code> eingeben und die Verknüpfung vom Schreibtisch löschen. Hat der Lernhelfer Chromium geladen, liegt es in <code>~/Library/Caches/ms-playwright</code>.</li>
+          <li><b>Entfernen</b> nimmt alles wieder weg, was das Einrichten angelegt hat: den automatischen Abgleich (Aufgabenplanung bzw. launchd), den Ordner mit Programm, Zugang und OLAT-Sitzung, den gespeicherten Uni-Login (am Mac auch aus dem Schlüsselbund) und die Verknüpfung „Lernhelfer OLAT“. Deine Unterlagen in der App bleiben.<div id="a-entfernen"></div></li>
         </ul>
 
         <h2 id="a-virus">Ist das Programm sicher?</h2>
@@ -2422,12 +2421,12 @@ aussehen();
           <ul>
             <li><b>Es geht auch ohne.</b> Das Programm braucht es nur, damit die Unterlagen von selbst kommen. Ohne lädst du sie selbst hoch, siehe <a href="#a-ohne-pc">Mit iPad oder Mac</a>.</li>
             <li><b>Ein Ordner, sonst nichts.</b> Das Programm liegt in einem einzigen Ordner, am Mac <code>~/Library/Lernhelfer</code>, am PC <code>%LOCALAPPDATA%\Lernhelfer</code>. Dazu kommen nur der Hintergrundjob für den Abgleich und die Verknüpfung „Lernhelfer OLAT“. Am Mac braucht es kein Administratorpasswort.</li>
-            <li><b>Dein OLAT-Passwort bleibt auf deinem Computer.</b> Für den automatischen Login trägst du Kennung, Passwort und 2FA-Schlüssel einmal im Fenster des Programms ein. Es speichert sie verschlüsselt (am PC mit deinem Windows-Konto, am Mac im Schlüsselbund) und schickt sie nur an die Login-Seite der Uni, nie an den Lernhelfer. Willst du das nicht: beim Abfragen Enter drücken bzw. den Schalter unter <span class="nur-server">Konto</span><span class="nur-eigen">Einrichten</span> ausschalten, dann loggst du dich wie früher selbst im Chrome-Fenster ein.</li>
+            <li><b>Dein OLAT-Passwort bleibt auf deinem Computer.</b> Für den automatischen Login trägst du Kennung, Passwort und 2FA-Schlüssel einmal im Fenster des Programms ein. Es speichert sie verschlüsselt (am PC mit deinem Windows-Konto, am Mac im Schlüsselbund), genauso die OLAT-Sitzung, und schickt sie nur an die Login-Seite der Uni, nie an den Lernhelfer. Willst du das nicht: beim Abfragen Enter drücken bzw. den Schalter unter <span class="nur-server">Konto</span><span class="nur-eigen">Einrichten</span> ausschalten, dann loggst du dich wie früher selbst im Chrome-Fenster ein.</li>
             <li><b>Es spricht nur mit OLAT und dem Lernhelfer.</b> Es lädt die Unterlagen deiner Kurse und die Startseiten der Onlinetests und schickt ihren Text in <span class="nur-server">dein Konto</span><span class="nur-eigen">deinen privaten Speicher</span>. Andere Dateien auf deinem Computer liest es nicht. Neue Fassungen von sich selbst holt es von dieser Seite.</li>
             <li><b>Der Schlüssel im Befehl bzw. in der Datei</b> öffnet nur deinen Speicher, nicht <span class="nur-server">dein Konto und nicht </span>deine Passwörter. Gib ihn trotzdem nie weiter.<span class="nur-server"> Holst du Befehl oder Datei neu, gilt der alte Schlüssel nicht mehr.</span></li>
             <li><b>Die Windows-Sperre</b> (SmartScreen, „Der Computer wurde durch Windows geschützt“) kommt, weil die Datei keine gekaufte Signatur hat, nicht weil etwas Gefährliches gefunden wurde. „Als Administrator ausführen“ ist nur der Weg daran vorbei. Das Programm braucht die Rechte nicht: Es richtet sich nur im Ordner oben ein, und der Abgleich danach läuft ohne sie.</li>
             <li><b>Selbst nachlesen:</b> Der ganze Code ist öffentlich: <a href="einrichten-mac.sh" target="_blank" rel="noopener">Einrichten am Mac</a>, <a href="einrichten.ps1" target="_blank" rel="noopener">Einrichten am PC</a> und das <a href="holen.py" target="_blank" rel="noopener">Abgleich-Programm</a>. Am einfachsten lässt du ihn von einer KI prüfen: Ein Klick öffnet ChatGPT oder Claude, die KI prüft Punkt für Punkt, ob stimmt, was hier steht, und nennt die Risiken, die trotzdem bleiben.<div id="a-pruefen"></div></li>
-            <li><b>Wieder entfernen</b> geht mit ein paar Klicks bzw. einer Zeile, siehe <a href="#a-pc">Der Abgleich am PC oder Mac</a>.</li>
+            <li><b>Wieder entfernen</b> geht mit einer Datei bzw. einer Zeile im Terminal, siehe <a href="#a-pc">Der Abgleich am PC oder Mac</a>.</li>
           </ul>
         </div>
 
@@ -7454,15 +7453,32 @@ async function ghVerbinden(token) {
   if (!repo.private) throw new Error(`„${repo.full_name}“ ist öffentlich. Folien dürfen nicht öffentlich liegen: auf GitHub im Repo unter Settings ganz unten „Change visibility“ → Private, dann nochmal verbinden.`);
   speichereCfg({ github: token, repo: repo.full_name });
 }
+// lädt einrichten.ps1 frisch von hier und führt es aus (als UTF-8, sonst liest Windows PowerShell die Umlaute falsch)
+const psEinrichten = () => `powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12'; iex ([Text.Encoding]::UTF8.GetString((New-Object Net.WebClient).DownloadData('${new URL('einrichten.ps1', location.href).href}')))"`;
+// Entfernen: dieselben Einrichten-Skripte mit LH_ENTFERNEN=1; die Datei enthält keinen Schlüssel
+function pcEntfernen() {
+  speichern(['@echo off', 'chcp 65001 >nul', 'title Lernhelfer entfernen', 'set "LH_ENTFERNEN=1"', psEinrichten(), 'echo.', 'pause', '(goto) 2>nul & del "%~f0"', ''].join('\r\n'),
+    'Lernhelfer-PC-entfernen.cmd', 'application/octet-stream');
+}
+function entfernenTeil() {
+  let app;
+  try { app = appAdresse(); } catch { return []; }
+  const befehl = `LH_ENTFERNEN=1 /bin/bash -c "$(curl -fsSL ${app}einrichten-mac.sh)"`;
+  const feld = el('textarea', { class: 'mac-befehl', readonly: true, rows: 2, 'aria-label': 'Befehl zum Entfernen am Mac', onfocus: e => e.target.select() });
+  feld.value = befehl;
+  return [
+    el('p', { class: 'klein' }, el('b', {}, 'Windows: '), 'Datei laden, im Ordner Downloads mit der rechten Maustaste auf „Lernhelfer-PC-entfernen“ klicken und „Als Administrator ausführen“ wählen.'),
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: pcEntfernen }, 'Entfernen-Datei für Windows')),
+    el('p', { class: 'klein' }, el('b', {}, 'Mac: '), 'diese Zeile ins Terminal einfügen und Enter drücken.'),
+    el('div', { class: 'befehl-zeile' }, feld, el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, befehl) }, 'Kopieren'))];
+}
 function pcDatei(z) {  // Startdatei mit Zugang; das eigentliche Einrichten lädt sie frisch von hier (einrichten.ps1). Server: z.api
   if (!z?.repo) z = cfg;  // als Klick-Handler kommt das Klick-Ereignis an, nicht der Zugang
   if (!z?.repo || !z?.github) return status('Erst Schritt 1 und 2 abschließen, dann das PC-Programm laden.', true);
   let app;
   try { app = appAdresse(); } catch (e) { return status(e.message, true); }
-  const skriptUrl = new URL('einrichten.ps1', location.href).href;
   speichern(['@echo off', 'chcp 65001 >nul', 'title Lernhelfer einrichten', `set "LH_REPO=${z.repo}"`, `set "LH_TOKEN=${z.github}"`, `set "LH_API=${z.api || ''}"`, `set "LH_APP=${app}"`,
-    `powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12'; iex ([Text.Encoding]::UTF8.GetString((New-Object Net.WebClient).DownloadData('${skriptUrl}')))"`,
-    'if errorlevel 1 (echo. & echo Etwas hat nicht geklappt. Die Meldung oben und die Anleitung helfen weiter. & pause & exit /b 1)',
+    psEinrichten(), 'if errorlevel 1 (echo. & echo Etwas hat nicht geklappt. Die Meldung oben und die Anleitung helfen weiter. & pause & exit /b 1)',
     'echo.', 'echo Diese Datei loescht sich jetzt selbst, weil dein Speicher-Schluessel darin steht.', 'pause', '(goto) 2>nul & del "%~f0"', ''].join('\r\n'),
     'Lernhelfer-PC-einrichten.cmd', 'application/octet-stream');
 }
@@ -7775,7 +7791,7 @@ Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen pers�
 Ich will sichergehen, dass ich dem Programm vertrauen kann. Kannst du mir bestätigen, dass der Code folgende Punkte einhält?
 1. Es ist keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine fremden Dateien auf meinem Computer.
 2. Mein Uni-Passwort wird, wenn ich den automatischen Login einschalte, mit der Betriebssystem-Verschlüsselung (Windows DPAPI bzw. macOS-Schlüsselbund) gespeichert und nur an die Uni-Anmeldeseite geschickt.
-3. Es braucht keine Administratorrechte und lässt sich durch Löschen eines einzigen Ordners vollständig entfernen.
+3. Es braucht keine Administratorrechte, die OLAT-Sitzung (Cookies) liegt ebenfalls verschlüsselt auf dem Computer, und es lässt sich mit dem mitgelieferten Entfernen-Weg (LH_ENTFERNEN=1 im jeweiligen Einrichten-Skript) vollständig entfernen: Hintergrundjob, Ordner, Schlüsselbund-Einträge und Verknüpfung.
 
 Geh den Code durch und sag mir, ob diese Punkte stimmen. Würdest du mir als Informatik-Laie empfehlen, es zu installieren? Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 }
@@ -7793,6 +7809,7 @@ const pruefZettel = () => el('aside', { class: 'pruef-zettel' },
     pruefKnoepfe(),
     el('p', { class: 'meta' }, el('a', { href: '#a-virus' }, 'Was das Programm tut'), SERVER && [' · ', el('a', { href: '/#wer' }, 'Wer dahintersteckt')])));
 $('a-pruefen')?.replaceChildren(pruefKnoepfe());
+$('a-entfernen')?.replaceChildren(...entfernenTeil());
 // Das PC-Programm holen: Knopf und die drei Klicks danach (Konto, Start, Anleitung). Am iPad oder Handy beide, zum Weitergeben an den Computer.
 function pcEinrichten() {
   const win = () => [
@@ -11307,7 +11324,8 @@ const CHANGELOG = [
     ['08:30', 'Ein neuer Tag ist ein neuer Tag', 'Wer die App am Handy offen lässt, sah am nächsten Morgen noch gestern: falsche Fristen, falsche fällige Karten. Jetzt lädt sie beim Zurückkommen nach Mitternacht neu, außer es läuft gerade etwas oder ein angefangener Text würde verloren gehen. Und reißt bei Thema lernen die Verbindung ab, bleibt das schon Angekommene gespeichert.', 0, 1],
     ['12:55', 'PS-Tests zählen mit', 'Selbst eingetragene PS-Tests wie „PS-4b-Test“ zählen jetzt bei den PS-Test-Punkten der Lehrveranstaltung mit, vorher blieb es dort bei 0. Und das PC-Programm holt die Ergebnisse selbst: in Mathe aus den Rückgabe-Dateien unter Testergebnisse, in VWL aus den Bewertungen im Ordner PS-Tests. Was du schon eingetragen hast, wird dabei nicht doppelt gezählt.', 0, 2],
     ['13:45', 'Anonym im Forum', 'Im Forum gibt es jetzt drei anonyme Bereiche: Lehre und Prüfungen, Gesundheit und Leistung, Offen gesagt. Sie funktionieren wie das übrige Forum mit Threads, Antworten und Suche, nur steht nie ein Name dabei. Dein Beitrag geht ohne dein Konto raus und zeigt stattdessen eine anonyme Marke vor, die dein Browser vorher unkenntlich gemacht hat. So kann niemand herausfinden, von wem er ist, auch der Betreiber nicht.', 1, 3],
-    ['15:05', 'Erst prüfen, dann laden', 'Viele, denen ich den Lernhelfer gezeigt habe, haben das PC-Programm nicht geladen. Verständlich: Ein Programm von einem Fremden, das an den Uni-Zugang geht, lädt man nicht einfach. Jetzt steht auf der Startseite, wer ich bin, und neben dem Knopf eine Notiz: Ein Klick öffnet ChatGPT oder Claude mit einer kritischen Frage zum Code, der ohnehin öffentlich ist.', 1, 1]], t: [
+    ['15:05', 'Erst prüfen, dann laden', 'Viele, denen ich den Lernhelfer gezeigt habe, haben das PC-Programm nicht geladen. Verständlich: Ein Programm von einem Fremden, das an den Uni-Zugang geht, lädt man nicht einfach. Jetzt steht auf der Startseite, wer ich bin, und neben dem Knopf eine Notiz: Ein Klick öffnet ChatGPT oder Claude mit einer kritischen Frage zum Code, der ohnehin öffentlich ist.', 1, 1],
+    ['18:10', 'Sicher wieder weg', 'Ein Prüfbericht zum PC-Programm fragte zu Recht: Wie bekomme ich es wieder vollständig herunter? Jetzt gibt es in der Anleitung eine Entfernen-Datei für Windows und eine Zeile fürs Terminal am Mac. Sie nehmen alles weg, auch den Hintergrundjob und den gespeicherten Uni-Login. Außerdem liegt die OLAT-Anmeldung jetzt verschlüsselt auf dem Computer, wie schon das Passwort.', 0, 2]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
@@ -11327,7 +11345,9 @@ const CHANGELOG = [
     ['15:05', 'Startseite: „Wer dahintersteckt“ mit Foto, ein paar Sätzen von mir und Kontakt'],
     ['15:05', 'Beim PC-Programm: Notiz „Erst prüfen, dann laden“; ChatGPT oder Claude öffnen mit einer kritischen Frage zum öffentlichen Code, auch in der Anleitung'],
     ['15:50', 'Prüfen lassen: Die KI prüft jetzt jedes Versprechen der Seite einzeln gegen den Code und nennt, welche Risiken bleiben'],
-    ['15:50', 'PC-Programm: Beschreibung im Code auf dem aktuellen Stand (Daten gehen an den Server, automatischer Login ist aus, bis man ihn einschaltet)']] },
+    ['15:50', 'PC-Programm: Beschreibung im Code auf dem aktuellen Stand (Daten gehen an den Server, automatischer Login ist aus, bis man ihn einschaltet)'],
+    ['18:10', 'PC-Programm: OLAT-Sitzung verschlüsselt gespeichert (Windows DPAPI, Mac mit Schlüssel im Schlüsselbund); alte Klartext-Datei wird beim nächsten Abgleich ersetzt'],
+    ['18:10', 'Anleitung: Entfernen-Datei für Windows und Terminal-Zeile für den Mac (Hintergrundjob, Ordner, Schlüsselbund, Verknüpfung)']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
