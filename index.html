@@ -7772,15 +7772,12 @@ function pruefFrage() {
 
 Am PC startet eine kurze Datei aus der App das Einrichten: Sie setzt einen persönlichen Schlüssel für meinen Speicher, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac geht dasselbe über einen Terminal-Befehl. Die Stellen im Code, die GitHub nennen, gehören zu einer selbst betriebenen Variante ohne Server; bei ${h} gehen die Daten an diesen Server.
 
-Ich will sichergehen, dass ich dem Programm vertrauen kann. Der Entwickler verspricht auf der Seite Folgendes — kannst du bestätigen, dass der Code das einhält?
-1. Das Programm enthält keinen Fernzugriff, keine Tastatur-Aufzeichnung und liest im normalen Betrieb keine anderen Dateien auf meinem Computer als seine eigenen.
-2. Es verbindet sich nur mit OLAT (lms.uibk.ac.at), der Uni-Anmeldung (idp.uibk.ac.at) und ${h}. Beim Einrichten kommen die offiziellen Quellen für Python und die benötigten Pakete dazu. Zusatzquellen wie mathe4wiwi.org nur, wenn ich selbst eine Datei quellen.json anlege.
-3. Mein Uni-Passwort speichert es nur, wenn ich den automatischen Login in der App selbst einschalte. Dann liegt es mit der Betriebssystem-Verschlüsselung (Windows DPAPI bzw. macOS-Schlüsselbund) auf meinem Computer und wird nur an die Login-Seite der Uni (idp.uibk.ac.at) geschickt, nie an ${h}.
-4. Updates von sich selbst übernimmt es nur über HTTPS und nur mit gültiger Ed25519-Signatur; ohne beides läuft die alte Fassung weiter.
-5. Bewertete Onlinetests öffnet es nie. Bei Selbsttests liest es nur die Startseite. In OLAT wird nie etwas gespeichert oder abgeschickt (es gibt im Code einen Wächter namens erlaubt(), der bei jeder Anfrage prüft, ob sie nur lesend ist).
-6. Es braucht keine Administratorrechte und lässt sich durch Löschen eines einzigen Ordners vollständig entfernen.
+Ich will sichergehen, dass ich dem Programm vertrauen kann. Kannst du mir bestätigen, dass der Code folgende Punkte einhält?
+1. Es ist keine Schadsoftware: kein Fernzugriff, keine Tastatur-Aufzeichnung, es liest keine fremden Dateien auf meinem Computer.
+2. Mein Uni-Passwort wird, wenn ich den automatischen Login einschalte, mit der Betriebssystem-Verschlüsselung (Windows DPAPI bzw. macOS-Schlüsselbund) gespeichert und nur an die Uni-Anmeldeseite geschickt.
+3. Es braucht keine Administratorrechte und lässt sich durch Löschen eines einzigen Ordners vollständig entfernen.
 
-Geh den Code wirklich durch und sag mir ehrlich: Stimmen diese Versprechen? Und am Ende: Würdest du mir als Informatik-Laie empfehlen, es zu installieren, oder siehst du etwas, das dagegen spricht? Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
+Geh den Code durch und sag mir, ob diese Punkte stimmen. Würdest du mir als Informatik-Laie empfehlen, es zu installieren? Falls du die Links nicht öffnen kannst, sag es, dann lade ich die Dateien hoch.`;
 }
 function pruefKnoepfe() {
   const f = encodeURIComponent(pruefFrage());
