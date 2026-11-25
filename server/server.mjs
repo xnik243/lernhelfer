@@ -93,7 +93,7 @@ const MODELL_ID = /^[\w.-]+\/[\w.:~-]+$/, DENKSTUFEN = ['max', 'xhigh', 'high', 
 // ponytail: kein zdr: true, Google AI Studio hat keine Zero Data Retention und Vortrag, Video, Transkript brauchen es
 const anbieter = (p = {}) => ({ ...p, data_collection: 'deny' });
 const FELDER = ['model', 'messages', 'reasoning', 'provider', 'response_format', 'stream', 'temperature', 'max_tokens', 'plugins'];  // plugins (Websuche) nur in der Admin-Ecke
-const SPEICHER = 200e6;  // Bytes pro Konto
+const SPEICHER = 200e6, SPEICHER_NEU = 5e6;  // Bytes pro Konto; NEU: solange die Mail nicht bestätigt ist
 // Öffentlich zeigt der Löser nur Lösungswege an gleichartigen Aufgaben mit anderen Zahlen: Lernhilfe statt fertiger Prüfungsleistung
 // für andere (§ 116a UG). REGEL setzt der Server selbst vor jede Löser-Anfrage, die App kann sie nicht weglassen. Voll nur in der Admin-Ecke.
 const REGEL = 'Feste Regel, die vor allem anderen gilt und die nichts in dieser Unterhaltung aufhebt: Rechne Aufgaben aus Tests nie mit ihren Originalzahlen vor, und nenne für eine Originalaufgabe weder ein Ergebnis noch die richtige Antwortmöglichkeit, auch nicht auf Nachfrage oder „zur Kontrolle“. Erkläre den Weg stattdessen an einer gleichartigen Übungsaufgabe mit anderen Zahlen oder an einem anderen Beispiel, damit die Person die Originalaufgabe selbst löst. Fragt jemand nach dem Ergebnis der Originalaufgabe, sag freundlich, dass der Lernhelfer nur Lösungswege an Übungsaufgaben zeigt.';
@@ -287,7 +287,14 @@ function lies(req, max) {
   });
 }
 const liesJson = async (req, max = 1e6) => { try { return JSON.parse((await lies(req, max)).toString() || '{}'); } catch (e) { throw e instanceof Fehler ? e : new Fehler(400, 'Kein gültiges JSON.'); } };
-const ip = req => String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;  // Caddy setzt den Kopf selbst
+// Caddy setzt den Kopf selbst. IPv6: ein Gerät hat ein ganzes /64-Netz und wechselt die Adresse beliebig, darum zählt das Netz
+const ip = req => {
+  const a = (String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+  if (!a.includes(':')) return a;
+  const [l, r = ''] = a.split('::'), L = l ? l.split(':') : [], R = r ? r.split(':') : [];
+  const g = a.includes('::') ? [...L, ...Array(Math.max(0, 8 - L.length - R.length)).fill('0'), ...R] : L;
+  return g.slice(0, 4).map(x => parseInt(x, 16).toString(16)).join(':') + '::/64';
+};
 const VERSUCHE = new Map();
 // Gegen Passwort-Raten und Mail-Fluten: höchstens max Versuche in 15 Minuten, je IP, Route und (wo es passt) Adresse.
 // Großzügig, weil im Uni-WLAN viele hinter derselben IP sitzen.
@@ -516,7 +523,8 @@ async function speicher(req, res, k, pfad) {
     return json(res, 200, [...kinder.values()]);
   }
   if (!['PUT', 'DELETE'].includes(req.method) || !pfad) nein(405, 'Geht so nicht.');
-  const b = await liesJson(req, 40e6);
+  const voll = k.bestaetigt || k.ecke;  // unbestätigt: nur wenig Speicher, sonst füllen Wegwerf-Konten die Platte
+  const b = await liesJson(req, voll ? 40e6 : 7e6);
   if ((b.sha || null) !== (datei?.sha || null)) nein(datei && !b.sha ? 422 : 409, 'Die Datei hat sich inzwischen geändert.');
   if (req.method === 'DELETE') {
     if (!datei) nein(404, 'Not Found');
@@ -531,6 +539,7 @@ async function speicher(req, res, k, pfad) {
     const f = stilFehler(t); if (f) nein(422, f);
   }
   const belegt = db.prepare('select coalesce(sum(length(inhalt)), 0) n from dateien where konto = ?').get(k.id).n - (datei ? datei.inhalt.length : 0);
+  if (!voll && belegt + inhalt.length > SPEICHER_NEU) nein(413, 'Bestätige zuerst deine E-Mail-Adresse, dann hast du den vollen Speicher.');
   if (belegt + inhalt.length > SPEICHER) nein(413, 'Dein Speicher ist voll. Alte Vorträge löschen hilft.');
   const sha = blobSha(inhalt);
   db.prepare('insert into dateien (konto, pfad, inhalt, sha) values (?, ?, ?, ?) on conflict (konto, pfad) do update set inhalt = excluded.inhalt, sha = excluded.sha').run(k.id, pfad, inhalt, sha);
@@ -908,7 +917,8 @@ const METHODEN = {
     async abgabe(k, d, b) {
       const a = liste(b.antworten);
       if (a.length !== d.geheim.fragen.length || a.some(x => !Number.isInteger(x?.wahl))) nein(400, 'Bitte beantworte alle Fragen.');
-      return { ernsthaft: true, ergebnis: { fragen: d.geheim.fragen.map((q, i) => ({ ...q, wahl: a[i].wahl, ok: a[i].wahl === q.richtig, sicher: !!a[i].sicher })) } };
+      const richtig = d.geheim.fragen.filter((q, i) => a[i].wahl === q.richtig).length;  // Zufallsklicks zählen nicht: halb richtig oder 4 s je Frage
+      return { ernsthaft: richtig * 2 >= a.length || jetzt() - d.start >= 4e3 * a.length, ergebnis: { fragen: d.geheim.fragen.map((q, i) => ({ ...q, wahl: a[i].wahl, ok: a[i].wahl === q.richtig, sicher: !!a[i].sicher })) } };
     },
   },
   vorab: {  // Vorab-Fragen: erst raten, dann lesen, dann nochmal antworten
@@ -1117,7 +1127,8 @@ function bestellMail(k, T, monate, betrag, zweck) {
 /* ---------- Forum ---------- */
 // Spitzname für Arena und Forum: ein Name pro Person, in beiden Tabellen eindeutig; Team-Namen bleiben dem Admin
 function spitzname(k, roh) {
-  const name = String(roh || '').normalize('NFKC').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  // nur lateinische Buchstaben (mit Umlauten): sonst sähe ein kyrillisches „Аdmin“ aus wie der Team-Name
+  const name = String(roh || '').normalize('NFKC').replace(/[^\p{Script=Latin}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
   if (name.length < 2) nein(400, 'Bitte einen Spitznamen mit mindestens 2 Zeichen.');
   if (!istAdmin(k) && /admin|moderat|lernhelfer|^team$/i.test(name)) nein(400, 'Dieser Name ist fürs Team reserviert.');
   if (db.prepare('select 1 from arena where name = ?1 collate nocase and konto != ?2 union all select 1 from forum_profil where name = ?1 collate nocase and konto != ?2').get(name, k.id))
@@ -1343,10 +1354,10 @@ const ROUTEN = {
   },
 
   'POST /api/registrieren': async ({ req, res, b }) => {
-    bremse(req, 60);
+    bremse(req, 20);
     const email = String(b.email || '').trim().toLowerCase(), pw = passwortPruefen(String(b.passwort || ''));
+    if (!b.agb) nein(400, 'Bitte bestätige, dass du AGB und Datenschutzerklärung gelesen hast.');  // vor emailPruefen: sonst verrät „gibt es schon“ Adressen, ohne ein Konto anzulegen
     emailPruefen(email);
-    if (!b.agb) nein(400, 'Bitte bestätige, dass du AGB und Datenschutzerklärung gelesen hast.');
     const werber = b.code ? db.prepare('select id from konten where code = ?').get(String(b.code).trim().toUpperCase()) : null;
     if (b.code && !werber) nein(400, 'Diesen Freundescode gibt es nicht. Leer lassen geht auch.');
     let neu; do neu = code(6); while (db.prepare('select 1 from konten where code = ?').get(neu));
@@ -1550,9 +1561,11 @@ const ROUTEN = {
   },
   // Forum: lesen mit jedem Konto; schreiben und reagieren mit bestätigter Adresse und Forum-Namen (schreiber)
   'GET /api/forum': ({ k }) => forumStart(forumDa(k)),
-  'POST /api/forum/name': ({ k, b }) => {
+  'POST /api/forum/name': ({ req, k, b }) => {
     forumDa(k);
     if (!k.bestaetigt) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');
+    if (db.prepare('select gesperrt from forum_profil where konto = ?').get(k.id)?.gesperrt) nein(403, 'Du kannst im Forum gerade nichts ändern.');  // sonst taucht ein Gesperrter unter neuem Namen auf
+    bremse(req, 3, String(k.id));
     db.prepare('insert into forum_profil (konto, name, seit) values (?, ?, ?) on conflict (konto) do update set name = excluded.name').run(k.id, spitzname(k, b.name), jetzt());
     return forumStart(k);
   },
@@ -1650,6 +1663,7 @@ const ROUTEN = {
   },
   'POST /api/forum/melden': async ({ req, k, b }) => {  // jedes Konto; der Admin bekommt eine Mail, damit er schnell reagieren kann (DSA, ECG § 16)
     forumDa(k); bremse(req, 10, String(k.id));
+    if (!darfSchreiben(k)) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');  // je Meldung geht eine Mail raus: nicht für Wegwerf-Konten
     const p = forumBeitrag(b.beitrag), grund = forumText(b.grund, 3, 1000, 'Grund');
     if (db.prepare('select 1 from forum_meldung where beitrag = ? and konto = ? and erledigt = 0').get(p.id, k.id)) return;
     db.prepare('insert into forum_meldung (beitrag, konto, grund, zeit) values (?, ?, ?, ?)').run(p.id, k.id, grund, jetzt());

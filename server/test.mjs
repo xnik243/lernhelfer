@@ -37,6 +37,16 @@ import { join } from 'node:path';
   await assert.rejects(ohne.speichern(), /anderen Gerät/, 'ohne mischen: verständliche Meldung');
   console.log('Speicher mit zwei Geräten: ok');
 }
+// Bremse: IPv6 zählt je /64-Netz, egal wie die Adresse geschrieben ist
+{
+  const srv = readFileSync(join(import.meta.dirname, 'server.mjs'), 'utf8').replace(/\r\n/g, '\n');
+  const ip = new Function(srv.slice(srv.indexOf('const ip = '), srv.indexOf('const VERSUCHE')) + 'return ip;')();
+  const von = a => ip({ headers: { 'x-forwarded-for': a }, socket: {} });
+  assert.equal(von('2001:db8::1'), von('2001:db8:0:0:abcd:1:2:3'));
+  assert.equal(von('2001:db8:1:2:aaaa::1'), '2001:db8:1:2::/64');
+  assert.equal(von('203.0.113.7, 10.0.0.1'), '203.0.113.7');
+  assert.equal(ip({ headers: {}, socket: { remoteAddress: '::ffff:127.0.0.1' } }), '127.0.0.1');
+}
 
 // Vortrag (index.html): Stimme messen an einem künstlichen Ton mit bekannter Tonhöhe und Pause, Sprache erkennen
 {
@@ -858,6 +868,9 @@ try {
     + '```json\n' + JSON.stringify({ begriffe: lernBegriffe.map(([begriff, definition]) => ({ begriff, definition })) }) + '\n```\n';
   assert.equal((await lern('PUT', gh('lernseiten/VWL/2026-11-10.md'), { message: 'x', content: b64(lernMd) })).status, 201);
   const meth = b => lern('POST', '/api/arena/methode', b);
+  const mdb = new DatabaseSync(join(ordner, 'lernhelfer.db'));
+  const quizOffen = () => mdb.prepare("select konto, daten from arena_lauf where art = 'methode'").all().map(x => ({ ...x, d: JSON.parse(x.daten) })).find(x => x.d.methode === 'quiz');
+  const bedacht = () => { const x = quizOffen(); x.d.start -= 60e3; mdb.prepare("update arena_lauf set daten = ? where konto = ? and art = 'methode'").run(JSON.stringify(x.d), x.konto); };  // eine Minute überlegt
   assert.deepEqual((await lern('GET', '/api/arena/stoff')).j, { VWL: ['Nachfrage'] }, 'nur Teile der Zusammenfassung mit genug Text');
   assert.equal((await meth({ start: 'gibtsnicht', fach: 'VWL' })).status, 400);
   assert.equal((await meth({ start: 'toString', fach: 'VWL' })).status, 400);
@@ -868,7 +881,7 @@ try {
   assert.equal(r.j.methode.aufgabe.fragen.length, 4); assert.doesNotMatch(JSON.stringify(r.j), /richtig/, 'keine Lösung vor der Abgabe');
   assert.equal((await lern('GET', '/api/arena')).j.methode.methode, 'quiz', 'offene Methode übersteht Neuladen');
   assert.equal((await meth({ antworten: [{ wahl: 0 }] })).status, 400);
-  r = await meth({ antworten: r.j.methode.aufgabe.fragen.map(() => ({ wahl: 0, sicher: true })) });
+  bedacht(); r = await meth({ antworten: r.j.methode.aufgabe.fragen.map(() => ({ wahl: 0, sicher: true })) });
   assert.equal(r.j.ergebnis.xp, 20); assert.equal(r.j.ergebnis.fragen.length, 4); assert.ok(r.j.ergebnis.fragen.every(q => Number.isInteger(q.richtig) && q.sicher));
   assert.deepEqual(r.j.probiert, ['quiz']); assert.equal(r.j.tage[r.j.heute].methoden, 1);
   assert.equal((await meth({ antworten: [] })).status, 410, 'abgegeben ist abgegeben');
@@ -911,13 +924,17 @@ try {
   // höchstens 6 Methoden am Tag bringen XP; danach zählt es noch, gibt aber nichts
   for (const xp of [20, 20, 0]) {
     const q = (await meth({ start: 'quiz', fach: '' })).j.methode.aufgabe.fragen;
-    r = await meth({ antworten: q.map(() => ({ wahl: 1 })) });
+    bedacht(); r = await meth({ antworten: q.map(() => ({ wahl: 1 })) });
     assert.equal(r.j.ergebnis.xp, xp); assert.equal(r.j.ergebnis.gedeckelt, xp === 0);
   }
   assert.equal(r.j.tage[r.j.heute].methoden, 7);
+  await meth({ start: 'quiz', fach: 'VWL' });  // sofort und alles falsch: Zufallsklicks, nicht ernsthaft
+  r = await meth({ antworten: quizOffen().d.geheim.fragen.map(q => ({ wahl: (q.richtig + 1) % q.optionen.length })) });
+  assert.equal(r.j.ergebnis.ernsthaft, false); assert.equal(r.j.ergebnis.xp, 0);
   r = await meth({ start: 'quiz', fach: 'VWL' });
   assert.equal((await meth({ abbruch: true })).status, 200);
   assert.equal((await lern('GET', '/api/arena')).j.methode, null, 'abgebrochen');
+  mdb.close();  // Windows: offene Datei verhindert sonst das Aufräumen
   console.log('Arena-Lernmethoden: ok');
 
   // Forum: Name (eindeutig mit Arena), schreiben nur bestätigt, Team-Bereiche, gelesen/neu, Reaktionen und Ruf, Löschen, Melden, Moderation, Export
