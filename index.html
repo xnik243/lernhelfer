@@ -209,7 +209,7 @@
   /* Heute */
   .heute-raster { display: grid; gap: 32px; }
   .heute-spalte { display: contents; }
-  #naechstes { order: 1; } .h-woche, .h-noten { order: 2; } .h-faecher { order: 3; } .h-chat { order: 4; }
+  #naechstes { order: 1; } .h-woche, .h-noten { order: 2; } .h-chat { order: 4; }
   @media (min-width: 1100px) {
     .heute-raster { grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); gap: 40px; align-items: start; }
     .heute-spalte { display: grid; gap: 36px; min-width: 0; }
@@ -2011,6 +2011,10 @@ aussehen();
       </header>
       <div class="heute-raster">
         <div class="heute-spalte">
+          <section aria-labelledby="f-kopf" class="h-faecher">
+            <div class="block-kopf"><h2 id="f-kopf">Fächer</h2><a href="#/unterlagen" class="meta">Unterlagen und Fächer</a></div>
+            <div id="ressorts"></div>
+          </section>
           <section aria-labelledby="th-kopf" class="h-thema" id="h-thema" hidden>
             <div class="block-kopf"><h2 id="th-kopf">Was willst du verstehen?</h2><a href="#/thema" class="meta">Deine Themen</a></div>
             <div id="h-thema-inhalt"></div>
@@ -2018,10 +2022,6 @@ aussehen();
           <section aria-labelledby="w-kopf" class="h-weiter" id="weiter" hidden>
             <div class="block-kopf"><h2 id="w-kopf">Weiterlernen</h2></div>
             <div class="weiter" id="weiter-inhalt"></div>
-          </section>
-          <section aria-labelledby="f-kopf" class="h-faecher">
-            <div class="block-kopf"><h2 id="f-kopf">Fächer</h2><a href="#/unterlagen" class="meta">Unterlagen und Fächer</a></div>
-            <div id="ressorts"></div>
           </section>
           <section aria-labelledby="c-kopf" class="h-chat">
             <div class="block-kopf"><h2 id="c-kopf"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></span>Frag den Lernhelfer</h2>
@@ -11357,6 +11357,10 @@ const CHANGELOG = [
     ['22:15', 'Vor jedem Commit: Tests und Probelauf des PC-Programms gegen nachgebautes OLAT, Server-Tests, Startprüfung der App'],
     ['22:25', 'PC-Programm: Name, Matrikelnummer und Klausur-ID aus Mathe-Rückgaben bleiben am PC, in die App gehen nur Punkte und Auswertung'],
     ['22:35', 'PC-Programm: lädt Rückgabe-Dateien per „Herunterladen“-Klick (OLAT nennt dort keine Adressen), Datum aus „erstellt am“; am echten OLAT geprüft']] },
+  { d: '2026-11-26', k: [
+    ['00:30', 'Die Wochenausgaben zuerst', 'Auf Heute stand vor den Fächern viel anderes. Jetzt kommen ganz oben die Wochenausgaben, darunter „Was willst du verstehen?“, Weiterlernen und „Frag den Lernhelfer“.', 0, 1]], t: [
+    ['00:30', 'Heute: Fächer an erster Stelle, dann Thema lernen, Weiterlernen, Frag den Lernhelfer'],
+    ['13:00', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
