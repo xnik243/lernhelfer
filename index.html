@@ -3088,7 +3088,7 @@ async function kosten() {
 function zerlege(text, tag) {
   const block = text.match(/```json\s*([\s\S]*?)```\s*$/);
   let daten = {};
-  try { daten = block ? JSON.parse(block[1]) : {}; } catch { daten = {}; }
+  daten = (block && jsonLesen(block[1])) || {};  // repariert LaTeX-Backslashes, sonst wären Termine und Begriffe still weg
   const rest = block ? text.slice(0, block.index) : text;
   const meta = rest.match(/^\*(.+?)\*\s*\n/);
   const abschnitte = {};
@@ -3103,7 +3103,7 @@ function zerlege(text, tag) {
     schlagzeile: String(daten.schlagzeile || ''),
     quellen: liste(daten.quellen).filter(q => typeof q === 'string'),
     termine: liste(daten.termine).filter(t => t && /^\d{4}-\d{2}-\d{2}$/.test(t.datum)),
-    begriffe: liste(daten.begriffe).filter(b => b && b.begriff && b.definition),
+    begriffe: liste(daten.begriffe).filter(b => b && b.begriff && b.definition).map(b => ({ ...b, begriff: String(b.begriff), definition: String(b.definition) })),  // eine Zahl als Begriff brach sonst den ganzen Karteikasten
     pruefungen: liste(daten.pruefungen).filter(p => p && /^\d{4}-\d{2}-\d{2}$/.test(p.datum)),
     todo: liste(daten.todo).filter(t => typeof t === 'string' && t.trim()),
     erwartung: daten.erwartung && typeof daten.erwartung === 'object' ? { was: String(daten.erwartung.was || ''), beispiel: String(daten.erwartung.beispiel || ''),
@@ -3163,7 +3163,8 @@ ${teile.map((t, i) => `[${i + 1}] ${t.trim()}`).join('\n\n')}`;
   const m = MODELLE[modell] || {};
   const r = await strom({ ...m, ...m.reasoning && { reasoning: { effort: 'low' } }, feature: 'ausgabe', messages: [{ role: 'user', content: prompt }] }, () => {}, () => {});
   let liste;
-  try { liste = JSON.parse((r.text.match(/```(?:json)?\s*([\s\S]*?)```/) || [, r.text])[1]); } catch { return null; }
+  liste = jsonLesen((r.text.match(/```(?:json)?\s*([\s\S]*?)```/) || [, r.text])[1]);
+  if (!liste) return null;
   const neu = (Array.isArray(liste) ? liste : []).map(x => ({ i: Number(x?.teil) - 1, bild: x?.bild })).filter((x, j, a) => {
     if (!teile[x.i] || !x.bild || /^```bild/m.test(teile[x.i]) || a.findIndex(y => y.i === x.i) !== j) return false;
     try { return !!bildSvg(x.bild); } catch { return false; }
@@ -3631,7 +3632,7 @@ function aufbereiten(text, form, lern) {
             const j = await anfrage({ ...FX_KI, max_tokens: 600, feature: 'check', stil: false, response_format: { type: 'json_object' } },
               [{ role: 'system', content: CHECK_PRUEFEN }, { role: 'user', content: `Frage: ${frage}\n\nMusterlösung: ${muster}\n\n<<<ANTWORT\n${text.replace(/<<<|>>>/g, '')}\nANTWORT>>>` }]);
             const t = j.choices?.[0]?.message?.content || '';
-            try { d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch { throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.'); }
+            if (!(d = kiJson(t))) throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.');
           }
           const ja = d.bestanden === true;
           sage(ja ? 'ja' : 'nein', el('b', {}, ja ? 'Passt. ' : 'Noch nicht. '), String(d.grund || ''));
@@ -3905,7 +3906,7 @@ async function bewertungenPruefen() {
     BEW_LAEUFT.add(f);  // auch nach einem Fehler nur einmal je Sitzung
     try {
       const j = await anfrage({ ...BEW_KI, feature: 'noten', response_format: { type: 'json_object' } }, [{ role: 'user', content: BEW_AUFTRAG(f, text) }]);
-      const t = j.choices?.[0]?.message?.content || '', d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+      const t = j.choices?.[0]?.message?.content || '', d = kiJson(t) || {};
       const n = x => x === null || x === '' || !Number.isFinite(+x) ? null : +x;
       const lvs = (Array.isArray(d.lvs) ? d.lvs : []).filter(l => l?.lv && norm(l.lv).startsWith(norm(f))).map(l => ({
         fach: f, lv: String(l.lv).trim(), ects: n(l.ects), gesamt: n(l.gesamt), bedingung: l.bedingung ? String(l.bedingung).slice(0, 200) : null,
@@ -4362,7 +4363,8 @@ const pkErstellen = (f, n, min, schwer = 'pruefung') => ptLauf(f, 'pk', 'Liest a
   const { text: antwort } = await strom({ ...ptModell(), feature: 'probeklausur', response_format: { type: 'json_object' },
     messages: [{ role: 'system', content: PK_AUFTRAG(f, n, min, schwer) }, { role: 'user', content: text }] },
     x => { job.hinweis = `Schreibt Aufgabe ${Math.min(n, Math.max(1, (x.match(/"frage"/g) || []).length))} von ${n} …`; }, () => { job.hinweis = 'Denkt nach …'; });
-  const j = JSON.parse(antwort);
+  const j = kiJson(antwort);
+  if (!j) throw new Error('Die Probeklausur kam unvollständig an. Bitte nochmal.');
   const aufgaben = (j.aufgaben || []).map(q => ({ ...q, typ: q.typ === 'zahl' ? 'zahl' : 'auswahl', richtig: Number(q.richtig) }))
     .filter(q => q.frage && Number.isFinite(q.richtig) && (q.typ === 'zahl' || (Array.isArray(q.optionen) && q.optionen[q.richtig] != null)));
   if (!aufgaben.length) throw new Error('Die KI hat keine brauchbare Klausur geliefert. Bitte nochmal.');
@@ -4571,7 +4573,7 @@ async function hoeren(f, tag, sha) {
         .map(([titel, k]) => abschnitt(a, k) && `## ${titel}\n${abschnitt(a, k)}`).filter(Boolean).join('\n\n');
       const { text } = await strom({ model: HOER_SKRIPT, feature: 'hoeren', reasoning: { effort: 'low' }, response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: HOER_AUFTRAG }, { role: 'user', content: `Fach: ${f}\n\n${quelle}` }] }, () => { h.hinweis = 'Schreibt das Gespräch …'; });
-      const turns = (JSON.parse(text).turns || []).filter(x => String(x?.text || '').trim())
+      const turns = (kiJson(text)?.turns || []).filter(x => String(x?.text || '').trim())
         .map(x => ({ sprecher: x.sprecher === 'b' ? 'b' : 'a', text: String(x.text).trim().slice(0, 1500), ton: String(x.ton || '').slice(0, 80) }));
       if (!turns.length) throw new Error('Das Gespräch kam leer zurück. Bitte nochmal.');
       skript = { sha, turns };
@@ -8897,11 +8899,15 @@ function jsonObjekte(text, ab) {
 
 // Viele Modelle schreiben LaTeX mit einfachem Backslash: „\(“ oder „\cdot“ lässt JSON.parse scheitern, „\frac“ wird still zu Seitenvorschub + „rac“.
 // Darum: ungültige Escapes verdoppeln und Steuerzeichen vor Buchstaben (\f \b \t \r) zurück in LaTeX-Befehle. Ganz kaputt: null
-const T_LATEX = { '\f': '\\f', '\b': '\\b', '\t': '\\t', '\r': '\\r' };
-const tText = (k, v) => typeof v === 'string' ? v.replace(/[\f\b\t\r](?=[a-zA-Z])/g, c => T_LATEX[c]) : v;
+function tText(k, v) {  // Funktion statt const: jsonLesen läuft auch in Teilen weiter oben in der Datei
+  return typeof v === 'string' ? v.replace(/[\f\b\t\r](?=[a-zA-Z])/g, c => ({ '\f': '\\f', '\b': '\\b', '\t': '\\t', '\r': '\\r' })[c]) : v;
+}
 function jsonLesen(o) {
   try { return JSON.parse(o, tText); } catch { /* reparieren */ }
   try { return JSON.parse(o.replace(/\\(["\\/bfnrt]|u[0-9a-fA-F]{4})|\\/g, (x, gut) => gut ? x : '\\\\'), tText); } catch { return null; }
+}
+function kiJson(t) {  // KI-Antwort mit einem JSON-Objekt, auch mit Text drumherum oder ```json-Zaun; kaputt: null
+  return jsonLesen(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
 }
 async function themaRunde(t, frage, auftrag) {
   if (THEMA.job) return;
@@ -9262,7 +9268,7 @@ function themaOffen(b, t) {
         [{ role: 'system', content: CHECK_PRUEFEN }, { role: 'user', content: `Frage: ${b.frage}\n\nMusterlösung: ${b.loesung}\n\n<<<ANTWORT\n${text.replace(/<<<|>>>/g, '')}\nANTWORT>>>` }]);
       const c = j.choices?.[0]?.message?.content || '';
       let d;
-      try { d = JSON.parse(c.slice(c.indexOf('{'), c.lastIndexOf('}') + 1)); } catch { throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.'); }
+      if (!(d = kiJson(c))) throw new Error('Die Prüfung kam unvollständig an. Bitte nochmal.');
       Object.assign(b, { antwort: text, bestanden: d.bestanden === true, urteil: String(d.grund || '') });
       if (t) { if (b.bestanden) t.sitzt = true; themaSpaeter(t); }
       sage(b.bestanden ? 'ja' : 'nein', el('b', {}, b.bestanden ? 'Sitzt. ' : 'Noch nicht ganz. '), b.urteil);
@@ -9403,7 +9409,7 @@ async function fxHolen(tex, fach, absatz) {
   const j = await anfrage({ ...FX_KI, feature: 'formel', response_format: { type: 'json_object' } }, [{ role: 'user', content: FX_AUFTRAG(tex, fach, absatz) }]);
   const t = j.choices?.[0]?.message?.content || '';
   let d;
-  try { d = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)); } catch { throw new Error('Die Erklärung kam unvollständig an. Bitte nochmal antippen.'); }
+  if (!(d = kiJson(t))) throw new Error('Die Erklärung kam unvollständig an. Bitte nochmal antippen.');
   const r = { kurz: String(d.kurz || ''), zeichen: (Array.isArray(d.zeichen) ? d.zeichen : []).filter(z => z?.text && z.bedeutung).map(z => ({ text: String(z.text).trim(), bedeutung: String(z.bedeutung) })) };
   merk(schluessel, JSON.stringify(r));
   return r;
@@ -11064,9 +11070,11 @@ const CHANGELOG = [
     ['22:48', 'Thema lernen: allgemeine Fragen ohne erzwungenen Fachbezug']] },
   { d: '2026-11-25', k: [
     ['07:10', 'Schlichterer Changelog', 'Weniger auf einmal: kein Zahlenbalken und keine Aufwand-Balken mehr. Farbe bleibt dort, wo sie etwas sagt: Blau markiert Überlegungen und Links.', 0, 1],
-    ['08:25', 'Zwei Geräte, ein Karteikasten', 'Wer abwechselnd am Handy und am iPad lernt, verliert nichts mehr. Hat das andere Gerät inzwischen gespeichert, führt die App beide Stände zusammen: Je Karte gilt die zuletzt beantwortete. Vorher klappte ab diesem Moment kein Speichern mehr, bis man neu lud. Auch eine fertige Wochenausgabe geht dabei nicht mehr verloren.', 0, 2]], t: [
+    ['08:25', 'Zwei Geräte, ein Karteikasten', 'Wer abwechselnd am Handy und am iPad lernt, verliert nichts mehr. Hat das andere Gerät inzwischen gespeichert, führt die App beide Stände zusammen: Je Karte gilt die zuletzt beantwortete. Vorher klappte ab diesem Moment kein Speichern mehr, bis man neu lud. Auch eine fertige Wochenausgabe geht dabei nicht mehr verloren.', 0, 2],
+    ['08:27', 'Formeln brechen nichts mehr', 'Schreibt die KI eine Formel wie \\frac mit einfachem Backslash, war die Antwort technisch kaputt. In der Wochenausgabe fehlten dann still Termine und Begriffe, die Probeklausur brach ab. Jetzt repariert die App solche Antworten überall, wie schon bei Thema lernen.', 0, 1]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
-    ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt']] },
+    ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
+    ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
