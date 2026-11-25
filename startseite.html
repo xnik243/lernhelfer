@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>Lernhelfer · Jede Woche das Wichtigste aus OLAT</title>
   <meta name="description" content="Jede Woche das Wichtigste aus OLAT, ohne selbst zu suchen: Zusammenfassung der letzten Einheit, Fristen aller Fächer, Karteikarten und Übungsaufgaben.">
   <meta name="theme-color" content="#fbfbf9">
@@ -44,7 +44,30 @@
       <li>Für OLAT an der Uni Innsbruck</li>
       <li>iPad, PC und Mac</li>
       <li>Unterlagen bleiben privat</li>
+      <li><a href="#wer">Wer dahintersteckt</a></li>
     </ul>
+
+    <section class="ich" id="wer" aria-labelledby="ich-kopf">
+      <figure class="foto">
+        <img src="ich.jpg" alt="Niklas Geiger" width="480" height="600">
+        <figcaption>Niklas Geiger</figcaption>
+      </figure>
+      <div class="ich-text">
+        <h2 id="ich-kopf">Hi, ich bin Niklas.</h2>
+        <p>Ich studiere Wirtschaftswissenschaften an der Uni Innsbruck. Den Lernhelfer habe ich zuerst nur für mich gebaut, weil ich jede Woche ewig durch OLAT-Ordner geklickt habe. Jetzt dürfen ihn alle nutzen.</p>
+        <p>Damit die Unterlagen von selbst kommen, richtest du auf deinem PC oder Mac ein kleines Programm ein. Einem Programm von jemandem, den du nicht kennst, solltest du nicht blind vertrauen. Darum stehe ich mit Namen und Adresse im <a href="app#/recht">Impressum</a> dafür gerade, und der ganze Code ist öffentlich.</p>
+      </div>
+      <div class="pruefen">
+        <h3>Glaub mir nicht einfach. <span class="markiert">Lass es prüfen.</span></h3>
+        <p>Ein Klick öffnet ChatGPT oder Claude mit einer kritischen Frage zum Code: Was tut das Programm, was passiert mit deinem Uni-Login, und ist irgendwas daran verdächtig?</p>
+        <div class="pk-reihe">
+          <a class="pk" data-ki="chatgpt" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT fragen<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11l6.5-6.5M6 4.5h5.5V10"/></svg></a>
+          <a class="pk" data-ki="claude" href="https://claude.ai/new" target="_blank" rel="noopener">Claude fragen<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11l6.5-6.5M6 4.5h5.5V10"/></svg></a>
+        </div>
+        <p class="klein">Lieber selbst hochladen? Das sind die Dateien: <a href="einrichten.ps1" download>einrichten.ps1</a> (Einrichten am PC), <a href="einrichten-mac.sh" download>einrichten-mac.sh</a> (am Mac) und <a href="holen.py" download>holen.py</a> (das Programm). Die passende Frage: <button class="link" type="button" id="frage-kopieren">kopieren</button></p>
+      </div>
+      <p class="kontakt">Fragen oder Bedenken? Schreib mir an <a href="mailto:nik@lernhelfer.xyz">nik@lernhelfer.xyz</a>, ich antworte selbst.</p>
+    </section>
 
     <footer class="fuss">
       <nav aria-label="Rechtliches">

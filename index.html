@@ -1668,6 +1668,14 @@
   .geraete { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px 24px; width: 100%; }
   .geraete h3 { margin: 0 0 4px; font: 650 1rem/1.3 var(--sans); }
   .geraete .meta { margin: 8px 0 0; }
+  .pruef-zettel { display: flex; align-items: flex-start; gap: 16px; max-width: 580px; margin-top: 14px; padding: 16px 18px 14px; border-radius: 2px; background: var(--zettel, var(--bg-2)); color: var(--text);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 14px 22px -16px rgb(0 0 0 / 0.45); transform: rotate(-0.4deg); }
+  .pz-foto { flex: none; width: 64px; height: 80px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.2); transform: rotate(2.5deg); }
+  .pruef-zettel h3 { margin: 0 0 4px; font: 650 1.0625rem/1.3 var(--sans); }
+  .pruef-zettel p { margin: 0; }
+  .pruef-zettel .knopfreihe { margin: 12px 0 10px; }
+  #a-pruefen .knopfreihe { margin: 10px 0 2px; }
+  @media (max-width: 600px) { .pruef-zettel { display: flow-root; padding: 14px 14px 12px; } .pz-foto { float: left; width: 52px; height: 65px; margin: 2px 12px 4px 0; } }
   .anteil { display: inline-block; width: 72px; height: 6px; margin-right: 8px; border-radius: 3px; background: var(--bg-3); vertical-align: middle; overflow: hidden; }
   .anteil i { display: block; height: 100%; border-radius: 3px; background: var(--akzent); }
   .kacheln.breit { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
@@ -2418,7 +2426,7 @@ aussehen();
             <li><b>Es spricht nur mit OLAT und dem Lernhelfer.</b> Es lädt die Unterlagen deiner Kurse und die Startseiten der Onlinetests und schickt ihren Text in <span class="nur-server">dein Konto</span><span class="nur-eigen">deinen privaten Speicher</span>. Andere Dateien auf deinem Computer liest es nicht. Neue Fassungen von sich selbst holt es von dieser Seite.</li>
             <li><b>Der Schlüssel im Befehl bzw. in der Datei</b> öffnet nur deinen Speicher, nicht <span class="nur-server">dein Konto und nicht </span>deine Passwörter. Gib ihn trotzdem nie weiter.<span class="nur-server"> Holst du Befehl oder Datei neu, gilt der alte Schlüssel nicht mehr.</span></li>
             <li><b>Die Windows-Sperre</b> (SmartScreen, „Der Computer wurde durch Windows geschützt“) kommt, weil die Datei keine gekaufte Signatur hat, nicht weil etwas Gefährliches gefunden wurde. „Als Administrator ausführen“ ist nur der Weg daran vorbei. Das Programm braucht die Rechte nicht: Es richtet sich nur im Ordner oben ein, und der Abgleich danach läuft ohne sie.</li>
-            <li><b>Selbst nachlesen:</b> Der ganze Code ist öffentlich: <a href="einrichten-mac.sh" target="_blank" rel="noopener">Einrichten am Mac</a>, <a href="einrichten.ps1" target="_blank" rel="noopener">Einrichten am PC</a> und das <a href="holen.py" target="_blank" rel="noopener">Abgleich-Programm</a>. Du kannst ihn auch in ChatGPT oder Claude einfügen und fragen, was er tut.</li>
+            <li><b>Selbst nachlesen:</b> Der ganze Code ist öffentlich: <a href="einrichten-mac.sh" target="_blank" rel="noopener">Einrichten am Mac</a>, <a href="einrichten.ps1" target="_blank" rel="noopener">Einrichten am PC</a> und das <a href="holen.py" target="_blank" rel="noopener">Abgleich-Programm</a>. Am einfachsten lässt du ihn von einer KI prüfen: Ein Klick öffnet ChatGPT oder Claude mit einer kritischen Frage dazu.<div id="a-pruefen"></div></li>
             <li><b>Wieder entfernen</b> geht mit ein paar Klicks bzw. einer Zeile, siehe <a href="#a-pc">Der Abgleich am PC oder Mac</a>.</li>
           </ul>
         </div>
@@ -7752,6 +7760,41 @@ async function pcLaden(e) {
   catch (err) { status(err.message, true); }
   knopf.disabled = false;
 }
+// Erst prüfen, dann laden: Fremde laden kein Programm von einem Unbekannten. Darum steht beim Knopf, wer es gebaut hat, und ein Klick
+// öffnet ChatGPT bzw. Claude mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie in startseite.js)
+function pruefFrage() {
+  const datei = n => new URL(n, location.href).href;
+  return `Ich überlege, für die Lern-App „Lernhelfer“ (${location.host}) ein Programm auf meinem Computer einzurichten. Es soll meine Unterlagen aus OLAT holen, dem Lernportal meiner Uni. Den Entwickler kenne ich nicht, und ich will wissen, ob ich dem Programm trauen kann.
+
+Der Code ist öffentlich:
+- ${datei('einrichten.ps1')} richtet es am Windows-PC ein
+- ${datei('einrichten-mac.sh')} richtet es am Mac ein
+- ${datei('holen.py')} ist das Programm selbst
+
+Am PC lädt man aus der App eine kurze Startdatei „Lernhelfer-PC-einrichten.cmd“. Sie setzt einen persönlichen Zugangsschlüssel, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac kopiert man stattdessen einen Terminal-Befehl, der einrichten-mac.sh lädt und ausführt.
+
+Bitte lies den Code und sei kritisch:
+1. Was macht das Programm genau, und wohin schickt es Daten?
+2. Was passiert mit meinem Uni-Login und Passwort?
+3. Ist etwas daran verdächtig, gefährlich oder unnötig?
+4. Würdest du es an meiner Stelle installieren?
+
+Falls du die Links nicht öffnen kannst, sag es mir, dann lade ich die Dateien hoch.`;
+}
+function pruefKnoepfe() {
+  const f = encodeURIComponent(pruefFrage());
+  const ki = (name, url) => el('a', { class: 'knopf', href: url, target: '_blank', rel: 'noopener' }, `${name} fragen`);
+  return el('div', { class: 'knopfreihe' }, ki('ChatGPT', `https://chatgpt.com/?hints=search&q=${f}`), ki('Claude', `https://claude.ai/new?q=${f}`));
+}
+const pruefZettel = () => el('aside', { class: 'pruef-zettel' },
+  el('img', { class: 'pz-foto', src: 'ich.jpg', alt: '', width: 64, height: 80, onerror: e => e.target.remove() }),
+  el('div', {},
+    el('h3', {}, 'Erst prüfen, dann laden'),
+    el('p', { class: 'klein' }, 'Einem Programm von jemandem, den du nicht kennst, solltest du nicht blind trauen. Ich bin Niklas Geiger, studiere in Innsbruck und stehe im ',
+      el('a', { href: '#/recht' }, 'Impressum'), ' mit Namen und Adresse dafür gerade. Der ganze Code ist öffentlich, lass ihn von einer KI prüfen:'),
+    pruefKnoepfe(),
+    el('p', { class: 'meta' }, el('a', { href: '#a-virus' }, 'Was das Programm tut'), SERVER && [' · ', el('a', { href: '/#wer' }, 'Wer dahintersteckt')])));
+$('a-pruefen')?.replaceChildren(pruefKnoepfe());
 // Das PC-Programm holen: Knopf und die drei Klicks danach (Konto, Start, Anleitung). Am iPad oder Handy beide, zum Weitergeben an den Computer.
 function pcEinrichten() {
   const win = () => [
@@ -7761,7 +7804,7 @@ function pcEinrichten() {
       el('li', {}, 'Nicht doppelklicken, sonst blockiert Windows die Datei (SmartScreen). Im Ordner Downloads mit der rechten Maustaste auf „Lernhelfer-PC-einrichten“ klicken, „Als Administrator ausführen“ wählen und mit „Ja“ bestätigen.'),
       el('li', {}, 'Öffnet sich Chrome, dort einmal bei OLAT einloggen. Warten, bis im schwarzen Fenster „Fertig“ steht. Das dauert beim ersten Mal 5 bis 15 Minuten.'))];
   const mac = () => macTeil(() => api('pc', {}).then(p => { ICH.pc = true; return { repo: p.repo, github: p.token, api: p.api }; }), !ICH.pc);
-  const sicher = el('p', { class: 'meta' }, el('a', { href: '#a-virus' }, 'Ist das sicher? Hier steht, was das Programm tut.'));
+  const sicher = pruefZettel();
   if (WINDOWS) return [win(), sicher];
   if (MAC) return [mac(), sicher];
   return [el('p', { class: 'klein' }, 'Das Programm läuft auf einem Windows-PC oder Mac, nicht auf iPad oder Handy. Am einfachsten öffnest du ', el('b', {}, location.host + location.pathname),
@@ -11265,7 +11308,8 @@ const CHANGELOG = [
     ['08:27', 'Formeln brechen nichts mehr', 'Schreibt die KI eine Formel wie \\frac mit einfachem Backslash, war die Antwort technisch kaputt. In der Wochenausgabe fehlten dann still Termine und Begriffe, die Probeklausur brach ab. Jetzt repariert die App solche Antworten überall, wie schon bei Thema lernen.', 0, 1],
     ['08:30', 'Ein neuer Tag ist ein neuer Tag', 'Wer die App am Handy offen lässt, sah am nächsten Morgen noch gestern: falsche Fristen, falsche fällige Karten. Jetzt lädt sie beim Zurückkommen nach Mitternacht neu, außer es läuft gerade etwas oder ein angefangener Text würde verloren gehen. Und reißt bei Thema lernen die Verbindung ab, bleibt das schon Angekommene gespeichert.', 0, 1],
     ['12:55', 'PS-Tests zählen mit', 'Selbst eingetragene PS-Tests wie „PS-4b-Test“ zählen jetzt bei den PS-Test-Punkten der Lehrveranstaltung mit, vorher blieb es dort bei 0. Und das PC-Programm holt die Ergebnisse selbst: in Mathe aus den Rückgabe-Dateien unter Testergebnisse, in VWL aus den Bewertungen im Ordner PS-Tests. Was du schon eingetragen hast, wird dabei nicht doppelt gezählt.', 0, 2],
-    ['13:45', 'Anonym im Forum', 'Im Forum gibt es jetzt drei anonyme Bereiche: Lehre und Prüfungen, Gesundheit und Leistung, Offen gesagt. Sie funktionieren wie das übrige Forum mit Threads, Antworten und Suche, nur steht nie ein Name dabei. Dein Beitrag geht ohne dein Konto raus und zeigt stattdessen eine anonyme Marke vor, die dein Browser vorher unkenntlich gemacht hat. So kann niemand herausfinden, von wem er ist, auch der Betreiber nicht.', 1, 3]], t: [
+    ['13:45', 'Anonym im Forum', 'Im Forum gibt es jetzt drei anonyme Bereiche: Lehre und Prüfungen, Gesundheit und Leistung, Offen gesagt. Sie funktionieren wie das übrige Forum mit Threads, Antworten und Suche, nur steht nie ein Name dabei. Dein Beitrag geht ohne dein Konto raus und zeigt stattdessen eine anonyme Marke vor, die dein Browser vorher unkenntlich gemacht hat. So kann niemand herausfinden, von wem er ist, auch der Betreiber nicht.', 1, 3],
+    ['15:05', 'Erst prüfen, dann laden', 'Viele, denen ich den Lernhelfer gezeigt habe, haben das PC-Programm nicht geladen. Verständlich: Ein Programm von einem Fremden, das an den Uni-Zugang geht, lädt man nicht einfach. Jetzt steht auf der Startseite, wer ich bin, und neben dem Knopf eine Notiz: Ein Klick öffnet ChatGPT oder Claude mit einer kritischen Frage zum Code, der ohnehin öffentlich ist.', 1, 1]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
@@ -11281,7 +11325,9 @@ const CHANGELOG = [
     ['12:55', 'PC-Programm: liest Rückgabe-Dateien aus Aufgaben-Bausteinen als Bewertung mit Datum, klappt auch Ordner mit Unterbausteinen auf und ordnet PS-Tests aus dem VO-Kurs dem PS zu'],
     ['13:45', 'Forum: drei anonyme Bereiche mit Threads, Antworten und Suche; Beiträge gehen ohne Anmeldung raus, mit blind signierter Marke (RSA), höchstens 20 am Tag'],
     ['13:45', 'Anonym: kein Konto, keine IP, Uhrzeit auf die Stunde; kein Gelesen, keine Reaktionen, keine Lesezeichen; löschen nur auf dem eigenen Gerät; Regeln vor dem ersten Besuch'],
-    ['13:45', 'Forum: Melden mit Gründen zur Auswahl statt Freitext']] },
+    ['13:45', 'Forum: Melden mit Gründen zur Auswahl statt Freitext'],
+    ['15:05', 'Startseite: „Wer dahintersteckt“ mit Foto, ein paar Sätzen von mir und Kontakt'],
+    ['15:05', 'Beim PC-Programm: Notiz „Erst prüfen, dann laden“; ChatGPT oder Claude öffnen mit einer kritischen Frage zum öffentlichen Code, auch in der Anleitung']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

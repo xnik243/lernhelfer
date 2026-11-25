@@ -1,6 +1,6 @@
 // Alles Gezeichnete entsteht aus dem echten Layout: Schriftzug, Kästen, Pfeil, Häkchen, Textmarker.
 // Kein Font für die Handschrift; die Striche sind Pfade mit kleinen, festen Zufallsabweichungen.
-if (location.hash) location.replace("app" + location.search + location.hash); // alte Links auf /#… (Mails, Lesezeichen) gehören in die App
+if (location.hash && location.hash !== "#wer") location.replace("app" + location.search + location.hash); // alte Links auf /#… (Mails, Lesezeichen) gehören in die App
 const blatt = document.querySelector(".blatt");
 const schrift = document.querySelector(".schrift");
 const striche = document.querySelector(".striche");
@@ -149,6 +149,19 @@ function zeichnen() {
   g += zug(hand(r, go.x + 4, go.y + go.h / 2, go.x + go.w - 4, go.y + go.h / 2 + 1, 1, 0), "marker", 380, ` stroke-width="${n1(go.h - 10)}"`);
   g += kasten(r, go, "tinte", 110, 2);
 
+  // Wer dahintersteckt: Klebestreifen aufs Foto, Marker auf „Lass es prüfen“, Kasten ums Prüfen, Rahmen um die KI-Knöpfe
+  const fo = document.querySelector(".ich:not(.ohne-foto) .foto");
+  if (fo) {
+    const f = lage(fo);
+    const fm = f.x + f.w / 2;
+    g += `<g transform="rotate(-2 ${n1(fm)} ${n1(f.y + f.h / 2)})">${zug(hand(r, fm - 42, f.y + 4, fm + 40, f.y - 5, 1, 0), "marker", 160, ' stroke-width="24"')}</g>`;
+  }
+  const mk = lage(document.querySelector(".markiert"));
+  const mfs = parseFloat(getComputedStyle(document.querySelector(".pruefen h3")).fontSize);
+  g += zug(hand(r, mk.x - 3, mk.y + mk.h * 0.6, mk.x + mk.w + 3, mk.y + mk.h * 0.55, 1, 2), "marker", 300, ` stroke-width="${n1(mfs * 0.95)}"`);
+  g += kasten(r, lage(document.querySelector(".pruefen")), "blau", 120);
+  for (const pk of document.querySelectorAll(".pk")) g += kasten(r, lage(pk), "tinte", 70, 1);
+
   striche.setAttribute("viewBox", `0 0 ${W} ${H}`);
   striche.innerHTML = g;
   for (const el of document.querySelectorAll(".zug")) {
@@ -156,6 +169,43 @@ function zeichnen() {
     el.style.setProperty("--t", `${el.dataset.t}ms`);
   }
 }
+
+// Prüfen lassen: ChatGPT bzw. Claude öffnen gleich mit einer kritischen Frage zum öffentlichen Code (gleicher Text wie pruefFrage() in index.html)
+const datei = (n) => new URL(n, location.href).href;
+const frage = `Ich überlege, für die Lern-App „Lernhelfer“ (${location.host}) ein Programm auf meinem Computer einzurichten. Es soll meine Unterlagen aus OLAT holen, dem Lernportal meiner Uni. Den Entwickler kenne ich nicht, und ich will wissen, ob ich dem Programm trauen kann.
+
+Der Code ist öffentlich:
+- ${datei("einrichten.ps1")} richtet es am Windows-PC ein
+- ${datei("einrichten-mac.sh")} richtet es am Mac ein
+- ${datei("holen.py")} ist das Programm selbst
+
+Am PC lädt man aus der App eine kurze Startdatei „Lernhelfer-PC-einrichten.cmd“. Sie setzt einen persönlichen Zugangsschlüssel, lädt einrichten.ps1 von dieser Adresse und führt es aus. Am Mac kopiert man stattdessen einen Terminal-Befehl, der einrichten-mac.sh lädt und ausführt.
+
+Bitte lies den Code und sei kritisch:
+1. Was macht das Programm genau, und wohin schickt es Daten?
+2. Was passiert mit meinem Uni-Login und Passwort?
+3. Ist etwas daran verdächtig, gefährlich oder unnötig?
+4. Würdest du es an meiner Stelle installieren?
+
+Falls du die Links nicht öffnen kannst, sag es mir, dann lade ich die Dateien hoch.`;
+for (const a of document.querySelectorAll(".pk")) {
+  a.href = a.dataset.ki === "claude" ? `https://claude.ai/new?q=${encodeURIComponent(frage)}` : `https://chatgpt.com/?hints=search&q=${encodeURIComponent(frage)}`;
+}
+document.querySelector("#frage-kopieren").addEventListener("click", async (e) => {
+  const knopf = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText(frage);
+    knopf.textContent = "kopiert";
+  } catch {
+    knopf.textContent = "ging nicht, bitte über ChatGPT fragen";
+  }
+});
+
+// Ohne Foto (ich.jpg fehlt) fällt der Rahmen weg und der Text steht allein
+const ich = document.querySelector(".ich");
+const bild = ich.querySelector(".foto img");
+if (bild.complete && !bild.naturalWidth) ich.classList.add("ohne-foto");
+else bild.addEventListener("error", () => { ich.classList.add("ohne-foto"); zeichnen(); });
 
 schriftzug();
 start = zeit;

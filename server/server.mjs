@@ -2094,6 +2094,7 @@ const DATEIEN = {
   '/presentation/': ['presentation/index.html', 'text/html; charset=utf-8'],  // Folien stehen verschlüsselt darin (presentation/bauen.mjs)
   '/holen.py': ['holen.py', 'text/plain; charset=utf-8'], '/holen.py.sig': ['holen.py.sig', 'text/plain; charset=utf-8'], '/einrichten.ps1': ['einrichten.ps1', 'text/plain; charset=utf-8'],
   '/einrichten-mac.sh': ['einrichten-mac.sh', 'text/plain; charset=utf-8'],
+  '/ich.jpg': ['ich.jpg', 'image/jpeg'],  // Foto für „Wer dahintersteckt“; fehlt es, blendet die Startseite den Rahmen aus
   '/fonts/Archivo.woff2': ['fonts/Archivo.woff2', 'font/woff2'], '/fonts/SourceSerif4.woff2': ['fonts/SourceSerif4.woff2', 'font/woff2'],
   // Programmbibliotheken der App, selbst ausgeliefert statt von jsDelivr; die Version steht im Namen, darum darf der Browser sie lange behalten
   ...Object.fromEntries(['marked-12.0.2', 'purify-3.1.6', 'katex-0.16.11', 'pdf-3.11.174', 'pdf.worker-3.11.174', 'qrcode-1.4.4', 'jsQR-1.4.0']
@@ -2112,7 +2113,7 @@ function statisch(req, res, url) {
     return res.end(req.method === 'HEAD' ? undefined : readFileSync(join(APP, 'game', g[1])));
   }
   const d = DATEIEN[pfad];
-  if (!d || !['GET', 'HEAD'].includes(req.method)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Nicht gefunden'); }
+  if (!d || !['GET', 'HEAD'].includes(req.method) || !existsSync(join(APP, d[0]))) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Nicht gefunden'); }
   let inhalt = readFileSync(join(APP, d[0]));
   if (d[0] === 'index.html') inhalt = inhalt.toString('utf8').replace('<html lang="de">', '<html lang="de" data-server>');  // App weiß: Konten statt eigener Schlüssel
   res.writeHead(200, { 'Content-Type': d[1], 'Cache-Control': /^(fonts|lib)\//.test(d[0]) ? 'public, max-age=604800' : 'no-cache' });

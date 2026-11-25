@@ -94,6 +94,59 @@ p, ul { margin: 0; }
 @media (hover: hover) { .fuss nav a:hover { text-decoration: underline; text-underline-offset: 0.25em; } }
 .fuss p { padding: 6px 0; }
 
+/* ---------- Wer dahintersteckt: Foto, ein paar Sätze, und die Einladung, den Code prüfen zu lassen ---------- */
+.meta a { color: var(--tinte); text-underline-offset: 0.25em; }
+.ich {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 60ch);
+  grid-template-areas: "foto text" "foto pruefen" ". kontakt";
+  align-items: start;
+  gap: 26px clamp(40px, 7vw, 84px);
+  margin-top: clamp(96px, 15vh, 150px);
+  scroll-margin-top: 40px;
+}
+.ich.ohne-foto { grid-template-columns: minmax(0, 60ch); grid-template-areas: "text" "pruefen" "kontakt"; }
+.ich.ohne-foto .foto { display: none; }
+.foto {
+  grid-area: foto;
+  margin: 10px 0 0;
+  padding: 10px 10px 0;
+  background: #fff;
+  transform: rotate(-2deg);
+  box-shadow: 0 1px 2px rgb(18 18 18 / 0.08), 0 18px 30px -20px rgb(18 18 18 / 0.5);
+}
+.foto img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; background: #e6e6e0; }
+.foto figcaption { padding: 9px 2px 11px; font-size: 0.875rem; font-weight: 650; text-align: center; }
+.ich-text { grid-area: text; }
+.ich h2 { margin: 0; font-size: clamp(1.75rem, 3.4vw, 2.375rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
+.ich-text p { margin-top: 14px; font-size: 1.0625rem; line-height: 1.6; text-wrap: pretty; }
+.ich a { text-underline-offset: 0.2em; }
+.pruefen { grid-area: pruefen; margin-top: 14px; padding: 22px 26px 24px; }
+.pruefen h3 { margin: 0; font-size: 1.25rem; font-weight: 750; line-height: 1.35; text-wrap: balance; }
+.pruefen > p { margin-top: 10px; line-height: 1.55; text-wrap: pretty; }
+.markiert { white-space: nowrap; }
+.pk-reihe { display: flex; flex-wrap: wrap; gap: 14px 20px; margin-top: 20px; }
+.pk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out);
+}
+.pk svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 220ms var(--ease-out); }
+.pk:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .pk:hover { background-color: rgb(255 233 58 / 0.35); }
+  .pk:hover svg { transform: translate(2px, -2px); }
+}
+.pruefen .klein { margin-top: 18px; line-height: 1.55; }
+.pruefen .klein a, .kontakt a { color: var(--tinte); }
+.link { padding: 0; border: 0; background: none; color: var(--tinte); font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; }
+.kontakt { grid-area: kontakt; font-size: 0.9375rem; color: var(--tinte-2); }
+
 /* ---------- Gezeichnetes: alles im Overlay, aus dem echten Layout berechnet ---------- */
 .striche { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; mix-blend-mode: multiply; }
 .schrift path, .striche path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -110,6 +163,11 @@ p, ul { margin: 0; }
   .quelle { justify-self: start; }
   .meta { flex-direction: column; }
   .meta li + li::before { content: none; }
+  .ich { grid-template-columns: minmax(0, 1fr); grid-template-areas: "foto" "text" "pruefen" "kontakt"; gap: 20px; margin-top: 80px; order: 3; }
+  .foto { width: 160px; margin: 0 0 6px 4px; }
+  .ich-text p { font-size: 1rem; }
+  .pruefen { margin-top: 8px; padding: 18px 18px 20px; }
+  .pk-reihe { gap: 12px 16px; }
 }
 
 /* ---------- Einmal: der Marker zeichnet, Strich für Strich ---------- */
