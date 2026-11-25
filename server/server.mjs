@@ -146,7 +146,7 @@ Formeln setzt du in LaTeX: im Fließtext zwischen \( und \), abgesetzt zwischen 
 
 mkdirSync(DATEN, { recursive: true });
 const db = new DatabaseSync(join(DATEN, 'lernhelfer.db'));
-db.exec(`pragma journal_mode = wal; pragma foreign_keys = on;
+db.exec(`pragma journal_mode = wal; pragma foreign_keys = on; pragma secure_delete = on;
 create table if not exists konten (id integer primary key, email text unique not null, pw text not null, erstellt integer not null,
   bestaetigt integer not null default 0, tarif text, bis integer not null default 0, test_bis integer not null default 0, erinnert integer not null default 0,
   code text unique not null, geworben_von integer references konten(id) on delete set null, or_key text, or_hash text, or_an integer not null default 0, zuletzt integer not null default 0);
@@ -226,6 +226,16 @@ try { db.exec('alter table forum_profil add column bild blob; alter table forum_
 db.exec(`create table if not exists forum_pinnwand (id integer primary key, profil integer not null references konten(id) on delete cascade,
   konto integer references konten(id) on delete set null, text text not null, zeit integer not null, gelesen integer not null default 0);
 create index if not exists forum_pinnwand_profil on forum_pinnwand (profil, id)`);
+// Anonym: nur verschlüsselte Blobs (AES-GCM, der Schlüssel bleibt im Browser), kein Konto, keine IP. Die Zeit ist auf die Stunde abgerundet,
+// damit sie sich nicht mit dem Nutzungslog einer Person deckt. antwort_auf: Antwort auf einen Beitrag (eine Ebene).
+// anon_reports: Meldungen mit dem Text, den der Browser des Meldenden entschlüsselt hat, ebenfalls ohne Konto und IP; erledigt = gelöscht
+db.exec(`create table if not exists anon_posts (id integer primary key, antwort_auf integer references anon_posts(id) on delete cascade,
+  encrypted_text text not null, iv text not null, created_at integer not null);
+create index if not exists anon_posts_faden on anon_posts (antwort_auf, id);
+create table if not exists anon_reports (id integer primary key, post_id integer not null references anon_posts(id) on delete cascade,
+  grund text not null, text text not null, notiz text not null default '', zeit integer not null);
+create index if not exists anon_reports_post on anon_reports (post_id)`);
+const AN_GRUENDE = new Set(['beleidigung', 'handel', 'doxxing', 'urheberrecht', 'sonstiges']);
 
 /* ---------- Kleinigkeiten ---------- */
 class Fehler extends Error { constructor(code, text) { super(text); this.code = code; } }
@@ -1749,6 +1759,44 @@ const ROUTEN = {
       ich: forumIch(k),
     };
   },
+  // Anonym: lesen jedes Konto, schreiben mit bestätigter Adresse; gespeichert wird nur der Blob, nie von wem (die Bremse hält das Konto 15 Minuten im Speicher).
+  // Hier nichts loggen: keine IP, keine Header, kein Konto
+  'GET /api/anon-forum/posts': ({ k, q }) => {  // 20 Beiträge je Seite, neueste zuerst, mit allen Antworten; vor = id: die älteren
+    muss(k);
+    const posts = db.prepare('select id, encrypted_text c, iv, created_at t from anon_posts where antwort_auf is null and id < ? order by id desc limit 21').all(Number(q.get('vor')) || 2 ** 53);
+    const mehr = posts.length > 20; posts.length = Math.min(posts.length, 20);
+    const antworten = posts.length ? db.prepare(`select id, antwort_auf, encrypted_text c, iv, created_at t from anon_posts where antwort_auf in (${posts.map(() => '?').join()}) order by id`)
+      .all(...posts.map(p => p.id)) : [];
+    return { posts: posts.map(p => ({ ...p, antworten: antworten.filter(a => a.antwort_auf === p.id).map(({ antwort_auf, ...a }) => a) })), mehr };
+  },
+  'POST /api/anon-forum/post': ({ req, k, b }) => {  // {c, iv, antwort_auf?}: Base64, IV 12 Byte; Klartext sieht der Server nie
+    muss(k);
+    if (!darfSchreiben(k)) nein(403, 'Bitte bestätige zuerst deine E-Mail-Adresse.');
+    if (db.prepare('select gesperrt from forum_profil where konto = ?').get(k.id)?.gesperrt) nein(403, 'Du kannst im Forum gerade nicht schreiben.');
+    bremse(req, 10, String(k.id));
+    const c = String(b.c || ''), iv = String(b.iv || '');
+    if (!/^[A-Za-z0-9+/]{16}$/.test(iv) || c.length < 24 || c.length > 40000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(c)) nein(400, 'Kein gültiger verschlüsselter Beitrag.');
+    const auf = b.antwort_auf == null ? null
+      : (db.prepare('select id from anon_posts where id = ? and antwort_auf is null').get(Number(b.antwort_auf)) || nein(404, 'Diesen Beitrag gibt es nicht (mehr).')).id;
+    return { id: Number(db.prepare('insert into anon_posts (antwort_auf, encrypted_text, iv, created_at) values (?, ?, ?, ?)').run(auf, c, iv, Math.floor(jetzt() / 3600e3) * 3600e3).lastInsertRowid) };
+  },
+  // Melden (DSA Art. 16): der Browser des Meldenden schickt nur diesen einen Beitrag entschlüsselt mit; vom Meldenden wird nichts gespeichert
+  'POST /api/anon-forum/melden': async ({ req, k, b }) => {
+    muss(k);
+    bremse(req, 10, String(k.id));
+    const grund = String(b.reason || ''), text = String(b.decrypted_text ?? '').trim().slice(0, 6000), notiz = String(b.note ?? '').trim().slice(0, 1000);
+    if (!AN_GRUENDE.has(grund) || !text) nein(400, 'Bitte wähl einen Grund.');
+    const id = (db.prepare('select id from anon_posts where id = ?').get(Number(b.post_id)) || nein(404, 'Diesen Beitrag gibt es nicht (mehr).')).id;
+    db.prepare('insert into anon_reports (post_id, grund, text, notiz, zeit) values (?, ?, ?, ?, ?)').run(id, grund, text, notiz, Math.floor(jetzt() / 3600e3) * 3600e3);
+    if (ADMIN) await mail(ADMIN, `Anonym: neue Meldung zu Beitrag #${id}`, `Grund: ${grund}\n\nDen Text siehst du nur in der Admin-Ecke: ${BASIS}/app#/admin`);  // Text nicht per Mail (Brevo)
+  },
+  // Rechtswidriges entfernen: nur die Admin-Ecke, nach Nummer, endgültig (secure_delete); Antworten und Meldungen gehen mit
+  'POST /api/anon-forum/loeschen': ({ k, b }) => { admin(k); return { geloescht: Number(db.prepare('delete from anon_posts where id = ?').run(Number(b.id)).changes) }; },
+  'GET /api/anon-forum/meldungen': ({ k }) => {  // mit dem Blob, damit die Ecke mit Schlüssel prüfen kann, ob der gemeldete Text stimmt
+    admin(k);
+    return { meldungen: db.prepare('select r.id, r.post_id, r.grund, r.text, r.notiz, r.zeit, p.encrypted_text c, p.iv from anon_reports r join anon_posts p on p.id = r.post_id order by r.id').all() };
+  },
+  'POST /api/anon-forum/verwerfen': ({ k, b }) => { admin(k); db.prepare('delete from anon_reports where id = ?').run(Number(b.id)); },
   'POST /api/nutzung': ({ k, b }) => { muss(k); if (MELDBAR.has(b.was)) zaehlen(k.id, b.was); },  // Seite geöffnet, gesperrte Funktion angetippt, PDF
   'POST /api/fehler': async ({ req, k, b }) => {  // „Fehler melden“, auch ohne Konto (etwa beim Registrieren); 5 je 15 Minuten
     bremse(req, 5);

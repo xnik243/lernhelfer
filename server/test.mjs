@@ -1107,6 +1107,45 @@ try {
   const lexp = await lern('GET', '/api/export');
   assert.equal(lexp.status, 200);
   console.log('Forum: ok');
+
+  // Anonym: nur Blob und gerundete Zeit, kein Konto; unbestätigt und gesperrt nicht schreiben; Antworten hängen am Beitrag
+  const blob = { c: Buffer.from('x'.repeat(40)).toString('base64'), iv: randomBytes(12).toString('base64') };
+  assert.equal((await roh('POST', '/api/anon-forum/post', blob)).status, 403, 'unbestätigt');
+  assert.equal((await lern('POST', '/api/anon-forum/post', blob)).status, 403, 'im Forum gesperrt');
+  assert.equal((await leser('POST', '/api/anon-forum/post', { ...blob, iv: 'kurz' })).status, 400);
+  assert.equal((await leser('POST', '/api/anon-forum/post', { ...blob, c: '<script>' })).status, 400);
+  const anId = (await leser('POST', '/api/anon-forum/post', blob)).j.id;
+  assert.equal((await leser('POST', '/api/anon-forum/post', { ...blob, antwort_auf: 99999 })).status, 404);
+  const antId = (await chef('POST', '/api/anon-forum/post', { ...blob, antwort_auf: anId })).j.id;
+  assert.equal((await leser('POST', '/api/anon-forum/post', { ...blob, antwort_auf: antId })).status, 404, 'nur eine Ebene');
+  const an = (await roh('GET', '/api/anon-forum/posts')).j;
+  assert.deepEqual(Object.keys(an.posts[0]).sort(), ['antworten', 'c', 'id', 'iv', 't'], 'kein Konto, keine IP');
+  assert.equal(an.posts[0].antworten[0].id, antId); assert.equal(an.posts[0].t % 3600e3, 0, 'Zeit gerundet');
+  const adb = new DatabaseSync(join(ordner, 'lernhelfer.db'));
+  assert.deepEqual(Object.keys(adb.prepare('select * from anon_posts limit 1').get()).sort(), ['antwort_auf', 'created_at', 'encrypted_text', 'id', 'iv']); adb.close();
+  // Melden: nur Grund, Text, Notiz, gerundete Zeit; die Ecke sieht Meldung und Blob, verwirft oder löscht endgültig
+  const meldung = { post_id: antId, decrypted_text: 'Klartext', reason: 'doxxing', note: 'Adresse drin' };
+  assert.equal((await leser('POST', '/api/anon-forum/melden', { ...meldung, reason: 'egal' })).status, 400);
+  assert.equal((await leser('POST', '/api/anon-forum/melden', { ...meldung, decrypted_text: ' ' })).status, 400);
+  assert.equal((await leser('POST', '/api/anon-forum/melden', { ...meldung, post_id: 99999 })).status, 404);
+  assert.equal((await roh('POST', '/api/anon-forum/melden', meldung)).status, 200, 'auch unbestätigt');
+  await leser('POST', '/api/anon-forum/melden', { ...meldung, post_id: anId, reason: 'handel' });
+  const rdb = new DatabaseSync(join(ordner, 'lernhelfer.db'));
+  const reihe = rdb.prepare('select * from anon_reports order by id limit 1').get(); rdb.close();
+  assert.deepEqual(Object.keys(reihe).sort(), ['grund', 'id', 'notiz', 'post_id', 'text', 'zeit'], 'kein Konto, keine IP');
+  assert.equal(reihe.zeit % 3600e3, 0); assert.equal(reihe.text, 'Klartext');
+  assert.equal((await leser('GET', '/api/anon-forum/meldungen')).status, 403);
+  assert.equal((await leser('POST', '/api/anon-forum/verwerfen', { id: reihe.id })).status, 403);
+  const anOffen = (await chef('GET', '/api/anon-forum/meldungen')).j.meldungen;
+  assert.equal(anOffen.length, 2); assert.deepEqual(Object.keys(anOffen[0]).sort(), ['c', 'grund', 'id', 'iv', 'notiz', 'post_id', 'text', 'zeit']);
+  await chef('POST', '/api/anon-forum/verwerfen', { id: reihe.id });
+  assert.equal((await chef('GET', '/api/anon-forum/meldungen')).j.meldungen.length, 1);
+  assert.equal((await leser('POST', '/api/anon-forum/loeschen', { id: anId })).status, 403);
+  assert.equal((await chef('POST', '/api/anon-forum/loeschen', { id: anId })).j.geloescht, 1);
+  assert.equal((await chef('POST', '/api/anon-forum/loeschen', { id: anId })).j.geloescht, 0, 'schon weg');
+  assert.equal((await leser('GET', '/api/anon-forum/posts')).j.posts.length, 0, 'mit Antworten weg');
+  assert.equal((await chef('GET', '/api/anon-forum/meldungen')).j.meldungen.length, 0, 'Meldungen gehen mit');
+  console.log('Anonym: ok');
 } catch (e) {
   console.error(log); console.error(e);
   throw e;

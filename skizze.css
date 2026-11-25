@@ -279,3 +279,13 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 .cl-liste > li::before { left: -2px; }
 .cl-pause { border-left-style: dotted; }
 .cl-phase { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }
+
+/* Forum Anonym: Bordeaux statt Tinte, damit der verschlüsselte Bereich auch gezeichnet sofort erkennbar ist */
+:root { --rahmen-an: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M1 5.8L37.8 4.5M35.6 1.2L35.1 38.4M38.6 35.4L2.2 35.9M4.4 38.8L5.1 1.6' fill='none' stroke='%239b1b2e' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); }
+:root[data-thema="dunkel"] { --rahmen-an: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M1 5.8L37.8 4.5M35.6 1.2L35.1 38.4M38.6 35.4L2.2 35.9M4.4 38.8L5.1 1.6' fill='none' stroke='%23ef8e9a' stroke-opacity='.7' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.fo-bereich.an-karte, .an-post, .an-sicher, .an-tor, .an-meldungen > li { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen-an) 10 / 10px / 4px stretch; background-color: var(--an-flaeche); }
+.knopf.an-knopf, .knopf.an-knopf:disabled:hover { border-image-source: var(--rahmen-an); background: var(--an-akzent); color: var(--auf-an); font-weight: 650; }
+.knopf.an-einladen { border: 1px solid rgb(255 255 255 / 0.28); border-image: none; border-radius: var(--r); background: rgb(255 255 255 / 0.08); color: #fff; }
+.knopf.an-einladen.an-leise { border-color: transparent; background: none; }
+@media (hover: hover) { .knopf.an-einladen:hover { background: rgb(255 255 255 / 0.16); } }
+@media (hover: hover) { .knopf.an-knopf:not(:disabled):hover { background: color-mix(in srgb, var(--an-akzent) 85%, var(--text)); } }

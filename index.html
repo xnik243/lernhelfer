@@ -900,6 +900,104 @@
     .fo-zahlen { flex-wrap: nowrap; gap: 6px; } .fo-zahlen div { flex: 1 1 0; min-width: 0; padding: 6px 8px; } .fo-zahlen dd { font-size: 1.0625rem; }
   }
   .fo-kasten .arena-abzeichen { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  /* Forum Anonym: eigener Ton (Bordeaux), damit immer klar ist, dass man im verschlüsselten Bereich ohne Namen schreibt; Fehler bleiben rot auf heller Fläche */
+  :root { --an-tief: #3a0d14; --an-tief-2: #6e1523; --an-akzent: #9b1b2e; --auf-an: #ffffff; --an-flaeche: #fcf6f6; --an-linie: #efd8db; --an-text: #8c1a29; --an-hell: #ffe1e6; --an-hell-2: #f1c4cb; }
+  :root[data-thema="dunkel"] { --an-tief: #1f080c; --an-tief-2: #4a1019; --an-akzent: #ef8e9a; --auf-an: #2a0a10; --an-flaeche: #1a0f11; --an-linie: #3a1d22; --an-text: #f3a6b0; }
+  .an-schloss, .an-maske { display: inline-grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--an-tief); color: var(--an-hell); }
+  .an-schloss svg, .an-maske svg, .an-ikon svg { width: 56%; height: 56%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .an-ikon { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--an-akzent) 13%, transparent); color: var(--an-text); }
+  .an-karte { grid-template-columns: 1fr; border-color: var(--an-linie); border-left: 3px solid var(--an-akzent); background: var(--an-flaeche); }
+  @media (hover: hover) { .an-karte:hover { background: color-mix(in srgb, var(--an-flaeche) 70%, var(--an-linie)); } }
+  .an-karte .an-schloss { width: 26px; height: 26px; }
+  .an-pille { padding: 1px 8px; border-radius: 999px; background: var(--an-tief); color: var(--an-hell); font-size: 0.6875rem; font-weight: 650; }
+  .an-streifen { position: sticky; top: 8px; z-index: 6; display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin: 0 auto 14px; padding: 5px 14px 5px 6px; border-radius: 999px;
+    background: var(--an-tief); color: var(--an-hell); font-size: 0.8125rem; box-shadow: 0 6px 18px -8px rgb(58 13 20 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+  .an-streifen .an-schloss { width: 24px; height: 24px; background: var(--an-tief-2); }
+  .an-streifen span { color: var(--an-hell-2); }
+  .an-streifen :is(b, span) { white-space: nowrap; }
+  .an-kopf { display: flex; align-items: center; gap: 16px; margin: 0 0 12px; padding: 20px 22px; border-radius: var(--r-xl); background: radial-gradient(130% 150% at 100% 0%, var(--an-tief-2), var(--an-tief) 62%); color: #fff0f2; }
+  .an-kopf .an-schloss { width: 52px; height: 52px; background: rgb(255 255 255 / 0.1); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16); }
+  .an-kopf-text { flex: 1; min-width: 0; }
+  .an-kopf h1 { margin: 0; color: #fff; font: 700 1.75rem/1.1 var(--sans); letter-spacing: -0.015em; }
+  .an-kopf-text > p:last-child { max-width: 56ch; margin: 6px 0 0; color: var(--an-hell-2); font-size: 0.9375rem; line-height: 1.45; }
+  .an-etikett { margin: 0 0 4px; color: #ffb3bf; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .an-kopf-knoepfe { display: flex; flex: none; flex-wrap: wrap; gap: 8px; }
+  .an-einladen { flex: none; border-color: rgb(255 255 255 / 0.28); background: rgb(255 255 255 / 0.08); color: #fff; }
+  .an-einladen.an-leise { border-color: transparent; background: none; }
+  @media (hover: hover) { .an-einladen:hover { background: rgb(255 255 255 / 0.16); } }
+  .an-knopf { border-color: var(--an-akzent); background: var(--an-akzent); color: var(--auf-an); }
+  .an-sicher { margin: 0 0 20px; border: 1px solid var(--an-linie); border-radius: var(--r-l); background: var(--an-flaeche); }
+  .an-sicher > summary { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 16px 8px 10px; color: var(--an-text); font-weight: 650; cursor: pointer; list-style: none; }
+  .an-sicher > summary::-webkit-details-marker { display: none; }
+  .an-sicher > summary::after { content: ''; width: 7px; height: 7px; margin: -3px 2px 0 auto; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); transition: transform 0.2s; }
+  .an-sicher[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+  .an-sicher > summary:focus-visible { outline: 2px solid var(--an-akzent); outline-offset: -2px; border-radius: var(--r-l); }
+  .an-sicher[open] { padding-bottom: 18px; }
+  .an-fluss { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin: 2px 16px 18px; padding: 16px 12px; border-radius: var(--r-l); background: var(--bg); list-style: none; }
+  .an-fluss li { position: relative; display: grid; justify-items: center; align-content: start; gap: 3px; color: var(--text-2); font-size: 0.8125rem; line-height: 1.35; text-align: center; }
+  .an-fluss .an-ikon { width: 44px; height: 44px; margin-bottom: 4px; }
+  .an-fluss b { color: var(--text); font-size: 0.875rem; }
+  .an-fluss li + li::before { content: ''; position: absolute; top: 17px; left: -24px; width: 9px; height: 9px; border-top: 2px solid var(--an-akzent); border-right: 2px solid var(--an-akzent); transform: rotate(45deg); }
+  .an-salat { margin-top: 2px; padding: 2px 7px; border-radius: 6px; background: var(--an-tief); color: var(--an-hell); font: 600 0.75rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .an-sicher .an-punkte { margin: 0 16px; }
+  .an-sicher-punkte li:last-child::before { content: '!'; background: var(--warn-flaeche); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 35%, transparent); color: var(--warn); }
+  .an-schreiben { display: grid; gap: 8px; margin: 0 0 20px; }
+  .an-feld { min-height: 104px; border-color: var(--an-linie); }
+  .an-feld:focus-visible { outline-color: var(--an-akzent); border-color: var(--an-akzent); }
+  .an-senden { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
+  .an-senden .meta { margin-right: auto; }
+  .an-feed { display: grid; gap: 12px; }
+  .an-post { padding: 14px 16px; border: 1px solid var(--an-linie); border-radius: var(--r-l); background: var(--an-flaeche); }
+  .an-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 8px; font-size: 0.875rem; }
+  .an-meta .an-maske { width: 28px; height: 28px; }
+  .an-werkzeug { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .an-werkzeug .fo-link { min-height: 32px; }
+  .an-nr, .an-melden { min-height: 32px; border: 0; border-radius: 999px; background: none; font: 600 0.75rem/1 var(--sans); cursor: pointer; }
+  .an-nr { padding: 2px 8px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .an-melden { display: inline-flex; align-items: center; gap: 4px; padding: 2px 11px 2px 6px; box-shadow: inset 0 0 0 1px var(--an-linie); color: var(--text-2); font-size: 0.8125rem; }
+  .an-melden .an-ikon { width: 20px; height: 20px; background: none; color: inherit; }
+  @media (hover: hover) { .an-nr:hover, .an-melden:hover { background: var(--bg-3); color: var(--text); } }
+  .an-nr:focus-visible, .an-melden:focus-visible { outline: 2px solid var(--an-akzent); outline-offset: 1px; }
+  .an-antworten { display: grid; gap: 12px; margin: 14px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--an-linie); list-style: none; }
+  .an-antworten .an-maske { width: 22px; height: 22px; }
+  .an-antworten .fo-text { font-size: 0.9375rem; }
+  .an-aktion { margin: 8px 0 0 -6px; }
+  .an-antwort-neu { margin-top: 6px; } .an-antwort-neu .an-schreiben { margin: 0; } .an-antwort-neu .an-feld { min-height: 64px; }
+  .an-mehr { justify-self: center; margin-top: 4px; }
+  .an-tor { display: grid; gap: 10px; max-width: 620px; padding: 18px 20px; border: 1px dashed var(--an-linie); border-radius: var(--r-l); background: var(--an-flaeche); }
+  .an-tor h2, .an-tor p { margin: 0; } .an-tor .knopf { justify-self: start; }
+  .an-link { display: flex; gap: 8px; } .an-link input { flex: 1; min-width: 0; }
+  .an-regeln-kopf { display: flex; align-items: center; gap: 12px; }
+  .an-punkte { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: an; }
+  .an-punkte li { position: relative; display: grid; gap: 2px; padding-left: 34px; font-size: 0.9375rem; line-height: 1.45; counter-increment: an; }
+  .an-punkte li::before { content: counter(an); position: absolute; top: 0; left: 0; display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: var(--an-flaeche); box-shadow: inset 0 0 0 1px var(--an-linie); color: var(--an-text); font-size: 0.75rem; font-weight: 700; }
+  .an-punkte span { color: var(--text-2); }
+  .an-gruende { display: grid; gap: 2px; margin: 0; padding: 0; border: 0; }
+  .an-gruende legend { margin-bottom: 6px; padding: 0; font-weight: 650; }
+  .an-gruende .haken { min-height: 40px; font-weight: 500; font-size: 0.9375rem; }
+  .an-gruende input { accent-color: var(--an-akzent); }
+  .an-hinweis { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 10px 12px; border-radius: var(--r-l); background: var(--an-flaeche); color: var(--text-2); font-size: 0.875rem; line-height: 1.45; }
+  .an-hinweis .an-schloss { width: 24px; height: 24px; }
+  .an-meldungen { display: grid; gap: 12px; margin: 0 0 16px; padding: 0; list-style: none; }
+  .an-meldungen > li { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--an-linie); border-left: 3px solid var(--an-akzent); border-radius: var(--r-l); background: var(--an-flaeche); }
+  .an-meldungen .an-meta { margin: 0; }
+  .an-zitat { margin: 0; padding: 10px 12px; border-radius: var(--r-s); background: var(--bg); font-size: 0.9375rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  @media (max-width: 640px) {
+    .an-kopf { flex-wrap: wrap; gap: 12px; padding: 16px; border-radius: var(--r-l); }
+    .an-kopf .an-schloss { width: 40px; height: 40px; }
+    .an-kopf h1 { font-size: 1.5rem; }
+    .an-kopf-knoepfe { flex: 1 1 100%; }
+    .an-kopf-knoepfe .an-einladen { flex: 1; }
+    .an-streifen { padding-right: 12px; font-size: 0.75rem; }
+    .an-streifen span { display: none; }
+    .an-fluss { gap: 18px; margin-inline: 12px; padding: 12px 6px; }
+    .an-fluss .an-ikon { width: 36px; height: 36px; }
+    .an-fluss li + li::before { top: 14px; left: -14px; width: 7px; height: 7px; }
+    .an-sicher .an-punkte { margin: 0 12px; }
+    .an-post { padding: 12px 14px; }
+    .an-feld { min-height: 88px; }
+    .an-senden .meta { flex: 1 1 100%; }
+  }
   .arena-regeln { margin-top: 10px; color: var(--text-2); font-size: 0.875rem; }
   .arena-regeln summary { cursor: pointer; }
   .arena-uhr { margin-left: auto; color: var(--akzent-text); font: 650 0.75rem/1 var(--sans); font-variant-numeric: tabular-nums; }
@@ -8046,12 +8144,18 @@ async function adminZeigen() {
         el('label', {}, 'Passwort', el('input', { name: 'pw', type: 'password', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', required: true })),
         el('div', {}, el('button', { class: 'knopf voll' }, 'Öffnen')), hinweis));
   }
-  let d;
-  try { d = await api('admin'); }
+  let d, an;
+  try { [d, an] = await Promise.all([api('admin'), api('anon-forum/meldungen')]); }
   catch (e) {
     if (e.status === 403) { ICH = await api('ich').catch(() => ICH); if (!ICH.ecke) return adminZeigen(); }  // nach 12 Stunden wieder zu
     return s.replaceChildren(el('p', { class: 'fehlertext' }, e.message));
   }
+  // Anonym: mit dem Schlüssel auf diesem Gerät prüfen, ob der gemeldete Text wirklich im Beitrag steht (sonst ließe sich Harmloses anschwärzen)
+  const anSchl = await anKey().catch(() => null);
+  const anM = await Promise.all(an.meldungen.map(async m => {
+    const t = anSchl && (await anEnt(anSchl, m)).text;  // null: kein oder ein anderer Schlüssel, also ungeprüft
+    return { ...m, echt: t == null ? null : t.trim() === m.text };
+  }));
   if (document.body.dataset.ansicht !== 'admin') return;
   const F = d.forum, T = TARIFE.tarife, K = d.kennzahlen, G = d.geld, tag = x => x ? new Date(x).toLocaleDateString('de-AT') : '–', jetzt = Date.now();
   const tun = (pfad, body) => async e => {
@@ -8160,9 +8264,22 @@ async function adminZeigen() {
     K.startEndet && [K.startEndet, `Bei ${mehr(K.startEndet, 'Konto endet', 'Konten endet')} Ultra (Start) in den nächsten 7 Tagen.`, 'konten'],
     d.olatAus && ['!', 'Der OLAT-Abgleich ist auf allen Geräten pausiert.', 'einstellungen'],
     F.meldungen.length && [F.meldungen.length, `${mehr(F.meldungen.length, 'Forum-Beitrag ist', 'Forum-Beiträge sind')} gemeldet. Bitte bald ansehen: Als Betreiber musst du zügig reagieren.`, 'forum'],
+    anM.length && [anM.length, `${mehr(anM.length, 'Meldung', 'Meldungen')} aus dem anonymen Bereich. Rechtswidriges unverzüglich löschen.`, 'forum'],
   ].filter(Boolean);
   const reiterName = n => ADMIN_REITER.find(([x]) => x === n)[1];
-  const zahl = { uebersicht: zuTun.length, konten: K.neu7, geld: offen.length, forum: F.meldungen.length };
+  const zahl = { uebersicht: zuTun.length, konten: K.neu7, geld: offen.length, forum: F.meldungen.length + anM.length };
+  const anGrund = w => AN_GRUENDE.find(([x]) => x === w)?.[1] || w;
+  const anNummer = el('form', { class: 'werte-form', onsubmit: async e => {
+    e.preventDefault();
+    const f = e.target.elements, id = Number(f.nr.value.trim().replace(/^#/, ''));
+    if (!Number.isInteger(id) || id < 1) return alert('Bitte eine Beitragsnummer wie #123 eingeben.');
+    if (!confirm(`Beitrag #${id} endgültig löschen? Antworten und Meldungen dazu gehen mit.`)) return;
+    f.knopf.disabled = true;
+    try { alert((await api('anon-forum/loeschen', { id })).geloescht ? `Beitrag #${id} ist gelöscht.` : `Beitrag #${id} gibt es nicht (mehr).`); } catch (err) { alert(err.message); }
+    adminZeigen();
+  } },
+    el('label', {}, 'Beitragsnummer', el('input', { name: 'nr', type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: '#123', required: true })),
+    el('button', { class: 'knopf', name: 'knopf' }, 'Endgültig löschen'));
   const aktiv = ADMIN_REITER.some(([n]) => n === location.hash.split('/')[2]) ? location.hash.split('/')[2] : 'uebersicht';
   const pfeile = e => {  // Pfeiltasten wandern durch die Reiter
     const i = ADMIN_REITER.findIndex(([n]) => n === e.target.id?.slice(3)), w = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
@@ -8312,6 +8429,21 @@ async function adminZeigen() {
           el('button', { class: 'knopf', type: 'button', onclick: tun('admin/forum', { meldung: m.id }) }, 'Passt so'),
           m.konto && el('button', { class: 'knopf', type: 'button', onclick: e => confirm(`${m.autor} im Forum sperren? Lesen geht weiter.`) && tun('admin/forum', { konto: m.konto, sperren: true })(e) }, 'Sperren'))]))
         : el('p', { class: 'leer' }, 'Keine offenen Meldungen.'),
+      el('h2', {}, `Anonym: Meldungen (${anM.length})`),
+      el('p', { class: 'klein' }, 'Den Text hat der Browser der meldenden Person entschlüsselt, wer das war, weiß niemand. Rechtswidriges unverzüglich löschen; gelöscht ist endgültig, Antworten gehen mit.'),
+      anM.length ? el('ol', { class: 'an-meldungen' }, anM.map(m => el('li', {},
+        el('div', { class: 'an-meta' }, el('b', {}, `#${m.post_id}`), el('span', { class: 'pille' }, anGrund(m.grund)), el('span', { class: 'meta' }, zeitpunkt(m.zeit)),
+          m.echt === true ? el('span', { class: 'pille ok' }, 'stimmt mit dem Beitrag überein') : m.echt === false ? el('span', { class: 'pille fehler' }, 'weicht vom Beitrag ab, Vorsicht')
+            : el('span', { class: 'meta' }, 'ungeprüft: kein passender Schlüssel auf diesem Gerät')),
+        el('p', { class: 'an-zitat' }, m.text),
+        m.notiz && el('p', { class: 'klein' }, el('b', {}, 'Notiz: '), m.notiz),
+        el('div', { class: 'knopfreihe' },
+          el('button', { class: 'knopf an-knopf', type: 'button', onclick: e => confirm(`Beitrag #${m.post_id} endgültig löschen? Antworten gehen mit.`) && tun('anon-forum/loeschen', { id: m.post_id })(e) }, 'Beitrag löschen und Meldung schließen'),
+          el('button', { class: 'knopf', type: 'button', onclick: tun('anon-forum/verwerfen', { id: m.id }) }, 'Meldung verwerfen')))))
+        : el('p', { class: 'leer' }, 'Keine offenen Meldungen aus dem anonymen Bereich.'),
+      el('h2', {}, 'Anonym: Beitrag nach Nummer löschen'),
+      el('p', { class: 'klein' }, 'Für Meldungen per Mail oder übers Impressum: Jeder Beitrag zeigt seine Nummer, etwa #123.'),
+      anNummer,
       el('h2', {}, 'Im Forum gesperrt'),
       F.gesperrt.length ? tabelle(['Name', 'Konto', ''], F.gesperrt.map(g => [g.name, g.email, el('button', { class: 'knopf', type: 'button', onclick: tun('admin/forum', { konto: g.konto, sperren: false }) }, 'Entsperren')]))
         : el('p', { class: 'leer' }, 'Niemand.')),
@@ -10472,10 +10604,11 @@ const foTreffer = (liste, extra) => el('ol', { class: 'fo-liste' }, liste.map(x 
   el('span', { class: 'meta' }, [x.name !== undefined && (x.name || 'Gelöschtes Konto'), foZeit(x.erstellt), x.nr > 1 && `Beitrag #${x.nr}`].filter(Boolean).join(' · '), extra?.(x)))));
 
 async function forumZeigen() {
+  anAusAdresse();  // Einladungslink im selben Tab geöffnet
   const s = $('forum'), h = location.hash, [, , a = '', b = '', c = ''] = h.split('/').map(decodeURIComponent);
   if (!s.childElementCount) s.replaceChildren(el('p', { class: 'leer' }, 'Lade das Forum …'));
   try {
-    const seiten = { neu: foNeu, suche: foSuche, hinweise: foHinweise, lesezeichen: foLesezeichen, mitglied: foMitglied };
+    const seiten = { neu: foNeu, suche: foSuche, hinweise: foHinweise, lesezeichen: foLesezeichen, mitglied: foMitglied, anonym: foAnonym };
     const inhalt = /^\d+$/.test(a) ? await foThread(Number(a), b || 1) : seiten[a] ? await seiten[a](b) : a ? await foBereich(a, b || 1) : await foStart();
     if (location.hash !== h) return;  // inzwischen woanders
     s.replaceChildren(...inhalt.flat(Infinity).filter(Boolean));
@@ -10496,7 +10629,10 @@ async function foStart() {
         el('span', { class: 'fo-b-text' }, b.text),
         el('span', { class: 'fo-b-zahl' }, `${b.themen} ${b.themen === 1 ? 'Thread' : 'Threads'} · ${b.beitraege} ${b.beitraege === 1 ? 'Beitrag' : 'Beiträge'}`),
         el('span', { class: 'fo-b-letzt' }, b.letztes ? [el('b', {}, b.letztes.titel), el('br'), `${b.letztes.name || 'Gelöschtes Konto'}, ${foZeit(b.letztes.zeit)}`]
-          : b.team ? 'Noch leer.' : 'Noch leer. Schreib den ersten Thread.')))),
+          : b.team ? 'Noch leer.' : 'Noch leer. Schreib den ersten Thread.'))),
+        el('a', { class: 'fo-bereich an-karte', href: '#/forum/anonym' },
+          el('span', { class: 'fo-b-name' }, anSchloss(), 'Anonym', el('span', { class: 'an-pille' }, 'Ende-zu-Ende-verschlüsselt')),
+          el('span', { class: 'fo-b-text' }, 'Ohne Namen, für alles, was du offen sagen willst, auch Kritik an Lehrveranstaltungen. Der Betreiber sieht nur, was jemand meldet.'))),
       el('aside', { class: 'fo-seite' },
         el('section', { class: 'fo-kasten' }, el('h2', {}, 'Neueste Beiträge'),
           d.neueste.length ? el('ul', { class: 'fo-neueste' }, d.neueste.map(t => el('li', {}, el('a', { href: `#/forum/${t.id}/letzte` }, foPill(t.praefix), ' ', t.titel),
@@ -10804,6 +10940,185 @@ async function foNeu(id) {
   ];
 }
 
+/* ---------- Forum: Anonym, Ende-zu-Ende-verschlüsselt (AES-GCM im Browser), ohne Namen ----------
+   Der Schlüssel steckt im Einladungslink (#/forum/anonym/<Schlüssel>) und danach im localStorage; was hinter # steht, geht nie an den Server.
+   Wer den leeren Bereich als Erste:r öffnet, bekommt einen neuen Schlüssel, alle anderen brauchen einen Link von jemandem, der schon drin ist. */
+const AN = { roh: null, key: null };
+const AN_REGELN = [
+  ['Anonym und verschlüsselt', 'Gespeichert wird weder dein Name noch deine IP-Adresse. Wie das geht, steht im Bereich unter „Warum ist das sicher?“.'],
+  ['Persönlicher Erfahrungsaustausch', 'Hier geht es um eigene Erfahrungen und Meinungen, etwa zu Lehrveranstaltungen. Keine medizinische oder rechtliche Beratung.'],
+  ['Verboten: Beleidigen, Bloßstellen, Leaken', 'Keine Beleidigungen, keine üble Nachrede, kein Doxxing (private Daten anderer), keine Urheberrechtsverstöße wie geleakte Prüfungen.'],
+  ['Verboten: Handel und Beschaffung', 'Kein Handel, keine Kauf- oder Verkaufsgesuche, keine Bezugsquellen oder Tipps zur illegalen Beschaffung von kontrollierten Substanzen oder Medikamenten.'],
+  ['Melden und Löschen', 'Rechtswidrige Inhalte kannst du über „Melden“ am Beitrag oder über das Impressum melden. Sie werden unverzüglich gelöscht. Beim Melden geht nur dieser eine Beitrag lesbar an den Betreiber.'],
+];
+const AN_SICHER = [
+  ['Verschlüsselt, bevor es dein Gerät verlässt', 'Dein Browser verschlüsselt jeden Beitrag mit AES-256-GCM, demselben Verfahren, das auch HTTPS-Verbindungen schützt.'],
+  ['Der Schlüssel bleibt bei euch', 'Er steckt nur im Einladungslink hinter dem #. Dieser Teil eines Links wird nie an einen Server geschickt.'],
+  ['Der Server sieht nur Zeichensalat', 'Gespeichert werden der verschlüsselte Text und die Uhrzeit, auf die Stunde gerundet. Kein Name, kein Konto, keine IP-Adresse, kein Gerät.'],
+  ['Auch der Betreiber kann nicht mitlesen', 'Einzige Ausnahme: Jemand meldet einen Beitrag. Dann schickt dessen Browser genau diesen einen Beitrag lesbar mit.'],
+  ['Ehrliche Grenzen', 'Wer den Einladungslink hat, kann alles lesen, gib ihn also nur Leuten, denen du vertraust. Dein Schreibstil oder Details im Text können dich verraten. Screenshots kann niemand verhindern.'],
+];
+const AN_GRUENDE = [['beleidigung', 'Beleidigung oder Verleumdung'], ['handel', 'Handel, Bezugsquellen oder illegale Beschaffung'], ['doxxing', 'Doxxing: private Daten anderer'],
+  ['urheberrecht', 'Urheberrecht, etwa geleakte Prüfungen'], ['sonstiges', 'Sonstiges']];
+const anB64 = b => btoa(Array.from(new Uint8Array(b), x => String.fromCharCode(x)).join(''));
+const anBytes = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+function anAusAdresse() {  // Einladungslink: Schlüssel merken und sofort aus der Adresse nehmen (Verlauf; „Fehler melden“ schickt die Adresse mit)
+  const s = location.hash.match(/^#\/forum\/anonym\/([\w-]{43})$/)?.[1];
+  if (s) { merk('anon-schluessel', s); history.replaceState(null, '', '#/forum/anonym'); }
+}
+anAusAdresse();
+async function anKey() {
+  const roh = merk('anon-schluessel');
+  if (roh !== AN.roh) { AN.roh = roh; AN.key = roh ? await crypto.subtle.importKey('raw', anBytes(roh), 'AES-GCM', false, ['encrypt', 'decrypt']).catch(() => null) : null; }
+  return AN.key;
+}
+async function anVer(key, text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  return { iv: anB64(iv), c: anB64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text))) };
+}
+// anderer Schlüssel oder Müll: text null (nur die Admin-Ecke sieht solche Beiträge, zum Entfernen)
+const anEnt = (key, p) => crypto.subtle.decrypt({ name: 'AES-GCM', iv: anBytes(p.iv) }, key, anBytes(p.c)).then(b => ({ ...p, text: new TextDecoder().decode(b) }), () => ({ ...p, text: null }));
+const anLesen = async (key, p) => ({ ...await anEnt(key, p), antworten: await Promise.all(p.antworten.map(a => anEnt(key, a))) });
+const anSichtbar = p => p.text != null || !!ICH?.ecke;
+const anZeit = t => Date.now() - t < 7200e3 ? 'vor kurzem' : foZeit(t);  // der Server rundet auf die Stunde ab
+const anSvg = (klasse, pfade) => { const s = el('span', { class: klasse, 'aria-hidden': 'true' }); s.innerHTML = `<svg viewBox="0 0 24 24">${pfade}</svg>`; return s; };
+const anSchloss = () => anSvg('an-schloss', '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.5v2"/>');
+const anMaske = () => anSvg('an-maske', '<path d="M3 11.5h18M6.5 11.5 8 6h8l1.5 5.5"/><circle cx="8" cy="16" r="2.5"/><circle cx="16" cy="16" r="2.5"/><path d="M10.5 16h3"/>');
+const anIkon = pfade => anSvg('an-ikon', pfade);
+const anSchild = () => anIkon('<path d="M12 3 5 6v5.5c0 4.2 2.9 7.6 7 9.5 4.1-1.9 7-5.3 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>');
+const anFahne = () => anIkon('<path d="M5.5 21V4M5.5 4H17l-2.2 4.2L17 12.5H5.5"/>');
+const anPunkte = (liste, klasse) => el('ol', { class: 'an-punkte ' + (klasse || '') }, liste.map(([t, s]) => el('li', {}, el('b', {}, t), el('span', {}, s))));
+function anRegeln(schonDrin) {
+  const d = $('meldung');
+  d.replaceChildren(el('div', { class: 'innen an-regeln' },
+    el('div', { class: 'an-regeln-kopf' }, anSchloss(), el('h2', { id: 'm-titel' }, 'Regeln für diesen Bereich')),
+    anPunkte(AN_REGELN),
+    el('div', { class: 'knopfreihe' }, schonDrin ? el('button', { class: 'knopf an-knopf', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen') : [
+      el('button', { class: 'knopf an-knopf', type: 'button', autofocus: true, onclick: () => { merk('anon-ok', '1'); d.close(); forumZeigen(); } }, 'Regeln akzeptieren'),
+      el('button', { class: 'knopf', type: 'button', onclick: () => { d.close(); location.hash = '#/forum'; } }, 'Zurück')])));
+  if (!d.open) d.showModal();
+}
+// So läuft ein Beitrag: drei Stationen, dazu die Punkte; die letzte (Grenzen) ist absichtlich anders markiert
+const anSicher = () => el('details', { class: 'an-sicher' },
+  el('summary', {}, anSchild(), el('span', {}, 'Warum ist das sicher?')),
+  el('ol', { class: 'an-fluss', 'aria-label': 'So läuft ein Beitrag' },
+    el('li', {}, anIkon('<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>'), el('b', {}, 'Dein Gerät'), el('span', {}, 'verschlüsselt den Text')),
+    el('li', {}, anIkon('<rect x="4" y="4" width="16" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.5"/><path d="M8 7.25h.01M8 16.75h.01"/>'),
+      el('b', {}, 'Server'), el('code', { class: 'an-salat' }, 'k9Fq7…T2xA=')),
+    el('li', {}, anIkon('<circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/>'), el('b', {}, 'Wer den Link hat'), el('span', {}, 'kann es wieder lesen'))),
+  anPunkte(AN_SICHER, 'an-sicher-punkte'));
+const anStreifen = () => el('p', { class: 'an-streifen', role: 'note' }, anSchloss(), el('b', {}, 'Verschlüsselter Bereich'), el('span', {}, 'anonym · Ende-zu-Ende'));
+function anMelden(p) {  // nur dieser eine Beitrag geht lesbar an den Betreiber; nichts über die meldende Person
+  const d = $('meldung'), fehler = el('p', { class: 'fehlertext', hidden: true, role: 'alert' });
+  d.replaceChildren(el('form', { class: 'innen', onsubmit: async e => {
+      e.preventDefault();
+      const f = e.target.elements;
+      f.knopf.disabled = true;
+      try {
+        await api('anon-forum/melden', { post_id: p.id, decrypted_text: p.text, reason: f.grund.value, note: f.notiz.value.trim() });
+        d.replaceChildren(el('div', { class: 'innen' }, el('h2', { id: 'm-titel' }, 'Danke!'),
+          el('p', { class: 'klein' }, 'Die Meldung ist angekommen. Rechtswidriges wird unverzüglich gelöscht.'),
+          el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf voll', type: 'button', autofocus: true, onclick: () => d.close() }, 'Schließen'))));
+      } catch (err) { fehler.textContent = err.message; fehler.hidden = false; f.knopf.disabled = false; }
+    } },
+    el('h2', { id: 'm-titel' }, `Beitrag #${p.id} melden`),
+    el('fieldset', { class: 'an-gruende' }, el('legend', {}, 'Was ist das Problem?'),
+      AN_GRUENDE.map(([w, n]) => el('label', { class: 'haken' }, el('input', { type: 'radio', name: 'grund', value: w, required: true }), n))),
+    el('label', { class: 'feld' }, el('span', {}, 'Noch etwas dazu? ', el('span', { class: 'opt' }, 'optional')), el('textarea', { name: 'notiz', rows: 3, maxlength: 1000 })),
+    el('p', { class: 'an-hinweis' }, anSchloss(), el('span', {}, 'Dein Browser schickt genau diesen einen Beitrag lesbar an den Betreiber. Über dich wird nichts gespeichert.')),
+    fehler,
+    el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: () => d.close() }, 'Abbrechen'),
+      el('button', { class: 'knopf an-knopf', name: 'knopf' }, 'Meldung senden'))));
+  d.showModal();
+}
+function anEinladen(e) {  // Handy: Teilen-Menü, sonst Link kopieren
+  const url = `${location.origin}${location.pathname}#/forum/anonym/${merk('anon-schluessel')}`;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) navigator.share({ title: 'Lernhelfer: Anonym', url }).catch(() => {}); else kopieren(e, url);
+}
+const anKopf = einladen => el('header', { class: 'an-kopf' }, anSchloss(),
+  el('div', { class: 'an-kopf-text' }, el('p', { class: 'an-etikett' }, 'Ende-zu-Ende-verschlüsselt'), el('h1', {}, 'Anonym'),
+    el('p', {}, 'Sag offen, was du denkst, ohne Namen. Dein Browser verschlüsselt alles, der Server sieht nur Zeichensalat.')),
+  el('div', { class: 'an-kopf-knoepfe' },
+    einladen && el('button', { class: 'knopf an-einladen', type: 'button', title: 'Der Schlüssel steckt im Link. Wer ihn hat, kann mitlesen.', onclick: anEinladen }, 'Leute einladen'),
+    merk('anon-ok') && el('button', { class: 'knopf an-einladen an-leise', type: 'button', onclick: () => anRegeln(true) }, 'Regeln')));
+function anEditor(auf) {  // auf: Antwort auf diesen Beitrag
+  const key = 'an' + (auf || '');
+  const feld = el('textarea', { class: 'fo-feld an-feld', rows: auf ? 2 : 4, maxlength: 5000, 'aria-label': auf ? 'Antwort' : 'Beitrag', oninput: e => { FO.entwurf[key] = e.target.value; },
+    placeholder: auf ? 'Anonym antworten …' : 'Was willst du loswerden? Niemand sieht, von wem es kommt.' });
+  feld.value = FO.entwurf[key] || '';
+  return el('form', { class: 'an-schreiben', onsubmit: async e => {
+      e.preventDefault();
+      const knopf = e.submitter, text = feld.value.trim();
+      if (text.length < 2) return status('Schreib mindestens zwei Zeichen.', true);
+      knopf.disabled = true;
+      try { await api('anon-forum/post', { ...await anVer(await anKey(), text), antwort_auf: auf }); delete FO.entwurf[key]; forumZeigen(); }
+      catch (err) { status(err.message, true); knopf.disabled = false; }
+    } },
+    feld,
+    el('div', { class: 'an-senden' }, !auf && el('span', { class: 'meta' }, 'Wird vor dem Senden verschlüsselt. Markdown geht.'),
+      el('button', { class: 'knopf an-knopf' }, auf ? 'Antworten' : 'Anonym posten')));
+}
+const anWeg = id => ICH?.ecke && el('button', { class: 'fo-link', type: 'button', onclick: async e => {
+  if (!confirm('Für alle entfernen? Antworten gehen mit.')) return;
+  e.currentTarget.disabled = true;
+  try { await api('anon-forum/loeschen', { id }); forumZeigen(); } catch (err) { status(err.message, true); }
+} }, 'Entfernen');
+const anNr = id => el('button', { class: 'an-nr', type: 'button', title: 'Nummer kopieren, etwa für eine Meldung per Mail', 'aria-label': `Beitragsnummer ${id} kopieren`, onclick: async e => {
+  const k = e.currentTarget; await kopieren(e, '#' + id); setTimeout(() => { k.textContent = '#' + id; }, 1500);
+} }, '#' + id);
+const anKopfzeile = p => el('div', { class: 'an-meta' }, anMaske(), el('b', {}, 'Anonym'), el('span', { class: 'meta' }, anZeit(p.t)),
+  el('span', { class: 'an-werkzeug' }, anNr(p.id),
+    p.text != null && el('button', { class: 'an-melden', type: 'button', onclick: () => anMelden(p) }, anFahne(), 'Melden'), anWeg(p.id)));
+const anText = p => p.text == null ? el('p', { class: 'leer' }, `Nicht lesbar (Nr. ${p.id}): mit einem anderen Schlüssel verschlüsselt.`) : foText(el('div', { class: 'fo-text' }), p.text);
+function anBeitrag(p) {
+  const antworten = p.antworten.filter(anSichtbar), neu = el('div', { class: 'an-antwort-neu', hidden: !FO.entwurf['an' + p.id] }, anEditor(p.id));
+  return el('article', { class: 'an-post', id: 'an' + p.id }, anKopfzeile(p), anText(p),
+    antworten.length > 0 && el('ol', { class: 'an-antworten' }, antworten.map(a => el('li', {}, anKopfzeile(a), anText(a)))),
+    ICH?.bestaetigt && p.text != null && [el('button', { class: 'fo-link an-aktion', type: 'button', 'aria-expanded': String(!neu.hidden), onclick: e => {
+      neu.hidden = !neu.hidden; e.currentTarget.setAttribute('aria-expanded', String(!neu.hidden));
+      if (!neu.hidden) neu.querySelector('textarea').focus();
+    } }, 'Antworten'), neu]);
+}
+function anMehr(vor) {  // ältere Beiträge unten anhängen, ohne neu zu zeichnen
+  return el('button', { class: 'knopf an-mehr', type: 'button', onclick: async e => {
+    const knopf = e.currentTarget; knopf.disabled = true;
+    try {
+      const d = await api('anon-forum/posts?vor=' + vor), key = await anKey(), posts = (await Promise.all(d.posts.map(p => anLesen(key, p)))).filter(anSichtbar);
+      knopf.before(...posts.map(anBeitrag)); knopf.replaceWith(d.mehr ? anMehr(d.posts.at(-1).id) : '');
+    } catch (err) { status(err.message, true); knopf.disabled = false; }
+  } }, 'Ältere laden');
+}
+function anOhneSchluessel(falsch) {
+  return el('section', { class: 'an-tor' },
+    el('h2', {}, falsch ? 'Dein Schlüssel passt nicht' : 'Dir fehlt noch der Schlüssel'),
+    el('p', {}, 'Alles hier ist verschlüsselt. Den Schlüssel hat nur, wer einen Einladungslink bekommen hat, der Server kennt ihn nicht. Darum kann ihn dir auch die App nicht geben.'),
+    el('p', {}, 'Frag jemanden, der schon drin ist: Oben im Bereich steht „Leute einladen“. Öffne den Link oder füg ihn hier ein:'),
+    el('form', { class: 'an-link', onsubmit: e => {
+        e.preventDefault();
+        const s = e.target.elements.link.value.match(/#\/forum\/anonym\/([\w-]{43})/)?.[1];
+        if (!s) return status('Das ist kein Einladungslink für den anonymen Bereich.', true);
+        merk('anon-schluessel', s); forumZeigen();
+      } },
+      el('input', { name: 'link', type: 'text', inputmode: 'url', autocomplete: 'off', placeholder: 'https://…#/forum/anonym/…', 'aria-label': 'Einladungslink' }),
+      el('button', { class: 'knopf an-knopf' }, 'Öffnen')));
+}
+async function foAnonym() {
+  const pfad = foPfad([['#/forum', 'Forum']]), oben = einladen => [anStreifen(), pfad, anKopf(einladen), anSicher()];
+  if (!merk('anon-ok')) {
+    anRegeln();
+    return [oben(), el('section', { class: 'an-tor' }, el('p', {}, 'Bevor du reinschaust, lies kurz die Regeln und bestätige sie.'),
+      el('button', { class: 'knopf an-knopf', type: 'button', onclick: () => anRegeln() }, 'Regeln ansehen'))];
+  }
+  const d = await api('anon-forum/posts');
+  if (!merk('anon-schluessel') && !d.posts.length) merk('anon-schluessel', anB64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));  // als Erste:r hier: neuer Raum
+  const key = await anKey(), posts = key ? (await Promise.all(d.posts.map(p => anLesen(key, p)))).filter(anSichtbar) : [];
+  if (!key || d.posts.length && !posts.some(p => p.text != null)) return [oben(), anOhneSchluessel(!!key)];
+  return [oben(true),
+    ICH?.bestaetigt ? anEditor() : el('p', { class: 'klein an-schreiben' }, 'Zum Schreiben bestätige zuerst deine E-Mail-Adresse. Lesen geht schon.'),
+    el('div', { class: 'an-feed' }, posts.length ? posts.map(anBeitrag) : el('p', { class: 'leer' }, 'Noch still hier. Schreib den ersten Beitrag, dann lad Leute mit „Leute einladen“ ein.'),
+      d.mehr && anMehr(d.posts.at(-1).id))];
+}
+
 const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', forum: 'Forum', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', changelog: 'Changelog', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
 // Word Power sehen nur Konten mit der Englisch-Rolle (Admin-Ecke: Haken je Konto oder Aktion für neue Konten), der Admin und die eigene Version
@@ -11100,7 +11415,8 @@ const CHANGELOG = [
     ['08:25', 'Zwei Geräte, ein Karteikasten', 'Wer abwechselnd am Handy und am iPad lernt, verliert nichts mehr. Hat das andere Gerät inzwischen gespeichert, führt die App beide Stände zusammen: Je Karte gilt die zuletzt beantwortete. Vorher klappte ab diesem Moment kein Speichern mehr, bis man neu lud. Auch eine fertige Wochenausgabe geht dabei nicht mehr verloren.', 0, 2],
     ['08:27', 'Formeln brechen nichts mehr', 'Schreibt die KI eine Formel wie \\frac mit einfachem Backslash, war die Antwort technisch kaputt. In der Wochenausgabe fehlten dann still Termine und Begriffe, die Probeklausur brach ab. Jetzt repariert die App solche Antworten überall, wie schon bei Thema lernen.', 0, 1],
     ['08:30', 'Ein neuer Tag ist ein neuer Tag', 'Wer die App am Handy offen lässt, sah am nächsten Morgen noch gestern: falsche Fristen, falsche fällige Karten. Jetzt lädt sie beim Zurückkommen nach Mitternacht neu, außer es läuft gerade etwas oder ein angefangener Text würde verloren gehen. Und reißt bei Thema lernen die Verbindung ab, bleibt das schon Angekommene gespeichert.', 0, 1],
-    ['12:55', 'PS-Tests zählen mit', 'Selbst eingetragene PS-Tests wie „PS-4b-Test“ zählen jetzt bei den PS-Test-Punkten der Lehrveranstaltung mit, vorher blieb es dort bei 0. Und das PC-Programm holt die Ergebnisse selbst: in Mathe aus den Rückgabe-Dateien unter Testergebnisse, in VWL aus den Bewertungen im Ordner PS-Tests. Was du schon eingetragen hast, wird dabei nicht doppelt gezählt.', 0, 2]], t: [
+    ['12:55', 'PS-Tests zählen mit', 'Selbst eingetragene PS-Tests wie „PS-4b-Test“ zählen jetzt bei den PS-Test-Punkten der Lehrveranstaltung mit, vorher blieb es dort bei 0. Und das PC-Programm holt die Ergebnisse selbst: in Mathe aus den Rückgabe-Dateien unter Testergebnisse, in VWL aus den Bewertungen im Ordner PS-Tests. Was du schon eingetragen hast, wird dabei nicht doppelt gezählt.', 0, 2],
+    ['13:05', 'Anonym im Forum', 'Im Forum gibt es jetzt einen eigenen Bereich in Bordeaux, für alles, was man offen sagen will, auch Kritik an Lehrveranstaltungen. Dein Browser verschlüsselt jeden Beitrag, bevor er dein Gerät verlässt, und der Schlüssel steckt nur im Einladungslink. Gespeichert wird weder dein Name noch deine IP-Adresse. Unter „Warum ist das sicher?“ steht genau, wie das funktioniert und wo die Grenzen sind.', 1, 3]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
@@ -11113,7 +11429,9 @@ const CHANGELOG = [
     ['09:45', 'Kalender zeigt Samstag und Sonntag, wenn dort ein Termin liegt (Blocktermin, Klausur); sonst bleibt es bei Mo–Fr'],
     ['09:45', '„WS 25/26“, „Teil A/B“, „Seite 3/10“ und „24/7“ werden nicht mehr als Bruch gesetzt'],
     ['12:55', 'Noten: Einträge zählen zu einem Teil, auch wenn die Wörter getrennt stehen (PS-4b-Test → PS-Test); Bewertungen ohne Höchstpunkte nehmen sie aus dem Schema; gleichnamige eigene Einträge werden verknüpft statt doppelt gezählt'],
-    ['12:55', 'PC-Programm: liest Rückgabe-Dateien aus Aufgaben-Bausteinen als Bewertung mit Datum, klappt auch Ordner mit Unterbausteinen auf und ordnet PS-Tests aus dem VO-Kurs dem PS zu']] },
+    ['12:55', 'PC-Programm: liest Rückgabe-Dateien aus Aufgaben-Bausteinen als Bewertung mit Datum, klappt auch Ordner mit Unterbausteinen auf und ordnet PS-Tests aus dem VO-Kurs dem PS zu'],
+    ['13:05', 'Forum: anonymer Bereich, Ende-zu-Ende-verschlüsselt (AES-256-GCM im Browser), Einladung per Link, Regeln vor dem Betreten, Erklärung „Warum ist das sicher?“'],
+    ['13:05', 'Anonym: jeder Beitrag mit Nummer und Melden-Knopf; gespeichert werden nur der verschlüsselte Text und die Uhrzeit, auf die Stunde gerundet']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
