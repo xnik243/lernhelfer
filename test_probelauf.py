@@ -17,11 +17,25 @@ SEITEN = {
     "/auth/RepositoryEntry/222": DRIN + '<div id="o_main_center_content_inner"><a href="/files/VO1.txt">Herunterladen</a></div>',
     "/auth/RepositoryEntry/111": DRIN + '<div class="o_tree"><ul><li data-nodeid="0"><div><span class="o_tree_link"><a href="#"><i class="o_icon o_CourseModule_icon"></i> PS</a></span></div>'
         f'<ul>{li(1, "Testergebnisse", "o_gta_icon")}{li(2, "PS-Test 2", "o_gta_icon")}{li(3, "Kaputt", "o_gta_icon")}</ul></li></ul></div>',
+    # OLAT hat die Dateiliste anders aufgebaut als erwartet: dann der Seitentext
     "/auth/RepositoryEntry/111/CourseNode/1": DRIN + '<div id="o_main_center_content_inner"><h4>Rückgabe und Feedback</h4><div id="o_step_review">'
         '<p>Dokumente für Sie</p><a href="javascript:;">Test 1 korrigiert.pdf</a><p>Punkte: 7 von 10</p></div></div>',
-    "/auth/RepositoryEntry/111/CourseNode/2": DRIN + '<div id="o_main_center_content_inner"><div id="o_step_review"><h4>Rückgabe und Feedback</h4>'
-        '<div><a href="/files/PS2.html">PS2.html</a> <span>20.10.2026</span></div></div></div>',
-    "/auth/RepositoryEntry/111/CourseNode/3": DRIN + '<div id="o_main_center_content_inner"><div id="o_step_review"><a href="/files/fehlt.html">fehlt.html</a></div></div>',
+    # wie die echte Seite (Mathe › PS-2026-W › Testergebnisse, 25.11.2026): Links ohne Adresse, Laden nur per o_XHREvent-Klick
+    "/auth/RepositoryEntry/111/CourseNode/2": DRIN + '<div id="o_main_center_content_inner"><div id="o_step_review_content">'
+        '<p>Ihr:e Betreuer:in hat folgende Dokumente für Sie hinzugefügt:</p><ul class="list-unstyled"><li class="o_assessment_document">'
+        '<div class="o_flex_item_max"><h5><a href="javascript:;" onclick="o_XHREvent(\'/auth/1:1:7:2:1/\',true,true,\'cid\',\'preview\')">PS2.html</a></h5>'
+        'erstellt von Muster, Moritz am 20.10.2026, 23:56</div><div class="o_flex_item_fix o_assessment_document_actions">'
+        '<a href="javascript:;" onclick="o_XHREvent(\'/auth/1:1:7:2:1/\',true,true,\'cid\',\'preview\')">Öffnen</a> '
+        '<a href="javascript:;" onclick="o_XHREvent(\'/auth/1:1:8:2:1/\',true,true,\'cid\',\'download\')">Herunterladen</a></div></li></ul></div></div>'
+        "<script>function o_XHREvent(pfad, a, b, k, cid) { fetch(pfad, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},"
+        " body: 'cid=' + cid}).then(r => r.text()).then(u => location.href = u); }</script>",
+    # OLAT hat seinen Klick-Aufruf geändert: nur dieser Test fällt aus, mit Warnung (der Fehlerweg, der am 25.11. alles abbrach)
+    "/auth/RepositoryEntry/111/CourseNode/3": DRIN + '<div id="o_main_center_content_inner"><div id="o_step_review_content"><ul><li class="o_assessment_document">'
+        '<h5><a href="javascript:;">fehlt.html</a></h5><div class="o_assessment_document_actions"><a href="javascript:;" onclick="neueApi()">Herunterladen</a>'
+        '</div></li></ul></div></div>',
+}
+DATEIEN = {
+    "/files/VO1.txt": "Grenzwerte und Ableitungen",
     # Aufbau wie die echten Klausurergebnisse der Mathe-PS-Tests (Prüfungsbeleg als eingebettetes Bild), Person erfunden
     "/files/PS2.html": "<h3>Klausurergebnisse</h3><table>\n<tr><td>Name:</td><td>Muster Max</td></tr>\n<tr><td>Matrikelnummer:</td><td>00000000</td></tr>\n"
         "<tr><td>Klausur-ID:</td><td>26111600000</td></tr>\n<tr><td>Punkte:</td><td>8</td></tr>\n</table>\n<h3>Auswertung</h3><table>\n"
@@ -30,8 +44,8 @@ SEITEN = {
 
 
 def attrappe(lehnt_ab=None):
-    """OLAT und Lernhelfer-Server in einem; gibt (Server, Speicher, Fehlerberichte) zurück."""
-    speicher, berichte = {}, []
+    """OLAT und Lernhelfer-Server in einem; gibt (Server, Speicher, Fehlerberichte, OLAT-Klicks) zurück."""
+    speicher, berichte, klicks = {}, [], []
 
     class H(BaseHTTPRequestHandler):
         def antwort(self, code, daten=b"", art="text/html; charset=utf-8", kopf=None):
@@ -44,8 +58,8 @@ def attrappe(lehnt_ab=None):
 
         def do_GET(self):
             p = self.path.split("?")[0].rstrip("/")
-            if p == "/files/VO1.txt":
-                return self.antwort(200, "Grenzwerte und Ableitungen".encode(), "text/plain", {"Content-Disposition": 'attachment; filename="VO1.txt"'})
+            if p in DATEIEN:
+                return self.antwort(200, DATEIEN[p].encode(), "application/octet-stream", {"Content-Disposition": f'attachment; filename="{p.rsplit("/", 1)[1]}"'})
             if p == "/api/tarife":
                 return self.antwort(200, b'{"olat": true}', "application/json")
             if p.startswith("/api/gh/"):
@@ -63,7 +77,11 @@ def attrappe(lehnt_ab=None):
             self.antwort(201, json.dumps({"content": {"sha": hashlib.sha1(daten).hexdigest()}}).encode(), "application/json")
 
         def do_POST(self):
-            berichte.append((self.headers.get("Authorization"), json.loads(self.rfile.read(int(self.headers["Content-Length"])))))
+            body = self.rfile.read(int(self.headers["Content-Length"]))
+            if self.path.startswith("/auth/"):  # OLAT-Klick: „download“ antwortet mit der Adresse der Datei
+                klicks.append(body.decode())
+                return self.antwort(200, b"/files/PS2.html" if body == b"cid=download" else b"/", "text/plain")
+            berichte.append((self.headers.get("Authorization"), json.loads(body)))
             self.antwort(200, b'{"ok": true}', "application/json")
 
         def log_message(self, *_):
@@ -71,7 +89,7 @@ def attrappe(lehnt_ab=None):
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    return server, speicher, berichte
+    return server, speicher, berichte, klicks
 
 
 def starten(ordner, port):
@@ -88,7 +106,7 @@ def starten(ordner, port):
 
 def test_probelauf():
     with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
-        (gut, g_speicher, g_berichte), (kaputt, k_speicher, k_berichte) = attrappe(), attrappe(lehnt_ab="onlinetests.json")
+        (gut, g_speicher, g_berichte, g_klicks), (kaputt, k_speicher, k_berichte, _) = attrappe(), attrappe(lehnt_ab="onlinetests.json")
         laeufe = [starten(Path(a), gut.server_port), starten(Path(b), kaputt.server_port)]  # beide gleichzeitig: halbe Wartezeit
         (g_aus, _), (k_aus, _) = [l.communicate(timeout=300) for l in laeufe]
         g_code, k_code = [l.returncode for l in laeufe]
@@ -102,6 +120,8 @@ def test_probelauf():
     assert "Punkte: 7 von 10" in tests["Testergebnisse"]["startseite"] and "Punkte: 8" in tests["PS2"]["startseite"]
     hoch = g_speicher["onlinetests.json"].decode()
     assert not any(x in hoch for x in ("Muster Max", "00000000", "26111600000", "iVBOR")), "Name, Matrikelnummer, Klausur-ID oder Scan in der App"
+    assert tests["PS2"]["bis"] == "2026-10-20", tests["PS2"]
+    assert g_klicks == ["cid=download"], f"Testschutz: nur der eine Herunterladen-Klick darf OLAT erreichen, nicht {g_klicks}"
     assert "Grenzwerte und Ableitungen" in g_speicher["faecher/Mathematik.json"].decode(), "Unterlage kam nicht an"
     assert not g_berichte, f"Fehlerbericht ohne Absturz: {g_berichte}"
 

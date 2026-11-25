@@ -11327,7 +11327,8 @@ const CHANGELOG = [
       'Wer nach einem Fehler per Doppelklick neu startet, bekommt vorher die neueste Fassung, nicht erst beim nächsten automatischen Lauf.']],
     ['22:15', 'Ich merke es jetzt selbst', 'Den Fehler von vorhin hätte ich ohne das Foto eines Kommilitonen nie gesehen. Jetzt schickt das PC-Programm bei einem Absturz eine kurze Meldung an mich: welcher Fehler, an welcher Stelle im Code, welche Fassung. Keine Namen, keine Inhalte aus OLAT, keine Pfade vom Computer. In der App steht dann „Abgleich abgebrochen“, statt still der letzte gute Stand.', 1, 2, [
       'Vor jedem Commit laufen jetzt Prüfungen: beim PC-Programm ein Probelauf des ganzen Programms gegen ein nachgebautes OLAT, beim Server seine Tests, bei der App, ob sie überhaupt startet. Ist etwas rot, geht nichts live.',
-      'Der Probelauf hat beim ersten Mal gleich einen Fehler in der neuen Absturzmeldung gefunden, bevor sie bei jemandem ankam. Baut man den Fehler von vorhin wieder ein, bricht er mit genau der Meldung ab, die mein Kommilitone gesehen hat.']]], t: [
+      'Der Probelauf hat beim ersten Mal gleich einen Fehler in der neuen Absturzmeldung gefunden, bevor sie bei jemandem ankam. Baut man den Fehler von vorhin wieder ein, bricht er mit genau der Meldung ab, die mein Kommilitone gesehen hat.']],
+    ['22:35', 'Die Mathe-PS-Punkte kommen an', 'Die Ergebnisse der Mathe-PS-Tests liegen in OLAT als Rückgabe-Dateien, die sich nur per Klick laden lassen. Das PC-Programm hatte vorher geraten, wie diese Seite aussieht, und lag falsch. Diesmal habe ich mir die echte Seite angesehen und am echten OLAT getestet: Alle sechs Rückgaben kamen mit Punkten und Datum an. Name und Matrikelnummer aus diesen Dateien bleiben am PC.', 0, 2]], t: [
     ['07:10', 'Changelog: Zahlenbalken, Aufwand-Balken und Phasen-Etiketten entfernt'],
     ['08:25', 'Karteikasten führt Stände von zwei Geräten zusammen, Wochenausgabe und Schaubilder speichern auch nach einem Konflikt'],
     ['08:27', 'KI-Antworten mit Formeln werden repariert statt verworfen (Ausgabe, Probeklausur, Prüfungen, Podcast, Noten); ein Begriff ohne Text bringt den Karteikasten nicht mehr zum Absturz'],
@@ -11354,7 +11355,8 @@ const CHANGELOG = [
     ['20:00', 'PC-Programm: Start per Doppelklick holt vorher die neueste Fassung'],
     ['22:15', 'PC-Programm: meldet Abstürze an den Server (ohne Inhalte und Pfade); die App zeigt dann „Abgleich abgebrochen“'],
     ['22:15', 'Vor jedem Commit: Tests und Probelauf des PC-Programms gegen nachgebautes OLAT, Server-Tests, Startprüfung der App'],
-    ['22:25', 'PC-Programm: Name, Matrikelnummer und Klausur-ID aus Mathe-Rückgaben bleiben am PC, in die App gehen nur Punkte und Auswertung']] },
+    ['22:25', 'PC-Programm: Name, Matrikelnummer und Klausur-ID aus Mathe-Rückgaben bleiben am PC, in die App gehen nur Punkte und Auswertung'],
+    ['22:35', 'PC-Programm: lädt Rückgabe-Dateien per „Herunterladen“-Klick (OLAT nennt dort keine Adressen), Datum aus „erstellt am“; am echten OLAT geprüft']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

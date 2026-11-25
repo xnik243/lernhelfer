@@ -1296,23 +1296,14 @@ KNOTEN_JS = r"""() => [...document.querySelectorAll('.o_tree li[data-nodeid]')].
           // hat Unterbausteine: schon aufgeklappt oder mit Pfeil vor dem Link (auch Ordner wie „PS-Tests“ mit den Bewertungen darunter)
           kinder: !!li.querySelector(':scope > ul li') || [...li.querySelectorAll(':scope > div :is(a, i)')].some(x => !x.closest('.o_tree_link')),
           eltern: a(li.parentElement.closest('li[data-nodeid]'))?.innerText.trim()}; })"""
-# Rückgabe und Feedback eines Aufgaben-Bausteins: Dateien der Betreuer:innen [Name, Adresse, Datum]; eigene Abgaben und die Aufgabenstellung nicht
-RUECKGABE_JS = r"""() => {
-  const main = document.querySelector('#o_main_center_content_inner'), dateien = new Map();
-  let teile = [...main.querySelectorAll('[id*="review"], [id*="revision"], [class*="o_review"], [class*="o_correction"]')];
-  if (!teile.length) teile = [...main.querySelectorAll('h2, h3, h4, h5, legend, .panel-heading, .o_title')]
-    .filter(h => /^\s*(Rückgabe|Feedback|Korrektur)/i.test(h.innerText)).map(h => h.closest('.o_step, .panel, fieldset, section')).filter(Boolean);
-  for (const a of teile.flatMap(t => [...t.querySelectorAll('a[href]')])) {
-    const href = a.getAttribute('href');
-    if (/^(javascript:|#|mailto:)/i.test(href)) continue;
-    const name = [a.getAttribute('download'), a.innerText.trim(), decodeURIComponent(href.split('?')[0].split('/').pop())].find(n => /\.(html?|pdf|docx?|txt)$/i.test(n || ''));
-    let z = a;
-    for (let i = 0; i < 5 && z && !/\d\d\.\d\d\.\d{4}/.test(z.innerText); i++) z = z.parentElement;
-    if (name && !dateien.has(name)) dateien.set(name, [name, a.href, z?.innerText.match(/\d\d\.\d\d\.\d{4}/)?.[0] || null]);
-  }
-  return [...dateien.values()];
-}"""
 AUFGABE = ("o_gta_icon", "o_ta_icon")
+# Dateien der Betreuer:innen unter „Rückgabe und Feedback“ (geprüft an Mathe › PS-2026-W › Testergebnisse, 25.11.2026)
+RUECKGABE = "#o_step_review_content li.o_assessment_document"
+
+
+def ereignis(a):
+    """(Adresse, cid) eines OLAT-Links, der statt einer Adresse o_XHREvent(...) aufruft: damit gibt der Testschutz genau ihn frei."""
+    return re.search(r"o_XHREvent\('([^']+)'.*?'cid','([^']+)'", a.get_attribute("onclick")).groups()
 # Eingaben als [Wert] bzw. [x] in den Text, zugeklappte Lösungen aufklappen (nur in der eigenen Seitenkopie)
 LESEN_JS = r"""m => {
   m.querySelectorAll('input[type=text], textarea').forEach(i => i.replaceWith(` [${i.value}] `));
@@ -1347,7 +1338,6 @@ def test_lesen(page, frei, startknopf):
     Speichern-, Beenden-, Abbrechen- und Weiter-Knöpfe werden vor jedem Klick aus der Seite entfernt."""
     knopf = page.locator("a.o_sel_start_qti21assessment")
     assert knopf.count() == 1 and knopf.inner_text().strip() == startknopf, "kein passender Startknopf"
-    ereignis = lambda a: re.search(r"o_XHREvent\('([^']+)'.*?'cid','([^']+)'", a.get_attribute("onclick")).groups()
     try:
         pfad, _ = ereignis(knopf)
         frei["start"] = pfad
@@ -1438,17 +1428,25 @@ def testliste(fach):
     return aus
 
 
-def rueckgabe(ctx, page, ziel, lv):
+def rueckgabe(page, ziel, lv, frei):
     """Dateien unter „Rückgabe und Feedback“ eines Aufgaben-Bausteins laden und je Datei eine Bewertung bauen [(Datei, Text, Titel)].
+    OLAT gibt sie nur per Klick heraus (o_XHREvent 'download', keine Adresse): der Testschutz lässt genau diesen einen Klick durch.
     Die Punkte liest die App aus dem Text, wie bei einem Bewertungs-Baustein; das Original bleibt unter Tests/Rückgabe."""
     aus = []
-    for name, adresse, datum in page.evaluate(RUECKGABE_JS):
-        r = ctx.request.get(urljoin(page.url, adresse))
-        if not r.ok:
-            raise RuntimeError(f"OLAT antwortete {r.status}")
-        roh = ziel / "Rückgabe" / sicherer_name(name)
-        roh.parent.mkdir(exist_ok=True)
-        roh.write_bytes(r.body())
+    for doc in page.locator(RUECKGABE).all():
+        roh = ziel / "Rückgabe" / sicherer_name(doc.locator("h5").inner_text().strip())
+        if not roh.exists():  # ponytail: schon geladen = gleicher Name; eine korrigierte Fassung unter gleichem Namen käme nicht an
+            knopf = doc.locator(".o_assessment_document_actions a", has_text=re.compile(r"^\s*Herunterladen\s*$"))
+            pfad, cid = ereignis(knopf)
+            frei[cid] = pfad
+            try:
+                with page.expect_download() as dl:
+                    knopf.click()
+                roh.parent.mkdir(exist_ok=True)
+                speichern_als(dl.value, roh)
+            finally:
+                frei.clear()
+        datum = (re.search(r"\d\d\.\d\d\.\d{4}", doc.inner_text()) or [None])[0]  # „erstellt von … am 20.10.2026, 23:56“
         titel = roh.stem
         inhalt = re.sub(r"\s*\n\s*", "\n", re.sub(r"[ \t\xa0]+", " ", text(roh))).strip()
         # Kopf der Klausurergebnisse (Mathe-PS): Name, Matrikelnummer und Klausur-ID braucht die App nicht, sie bleiben am PC
@@ -1500,9 +1498,9 @@ def tests(browser, fach, kurs_ids=None):
                 page.goto(f"{OLAT}/auth/RepositoryEntry/{kurs}/CourseNode/{k['id']}")
                 page.wait_for_load_state("networkidle")
                 if k["icon"] in AUFGABE:  # Aufgabe: Punkte stehen in den Dateien unter „Rückgabe und Feedback“ (Mathe-PS-Tests als HTML)
-                    aus = rueckgabe(ctx, page, ziel, lv)
+                    aus = rueckgabe(page, ziel, lv, frei)
                     if not aus and page.get_by_text(re.compile(r"Dokumente für Sie|Beurteilungen herunterladen")).count():
-                        # ponytail: Rückgabe ohne ladbare Datei (Bild, Link ohne Adresse) → Seitentext wie bei einer Bewertung; RUECKGABE_JS an einer echten Seite schärfen
+                        # OLAT zeigt die Dateiliste anders als in RUECKGABE erwartet: lieber der Seitentext als gar nichts
                         aus = [(datei, f"OLAT-Bewertung „{k['titel']}“ ({lv})\n\n" + page.locator("#o_main_center_content_inner").evaluate(LESEN_JS), k["titel"])]
                 elif k["icon"] == "o_ms_icon":  # Bewertung: nur lesen, die Seite hat für Teilnehmende nichts zum Abschicken
                     seite = page.locator("#o_main_center_content_inner").evaluate(LESEN_JS)
