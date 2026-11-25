@@ -1451,6 +1451,8 @@ def rueckgabe(ctx, page, ziel, lv):
         roh.write_bytes(r.body())
         titel = roh.stem
         inhalt = re.sub(r"\s*\n\s*", "\n", re.sub(r"[ \t\xa0]+", " ", text(roh))).strip()
+        # Kopf der Klausurergebnisse (Mathe-PS): Name, Matrikelnummer und Klausur-ID braucht die App nicht, sie bleiben am PC
+        inhalt = re.sub(r"(?m)^(Name|Matrikelnummer|Klausur-ID):.*\n?", "", inhalt)
         aus.append((ziel / f"{titel}.txt", f"OLAT-Bewertung „{titel}“ ({lv})\n" + (f"Rückgabe vom {datum}\n" if datum else "") + "\n" + inhalt, titel))
     return aus
 

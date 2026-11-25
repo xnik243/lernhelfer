@@ -22,7 +22,10 @@ SEITEN = {
     "/auth/RepositoryEntry/111/CourseNode/2": DRIN + '<div id="o_main_center_content_inner"><div id="o_step_review"><h4>Rückgabe und Feedback</h4>'
         '<div><a href="/files/PS2.html">PS2.html</a> <span>20.10.2026</span></div></div></div>',
     "/auth/RepositoryEntry/111/CourseNode/3": DRIN + '<div id="o_main_center_content_inner"><div id="o_step_review"><a href="/files/fehlt.html">fehlt.html</a></div></div>',
-    "/files/PS2.html": "<h1>PS-Test 2</h1><p>Erreichte Punktzahl 8 von 10</p>",
+    # Aufbau wie die echten Klausurergebnisse der Mathe-PS-Tests (Prüfungsbeleg als eingebettetes Bild), Person erfunden
+    "/files/PS2.html": "<h3>Klausurergebnisse</h3><table>\n<tr><td>Name:</td><td>Muster Max</td></tr>\n<tr><td>Matrikelnummer:</td><td>00000000</td></tr>\n"
+        "<tr><td>Klausur-ID:</td><td>26111600000</td></tr>\n<tr><td>Punkte:</td><td>8</td></tr>\n</table>\n<h3>Auswertung</h3><table>\n"
+        "<tr><td>Frage</td><td>Punkte</td></tr>\n<tr><td>1</td><td>8</td></tr>\n</table>\n<h3>Prüfungsbeleg</h3><img src=\"data:image/png;base64,iVBORw0KGgo=\">",
 }
 
 
@@ -96,7 +99,9 @@ def test_probelauf():
     assert abgleich["ok"] is True, abgleich
     tests = {t["titel"]: t for t in json.loads(g_speicher["onlinetests.json"])}
     assert set(tests) == {"Testergebnisse", "PS2"}, f"{tests.keys()}\n{g_aus[-3000:]}"
-    assert "Punkte: 7 von 10" in tests["Testergebnisse"]["startseite"] and "8 von 10" in tests["PS2"]["startseite"]
+    assert "Punkte: 7 von 10" in tests["Testergebnisse"]["startseite"] and "Punkte: 8" in tests["PS2"]["startseite"]
+    hoch = g_speicher["onlinetests.json"].decode()
+    assert not any(x in hoch for x in ("Muster Max", "00000000", "26111600000", "iVBOR")), "Name, Matrikelnummer, Klausur-ID oder Scan in der App"
     assert "Grenzwerte und Ableitungen" in g_speicher["faecher/Mathematik.json"].decode(), "Unterlage kam nicht an"
     assert not g_berichte, f"Fehlerbericht ohne Absturz: {g_berichte}"
 
