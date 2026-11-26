@@ -92,11 +92,11 @@ main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 9
 
 /* ---------- Gezeichnete Kästen ---------- */
 :is(.fach, .abschnitt:not(.blick), .aufgabe, .schritt, .kal-panel, .tarif, .sperrkarte, .assistent, .liste-rahmen, .woche, .testzeilen, .ul-liste,
-  .vt-gesamt, .vt-tipps li, .vt-befund, .vt-abgleich li, .vt-ger-skalen > li, .vt-zahl, .vt-verlauf, .lv-karte, .kachel, .frage-karte,
+  .vt-gesamt, .vt-tipps li, .vt-befund, .vt-abgleich li, .vt-ger-skalen > li, .vt-zahl, .vt-verlauf, .ziel-blatt, .kachel, .frage-karte,
   .tabelle-rahmen, .sperre, .ultra-werbung, .meldung, .vt-spieler, .fo-bereich, .fo-kasten, .fo-beitrag) {
   border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 10px / 4px stretch; background-color: var(--bg);
 }
-:is(.fach, .weiter-ziel, .aufgabe, .kal-panel, .tarif, .vt-tipps li, .vt-befund, .vt-zahl, .lv-karte, .kachel, .vt-abgleich li, .fo-bereich, .fo-beitrag):nth-child(even) { border-image-source: var(--rahmen-2); }
+:is(.fach, .weiter-ziel, .aufgabe, .kal-panel, .tarif, .vt-tipps li, .vt-befund, .vt-zahl, .kachel, .vt-abgleich li, .fo-bereich, .fo-beitrag):nth-child(even) { border-image-source: var(--rahmen-2); }
 /* Forum: neue Threads mit Textmarker, Personenkarte ohne graue Fläche, Bereiche beim Drüberfahren gelb */
 .fo-thread[data-neu] .fo-t-titel span { background: var(--marker) center 62% / 100% 58% no-repeat; }
 .fo-person { background: none; border-right: 1.5px dashed var(--linie-2); }
@@ -106,7 +106,6 @@ main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 9
 .tarif.empfohlen, .ultra-werbung { border-image-source: var(--rahmen-blau); box-shadow: none; }
 .ultra-werbung { background-color: var(--akzent-flaeche); }
 .assistent { background-image: none; }
-.lv-karte { background: linear-gradient(var(--fach, var(--linie-2)), var(--fach, var(--linie-2))) 14px 2px / 44px 3px no-repeat, var(--bg); }
 .meldung { box-shadow: var(--schatten-gross); }
 .meldung::backdrop { background: rgb(12 14 13 / 0.4); }
 
@@ -280,6 +279,22 @@ input:not([type="checkbox"], [type="file"], [type="radio"]), textarea, select { 
 .admin-reiter [role=tab] { position: relative; z-index: 0; }
 .admin-todo { border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 8px / 3px stretch; }
 .admin-todo li + li { border-top: 0; background: var(--strich-waagrecht) top / 100% 6px no-repeat; }
+
+/* Noten: Punkte-Lineal mit Textmarker (sicher) und Bleistift-Schraffur (noch zu holen), Notengrenzen als gezeichnete Striche,
+   Noten im Kreis wie vom Lehrer an den Rand geschrieben, Bedingungen auf einem gelben Zettel */
+i.l-sicher { background: var(--marker) center / 100% 100% no-repeat; }
+:root[data-thema="dunkel"] i.l-sicher { background: rgb(203 184 148 / 0.72); }  /* Daten: im Dunkeln muss „sicher“ klar von der Schraffur abstechen */
+.lt-ein { text-decoration: none; background: var(--unterstrich) left bottom 6px / 100% 0.45em no-repeat; }
+.l-marke::before { width: 6px; background: var(--strich-senkrecht) center / 6px 100% no-repeat; }
+:is(.l-marke, .lv-note) b { border: 0; border-radius: 0; background: var(--kreis) center / 100% 100% no-repeat, var(--bg); }
+.lv-note b { background: var(--kreis) center / 100% 100% no-repeat; }
+.l-marke[data-z="sicher"] b { background: var(--marker) center / 100% 100% no-repeat, var(--bg); color: var(--auf-gelb); }
+.lv-note[data-art="end"] b { background: var(--kreis) center / 100% 100% no-repeat, var(--marker) center / 90% 64% no-repeat; color: var(--auf-gelb); }
+.ziel-zeile + .ziel-zeile { border-top: 0; background: var(--strich-waagrecht) left top / 100% 6px no-repeat; }
+.lv-zettel { border-radius: 2px; background: var(--zettel); transform: rotate(-0.5deg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 20px -14px rgb(0 0 0 / 0.45); }
+:root:not([data-thema="dunkel"]) .lv-zettel { color: #121212; }
+:is(.l-liste [data-ziel] b, .l-marke[data-ziel] small) { padding: 0 2px; text-decoration: none; background: var(--marker) 0 70% / 100% 60% no-repeat; color: var(--auf-gelb); }
+.noten-abgleich { border-radius: 2px; background: var(--zettel); color: var(--text); }
 
 /* Changelog: Linie gezeichnet, sonst nur Tinte und Grau */
 .cl-liste { border-left: 0; background: var(--strich-senkrecht) left top / 6px 100% no-repeat; }

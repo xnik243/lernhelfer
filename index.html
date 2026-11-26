@@ -1816,18 +1816,95 @@
   .legende i { width: 14px; height: 3px; border-radius: 2px; background: var(--fach, var(--text-3)); }
   .legende i.ges { height: 4px; background: var(--text); }
   .legende i.kurs { width: 9px; height: 9px; border: 1.5px solid var(--text-3); border-radius: 50%; background: none; }
-  .lv-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 12px; }
-  .lv-gruppe + .lv-gruppe { margin-top: 28px; }
-  .lv-gruppe > h3 { margin: 0 0 10px; font: 650 1rem/1.3 var(--sans); color: var(--text-2); }
-  .noten-abgleich { margin: 0 0 16px; padding: 10px 14px; border-left: 3px solid var(--akzent); background: var(--akzent-flaeche); font-size: 0.9rem; text-wrap: pretty; }
-  .lv-teil-ein { margin-top: 4px; padding: 6px 0; border: 0; background: none; color: var(--akzent-text); font: 600 0.8125rem/1.2 var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-  .lv-karte { display: grid; gap: 8px; align-content: start; padding: 16px 18px; border: 1px solid var(--linie); border-top: 3px solid var(--fach, var(--linie-2)); border-radius: var(--r-l); }
-  .lv-kopf { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  .lv-kopf h3 { margin: 0; font: 650 1rem/1.3 var(--sans); overflow-wrap: anywhere; }
-  .note-gross { font: 750 1.75rem/1 var(--sans); font-variant-numeric: tabular-nums; }
-  .lv-karte ul { display: grid; gap: 4px; margin: 0; padding-left: 1.1em; color: var(--text-2); font-size: 0.875rem; }
-  .lv-karte .klein, .lv-karte .meta { margin: 0; }
-  .lv-karte summary { color: var(--akzent-text); font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+  /* Lehrveranstaltungen: ein Blatt, eine Zeile je Lehrveranstaltung mit kleinem Punkte-Lineal; aufgeklappt das ganze Lineal und die Teilleistungen
+     wie im Kassabuch. Gelb (Akzent) = sicher, schraffiert = noch zu holen, durchgestrichen = verpasst; Fachfarbe nur als Punkt vor dem Namen */
+  .noten-abgleich { margin: 0 0 16px; padding: 10px 14px; border-radius: var(--r-s); background: var(--bg-2); font-size: 0.9rem; text-wrap: pretty; }
+  i.l-sicher { background: var(--akzent); }
+  i.l-offen { background: repeating-linear-gradient(-50deg, var(--linie-2) 0 1.25px, transparent 1.25px 5px); }
+  i.l-weg { background: linear-gradient(var(--text-3), var(--text-3)) center / 100% 1.5px no-repeat, var(--bg-2); }
+  .l-legende { margin: 0 0 14px; }
+  .l-legende i { width: 20px; height: 11px; border-radius: 1px; }
+  .l-legende i.l-offen { box-shadow: inset 0 0 0 1px var(--linie-2); }
+  .l-legende i.l-grenze { width: 2px; height: 17px; border-radius: 1px; background: var(--text); }
+  .zz-name b::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--fach, var(--linie-2)); }
+  .lv-note { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+  .lv-note small { color: var(--text-3); font-size: 0.8125rem; font-weight: 600; }
+  .lv-note b { display: grid; place-items: center; width: 36px; height: 36px; border: 1.5px solid var(--text); border-radius: 50%; font: 800 1.25rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+  .lv-note[data-art="end"] b { background: var(--akzent-flaeche); }
+  /* das Lineal: oben die Note im Kreis, darunter was bis dorthin fehlt; schmal stehen die Grenzen als Liste darunter */
+  .lineal { container-type: inline-size; }
+  .l-skala { position: relative; padding: 28px 0 24px; }
+  .l-bahn { position: relative; display: block; height: 18px; overflow: hidden; border: 1.5px solid var(--text); border-radius: var(--r-s); background: var(--bg); }
+  .l-bahn > i { position: absolute; top: 0; bottom: 0; left: 0; }
+  .l-marke { position: absolute; top: 0; bottom: 0; display: grid; align-content: space-between; justify-items: center; translate: -50% 0; pointer-events: none; }
+  .l-marke::before { content: ""; position: absolute; top: 22px; bottom: 19px; left: 50%; width: 1.5px; translate: -50% 0; background: var(--text); }
+  .l-marke b { display: grid; place-items: center; width: 22px; height: 22px; border: 1.5px solid var(--text); border-radius: 50%; background: var(--bg); font: 800 0.8125rem/1 var(--sans); }
+  .l-marke small { color: var(--text-2); font: 600 0.75rem/1.2 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .l-marke[data-z="sicher"] b { background: var(--akzent); color: var(--auf-akzent); }
+  .l-marke[data-z="sicher"] small { color: var(--text); font-weight: 750; }
+  .l-marke[data-z="weg"] { opacity: 0.42; }
+  .l-marke[data-ziel] small { color: var(--text); font-weight: 750; text-decoration: underline 1.5px; text-underline-offset: 3px; }
+  .l-liste { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 10px; margin: 6px 0 0; padding: 0; list-style: none; color: var(--text-2); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .l-liste b { display: block; color: var(--text); font-weight: 700; }
+  .l-liste [data-z="weg"] { opacity: 0.45; }
+  .l-liste [data-z="sicher"] { color: var(--text); font-weight: 700; }
+  .lineal .l-liste { display: none; }
+  @container (max-width: 560px) { .l-marke small { display: none; } .l-marke::before { bottom: 2px; } .l-skala { padding-bottom: 8px; } .lineal .l-liste { display: grid; } }
+  /* Teilleistungen: eine Zeile je Posten, „+36“ mit derselben Schraffur wie auf dem Lineal */
+  .lv-teile { display: grid; margin: 10px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--linie); font-size: 0.875rem; }
+  .lv-teile li { display: grid; grid-template-columns: minmax(0, 1.5fr) 5.5em minmax(0, 1.2fr) minmax(8em, auto) 6.75em; gap: 2px 14px; align-items: center; min-height: 48px; padding: 6px 0; border-bottom: 1px solid var(--linie); }
+  .lt-name { color: var(--text); font-weight: 650; overflow-wrap: anywhere; hyphens: auto; }
+  .lt-punkte { color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lt-punkte b { color: var(--text); font-weight: 750; }
+  .lt-regel { color: var(--text-3); font-size: 0.8125rem; }
+  .lt-noch { color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .lt-noch b { padding: 0 2px 3px; background: repeating-linear-gradient(-50deg, var(--linie-2) 0 1.25px, transparent 1.25px 4px) left bottom / 100% 5px no-repeat; color: var(--text); font-weight: 750; }
+  .lt-noch small { display: block; color: var(--text-3); font-size: 0.75rem; }
+  .lv-teile li[data-z="fertig"] .lt-noch { color: var(--text-3); }
+  .lt-ein { justify-self: end; min-height: 36px; padding: 4px 0; border: 0; background: none; color: var(--akzent-text); font: 650 0.8125rem/1.2 var(--sans); text-decoration: underline 1.5px; text-underline-offset: 4px; cursor: pointer; }
+  @media (hover: hover) { .lt-ein:hover { color: var(--akzent-hover); } }
+  @media (pointer: coarse) { .lt-ein { min-height: 44px; } }
+  @container (max-width: 620px) {
+    .lv-teile li { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name punkte" "regel regel" "noch ein"; gap: 2px 12px; padding: 10px 0; }
+    .lt-name { grid-area: name; } .lt-punkte { grid-area: punkte; text-align: right; } .lt-regel { grid-area: regel; } .lt-noch { grid-area: noch; } .lv-teile li > :last-child { grid-area: ein; }
+    .lt-noch small { display: inline; margin-left: 6px; }
+  }
+  .lv-zettel { width: fit-content; max-width: 100%; margin: 12px 0 2px; padding: 8px 12px; border-radius: var(--r-s); background: var(--bg-2); color: var(--text); font-size: 0.875rem; line-height: 1.45; text-wrap: pretty; }
+  .lv-schluessel { margin-top: 6px; }
+  .lv-schluessel summary { width: fit-content; padding: 6px 0; color: var(--text-2); font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+  @media (hover: hover) { .lv-schluessel summary:hover { color: var(--text); } }
+  .lv-schluessel .meta { margin: 2px 0 0; }
+  .ziel-wahl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+  .ziel-wahl > span { margin-right: 4px; color: var(--text-2); font-size: 0.875rem; font-weight: 650; }
+  .ziel-wahl .vt-filter { color: var(--text); }
+  .ziel-wahl .vt-filter b { font-variant-numeric: tabular-nums; }
+  .ziel-blatt { padding: 2px 22px; border: 1px solid var(--linie); border-radius: var(--r-l); }
+  .ziel-zeile + .ziel-zeile { border-top: 1px solid var(--linie); }
+  .ziel-zeile > summary { display: grid; grid-template-columns: minmax(0, 1.25fr) 6.5em minmax(0, 1.5fr) auto 12px; grid-template-areas: "name noch rest note pfeil"; gap: 6px 20px; align-items: center; padding: 14px 0; list-style: none; cursor: pointer; }
+  .ziel-zeile > summary::-webkit-details-marker { display: none; }
+  .ziel-zeile > summary::after { content: ""; grid-area: pfeil; width: 8px; height: 8px; border: solid var(--text-3); border-width: 0 1.5px 1.5px 0; rotate: 45deg; translate: 0 -2px; transition: rotate 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+  .ziel-zeile[open] > summary::after { rotate: -135deg; translate: 0 2px; }
+  .zz-name { grid-area: name; min-width: 0; }
+  .zz-name b { display: flex; align-items: center; gap: 8px; font-weight: 700; overflow-wrap: anywhere; }
+  .zz-name .meta { display: block; margin-top: 2px; }
+  .zz-noch { grid-area: noch; text-align: right; font-variant-numeric: tabular-nums; }
+  .zz-noch b { display: block; font: 800 1.375rem/1.1 var(--sans); }
+  .zz-noch small { color: var(--text-3); font-size: 0.75rem; font-weight: 600; }
+  .zz-noch .zz-zeichen { font-size: 0.9375rem; }
+  .zz-rest { grid-area: rest; display: grid; gap: 5px; min-width: 0; }
+  .zz-rest small { color: var(--text-2); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+  .zz-balken { position: relative; display: block; }
+  .zz-balken .l-bahn { height: 14px; }
+  .zz-strich { position: absolute; top: -5px; bottom: -5px; width: 2px; translate: -50% 0; border-radius: 1px; background: var(--text); }
+  .ziel-zeile[data-z="weg"] :is(.zz-noch, .zz-rest small) { color: var(--text-3); }
+  .lv-note { grid-area: note; }
+  .zz-innen { display: grid; gap: 4px; padding: 0 0 18px; container-type: inline-size; }
+  .l-liste [data-ziel] b { width: fit-content; text-decoration: underline 2px; text-underline-offset: 3px; }
+  @media (max-width: 640px) {
+    .ziel-blatt { padding-inline: 16px; }
+    .ziel-zeile > summary { grid-template-columns: auto minmax(0, 1fr) auto 12px; grid-template-areas: "name name note pfeil" "noch rest rest rest"; gap: 8px 14px; }
+    .zz-noch { text-align: left; }
+  }
   .lv-einst { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); align-items: end; gap: 8px; margin-top: 10px; }
   .lv-einst label { display: grid; gap: 4px; color: var(--text-2); font-size: 0.8125rem; font-weight: 600; }
   .lv-einst .knopfreihe { grid-column: 1 / -1; margin-top: 4px; }
@@ -1852,22 +1929,8 @@
 
   /* Prüfungen mit Lernplan, Karteikarten, Prüfungstraining, Anhören */
   .text h2 { margin: 1.8em 0 0.5em; font: 700 1.3125rem/1.3 var(--sans); letter-spacing: -0.01em; }
-  .note-gross small { color: var(--text-3); font-size: 0.8125rem; font-weight: 600; }
   .lernplan { display: grid; gap: 6px; margin: 10px 0 0; padding-left: 1.25em; color: var(--text-2); font-size: 0.875rem; }
   .pruefung-neu { margin-top: 12px; }
-  .lv-noten { list-style: none; padding: 0 !important; gap: 2px !important; }
-  .lv-noten li { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: 8px; }
-  .lv-noten li b { color: var(--text); font-weight: 650; }
-  .lv-noten li[data-z="sicher"] span { color: var(--gut, #1f7a3a); font-weight: 600; }
-  .lv-noten li[data-z="weg"] { opacity: 0.55; }
-  .lv-zwischen { margin: 6px 0 0; font: 650 0.8125rem/1.3 var(--sans); color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
-  .lv-teile { list-style: none; padding: 0 !important; gap: 0 !important; border-top: 1px solid var(--linie); }
-  .lv-teile li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--linie); }
-  .lv-teile li b { display: block; color: var(--text); font-weight: 600; overflow-wrap: anywhere; hyphens: auto; }
-  .lv-teile .meta { display: block; font-size: 0.8125rem; }
-  .lv-teil-punkte { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
-  .lv-teil-noch { text-align: right; color: var(--akzent-text); font-weight: 600; font-size: 0.8125rem; }
-  .lv-teile li[data-z="fertig"] .lv-teil-noch { color: var(--text-3); font-weight: 500; }
   .pr-faecher { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; align-items: start; }
   .pr-fach h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 650 0.9375rem/1.3 var(--sans); }
   .pr-fach h3::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--fach, var(--linie-2)); }
@@ -3850,8 +3913,6 @@ function ultraWerbung(a) {
 // Erledigte bewertete Onlinetests kommen mit ihren Punkten aus OLAT von selbst dazu; gelöscht bleiben sie weg.
 const SCHLUESSEL = [50, 62.5, 75, 87.5];  // ab … % Note 4, 3, 2, 1, solange die Lehrveranstaltung keinen eigenen hat
 const PROGNOSE_AB = 0.3;  // Anteil der Gesamtpunkte, der bewertet sein muss, bevor eine Note hochgerechnet wird
-// Gruppen auf der Notenseite nach Art der Lehrveranstaltung (Name endet auf „PS“, „VO“ …); was keine Art im Namen hat, kommt zu „Weitere“
-const LV_GRUPPEN = [['Proseminare und Übungen', /\s(PS|UE|VU|SE|UV|KS)$/], ['Vorlesungen', /\sVO$/]];
 let NOTE_VOR = null;  // Vorschlag fürs Eintragen-Formular aus einem Teil einer Karte: { lv, titel, max }
 const NOTEN_NAMEN = ['', 'Sehr gut', 'Gut', 'Befriedigend', 'Genügend', 'Nicht genügend'];
 let NOTEN = null, NOTEN_P = null, NOTE_ID = null;  // NOTE_ID: der Eintrag, der gerade im Formular steht
@@ -4024,44 +4085,95 @@ function notenVerlauf(lvs) {
   return [bild, el('ul', { class: 'legende' }, lvs.filter(l => l.e.length).map(l => el('li', { 'data-fach': l.fach || null }, el('i'), l.name)),
     el('li', {}, el('i', { class: 'ges' }), 'Insgesamt, laufend'), e.some(q => q.schnitt != null) && el('li', {}, el('i', { class: 'kurs' }), 'Kursschnitt'))];
 }
-function lvKarte(l) {
-  const g = l.c.gesamt, zahlFeld = (text, name, wert) => el('label', {}, text, el('input', { name, inputmode: 'decimal', autocomplete: 'off', value: feldWert(wert) }));
-  const fehlt = g > 0 && l.offen != null && !l.c.note && [...l.s].reverse().map((grenze, i) => {
-    const n = i + 1, noch = grenze / 100 * g - l.p, z = noch <= 0 ? 'sicher' : noch > l.offen + 1e-9 ? 'weg' : 'offen';
-    return el('li', { 'data-z': z }, el('b', {}, `Note ${n}`), el('span', {}, z === 'sicher' ? 'hast du sicher' : z === 'weg' ? 'nicht mehr erreichbar'
-      : `noch ${dez(noch)} Punkte · ${dez(100 * noch / l.offen, 0)} % vom Rest`));
-  });
-  // je Teilleistung: zählende Punkte, Regel und was noch zu holen ist
-  const teile = l.teile?.length > 0 && el('ul', { class: 'lv-teile' }, l.teile.map(t => el('li', { 'data-z': t.offen > 0 ? 'offen' : 'fertig' },
-    el('div', {}, el('b', {}, t.titel), el('span', { class: 'meta' }, [el('span', { class: 'lv-teil-punkte' }, `${dez(t.p)}${t.max != null ? ` / ${dez(t.max)}` : ''}`), t.zaehlen && t.anzahl ? `beste ${t.zaehlen} von ${t.anzahl}` : t.zaehlen ? `die besten ${t.zaehlen}` : t.anzahl > 1 && `${t.anzahl} ×${t.je != null ? ` ${dez(t.je)}` : ''}`,
-      t.da.length > 0 && `${t.da.length} eingetragen`].filter(Boolean).flatMap((x, i) => i ? [' · ', x] : [x])),
-      // Onlinetests kommen aus OLAT; PS-Tests, Klausuren und Präsentationen gibt es dort oft nicht: hier mit passendem Namen eintragen
-      t.art !== 'onlinetest' && t.offen > 0 && el('button', { class: 'lv-teil-ein', type: 'button', onclick: () => {
-        NOTE_ID = null; NOTE_VOR = { lv: l.name, titel: `${t.suche || t.titel}${t.anzahl > 1 ? ` ${t.da.length + 1}` : ''}`, max: t.je ?? t.max };
-        notenZeigen(); const f = $('noten-form'); f.scrollIntoView({ block: 'center' }); f.elements.punkte.focus({ preventScroll: true });
-      } }, 'Ergebnis eintragen')),
-    el('span', { class: 'lv-teil-noch' }, t.offen > 0 ? [`+${dez(t.offen)} möglich`, t.termin?.datum && el('span', { class: 'meta' }, `nächster ${kurz(t.termin.datum)}`)] : t.da.length ? 'fertig' : '–'))));
+// Was jede Note verlangt (Note 4 bis 1): Punktgrenze, was noch fehlt und ob sie sicher, noch drin oder verpasst ist
+const notenStufen = l => l.c.gesamt > 0 && l.offen != null && !l.c.note ? l.s.map((g, i) => {
+  const pt = g / 100 * l.c.gesamt, noch = pt - l.p;
+  return { n: 4 - i, pt, noch, z: noch <= 0 ? 'sicher' : noch > l.offen + 1e-9 ? 'weg' : 'offen' };
+}) : null;
+const stufeText = s => s.z === 'sicher' ? 'sicher' : s.z === 'weg' ? 'verpasst' : `noch ${dez(s.noch)}`;
+const stufenListe = (st, ziel) => el('ul', { class: 'l-liste' }, st.map(s => el('li', { 'data-z': s.z, 'data-ziel': s.n === ziel || null }, el('b', {}, `Note ${s.n}`), ' ', stufeText(s))));
+const lvVerpasst = l => Math.max(0, (l.c.gesamt || 0) - l.p - (l.offen || 0));
+const lvMeta = l => l.c.note ? `Endnote: ${NOTEN_NAMEN[l.c.note]}`
+  : [l.c.gesamt > 0 ? `${dez(l.p)} von ${dez(l.c.gesamt)} Punkten sicher` : l.stand != null && `${dez(l.p)} von ${dez(l.m)} Punkten`, l.offen > 0 && `${dez(l.offen)} noch zu holen`,
+    lvVerpasst(l) > 0.05 && l.c.gesamt > 0 && `${dez(lvVerpasst(l))} verpasst`,
+    l.stand == null ? 'noch keine Ergebnisse' : l.frueh ? `erst ${dez(100 * l.anteil, 0)} % bewertet` : `bisher ${dez(l.stand, 0)} %`].filter(Boolean).join(' · ');
+// Endnote oder Prognose im gezeichneten Kreis, wie vom Lehrer an den Rand geschrieben
+const lvNote = l => el('span', { class: 'lv-note', 'data-art': l.c.note ? 'end' : l.note ? 'prognose' : 'offen' },
+  el('small', {}, l.c.note ? 'Endnote' : l.note ? 'Prognose' : l.frueh ? 'Prognose: zu früh' : 'noch keine Note'),
+  l.note ? el('b', { role: 'img', 'aria-label': `Note ${l.note}, ${NOTEN_NAMEN[l.note]}` }, String(l.note)) : null);
+// Variante A: Punkte-Lineal von 0 bis zu den Gesamtpunkten. Textmarker = sicher, schraffiert = noch zu holen, durchgestrichen = verpasst;
+// die Striche sind die Notengrenzen, darunter was bis dorthin fehlt (schmal stattdessen als Liste darunter)
+const lvAnteil = (l, x) => `${(100 * Math.min(l.c.gesamt, Math.max(0, x)) / l.c.gesamt).toFixed(2)}%`;
+const lvBahn = l => el('span', { class: 'l-bahn' },
+  el('i', { class: 'l-sicher', style: `width: ${lvAnteil(l, l.p)}` }),
+  el('i', { class: 'l-offen', style: `left: ${lvAnteil(l, l.p)}; width: ${lvAnteil(l, l.offen)}` }),
+  lvVerpasst(l) > 0.05 ? el('i', { class: 'l-weg', style: `left: ${lvAnteil(l, l.p + l.offen)}; right: 0` }) : null);
+function lineal(l, st, ziel) {
+  const g = l.c.gesamt, weg = lvVerpasst(l), w = x => lvAnteil(l, x);
+  return el('div', { class: 'lineal' },
+    el('div', { class: 'l-skala', role: 'img', 'aria-label': `${dez(l.p)} von ${dez(g)} Punkten sicher, ${dez(l.offen)} noch zu holen${weg > 0.05 ? `, ${dez(weg)} verpasst` : ''}. ${st.map(s => `Note ${s.n} ab ${dez(s.pt)} Punkten: ${stufeText(s)}`).join(', ')}` },
+      lvBahn(l),
+      st.map(s => el('span', { class: 'l-marke', 'data-z': s.z, 'data-ziel': s.n === ziel || null, style: `left: ${w(s.pt)}` }, el('b', {}, String(s.n)), el('small', {}, stufeText(s))))),
+    el('div', { 'aria-hidden': 'true' }, stufenListe(st, ziel)));
+}
+// je Teilleistung eine Zeile: zählende Punkte, Regel, was noch drin ist und wann; Eintragen für alles, was nicht von selbst aus OLAT kommt
+function lvTeile(l) {
+  if (!l.teile?.length) return null;
+  return el('ul', { class: 'lv-teile' }, l.teile.map(t => {
+    const offen = t.offen > 0, regel = t.zaehlen && t.anzahl ? `beste ${t.zaehlen} von ${t.anzahl}` : t.zaehlen ? `die besten ${t.zaehlen}` : t.anzahl > 1 ? `${t.anzahl} ×${t.je != null ? ` ${dez(t.je)}` : ''}` : '';
+    return el('li', { 'data-z': offen ? 'offen' : 'fertig' },
+      el('span', { class: 'lt-name' }, t.titel),
+      el('span', { class: 'lt-punkte' }, el('b', {}, dez(t.p)), t.max != null ? ` / ${dez(t.max)}` : ''),
+      el('span', { class: 'lt-regel' }, [regel, t.da.length > 0 && `${t.da.length} eingetragen`, t.art === 'onlinetest' && 'kommt aus OLAT'].filter(Boolean).join(' · ')),
+      el('span', { class: 'lt-noch' }, offen ? [el('b', {}, `+${dez(t.offen)}`), ' möglich', t.termin?.datum ? el('small', {}, `nächster ${kurz(t.termin.datum)}`) : null] : t.da.length ? 'fertig' : '–'),
+      t.art !== 'onlinetest' && offen ? el('button', { class: 'lt-ein', type: 'button', onclick: () => teilEintragen(l, t) }, 'Eintragen') : el('span'));
+  }));
+}
+function teilEintragen(l, t) {  // PS-Tests, Klausuren und Präsentationen gibt es in OLAT oft nicht: hier mit passendem Namen eintragen
+  NOTE_ID = null; NOTE_VOR = { lv: l.name, titel: `${t.suche || t.titel}${t.anzahl > 1 ? ` ${t.da.length + 1}` : ''}`, max: t.je ?? t.max };
+  notenZeigen(); const f = $('noten-form'); f.scrollIntoView({ block: 'center' }); f.elements.punkte.focus({ preventScroll: true });
+}
+function lvEinst(l) {  // Notenschlüssel, Gesamtpunkte, ECTS und Endnote von Hand
+  const zahlFeld = (text, name, wert) => el('label', {}, text, el('input', { name, inputmode: 'decimal', autocomplete: 'off', value: feldWert(wert) }));
   const form = el('form', { class: 'lv-einst', onsubmit: e => {
     e.preventDefault();
     const f = e.target.elements, s = [0, 1, 2, 3].map(i => zahl(f['s' + i].value));
     notenAendern(() => { NOTEN.lv[l.name] = { ects: zahl(f.ects.value), gesamt: zahl(f.gesamt.value), schluessel: s.every(Number.isFinite) ? s.sort((a, b) => a - b) : null, note: +f.note.value || null }; });
   } },
-    zahlFeld('ECTS', 'ects', l.c.ects), zahlFeld('Gesamtpunkte', 'gesamt', g),
+    zahlFeld('ECTS', 'ects', l.c.ects), zahlFeld('Gesamtpunkte', 'gesamt', l.c.gesamt),
     [4, 3, 2, 1].map((n, i) => zahlFeld(`Note ${n} ab %`, 's' + i, l.s[i])),
     el('label', {}, 'Endnote', el('select', { name: 'note' }, ['', 1, 2, 3, 4, 5].map(n => el('option', { value: n, selected: (l.c.note || '') === n }, n ? `${n}, ${NOTEN_NAMEN[n]}` : 'noch offen')))),
     el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf' }, 'Speichern')));
-  return el('article', { class: 'lv-karte', 'data-fach': l.fach || null },
-    el('div', { class: 'lv-kopf' }, el('h3', {}, l.name), el('span', { class: 'note-gross', role: 'img', 'aria-label': l.note ? `Note ${l.note}` : l.frueh ? 'für eine Prognose zu früh' : 'noch keine Note' }, l.note ? String(l.note) : '–')),
-    el('p', { class: 'meta' }, l.c.note ? `Endnote: ${NOTEN_NAMEN[l.c.note]}`
-      : [g > 0 ? `${dez(l.p)} von ${dez(g)} Punkten sicher` : l.stand != null && `${dez(l.p)} von ${dez(l.m)} Punkten`, l.offen > 0 && `${dez(l.offen)} noch zu holen`,
-        l.stand == null ? 'noch keine Ergebnisse' : l.frueh ? `erst ${dez(100 * l.anteil, 0)} % der Punkte bewertet, für eine Prognose zu früh`
-          : `bisher ${dez(l.stand, 0)} %, bleibt es so: ${NOTEN_NAMEN[noteAus(l.stand, l.s)]}`].filter(Boolean).join(' · ')),
-    fehlt && el('ul', { class: 'lv-noten' }, fehlt),
-    teile && [el('h4', { class: 'lv-zwischen' }, 'Wo du noch Punkte holst'), teile],
-    l.b?.bedingung && el('p', { class: 'klein' }, el('b', {}, 'Achtung: '), l.b.bedingung),
-    !g && !l.c.note && l.e.length > 0 && el('p', { class: 'klein' }, 'Mit den Gesamtpunkten aus dem Syllabus steht hier, was dir für jede Note noch fehlt.'),
-    el('details', {}, el('summary', {}, l.b ? 'Notenschlüssel (aus dem Syllabus gelesen) ändern' : 'Notenschlüssel und ECTS'),
-      R[l.fach] && el('p', { class: 'meta' }, 'Steht in der ', el('a', { href: `#/${encodeURIComponent(l.fach)}` }, `Ausgabe ${l.fach}`), ' unter Stammdaten.'), form));
+  return el('details', { class: 'lv-schluessel' }, el('summary', {}, 'Notenschlüssel und ECTS'),
+    el('p', { class: 'meta' }, l.b ? 'Aus dem Syllabus gelesen' : 'Ohne eigenen Schlüssel gilt ab 50 % Note 4', R[l.fach] ? [', steht in der ', el('a', { href: `#/${encodeURIComponent(l.fach)}` }, `Ausgabe ${l.fach}`), ' unter Stammdaten.'] : '.'), form);
+}
+// Wunschnote wählen; je Lehrveranstaltung eine Zeile mit dem, was dafür noch fehlt, und einem kleinen Lineal mit der Grenze der Wunschnote.
+// Aufgeklappt: das ganze Lineal mit allen Notengrenzen, die Teilleistungen und der Notenschlüssel
+const notenZiel = () => [1, 2, 3, 4].includes(+merk('noten-ziel')) ? +merk('noten-ziel') : 2;
+function lvZeile(l, ziel) {
+  const st = notenStufen(l), s = st?.find(x => x.n === ziel), r = s?.z === 'offen' ? s.noch / l.offen : null, geht = st?.filter(x => x.z !== 'weg').at(-1);
+  const wort = !s ? (l.c.note ? '' : 'Gesamtpunkte fehlen noch') : s.z === 'sicher' ? `Note ${ziel} hast du sicher` : s.z === 'weg' ? (geht ? `nicht mehr drin, Note ${geht.n} geht noch` : 'nicht mehr drin')
+    : `${dez(100 * r, 0)} % vom Rest · ${r < 0.5 ? 'locker' : r < 0.8 ? 'machbar' : 'eng'}`;
+  return el('details', { class: 'ziel-zeile', 'data-fach': l.fach || null, 'data-z': s?.z || 'ohne' },
+    el('summary', {},
+      el('span', { class: 'zz-name' }, el('b', {}, l.name), el('span', { class: 'meta' }, l.c.gesamt > 0 && !l.c.note ? `${dez(l.p)} von ${dez(l.c.gesamt)} sicher · ${dez(l.offen)} offen` : lvMeta(l))),
+      el('span', { class: 'zz-noch' }, s?.z === 'offen' ? [el('b', {}, dez(s.noch)), el('small', {}, 'Punkte fehlen')] : el('b', { class: 'zz-zeichen' }, s?.z === 'sicher' ? 'geschafft' : l.c.note ? 'fertig' : '–')),
+      el('span', { class: 'zz-rest' }, st && el('span', { class: 'zz-balken', 'aria-hidden': 'true' }, lvBahn(l), s && el('span', { class: 'zz-strich', style: `left: ${lvAnteil(l, s.pt)}` })), el('small', {}, wort)),
+      lvNote(l)),
+    el('div', { class: 'zz-innen' },
+      st && lineal(l, st, ziel),
+      !l.c.gesamt && !l.c.note && el('p', { class: 'klein' }, 'Mit den Gesamtpunkten aus dem Syllabus steht hier, was dir für jede Note noch fehlt.'),
+      lvTeile(l),
+      l.b?.bedingung && el('p', { class: 'lv-zettel' }, el('b', {}, 'Achtung: '), l.b.bedingung),
+      lvEinst(l)));
+}
+function lvZiel(lvs) {
+  const ziel = notenZiel();
+  return [el('div', { class: 'ziel-wahl', role: 'group', 'aria-label': 'Deine Wunschnote' }, el('span', {}, 'Deine Wunschnote'),
+    [1, 2, 3, 4].map(n => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(n === ziel), onclick: () => { merk('noten-ziel', String(n)); notenZeigen(); } }, el('b', {}, String(n)), NOTEN_NAMEN[n]))),
+    el('ul', { class: 'legende l-legende' }, el('li', {}, el('i', { class: 'l-sicher' }), 'hast du sicher'), el('li', {}, el('i', { class: 'l-offen' }), 'noch zu holen'),
+      el('li', {}, el('i', { class: 'l-weg' }), 'verpasst'), el('li', {}, el('i', { class: 'l-grenze' }), 'Grenze deiner Wunschnote')),
+    el('div', { class: 'ziel-blatt' }, lvs.map(l => lvZeile(l, ziel)))];
 }
 function notenForm() {
   const b = NOTE_ID && NOTEN.eintraege.find(e => e.id === NOTE_ID), v = b || NOTE_VOR;
@@ -4111,11 +4223,10 @@ async function notenZeigen() {
       kachel('Punkte insgesamt', M ? `${dez(100 * P / M, 0)} %` : '–', `${dez(P)} von ${dez(M)} möglichen Punkten`),
       kachel('Gegen den Kursschnitt', abst == null ? '–' : `${abst >= 0 ? '+' : '−'}${dez(Math.abs(abst), 0)}`, abst == null ? 'Schreib bei einem Eintrag den Kursschnitt dazu' : `Prozentpunkte ${abst >= 0 ? 'über' : 'unter'} dem Schnitt`),
       ects > 0 && kachel('Positiv abgeschlossen', `${dez(ects)} ECTS`, 'mit eingetragener Endnote')),
-    lvs.length > 0 && teil('Lehrveranstaltungen', 'Was du hast, was dir für jede Note fehlt und wo es noch Punkte gibt', [
+    lvs.length > 0 && teil('Lehrveranstaltungen', 'Was dir für deine Wunschnote noch fehlt; antippen für alle Notengrenzen und Teilleistungen', [
       ABGLEICH?.ok === false && el('p', { class: 'noten-abgleich' }, el('b', {}, 'Ergebnisse aus OLAT fehlen noch. '),
         `Der letzte Abgleich ging nicht: ${ABGLEICH.text} Bis dahin fehlen hier etwa die Punkte der PS-Tests; du kannst sie auch selbst eintragen.`),
-      [...LV_GRUPPEN.map(([titel, re]) => [titel, lvs.filter(l => re.test(l.name))]), ['Weitere', lvs.filter(l => !LV_GRUPPEN.some(([, re]) => re.test(l.name)))]]
-        .filter(([, l]) => l.length).map(([titel, l]) => el('section', { class: 'lv-gruppe' }, el('h3', {}, titel), el('div', { class: 'lv-karten' }, l.map(lvKarte))))]),
+      lvZiel(lvs)]),
     pruefungenTeil(teil),
     teil('Verlauf', 'Jeder Punkt ein Eintrag, in Prozent der möglichen Punkte', notenVerlauf(lvs)),
     vergleich.length > 0 && teil('Du gegen den Kursschnitt', 'Nur Einträge, bei denen der Schnitt dabeisteht', el('div', { class: 'vergleich' }, vergleich.map(l =>
@@ -11428,13 +11539,17 @@ const CHANGELOG = [
       'OLAT bietet einen „aggregierten iCal-Feed“ mit allen Kalendern, auf die man Zugriff hat. Das Programm liest den Link dazu aus der Kalender-Seite und lädt nur die Termine in die App, der Link selbst bleibt am PC.',
       'Viele Vorlesungen stehen in beiden Kalendern, mit leicht anderem Titel. Die App erkennt doppelte Termine an Tag, Uhrzeit und Lehrveranstaltung und zeigt sie nur einmal.']],
     ['00:55', 'Karteikarten nach Woche', 'Neue Karten kamen immer von der ältesten Woche zuerst. Wer nur den Stoff dieser Woche lernen wollte, musste sich erst durch alte Begriffe klicken. Jetzt gibt es neben „Fach“ eine Auswahl „Woche“: diese Woche, letzte Woche oder eine ältere.', 0, 1],
-    ['00:55', '„Wie gut kennst du das?“ als Regler', 'Unter „Thema lernen“ standen drei gleich aussehende Knöpfe. Jetzt ist es ein gezeichneter Regler: je weiter nach rechts, desto mehr Textmarker. Wer nichts einstellt, sieht einen gestrichelten Knopf, dann schätzt der Lernhelfer das Vorwissen aus der Frage.', 0, 1]], t: [
+    ['00:55', '„Wie gut kennst du das?“ als Regler', 'Unter „Thema lernen“ standen drei gleich aussehende Knöpfe. Jetzt ist es ein gezeichneter Regler: je weiter nach rechts, desto mehr Textmarker. Wer nichts einstellt, sieht einen gestrichelten Knopf, dann schätzt der Lernhelfer das Vorwissen aus der Frage.', 0, 1],
+    ['01:05', 'Noten auf einen Blick', 'Die Notenseite war ein Raster aus gleich großen Karten mit je vier Zahlenzeilen. Jetzt wählst du oben deine Wunschnote, und jede Lehrveranstaltung ist eine Zeile: wie viele Punkte dir dafür fehlen, wie viel vom Rest das ist und ein kleines Lineal mit der Grenze. Aufgeklappt zeigt ein großes Lineal alle Notengrenzen, darunter stehen die Teilleistungen zum Eintragen.', 1, 2, [
+      'Gelb heißt überall dasselbe: Punkte, die du sicher hast. Schraffiert ist, was noch zu holen ist, durchgestrichen, was verpasst ist.',
+      'Zur Wahl standen zwei Entwürfe: ein Lineal je Lehrveranstaltung und eine kurze Liste nach Wunschnote. Geworden ist beides zusammen, die Liste als Überblick und das Lineal beim Aufklappen.']]], t: [
     ['00:30', 'Heute: Fächer an erster Stelle, dann Thema lernen, Weiterlernen, Frag den Lernhelfer'],
     ['00:30', 'Forum: Anonym-Hinweis erklärt jetzt technisch, warum sich Beiträge keinem Konto zuordnen lassen'],
     ['00:45', 'Kalender: PC-Programm holt den OLAT-Kalender automatisch, doppelte Termine erscheinen nur einmal'],
     ['00:50', 'Noten: PS-Test-Punkte aus OLAT bekommen das Datum der Bewertung statt des Abgleich-Tags'],
     ['00:55', 'Karteikarten: Auswahl nach Woche, gilt auch für Statistik, Export und Teilen im Forum'],
-    ['00:55', 'Thema lernen: Vorwissen per Regler statt drei Knöpfen, Fächer über der Zeile mit „Erklär’s mir“, Modellwahl vorerst ausgeblendet']] },
+    ['00:55', 'Thema lernen: Vorwissen per Regler statt drei Knöpfen, Fächer über der Zeile mit „Erklär’s mir“, Modellwahl vorerst ausgeblendet'],
+    ['01:05', 'Noten: Wunschnote wählen, eine Zeile je Lehrveranstaltung mit Punkte-Lineal, aufgeklappt alle Notengrenzen und Teilleistungen']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
