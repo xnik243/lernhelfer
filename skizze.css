@@ -290,6 +290,7 @@ i.l-sicher { background: var(--marker) center / 100% 100% no-repeat; }
 .lv-note b { background: var(--kreis) center / 100% 100% no-repeat; }
 .l-marke[data-z="sicher"] b { background: var(--marker) center / 100% 100% no-repeat, var(--bg); color: var(--auf-gelb); }
 .lv-note[data-art="end"] b { background: var(--kreis) center / 100% 100% no-repeat, var(--marker) center / 90% 64% no-repeat; color: var(--auf-gelb); }
+.ziel-zeile + .zz-gruppe { border-top: 0; background: var(--strich-waagrecht) left top / 100% 6px no-repeat; }
 .ziel-zeile + .ziel-zeile { border-top: 0; background: var(--strich-waagrecht) left top / 100% 6px no-repeat; }
 .lv-zettel { border-radius: 2px; background: var(--zettel); transform: rotate(-0.5deg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 20px -14px rgb(0 0 0 / 0.45); }
 :root:not([data-thema="dunkel"]) .lv-zettel { color: #121212; }

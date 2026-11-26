@@ -1077,13 +1077,14 @@ def kursname(titel):
 def faecher_zuordnen(kurse, jetzt, alt=None):
     """[(Kurs, Titel, Fach, LV-Art)] für die Kurse aus „Meine Kurse“. Ein Kurzname wie „Recht“ würfe im Jus-Studium alle Kurse
     in ein Fach: Steht darin eine LV-Art doppelt (zwei VO), heißen diese Kurse nach ihrem Titel. Kurse aus `alt` (bisherige
-    kurse.json) behalten ihr Fach, damit Lernstand und Ausgaben in der App nicht plötzlich unter neuem Namen stehen."""
+    kurse.json) behalten ihr Fach, damit Lernstand und Ausgaben in der App nicht plötzlich unter neuem Namen stehen. Gibt es das
+    Kurzfach schon (etwa „VWL“), kommt ein später dazugekommener zweiter VO-Kurs dazu, statt als eigenes Fach „Volkswirtschaft“."""
     bekannt = {q["url"].split("/")[0]: f for f, liste in (alt or {}).items() for q in liste if not re.search(r'[\\/:*?"<>|]', f)}  # „Physik I: …“ ging nie
     liste = [(k, t, f, (re.match(r"\d{4}[WS]\d+\s+([A-Z]{2})\b", t) or [None, ""])[1]) for k, t in kurse if (f := kursfach(t, jetzt))]
     arten = {}
     for _, _, f, typ in liste:
         arten.setdefault(f, []).append(typ)
-    doppelt = {f for f, a in arten.items() if len(a) > len(set(a))}
+    doppelt = {f for f, a in arten.items() if len(a) > len(set(a))} - set(bekannt.values())
     return [(k, t, bekannt.get(k) or (f in doppelt and kursname(t)) or f, typ) for k, t, f, typ in liste]
 
 

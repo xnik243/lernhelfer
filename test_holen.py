@@ -117,6 +117,10 @@ def test():
     assert [f for _, _, f, _ in holen.faecher_zuordnen(meine, jetzt)] == ["Bürgerliches Recht I", "Strafrecht", "Bürgerliches Recht I", "BWL", "BWL"]
     assert holen.faecher_zuordnen(meine, jetzt, {"Recht": [{"url": "1/CourseNode/9"}]})[0][2:] == ("Recht", "VO")
     assert holen.faecher_zuordnen(meine, jetzt, {"Bürgerl: R": [{"url": "1/CourseNode/9"}]})[0][2] == "Bürgerliches Recht I"
+    # VWL gibt es schon: ein später aufgetauchter zweiter VO-Kurs kommt dazu, statt eigenes Fach „Volkswirtschaft“ (so beim User am 23.11.)
+    wiwi = [("1", "2026W432001 VO Grundlagen der Volkswirtschaft"), ("2", "2026W432002 PS Grundlagen der Volkswirtschaft"), ("3", "2026W432009 VO Volkswirtschaft")]
+    assert [f for _, _, f, _ in holen.faecher_zuordnen(wiwi, jetzt, {"VWL": [{"url": "1/CourseNode/9"}, {"url": "2/CourseNode/4"}]})] == ["VWL", "VWL", "VWL"]
+    assert [f for _, _, f, _ in holen.faecher_zuordnen(wiwi, jetzt)] == ["Volkswirtschaft"] * 3  # ganz neu: wie bei Jus nach dem Titel, aber alle in einem Fach
     # Ein PS-Kurs ohne Dateien (nur Tests und Bewertungen) bleibt drin, damit tests() ihn besucht
     class OhneDateien:
         def goto(self, url): pass

@@ -1880,6 +1880,8 @@
   .ziel-wahl .vt-filter b { font-variant-numeric: tabular-nums; }
   .ziel-blatt { padding: 2px 22px; border: 1px solid var(--linie); border-radius: var(--r-l); }
   .ziel-zeile + .ziel-zeile { border-top: 1px solid var(--linie); }
+  .zz-gruppe { margin: 0; padding: 18px 0 2px; color: var(--text-2); font: 750 0.9375rem/1.3 var(--sans); }
+  .ziel-zeile + .zz-gruppe { margin-top: 6px; border-top: 1.5px solid var(--linie-2); }
   .ziel-zeile > summary { display: grid; grid-template-columns: minmax(0, 1.25fr) 6.5em minmax(0, 1.5fr) auto 12px; grid-template-areas: "name noch rest note pfeil"; gap: 6px 20px; align-items: center; padding: 14px 0; list-style: none; cursor: pointer; }
   .ziel-zeile > summary::-webkit-details-marker { display: none; }
   .ziel-zeile > summary::after { content: ""; grid-area: pfeil; width: 8px; height: 8px; border: solid var(--text-3); border-width: 0 1.5px 1.5px 0; rotate: 45deg; translate: 0 -2px; transition: rotate 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
@@ -3979,7 +3981,7 @@ function lvStand(name) {
 // Bewertungsschema je Fach (noten.json → bewertung[Fach] = { text, lvs }), von der KI einmal aus den Stammdaten der neuesten Ausgabe gelesen:
 // lvs: [{ lv, ects, gesamt, schluessel: [ab % für 4, 3, 2, 1], bedingung, teile: [{ titel, art, suche, anzahl, max_je, zaehlen, max }] }]
 const LV_ART = /\s(VO|PS|UE|VU|SE|UV|KS)$/;  // Fächer wie „BWL VO“ sind schon eine Lehrveranstaltung
-const bewLvs = () => Object.values(NOTEN?.bewertung || {}).flatMap(b => b.lvs || []);
+const bewLvs = () => Object.entries(NOTEN?.bewertung || {}).filter(([f]) => R[f] || !Object.keys(R).length).flatMap(([, b]) => b.lvs || []);  // ausgeblendete oder zusammengelegte Fächer zählen nicht mit
 const norm = s => String(s || '').toLowerCase().replace(/[-–_\s]+/g, ' ').trim();
 // ohne Suchwort (Mitarbeit, Diskussionsbeitrag) zählt ein Eintrag, der den Namen des Teils trägt, wie „Ergebnis eintragen“ ihn vorschlägt;
 // die Wörter dürfen getrennt stehen: „PS-4b-Test“ und „PS-Test Woche 4“ sind beide ein „PS-Test“
@@ -4167,13 +4169,16 @@ function lvZeile(l, ziel) {
       l.b?.bedingung && el('p', { class: 'lv-zettel' }, el('b', {}, 'Achtung: '), l.b.bedingung),
       lvEinst(l)));
 }
+// Proseminare und Vorlesungen getrennt (Name endet auf „PS“, „VO“ …); was keine Art im Namen hat, kommt zu „Weitere“
+const LV_GRUPPEN = [['Proseminare und Übungen', /\s(PS|UE|VU|SE|UV|KS)$/], ['Vorlesungen', /\sVO$/]];
 function lvZiel(lvs) {
   const ziel = notenZiel();
   return [el('div', { class: 'ziel-wahl', role: 'group', 'aria-label': 'Deine Wunschnote' }, el('span', {}, 'Deine Wunschnote'),
     [1, 2, 3, 4].map(n => el('button', { type: 'button', class: 'vt-filter', 'aria-pressed': String(n === ziel), onclick: () => { merk('noten-ziel', String(n)); notenZeigen(); } }, el('b', {}, String(n)), NOTEN_NAMEN[n]))),
     el('ul', { class: 'legende l-legende' }, el('li', {}, el('i', { class: 'l-sicher' }), 'hast du sicher'), el('li', {}, el('i', { class: 'l-offen' }), 'noch zu holen'),
       el('li', {}, el('i', { class: 'l-weg' }), 'verpasst'), el('li', {}, el('i', { class: 'l-grenze' }), 'Grenze deiner Wunschnote')),
-    el('div', { class: 'ziel-blatt' }, lvs.map(l => lvZeile(l, ziel)))];
+    el('div', { class: 'ziel-blatt' }, [...LV_GRUPPEN.map(([titel, re]) => [titel, lvs.filter(l => re.test(l.name))]), ['Weitere', lvs.filter(l => !LV_GRUPPEN.some(([, re]) => re.test(l.name)))]]
+      .filter(([, l]) => l.length).map(([titel, l]) => [el('h3', { class: 'zz-gruppe' }, titel), l.map(x => lvZeile(x, ziel))]))];
 }
 function notenForm() {
   const b = NOTE_ID && NOTEN.eintraege.find(e => e.id === NOTE_ID), v = b || NOTE_VOR;
@@ -11549,7 +11554,9 @@ const CHANGELOG = [
     ['00:50', 'Noten: PS-Test-Punkte aus OLAT bekommen das Datum der Bewertung statt des Abgleich-Tags'],
     ['00:55', 'Karteikarten: Auswahl nach Woche, gilt auch für Statistik, Export und Teilen im Forum'],
     ['00:55', 'Thema lernen: Vorwissen per Regler statt drei Knöpfen, Fächer über der Zeile mit „Erklär’s mir“, Modellwahl vorerst ausgeblendet'],
-    ['01:05', 'Noten: Wunschnote wählen, eine Zeile je Lehrveranstaltung mit Punkte-Lineal, aufgeklappt alle Notengrenzen und Teilleistungen']] },
+    ['01:05', 'Noten: Wunschnote wählen, eine Zeile je Lehrveranstaltung mit Punkte-Lineal, aufgeklappt alle Notengrenzen und Teilleistungen'],
+    ['07:54', 'Noten: Proseminare und Vorlesungen wieder getrennt; ausgeblendete Fächer erscheinen nicht mehr doppelt'],
+    ['07:54', 'PC-Programm: ein später dazugekommener zweiter Kurs eines Fachs (etwa eine zweite VWL-Vorlesung) wird kein eigenes Fach mehr']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
