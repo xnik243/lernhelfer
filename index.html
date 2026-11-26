@@ -1886,6 +1886,13 @@
   .ziel-zeile > summary::-webkit-details-marker { display: none; }
   .ziel-zeile > summary::after { content: ""; grid-area: pfeil; width: 8px; height: 8px; border: solid var(--text-3); border-width: 0 1.5px 1.5px 0; rotate: 45deg; translate: 0 -2px; transition: rotate 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
   .ziel-zeile[open] > summary::after { rotate: -135deg; translate: 0 2px; }
+  .alle-eintraege > summary { list-style: none; cursor: pointer; }
+  .alle-eintraege > summary::-webkit-details-marker { display: none; }
+  .alle-eintraege > summary h2::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 12px; border: solid var(--text-3); border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -4px; transition: rotate 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+  .alle-eintraege[open] > summary h2::after { rotate: -135deg; translate: 0 1px; }
+  .alle-eintraege:not([open]) > summary { margin-bottom: 0; }
+  @media (hover: hover) { .alle-eintraege > summary:hover h2::after { border-color: var(--text); } }
+  @media (prefers-reduced-motion: reduce) { .alle-eintraege > summary h2::after { transition: none; } }
   .zz-name { grid-area: name; min-width: 0; }
   .zz-name b { display: flex; align-items: center; gap: 8px; font-weight: 700; overflow-wrap: anywhere; }
   .zz-name .meta { display: block; margin-top: 2px; }
@@ -4244,7 +4251,8 @@ async function notenZeigen() {
           el('i', { style: `width: ${Math.min(100, Math.max(1, l.du))}%` }), el('i', { class: 'kurs', style: `width: ${Math.min(100, Math.max(1, l.schnitt))}%` })),
         el('span', { class: 'meta' }, `Du ${dez(l.du, 0)} %, Kurs ${dez(l.schnitt, 0)} %`))))),
     teil(NOTE_ID ? 'Eintrag ändern' : 'Punkte eintragen', null, notenForm()),
-    alle.length > 0 && teil('Alle Einträge', `${alle.length} ${alle.length === 1 ? 'Eintrag' : 'Einträge'}, neueste zuerst`,
+    alle.length > 0 && el('details', { class: 'teil alle-eintraege', id: 'noten-alle', open: !!$('noten-alle')?.open },  // offen bleibt offen beim Neuzeichnen
+      el('summary', { class: 'rubrik' }, el('h2', {}, 'Alle Einträge'), el('p', { class: 'meta' }, `${alle.length} ${alle.length === 1 ? 'Eintrag' : 'Einträge'}, neueste zuerst`)),
       tabelle(['Datum', 'Lehrveranstaltung', 'Was', 'Punkte', '%', 'Kursschnitt', ''], alle.slice().sort((a, b) => b.datum.localeCompare(a.datum)).map(e => [
         datum(e.datum, { day: '2-digit', month: '2-digit', year: '2-digit' }), e.lv, [e.titel, e.olat && el('span', { class: 'pille' }, 'aus OLAT')],
         `${dez(e.punkte)} von ${dez(e.max)}`, `${dez(100 * e.punkte / e.max, 0)} %`, e.schnitt != null ? `${dez(100 * e.schnitt / e.max, 0)} %` : '–',
@@ -11564,7 +11572,8 @@ const CHANGELOG = [
     ['08:08', 'Noten: statt „machbar“ oder „eng“ steht, wie viel Prozent vom Rest du brauchst und wie viel du bisher hattest; vor der VO-Prüfung nur, was du in der Prüfung brauchst'],
     ['08:08', 'Noten: Ergebnisse aus OLAT von einem gelöschten oder zusammengelegten Fach zählen nicht mehr doppelt'],
     ['09:00', 'PC-Programm: bei „Erst prüfen, dann laden“ steht vorerst nur noch „ChatGPT fragen“'],
-    ['09:40', 'Forum: anonymer Bereich „Gesundheit und Leistung“ vorerst ausgeblendet']] },
+    ['09:40', 'Forum: anonymer Bereich „Gesundheit und Leistung“ vorerst ausgeblendet'],
+    ['18:30', 'Noten: „Alle Einträge“ ist zugeklappt und öffnet sich mit dem Pfeil neben der Überschrift']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
