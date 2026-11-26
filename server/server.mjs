@@ -1179,7 +1179,7 @@ const FORUM = [
   ['offtopic', 'Off Topic', 'Alles andere.'],
   // anonym: geschrieben wird nur über /api/anon-forum (ohne Anmeldung, mit Marke); zum Konto wird hier nichts gespeichert, auch kein Gelesen, keine Reaktion, kein Lesezeichen
   ['anon-lehre', 'Lehre und Prüfungen', 'Ehrliche Erfahrungen mit Lehrveranstaltungen, Lehrenden, Prüfungen und Betreuung.', false, true],
-  ['anon-gesundheit', 'Gesundheit und Leistung', 'Erfahrungen mit Nootropika, Koffein, Medikamenten, Schlaf und Stress. Erfahrungen ja; Beratung, Bezugsquellen und Handel nein.', false, true],
+  // vorerst ausgeblendet: ['anon-gesundheit', 'Gesundheit und Leistung', 'Erfahrungen mit Nootropika, Koffein, Medikamenten, Schlaf und Stress. Erfahrungen ja; Beratung, Bezugsquellen und Handel nein.', false, true],
   ['anon-offen', 'Offen gesagt', 'Alles, was du lieber ohne Namen sagst.', false, true],
 ].map(([id, name, text, team, anonym]) => ({ id, name, text, team: !!team, anonym: !!anonym }));
 const anonym = bereich => !!FORUM.find(x => x.id === bereich)?.anonym;

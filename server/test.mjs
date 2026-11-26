@@ -947,7 +947,7 @@ try {
   await leser('POST', '/api/registrieren', { email: 'leser@example.com', passwort: 'leser-passwort-1', agb: true });
   await leser('POST', '/api/bestaetigen', { token: await link('leser@example.com', 'bestaetigen') });
   let fo = (await lern('GET', '/api/forum')).j;
-  assert.equal(fo.bereiche.length, 11); assert.equal(fo.bereiche.filter(b => b.anonym).length, 3); assert.equal(fo.ich.gewaehlt, false); assert.equal(fo.ich.darf, true);
+  assert.equal(fo.bereiche.length, 10); assert.equal(fo.bereiche.filter(b => b.anonym).length, 2); assert.equal(fo.ich.gewaehlt, false); assert.equal(fo.ich.darf, true);
   const neuerThread = { bereich: 'lernen', praefix: 'guide', titel: 'Active Recall richtig', text: 'Erst abrufen, dann nachschauen. So geht es Schritt für Schritt.' };
   assert.equal((await lern('POST', '/api/forum/thema', neuerThread)).status, 409, 'erst einen Namen wählen');
   await leser('POST', '/api/arena', { name: 'Maxi' });
@@ -1123,7 +1123,7 @@ try {
   assert.equal((await anMarken(roh, 1)).status, 403, 'unbestätigt keine Marken');
   assert.equal((await anMarken(lern, 1)).status, 403, 'im Forum gesperrt keine Marken');
   const anMk = await anMarken(leser, 6), anGeheim = randomBytes(32).toString('base64url');
-  const anThread = { bereich: 'anon-gesundheit', praefix: 'erfahrung', titel: 'Erfahrung mit Koffeintabletten', text: 'Zwei Wochen lang vor der Prüfung ausprobiert, das ist dabei rausgekommen.' };
+  const anThread = { bereich: 'anon-lehre', praefix: 'erfahrung', titel: 'Erfahrung mit Koffeintabletten', text: 'Zwei Wochen lang vor der Prüfung ausprobiert, das ist dabei rausgekommen.' };
   assert.equal((await leser('POST', '/api/anon-forum/thema', { ...anThread, marke: anMk[0], loesch: anGeheim })).status, 400, 'mit Anmeldung abgelehnt');
   assert.equal((await anOhne('POST', '/api/anon-forum/thema', { ...anThread, marke: { m: anMk[0].m, s: anMk[1].s } })).status, 410, 'fremde Signatur');
   assert.equal((await anOhne('POST', '/api/anon-forum/thema', { ...anThread, titel: 'x', marke: anMk[0] })).status, 400, 'falsche Eingabe');
