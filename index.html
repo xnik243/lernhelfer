@@ -7957,7 +7957,7 @@ Fass dich kurz und sag mir am Ende klar, ob ich es bedenkenlos installieren kann
 function pruefKnoepfe() {
   const f = encodeURIComponent(pruefFrage());
   const ki = (name, url) => el('a', { class: 'knopf', href: url, target: '_blank', rel: 'noopener' }, `${name} fragen`);
-  return el('div', { class: 'knopfreihe' }, ki('ChatGPT', `https://chatgpt.com/?hints=search&q=${f}`), ki('Claude', `https://claude.ai/new?q=${f}`));
+  return el('div', { class: 'knopfreihe' }, ki('ChatGPT', `https://chatgpt.com/?hints=search&q=${f}`) /* vorerst ausgeblendet: , ki('Claude', `https://claude.ai/new?q=${f}`) */);
 }
 const pruefZettel = () => el('aside', { class: 'pruef-zettel' },
   el('img', { class: 'pz-foto', src: 'ich.jpg', alt: '', width: 64, height: 80, onerror: e => e.target.remove() }),
@@ -11562,7 +11562,8 @@ const CHANGELOG = [
     ['07:54', 'Noten: Proseminare und Vorlesungen wieder getrennt; ausgeblendete Fächer erscheinen nicht mehr doppelt'],
     ['07:54', 'PC-Programm: ein später dazugekommener zweiter Kurs eines Fachs (etwa eine zweite VWL-Vorlesung) wird kein eigenes Fach mehr'],
     ['08:08', 'Noten: statt „machbar“ oder „eng“ steht, wie viel Prozent vom Rest du brauchst und wie viel du bisher hattest; vor der VO-Prüfung nur, was du in der Prüfung brauchst'],
-    ['08:08', 'Noten: Ergebnisse aus OLAT von einem gelöschten oder zusammengelegten Fach zählen nicht mehr doppelt']] },
+    ['08:08', 'Noten: Ergebnisse aus OLAT von einem gelöschten oder zusammengelegten Fach zählen nicht mehr doppelt'],
+    ['09:00', 'PC-Programm: bei „Erst prüfen, dann laden“ steht vorerst nur noch „ChatGPT fragen“']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
