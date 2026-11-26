@@ -3923,7 +3923,8 @@ const dez = (x, n = 1) => x == null ? '–' : x.toLocaleString('de-AT', { maximu
 const feldWert = x => x == null ? '' : String(Math.round(x * 100) / 100).replace('.', ',');
 const summe = (l, k) => l.reduce((s, x) => s + (x[k] || 0), 0);
 const noteAus = (p, s) => p == null ? null : 5 - s.filter(g => p >= g).length;
-const notenAktiv = () => NOTEN.eintraege.filter(e => !e.weg && e.max > 0);
+// Ergebnisse aus OLAT zählen nur, solange es ihr Fach gibt: ein gelöschtes, zusammengelegtes oder ausgeblendetes Fach hinterlässt keine doppelte Lehrveranstaltung
+const notenAktiv = () => NOTEN.eintraege.filter(e => !e.weg && e.max > 0 && !(e.olat && Object.keys(R).length && !R[e.olat.split('|')[0]]));
 const fachVon = lv => [...ORDNUNG, ...Object.keys(R)].find(f => lv.toLowerCase().startsWith(f.toLowerCase())) || '';
 // pruefungen: [{ id, fach, titel, datum, zeit, quelle, weg }] (Termine aus den Ausgaben kommen von selbst); proben: Ergebnisse der Probeklausuren
 const NOTEN_D = datei('noten.json', () => ({ lv: {}, eintraege: [] }));
@@ -4154,8 +4155,11 @@ function lvEinst(l) {  // Notenschlüssel, Gesamtpunkte, ECTS und Endnote von Ha
 const notenZiel = () => [1, 2, 3, 4].includes(+merk('noten-ziel')) ? +merk('noten-ziel') : 2;
 function lvZeile(l, ziel) {
   const st = notenStufen(l), s = st?.find(x => x.n === ziel), r = s?.z === 'offen' ? s.noch / l.offen : null, geht = st?.filter(x => x.z !== 'weg').at(-1);
+  // Was vom Rest nötig ist, neben dem, was du bisher geschafft hast; keine feste Wertung wie „machbar“: Vor der VO-Prüfung ist das nur die
+  // Notengrenze und sagt nichts darüber, wie schwer es wird. Hängt alles an einem Teil (VO-Prüfung, PS-Klausur), steht dieser da
+  const rest = l.teile?.filter(t => t.offen > 0), eins = rest?.length === 1 && rest[0];
   const wort = !s ? (l.c.note ? '' : 'Gesamtpunkte fehlen noch') : s.z === 'sicher' ? `Note ${ziel} hast du sicher` : s.z === 'weg' ? (geht ? `nicht mehr drin, Note ${geht.n} geht noch` : 'nicht mehr drin')
-    : `${dez(100 * r, 0)} % vom Rest · ${r < 0.5 ? 'locker' : r < 0.8 ? 'machbar' : 'eng'}`;
+    : [eins ? `${eins.suche || eins.titel}: ${dez(100 * r, 0)} % nötig` : `${dez(100 * r, 0)} % ${l.stand != null ? 'vom Rest' : 'aller Punkte'} nötig`, l.stand != null && `bisher ${dez(l.stand, 0)} %`].filter(Boolean).join(' · ');
   return el('details', { class: 'ziel-zeile', 'data-fach': l.fach || null, 'data-z': s?.z || 'ohne' },
     el('summary', {},
       el('span', { class: 'zz-name' }, el('b', {}, l.name), el('span', { class: 'meta' }, l.c.gesamt > 0 && !l.c.note ? `${dez(l.p)} von ${dez(l.c.gesamt)} sicher · ${dez(l.offen)} offen` : lvMeta(l))),
@@ -11556,7 +11560,9 @@ const CHANGELOG = [
     ['00:55', 'Thema lernen: Vorwissen per Regler statt drei Knöpfen, Fächer über der Zeile mit „Erklär’s mir“, Modellwahl vorerst ausgeblendet'],
     ['01:05', 'Noten: Wunschnote wählen, eine Zeile je Lehrveranstaltung mit Punkte-Lineal, aufgeklappt alle Notengrenzen und Teilleistungen'],
     ['07:54', 'Noten: Proseminare und Vorlesungen wieder getrennt; ausgeblendete Fächer erscheinen nicht mehr doppelt'],
-    ['07:54', 'PC-Programm: ein später dazugekommener zweiter Kurs eines Fachs (etwa eine zweite VWL-Vorlesung) wird kein eigenes Fach mehr']] },
+    ['07:54', 'PC-Programm: ein später dazugekommener zweiter Kurs eines Fachs (etwa eine zweite VWL-Vorlesung) wird kein eigenes Fach mehr'],
+    ['08:08', 'Noten: statt „machbar“ oder „eng“ steht, wie viel Prozent vom Rest du brauchst und wie viel du bisher hattest; vor der VO-Prüfung nur, was du in der Prüfung brauchst'],
+    ['08:08', 'Noten: Ergebnisse aus OLAT von einem gelöschten oder zusammengelegten Fach zählen nicht mehr doppelt']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
