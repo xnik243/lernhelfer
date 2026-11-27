@@ -319,6 +319,17 @@ def test():
     assert holen.auto_einloggen(z, {"benutzer": "csab1234", "passwort": "pw", "geheim": geheim}) is None, "wartet auf die Login-Seite"
     assert z.getippt == {"#username": "csab1234", "#password": "pw"}, z.getippt
 
+    class Abgelehnt(Zwischenseite):  # 2FA-Seite kommt nach dem Abschicken wieder: Code abgelehnt
+        def click(self, _): pass  # bleibt auf dem IdP, dort kommt die 2FA-Seite
+        def count(self): return {"#password": self.gewartet >= 2, "#password:visible": False, "text": False}.get(self.sel, True)
+        def fill(self, *a): self.getippt[a[0]] = a[-1]
+        def press(self, _): pass
+        def wait_for_url(self, *a, **k): raise TimeoutError
+        @property
+        def first(self): return self
+    a = Abgelehnt()
+    assert "abgelehnt" in holen.auto_einloggen(a, {"benutzer": "csab1234", "passwort": "pw", "geheim": geheim}), a.getippt
+
     # Selbst-Update nur mit gültiger Signatur (Testvektor 1 aus RFC 8032: leere Nachricht)
     rfc = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
     sig = bytes.fromhex("e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")

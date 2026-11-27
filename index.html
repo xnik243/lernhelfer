@@ -11581,11 +11581,13 @@ const CHANGELOG = [
       'Den Abgleich im Hintergrund beendet es samt seinem unsichtbaren Browser, und nur, wenn die gemerkte Prozessnummer wirklich zu einem Lernhelfer-Programm gehört.',
       'Esc statt Strg+C: Bei Strg+C fragt Windows hinterher noch „Batchvorgang abbrechen (J/N)?“, und Playwright hinterließ Fehlermeldungen im Fenster.']],
     ['15:15', 'Login einrichten ohne Blindflug', 'Passwort und 2FA-Schlüssel blieben beim Eintippen komplett unsichtbar, und Strg+V fügte den langen Schlüssel im alten Windows-Fenster gar nicht ein. Jetzt erscheint jedes Zeichen als Stern, Tab zeigt den Text zum Nachprüfen, und Strg+V klappt überall. Der Text davor ist in Sicherheit und drei Schritte gegliedert statt ein Block.', 0, 1],
-    ['18:25', 'Automatischer Login findet die Uni-Seite wieder', 'Beim ersten Test brach der automatische Login mit „Login-Seite sah anders aus als erwartet“ ab. Die Uni schaltet vor das Anmeldeformular eine leere Zwischenseite, die sich nach einem Augenblick selbst weiterschickt. Das Programm schaute zu früh nach dem Passwortfeld. Jetzt wartet es bis zu 15 Sekunden auf das Formular.', 0, 1]], t: [
+    ['18:25', 'Automatischer Login findet die Uni-Seite wieder', 'Beim ersten Test brach der automatische Login mit „Login-Seite sah anders aus als erwartet“ ab. Die Uni schaltet vor das Anmeldeformular eine leere Zwischenseite, die sich nach einem Augenblick selbst weiterschickt. Das Programm schaute zu früh nach dem Passwortfeld. Jetzt wartet es bis zu 15 Sekunden auf das Formular.', 0, 1],
+    ['19:00', 'Jeder 2FA-Code nur einmal', 'Die Uni nimmt jeden 6-stelligen Code nur einmal an. Hatte man den Code gerade im Account Portal eingegeben, schickte der Test-Login direkt danach denselben Code nochmal und wurde abgelehnt. Jetzt wartet das Programm bis zum nächsten Code. Klappt der Test nicht, kann man ihn mit denselben Daten wiederholen, statt alles neu einzutippen, und die Meldung sagt, ob die Uni den Code abgelehnt hat.', 0, 1]], t: [
     ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link'],
     ['15:10', 'PC-Programm: Esc bricht den Abgleich ab, im Wartebildschirm den im Hintergrund; Tastenhinweis rechts im Fortschrittsbereich'],
     ['15:15', 'PC-Programm: Passwort und 2FA-Schlüssel als Sterne, Tab zeigt sie, Strg+V fügt auch in der alten Konsole ein; Einrichte-Text gegliedert'],
-    ['18:25', 'PC-Programm: automatischer Login wartet auf die Zwischenseite der Uni, bevor er Kennung und Passwort einträgt']] },
+    ['18:25', 'PC-Programm: automatischer Login wartet auf die Zwischenseite der Uni, bevor er Kennung und Passwort einträgt'],
+    ['19:00', 'PC-Programm: Test-Login wartet auf einen frischen 2FA-Code, lässt sich mit denselben Daten wiederholen und meldet einen abgelehnten Code klar']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

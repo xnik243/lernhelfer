@@ -903,7 +903,10 @@ def auto_einloggen(seite, login):
             try:
                 seite.wait_for_url(lambda u: not auf_idp(u), timeout=30_000)
             except Exception:
-                return "der 2FA-Code wurde nicht angenommen (2FA-Schlüssel prüfen)"
+                if seite.locator(CODEFELD).count():  # wieder die 2FA-Seite: Code abgelehnt
+                    return ("die Uni hat den 2FA-Code abgelehnt. Meist gehört der 2FA-Schlüssel zu einem anderen Token: "
+                            "im Account Portal den Token löschen, einen neuen anlegen und den Schlüssel neu einfügen")
+                return "nach dem 2FA-Code kam eine unerwartete Seite der Uni"
     ANZEIGE.jetzt("zurück zu OLAT")
     seite.goto(OLAT + "/auth/MyCoursesSite/0")
     return None if seite.get_by_text(EINGELOGGT).count() else "OLAT hat die Anmeldung nicht angenommen"
@@ -1043,25 +1046,35 @@ def autologin_einrichten(p, stand):
         print(f"  {r}!{x} Das sieht nicht nach einem 2FA-Schlüssel aus (Buchstaben A–Z und Ziffern 2–7). Nichts gespeichert.")
         return None
     while True:
-        print(f"\n  Code fürs Account Portal:  {f}{totp(geheim)}{x}  {g}gilt noch {30 - int(time.time() % 30)} Sekunden{x}")
+        benutzt = totp(geheim)  # die Uni nimmt jeden Code nur einmal: der Test darf ihn nicht nochmal schicken
+        print(f"\n  Code fürs Account Portal:  {f}{benutzt}{x}  {g}gilt noch {30 - int(time.time() % 30)} Sekunden{x}")
         antwort = input("  Angenommen (oder war er schon eingerichtet)? Dann ok tippen, sonst Enter für einen frischen Code: ")
         if antwort.strip().lower() in ("ok", "j", "ja"):
             break
     login = {"benutzer": benutzer, "passwort": passwort, "geheim": geheim}
-    print(f"\n  {g}Teste den Login bei OLAT …{x}", flush=True)
-    fenster = profil(p, unsichtbar=True)
-    try:
-        fenster.clear_cookies(domain=IDP)  # sonst kennt der IdP die Anmeldung noch und prüft gar nichts
-        grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
-        if grund is None:
-            sitzung_speichern(fenster)
-    except Exception as e:
-        grund = f"unterbrochen ({type(e).__name__})"
-    finally:
-        fenster.close()
-    if grund:
-        print(f"  {r}!{x} Das hat nicht geklappt: {grund}. Nichts gespeichert, du loggst dich wie bisher selbst ein.")
-        return None
+    while True:
+        if totp(geheim) == benutzt:
+            print(f"\n  {g}Die Uni nimmt jeden Code nur einmal, darum {30 - int(time.time() % 30)} Sekunden warten …{x}", flush=True)
+            while totp(geheim) == benutzt:
+                time.sleep(0.5)
+        print(f"\n  {g}Teste den Login bei OLAT …{x}", flush=True)
+        fenster = profil(p, unsichtbar=True)
+        try:
+            fenster.clear_cookies(domain=IDP)  # sonst kennt der IdP die Anmeldung noch und prüft gar nichts
+            grund = auto_einloggen(fenster.pages[0] if fenster.pages else fenster.new_page(), login)
+            if grund is None:
+                sitzung_speichern(fenster)
+        except Exception as e:
+            grund = f"unterbrochen ({type(e).__name__})"
+        finally:
+            fenster.close()
+            benutzt = totp(geheim)
+        if not grund:
+            break
+        print(f"  {r}!{x} Das hat nicht geklappt: {grund}.")
+        if input("  Nochmal mit denselben Daten versuchen? (j/n): ").strip().lower() not in ("j", "ja"):
+            print("  Nichts gespeichert, du loggst dich wie bisher selbst ein.")
+            return None
     login_speichern(login)
     stand.pop("autologin_fehler", None)
     print(f"  {gr}✓{x} Gespeichert. Ab jetzt loggt sich der Lernhelfer selbst bei OLAT ein.\n")
