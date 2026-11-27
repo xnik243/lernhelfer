@@ -1145,7 +1145,12 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
         print(f"Bitte im {BROWSER}-Fenster bei OLAT einloggen (10 Minuten Zeit) …", flush=True)
         ANZEIGE.schritt("Warte auf deinen Login", frist=600, hinweis="Kein Stress, das Fenster wartet bis zu 10 Minuten.")
         ANZEIGE.jetzt("dort mit Uni-Kennung und Authenticator-App einloggen", f"{BROWSER}-Fenster")
-        seite.get_by_text(EINGELOGGT).first.wait_for(timeout=600_000)
+        try:
+            seite.get_by_text(EINGELOGGT).first.wait_for(timeout=600_000)
+        except Exception as e:
+            if type(e).__name__ == "TargetClosedError":  # Fenster selbst zugemacht: abgebrochen wie mit Esc, kein Absturzbericht
+                raise Abbruch from None
+            raise
         ANZEIGE.melden("Eingeloggt. Das Fenster schließt sich, der Abgleich läuft unsichtbar weiter.")
         sitzung_speichern(fenster)
         fenster.close()
