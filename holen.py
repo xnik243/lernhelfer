@@ -926,9 +926,11 @@ Notbremse (z. B. {GERAET} gestohlen): im Account Portal den Token löschen, den 
 ändern. Dann sind die gespeicherten Daten wertlos, egal wo sie gerade sind.
 
 Den 2FA-Schlüssel bekommst du so:
-  1. https://accounts.uibk.ac.at öffnen, einloggen, bei der Zwei-Faktor-Authentifizierung auf „Verwalten“, dann „Neuer Token“.
+  1. https://accounts.uibk.ac.at öffnen, einloggen und oben rechts auf Deutsch stellen (auf Englisch fehlt der Link aus 2.).
+     Dann bei der Zwei-Faktor-Authentifizierung auf „Verwalten“, dann „Neuer Token“.
   2. Unter dem QR-Code auf „hier“ klicken. Das kopiert den geheimen Schlüssel.
-  3. Hier einfügen. Danach zeigt der Lernhelfer einen 6-stelligen Code: den im Account Portal eingeben und „Verifizieren“.
+  3. Hier einfügen. Danach zeigt der Lernhelfer einen 6-stelligen Code: den im Account Portal eingeben (nicht den aus der
+     Handy-App) und „Verifizieren“.
 Deine Authenticator-App am Handy funktioniert weiter wie bisher.
 Nichts eingeben und Enter = überspringen, dann loggst du dich wie bisher selbst ein.
 """)

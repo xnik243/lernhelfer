@@ -8039,8 +8039,8 @@ function autoLoginTeil() {
       el('ol', { class: 'schritte klein' },
         el('li', {}, 'Schalter einschalten, die Hinweise abhaken, dann am Computer „Lernhelfer OLAT“ doppelklicken.'),
         el('li', {}, 'Im schwarzen Fenster Benutzerkennung und Passwort eingeben.'),
-        el('li', {}, 'Auf ', el('a', { href: 'https://accounts.uibk.ac.at/', target: '_blank', rel: 'noopener' }, 'accounts.uibk.ac.at'), ' bei der Zwei-Faktor-Authentifizierung „Verwalten“ und „Neuer Token“ wählen, unter dem QR-Code auf „hier“ klicken und den Schlüssel ins Fenster einfügen.'),
-        el('li', {}, 'Den 6-stelligen Code aus dem Fenster im Account Portal eingeben. Das Programm testet den Login und speichert erst dann.')),
+        el('li', {}, 'Auf ', el('a', { href: 'https://accounts.uibk.ac.at/', target: '_blank', rel: 'noopener' }, 'accounts.uibk.ac.at'), ' die Seite oben rechts auf Deutsch stellen (auf Englisch fehlt der „hier“-Link). Bei der Zwei-Faktor-Authentifizierung „Verwalten“ und „Neuer Token“ wählen, unter dem QR-Code auf „hier“ klicken und den Schlüssel ins Fenster einfügen.'),
+        el('li', {}, 'Den 6-stelligen Code aus dem Fenster (nicht den aus der Handy-App) im Account Portal eingeben. Das Programm testet den Login und speichert erst dann.')),
       el('p', { class: 'meta' }, 'Die Zugangsdaten verlassen den Computer nie: verschlüsselt mit deinem Windows-Konto bzw. im Schlüsselbund des Macs, nicht in der App und nicht auf dem Server. Deine Authenticator-App funktioniert weiter. Ausschalten löscht sie beim nächsten Abgleich. Den Computer immer mit Passwort sperren.')));
 }
 function kontoZeigen() {
@@ -11574,6 +11574,9 @@ const CHANGELOG = [
     ['09:00', 'PC-Programm: bei „Erst prüfen, dann laden“ steht vorerst nur noch „ChatGPT fragen“'],
     ['09:40', 'Forum: anonymer Bereich „Gesundheit und Leistung“ vorerst ausgeblendet'],
     ['18:30', 'Noten: „Alle Einträge“ ist zugeklappt und öffnet sich mit dem Pfeil neben der Überschrift']] },
+  { d: '2026-11-27', k: [
+    ['14:50', 'Den 2FA-Schlüssel finden', 'Im Account Portal fehlt auf Englisch der Link, der den Schlüssel unter dem QR-Code kopiert. Die Anleitung sagt jetzt, dass man die Seite zuerst auf Deutsch stellt und im Portal den Code aus dem Fenster eingibt, nicht den aus der Handy-App.', 0, 1]], t: [
+    ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
