@@ -153,6 +153,7 @@
   .haken input { appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin: 0; border: 1.5px solid var(--linie-2); border-radius: 6px; background: var(--bg); cursor: pointer; transition: background-color 0.15s, border-color 0.15s; }
   .haken input:checked { border-color: var(--akzent); background: var(--akzent) var(--haken) center / 15px no-repeat; }
   @media (pointer: coarse) { .haken input { width: 22px; height: 22px; } }
+  @media (pointer: coarse) { .frist .haken { position: relative; } .frist .haken::after { content: ""; position: absolute; inset: -11px -12px; } }  /* Frist-Haken: 44 px Tippfläche, Optik bleibt */
 
   /* Text und Zustände */
   .klein { margin: 6px 0 0; color: var(--text-2); font-size: 0.875rem; line-height: 1.55; }
@@ -333,7 +334,7 @@
   @media (min-width: 1360px) {  /* erst wenn die Lernspalte daneben breit genug bleibt (Seitenleiste 250 px) */
     .raster { grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: auto auto 1fr; gap: 16px 48px; }
     .artikel { grid-column: 1; grid-row: 1 / span 3; }
-    .abschnitt { grid-column: 2; }
+    .abschnitt, .abschnitt-fehlt { grid-column: 2; }
     .abschnitt.blick { order: 0; }
   }
   .abschnitt { padding: 16px 18px; border: 1px solid var(--linie); border-radius: var(--r-l); }
@@ -936,6 +937,11 @@
   .arena-balken span { display: block; height: 100%; border-radius: 6px; background: var(--akzent); transition: width 0.9s linear; }
   .arena-gross { margin: 4px 0; font: 750 clamp(2.5rem, 9vw, 4rem)/1.05 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
   .arena-kurz .arena-gross { font-size: 2rem; }
+  @media (max-width: 640px) {  /* Handy: Fokus über die ganze Breite, die zwei kleinen Wege gleich breit darunter */
+    .arena-kurz .knopfreihe { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; gap: 8px; }
+    .arena-kurz .knopfreihe > :first-child, .arena-kurz .knopfreihe > :last-child:nth-child(2) { grid-column: 1 / -1; }
+    .arena-kurz .knopfreihe .knopf { padding-inline: 8px; text-align: center; }
+  }
   .arena-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
   .arena-lob { padding: 10px 14px; border-radius: var(--r-l); background: var(--akzent-flaeche); color: var(--akzent-text); }
   .arena-def { font: 400 1.125rem/1.5 var(--serif); }
@@ -1763,6 +1769,11 @@
   .fw-form .fw-option:has(input:checked) .fw-ikon { color: var(--akzent-text); }
   .fw-fuss { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--linie); }
   .fw-fuss .meta { margin: 0; }
+  .fw-pop.menue { padding: 6px; }
+  .menue-punkt { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: var(--r); background: none; color: var(--text); font: inherit; font-weight: 550; text-align: left; text-decoration: none; cursor: pointer; }
+  @media (hover: hover) { .menue-punkt:hover { background: var(--bg-2); } }
+  .menue-punkt:focus-visible { outline: 2px solid var(--akzent); outline-offset: -2px; }
+  .abschnitt-fehlt { margin: 0; }
   @media (prefers-reduced-motion: reduce) { .fw-pop, .fw-pop:not(:popover-open), .fw-option:active { transform: none; } .fw-knopf .fw-ikon .ic { transition: none; } }
   /* Schaubilder aus ```bild und Lerneinheiten: jeder ###-Teil der Zusammenfassung zum Aufklappen und Abhaken */
   .bild { max-width: 460px; margin: 1.2em 0; padding: 12px 14px; border: 1px solid var(--linie); border-radius: var(--r-l); }
@@ -2048,11 +2059,10 @@
 if (top !== self) document.documentElement.remove();
 // Das neue Design (skizze.css) und hell sind Standard; altes Design und Dunkel wählt man selbst, beides gilt für dieses Gerät
 function aussehen() {
-  let alt = false, dunkel = false;
-  try { alt = localStorage.getItem('design') === 'alt'; dunkel = localStorage.getItem('thema') === 'dunkel'; } catch {}
-  document.getElementById('skizze-css').disabled = alt;
+  let dunkel = false;
+  try { dunkel = localStorage.getItem('thema') === 'dunkel'; } catch {}
   if (dunkel) document.documentElement.dataset.thema = 'dunkel'; else delete document.documentElement.dataset.thema;
-  document.querySelector('meta[name=theme-color]').content = alt ? (dunkel ? '#111317' : '#ffffff') : (dunkel ? '#151515' : '#fbfbf9');
+  document.querySelector('meta[name=theme-color]').content = dunkel ? '#151515' : '#fbfbf9';
   for (const s of document.querySelectorAll('.thema-schalter')) s.setAttribute('aria-checked', String(dunkel));
 }
 aussehen();
@@ -2153,7 +2163,7 @@ aussehen();
             <div class="woche-feld" id="tage"></div>
           </section>
           <section aria-labelledby="no-kopf" class="h-noten" id="h-noten" hidden>
-            <div class="block-kopf"><h2 id="no-kopf">Lernen</h2><a href="#/noten" class="meta">Notentracker</a></div>
+            <div class="block-kopf"><h2 id="no-kopf">Dein Stand</h2><a href="#/noten" class="meta">Notentracker</a></div>
             <div id="h-noten-inhalt"></div>
           </section>
         </div>
@@ -2279,7 +2289,6 @@ aussehen();
       <section class="schritt" aria-labelledby="ei-einst">
         <h2 id="ei-einst">Einstellungen</h2>
         <button class="thema-schalter" type="button" role="switch" aria-checked="false"><span class="spur" aria-hidden="true"></span>Dunkler Modus</button>
-        <label class="feld">Design <select id="design" name="design"><option value="">Neu: Skizze auf Punktraster</option><option value="alt">Alt: schlicht</option></select></label>
         <label class="feld">Modell für neue Ausgaben <select id="modell" name="modell"></select></label>
         <p class="klein"><span id="modell-hinweis"></span><span class="nur-eigen"> Eine Ausgabe kostet meist 1 bis 8 Cent.</span></p>
         <div id="modelle-teil" class="nur-eigen"></div>
@@ -2497,8 +2506,8 @@ aussehen();
         <ul>
           <li><b>Karteikarten</b><span class="nur-server"> (ab Pro)</span>: alle Begriffe aus allen Ausgaben in einem Stapel. Was du weißt, kommt nach 1, 3, 7, 14 und 30 Tagen wieder, was nicht, gleich nochmal; neu kommen höchstens 20 am Tag. Am PC geht es auch mit der Tastatur: Leertaste dreht um, 1 heißt nochmal, 2 gewusst. Für Anki lädst du den Stapel als Datei herunter, für Quizlet kopierst du ihn und fügst ihn beim Importieren ein.</li>
           <li><b>Prüfungen</b><span class="nur-server"> (ab Pro)</span> stehen im Notentracker mit Countdown. Neue Wochenausgaben übernehmen die Termine aus dem Syllabus; fehlt einer, trägst du ihn ein. Der Lernplan verteilt alle Ausgaben des Fachs auf die Wochen bis dahin, die letzten zwei Tage bleiben zum Üben.</li>
-          <li><b>PDF</b><span class="nur-server"> (ab Pro)</span>: In jeder Ausgabe öffnet „PDF“ eine Druckfassung mit allen Lösungen und Begriffen. Dort „Als PDF sichern“ wählen, am iPad im Teilen-Menü „Drucken“ und dann „In Dateien sichern“.</li>
-          <li><b>Anhören</b><span class="nur-server"> (Ultra)</span>: Keine Lust zu lesen oder gerade im Bus? „Anhören“ macht aus der Ausgabe einen Podcast: Lena fragt, Max erklärt, rund 10 Minuten. Das Erstellen dauert etwa zwei Minuten; danach bleibt der Ton auf dem Gerät, und „Für unterwegs speichern“ legt ihn als Datei ab.</li>
+          <li><b>PDF</b><span class="nur-server"> (ab Pro)</span>: In jeder Ausgabe öffnet „Mehr“ → „Als PDF sichern“ eine Druckfassung mit allen Lösungen und Begriffen. Dort „Als PDF sichern“ wählen, am iPad im Teilen-Menü „Drucken“ und dann „In Dateien sichern“.</li>
+          <li><b>Anhören</b><span class="nur-server"> (Ultra)</span>: Keine Lust zu lesen oder gerade im Bus? „Anhören“ (in der Ausgabe unter „Mehr“) macht aus der Ausgabe einen Podcast: Lena fragt, Max erklärt, rund 10 Minuten. Das Erstellen dauert etwa zwei Minuten; danach bleibt der Ton auf dem Gerät, und „Für unterwegs speichern“ legt ihn als Datei ab.</li>
           <li><b>Prüfungstraining</b><span class="nur-server"> (Ultra)</span>: Die <b>Probeklausur</b> stellt Aufgaben im Stil deiner Prüfung über den ganzen bisherigen Stoff, mit Zeitlimit; danach siehst du Punkte, Note und jeden Lösungsweg. Das <b>Schwächen-Training</b> sucht in deinen Onlinetests, Probeklausuren und Noten, woran es hakt, und macht genau dazu neue Übungen. Das <b>Lernskript</b> fasst den Stoff eines Fachs nach Themen zusammen, mit Formelsammlung, Begriffen und Prüfungs-Checkliste, auch als PDF.</li>
         </ul>
 
@@ -2616,9 +2625,9 @@ aussehen();
   </main>
 </div>
 <button type="button" class="knopf voll t-auswahl" id="t-auswahl" hidden>Erklär mir das</button>
-<nav class="tabs" aria-label="Hauptnavigation">
+<nav class="tabs" aria-label="Schnellzugriff">
   <a href="#/" data-ansicht="titelblatt" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>Heute</a>
-  <a href="#/thema" data-ansicht="thema" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5h5M10.5 20.5h3M12 3.5a6 6 0 0 0-3.7 10.7c.7.6 1.2 1.4 1.2 2.3v1h5v-1c0-.9.5-1.7 1.2-2.3A6 6 0 0 0 12 3.5z"/></svg>Lernen</a>
+  <a href="#/thema" data-ansicht="thema" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 17.5h5M10.5 20.5h3M12 3.5a6 6 0 0 0-3.7 10.7c.7.6 1.2 1.4 1.2 2.3v1h5v-1c0-.9.5-1.7 1.2-2.3A6 6 0 0 0 12 3.5z"/></svg>Thema</a>
   <a href="#/kalender" data-ansicht="kalender" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Kalender</a>
   <a href="#/wordpower" data-ansicht="wordpower" class="mit-daten" id="tab-wordpower"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1h-8L7 20v-3.5H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8.5 9.5h7M8.5 12.5h4.5"/></svg><span translate="no">Word Power</span></a>
   <a href="#/arena" data-ansicht="arena" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5.5a2.5 2.5 0 0 0 2.5 3.5M16 6h2.5a2.5 2.5 0 0 1-2.5 3.5M12 13v3.5M8.5 20h7M10 16.5h4V20h-4z"/></svg><span>Arena</span></a>
@@ -3666,9 +3675,15 @@ function nachtrag(f) {
       el('form', { class: 'zeile nachtrag-tag', onsubmit: e => { e.preventDefault(); if (feld.value && feld.value <= HEUTE) drucke(f, feld.value); } }, feld, el('button', { class: 'knopf' }, 'Für diesen Tag erstellen'))]);
 }
 // Wie die nächste Ausgabe aussieht: Knopf mit der Wahl, darunter ein Popover mit Niveau und Form, gespeichert je Fach im Profil
+const fwIkon = d => { const s = el('span', { class: 'fw-ikon', 'aria-hidden': 'true' }); s.innerHTML = `<svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg>`; return s; };
+const popUnter = (pop, knopf, breite, linksBuendig) => pop.addEventListener('beforetoggle', e => {  // unter dem Knopf, nie über den Rand; wächst aus dem Knopf heraus
+  if (e.newState !== 'open') return;
+  const k = knopf.getBoundingClientRect(), b = Math.min(breite, innerWidth - 32), links = Math.max(16, Math.min(linksBuendig ? k.left : k.right - b, innerWidth - b - 16));
+  Object.assign(pop.style, { width: b + 'px', left: links + scrollX + 'px', top: k.bottom + 8 + scrollY + 'px', transformOrigin: `${Math.round(k.left + k.width / 2 - links)}px 0` });
+});
 function fassungWahl(f) {
   const r = R[f], name = () => fassungName(fassung(f)) || 'Normal';
-  const wert = el('span', { class: 'fw-wert' }, name()), ikon = d => { const s = el('span', { class: 'fw-ikon', 'aria-hidden': 'true' }); s.innerHTML = `<svg class="ic" viewBox="0 0 24 24"><path d="${d}"/></svg>`; return s; };
+  const wert = el('span', { class: 'fw-wert' }, name()), ikon = fwIkon;
   const knopf = el('button', { class: 'knopf fw-knopf', type: 'button', popovertarget: 'fassung-pop', 'aria-haspopup': 'dialog' },
     el('span', { class: 'fw-was' }, 'Fassung'), wert, ikon('M7 10l5 5 5-5'));
   const waehlen = async e => {
@@ -3692,11 +3707,18 @@ function fassungWahl(f) {
       gruppe('niveau', 'Niveau', NIVEAUS), gruppe('form', 'Form', FORMEN),
       el('div', { class: 'fw-fuss' }, el('p', { class: 'meta' }, `Gilt für ${f} ab der nächsten Ausgabe.`),
         el('button', { class: 'knopf voll', type: 'button', disabled: r.druckt, onclick: () => { pop.hidePopover(); drucke(f); } }, r.ausgaben.length ? 'Jetzt neu erstellen' : 'Erste Ausgabe erstellen'))));
-  pop.addEventListener('beforetoggle', e => {  // unter dem Knopf, nie über den Rand; wächst aus dem Knopf heraus
-    if (e.newState !== 'open') return;
-    const k = knopf.getBoundingClientRect(), b = Math.min(420, innerWidth - 32), links = Math.max(16, Math.min(k.right - b, innerWidth - b - 16));
-    Object.assign(pop.style, { width: b + 'px', left: links + scrollX + 'px', top: k.bottom + 8 + scrollY + 'px', transformOrigin: `${Math.round(k.left + k.width / 2 - links)}px 0` });
-  });
+  popUnter(pop, knopf, 420);
+  return [knopf, pop];
+}
+// Fach-Kopf: Lesen steht vorn, darum nur Fassung und „Neu erstellen“ sichtbar; Anhören, PDF, Prüfungstraining unter „Mehr“
+function aktionenMehr(punkte) {
+  punkte = punkte.filter(Boolean);
+  if (!punkte.length) return null;
+  const knopf = el('button', { class: 'knopf fw-knopf', type: 'button', popovertarget: 'aktionen-pop' }, 'Mehr', fwIkon('M7 10l5 5 5-5'));
+  const pop = el('div', { id: 'aktionen-pop', class: 'fw-pop menue', popover: 'auto', 'aria-label': 'Weitere Aktionen' },
+    punkte.map(([text, tun]) => typeof tun === 'string' ? el('a', { class: 'menue-punkt', href: tun }, text)
+      : el('button', { class: 'menue-punkt', type: 'button', onclick: () => { pop.hidePopover(); tun(); } }, text)));
+  popUnter(pop, knopf, 240, true);
   return [knopf, pop];
 }
 const fassungHinweis = f => {  // nach einer neuen Wahl: welche Fassung die angezeigte Ausgabe hat und was „Neu erstellen“ schreibt
@@ -3855,7 +3877,11 @@ async function ausgabeZeigen(f, tag) {
   const zf = abschnitt(a, 'zusammenfassung');  // neueste Ausgabe ohne genug Schaubilder: einmal nachzeichnen lassen
   if (tag === r.ausgaben[0].datum && !r.druckt && !merk(`bilder-nach:${f}:${tag}`) && (zf.match(/^```bild/gm) || []).length < 4 && BILD_THEMEN.test(zf)) bilderSpaeter(f, tag);
   const stamm = abschnitt(a, 'stammdaten'), ueb = abschnitt(a, 'übungsaufgaben'), formeln = abschnitt(a, 'formeln'), fa = fassungVon(a);
-  const kasten = (klasse, titel, anfang) => el('section', { class: `abschnitt ${klasse}` }, el('h2', {}, titel), markdown(el('div', { class: 'text' }), abschnitt(a, anfang) || 'Nicht in dieser Ausgabe.'));
+  const fehlt = [], kasten = (klasse, titel, anfang) => {  // leer: kein Rahmen um nichts, nur der Name in der Zeile darunter
+    const t = abschnitt(a, anfang);
+    if (!t) return void fehlt.push(titel);
+    return el('section', { class: `abschnitt ${klasse}` }, el('h2', {}, titel), markdown(el('div', { class: 'text' }), t));
+  };
   const teil = (id, titel, zusatz, inhalt) => el('section', { class: 'teil', id, 'aria-labelledby': id + '-k' },
     el('div', { class: 'rubrik' }, el('h2', { id: id + '-k' }, titel), zusatz && el('p', { class: 'meta' }, zusatz)), inhalt);
   const quellen = [...new Set(a.quellen.map(q => q.split('/').pop().replace(/\.\w+$/, '').replace(/_/g, ' ')))];
@@ -3873,10 +3899,11 @@ async function ausgabeZeigen(f, tag) {
         el('p', { class: 'unterzeile' }, el('span', {}, `Ausgabe vom ${datum(tag, { weekday: 'long', day: 'numeric', month: 'long' })}`),
           a.meta && el('span', {}, a.meta.split(' · ')[0]), fassungName(fa) && el('span', { class: 'fassung' }, fassungName(fa)), !SERVER && a.preis && el('span', {}, `Kosten ${geld(a.preis)}`))),
       el('div', { class: 'kopf-aktionen' },
-        f === 'Englisch' && wpSichtbar() && el('a', { class: 'knopf', href: '#/wordpower' }, el('span', { translate: 'no' }, 'Word Power')),
-        el('button', { class: 'knopf', type: 'button', 'aria-expanded': String(!!HOER[`${f}/${tag}`]?.offen), onclick: () => hoerenKlick(f, tag) }, 'Anhören'),
-        darf('export') && el('button', { class: 'knopf', type: 'button', onclick: () => ausgabeDrucken(f, a) }, 'PDF'),
-        el('a', { class: 'knopf', href: `#/pruefung/${encodeURIComponent(f)}` }, 'Prüfungstraining'),
+        aktionenMehr([
+          f === 'Englisch' && wpSichtbar() && [el('span', { translate: 'no' }, 'Word Power'), '#/wordpower'],
+          [HOER[`${f}/${tag}`]?.offen ? 'Anhören ausblenden' : 'Anhören', () => hoerenKlick(f, tag)],
+          darf('export') && ['Als PDF sichern', () => ausgabeDrucken(f, a)],
+          ['Prüfungstraining', `#/pruefung/${encodeURIComponent(f)}`]]),
         fassungWahl(f),
         !r.druckt && el('button', { class: 'knopf voll', type: 'button', onclick: () => drucke(f) }, 'Neu erstellen'))),
     r.druckt && presse(f),
@@ -3893,7 +3920,8 @@ async function ausgabeZeigen(f, tag) {
         SERVER && ICH && TARIFE?.verkauf && !darf('ausgabe-ultra') && ultraWerbung(a)),
       kasten('blick', 'Auf einen Blick', 'auf einen blick'),
       kasten('', 'Nächstes Proseminar', 'nächstes proseminar'),
-      kasten('', 'Nächste Vorlesung', 'nächste vorlesung')),
+      kasten('', 'Nächste Vorlesung', 'nächste vorlesung'),
+      fehlt.length > 0 && el('p', { class: 'meta abschnitt-fehlt' }, `Nicht in dieser Ausgabe: ${fehlt.join(', ')}.`)),
     formeln && teil('teil-formeln', 'Formeln Schritt für Schritt', 'Jede Formel in anderen Schreibweisen und nach jeder Größe umgestellt', markdown(el('div', { class: 'text' }), formeln)),
     ueb && teil('teil-uebungen', 'Übungsaufgaben', 'Erst selbst rechnen, dann aufdecken', uebungen(ueb)),
     teil('teil-lexikon', 'Lexikon', a.begriffe.length ? `${a.begriffe.length} Begriffe der letzten Einheit` : null, lexikon(f, a.begriffe)),
@@ -11706,7 +11734,14 @@ const CHANGELOG = [
       'Am Computer öffnen Strg+K (am Mac ⌘K) und / die Suche, in einer Ausgabe springen ← und → von Teil zu Teil.',
       'Nach ein paar Tagen Pause kamen bisher alle fälligen Karten auf einmal. Jetzt sind es höchstens 80 Wiederholungen am Tag, die ältesten zuerst. Was heute falsch war, kommt trotzdem noch einmal.',
       'Was man zuletzt gelesen hat, zeigt die App auch ohne Netz, etwa im Hörsaal. Außerdem lässt sie sich als App auf den Home-Bildschirm legen.',
-      'Leere Seiten (Karteikarten, Prüfungstraining, Onlinetests) haben jetzt einen Knopf zum nächsten Schritt.']]], t: [
+      'Leere Seiten (Karteikarten, Prüfungstraining, Onlinetests) haben jetzt einen Knopf zum nächsten Schritt.']],
+    ['19:55', 'Weniger Knöpfe vor dem Lesen', 'Ich habe die App einmal mit frischem Blick durchgeklickt, am Computer und am Handy, hell und dunkel. Im Fach standen fünf Knöpfe und ein Erklärtext vor dem ersten Satz der Zusammenfassung. Jetzt sind es drei: „Mehr“, „Fassung“ und „Neu erstellen“. Anhören, PDF und Prüfungstraining stecken unter „Mehr“.', 1, 2, [
+      'Kästen ohne Inhalt („Nicht in dieser Ausgabe.“) fallen weg; stattdessen steht in einer Zeile, was fehlt.',
+      'Eine Regel für Rahmen: Gezeichnet ist nur, was man antippen kann. Reine Inhalts-Kästen bekommen eine ruhige Linie wie die Lerneinheiten.',
+      '„Lernen“ hieß an drei Stellen etwas anderes. Der Tab unten heißt jetzt „Thema“, der Block auf Heute „Dein Stand“.',
+      'Am Handy stehen die drei Arena-Knöpfe nicht mehr unterschiedlich breit untereinander: Fokus über die ganze Breite, die zwei anderen gleich breit darunter.',
+      'Der Haken bei einer Frist hat am Handy eine Tippfläche von 44 Pixeln, ohne größer auszusehen.',
+      'Das alte, schlichte Design ist weg. Mit nur noch einem Design muss jede Änderung in vier statt acht Kombinationen geprüft werden.']]], t: [
     ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link'],
     ['15:10', 'PC-Programm: Esc bricht den Abgleich ab, im Wartebildschirm den im Hintergrund; Tastenhinweis rechts im Fortschrittsbereich'],
     ['15:15', 'PC-Programm: Passwort und 2FA-Schlüssel als Sterne, Tab zeigt sie, Strg+V fügt auch in der alten Konsole ein; Einrichte-Text gegliedert'],
@@ -11718,7 +11753,10 @@ const CHANGELOG = [
     ['19:45', 'Suche über Zusammenfassungen, Begriffe, Check-Fragen, Themen und Seiten; Strg/⌘+K und /, ← und → zwischen den Lernteilen'],
     ['19:45', 'Hinweis, wenn der OLAT-Abgleich älter als anderthalb Tage ist (Heute, Onlinetests, Konto)'],
     ['19:45', 'Karteikasten: höchstens 80 Wiederholungen am Tag, die ältesten zuerst'],
-    ['19:45', 'Zuletzt Gelesenes auch ohne Netz, als App auf den Home-Bildschirm; leere Seiten mit Knopf zum nächsten Schritt']] },
+    ['19:45', 'Zuletzt Gelesenes auch ohne Netz, als App auf den Home-Bildschirm; leere Seiten mit Knopf zum nächsten Schritt'],
+    ['19:55', 'Fach: Anhören, PDF und Prüfungstraining unter „Mehr“; leere Kästen als eine Zeile; Inhalts-Kästen mit ruhiger Linie'],
+    ['19:55', 'Tab „Lernen“ heißt „Thema“, Block auf Heute „Dein Stand“; Arena-Knöpfe am Handy gleich breit; Frist-Haken mit 44 px Tippfläche'],
+    ['19:55', 'Altes Design entfernt; Designbeschreibung auf den heutigen Skizzen-Stil gebracht']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
@@ -11855,8 +11893,6 @@ async function start() {
 
 window.onhashchange = () => SERVER && /^#(bestaetigen|passwort)=/.test(location.hash) ? kontoStart().then(zeichne) : zeichne();  // Mail-Link bei offener App
 if (SERVER) for (const a of document.querySelectorAll('a[data-ansicht="einstellungen"]')) a.lastChild.textContent = 'Konto';
-$('design').value = merk('design') || '';
-$('design').onchange = () => { merk('design', $('design').value || null); aussehen(); };
 $('tab-mehr').onclick = () => $('tab-mehr').setAttribute('aria-expanded', document.body.classList.toggle('leiste-offen'));
 $('seitenleiste').addEventListener('click', e => { if (e.target.closest('a')) mehrZu(); });
 addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('leiste-offen')) mehrZu(); });

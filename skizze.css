@@ -1,6 +1,6 @@
 /* Skizze: Standard-Design der App im Stil der Startseite. Hell: Papier mit Punktraster, Marker-Schwarz, Königsblau
    und ein gelber Textmarker; dunkel (Schalter, data-thema="dunkel"): Graphit, Elfenbein und Champagner.
-   Diese Datei liegt als Ebene über dem Stil aus index.html; das alte Design schaltet sie ab. */
+   Diese Datei liegt als Ebene über dem Stil aus index.html (seit 27.11.2026 das einzige Design). */
 
 :root {
   --papier: #fbfbf9;
@@ -91,7 +91,7 @@ main h2, .rubrik > :first-child, .meldung h2 { font-weight: 750; font-stretch: 9
 .tabs :is(a[aria-current], button[data-hier], button[aria-expanded="true"]) svg.ic { color: var(--text); }
 
 /* ---------- Gezeichnete Kästen ---------- */
-:is(.fach, .abschnitt:not(.blick), .aufgabe, .schritt, .kal-panel, .tarif, .sperrkarte, .assistent, .liste-rahmen, .woche, .testzeilen, .ul-liste,
+:is(.fach, .aufgabe, .schritt, .kal-panel, .tarif, .sperrkarte, .assistent, .liste-rahmen, .woche, .testzeilen, .ul-liste,
   .vt-gesamt, .vt-tipps li, .vt-befund, .vt-abgleich li, .vt-ger-skalen > li, .vt-zahl, .vt-verlauf, .ziel-blatt, .kachel, .frage-karte,
   .tabelle-rahmen, .sperre, .ultra-werbung, .meldung, .vt-spieler, .fo-bereich, .fo-kasten, .fo-beitrag) {
   border: 1.5px solid transparent; border-radius: 0; border-image: var(--rahmen) 10 / 10px / 4px stretch; background-color: var(--bg);

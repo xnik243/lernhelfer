@@ -1,314 +1,259 @@
 ---
 name: Lernhelfer
-description: Wöchentliche Fach-Ausgaben einer lachsrosa Wirtschaftszeitung; die App ist der Kiosk.
+description: Ein Lernheft auf Punktraster, mit Fineliner gezeichnet, Textmarker für das, was gerade dran ist.
 colors:
-  papier: "#fbe3d3"
-  papier-tief: "#e8c2aa"
-  tinte: "#1b1511"
-  tinte-2: "#5b4337"
-  bordeaux: "#8e1838"
-  auf-bordeaux: "#fff1e8"
-  papier-dunkel: "#1d1512"
-  papier-tief-dunkel: "#2b201a"
-  tinte-dunkel: "#f6d9c5"
-  tinte-2-dunkel: "#c9a794"
+  papier: "#fbfbf9"
+  papier-2: "#f2f2ee"
+  papier-3: "#e6e6e0"
+  tinte: "#121212"
+  tinte-2: "#4f535a"
+  tinte-3: "#666a71"
+  linie: "rgb(18 18 18 / 0.15)"
+  linie-2: "rgb(18 18 18 / 0.45)"
+  punktraster: "rgb(24 32 56 / 0.17)"
+  koenigsblau: "#2446c8"
+  koenigsblau-tief: "#1b389f"
+  textmarker: "#ffe93a"
+  zettel: "#fff2a8"
+  ok: "#146c43"
+  warn: "#8f4700"
+  fehler: "#b3261e"
+  fach-mathe: "#0f766e"
+  fach-vwl: "#b45309"
+  fach-bwl: "#7c3aed"
+  fach-englisch: "#be185d"
+  graphit: "#151515"
+  graphit-2: "#1c1c1c"
+  graphit-3: "#262626"
+  elfenbein: "#e9e6df"
+  elfenbein-2: "#a9a59d"
+  champagner: "#cbb894"
 typography:
-  nameplate:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
-    fontSize: "calc(100cqw / 7.26)"
-    fontWeight: 900
-    lineHeight: 0.8
-    letterSpacing: "-0.015em"
-    fontVariation: "\"wdth\" 100"
-  display:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
-    fontSize: "clamp(3rem, 11vw, 6rem)"
-    fontWeight: 900
-    lineHeight: 0.85
-    fontVariation: "\"wdth\" 62"
-  headline:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
-    fontSize: "clamp(2.25rem, 4.5vw, 3.25rem)"
-    fontWeight: 900
-    lineHeight: 0.9
+  seitentitel:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "2.25rem"
+    fontWeight: 800
+    lineHeight: 1.15
     letterSpacing: "-0.01em"
-    fontVariation: "\"wdth\" 65"
-  title:
-    fontFamily: "Source Serif 4, Georgia, serif"
-    fontSize: "1.375rem"
+    fontVariation: "\"wdth\" 86"
+  ueberschrift:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "1.125rem"
     fontWeight: 750
-    lineHeight: 1.18
-  body:
-    fontFamily: "Source Serif 4, Georgia, serif"
+    lineHeight: 1.3
+    letterSpacing: "-0.005em"
+    fontVariation: "\"wdth\" 92"
+  schlagzeile:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "1.75rem"
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: "-0.01em"
+    fontVariation: "\"wdth\" 94"
+  lesetext:
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "1.0625rem"
     fontWeight: 400
-    lineHeight: 1.6
-  label:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
-    fontSize: "1.125rem"
-    fontWeight: 850
-    lineHeight: 1.1
-    letterSpacing: "0.04em"
-    fontVariation: "\"wdth\" 75"
-  datumszeile:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
-    fontSize: "0.8125rem"
-    fontWeight: 650
-    lineHeight: 1.3
-    letterSpacing: "0.06em"
-    fontFeature: "\"tnum\""
-    fontVariation: "\"wdth\" 90"
-  tabelle:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
+    lineHeight: 1.65
+  bedienung:
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "0.9375rem"
     fontWeight: 450
-    lineHeight: 1.35
-    fontFeature: "\"tnum\""
-    fontVariation: "\"wdth\" 92"
+    lineHeight: 1.5
   meta:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "0.8125rem"
-    fontWeight: 550
+    fontWeight: 400
+    lineHeight: 1.45
+    fontFeature: "\"tnum\""
+  etikett:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 600
     lineHeight: 1.3
     fontFeature: "\"tnum\""
-    fontVariation: "\"wdth\" 90"
-  knopf:
-    fontFamily: "Archivo, Arial Narrow, sans-serif"
-    fontSize: "0.9375rem"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "0.01em"
-    fontVariation: "\"wdth\" 85"
+  formel:
+    fontFamily: "CMU Serif, Georgia, serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.65
 rounded:
-  none: "0px"
+  hand-s: "3px 5px 4px 6px / 5px 3px 6px 4px"
+  hand: "4px 7px 5px 8px / 7px 4px 8px 5px"
+  hand-xl: "6px 9px 7px 10px / 9px 6px 10px 7px"
+  pille: "999px"
 spacing:
-  rand: "max(16px, min(4vw, 48px))"
-  eng: "8px"
-  linie: "14px"
-  absatz: "18px"
-  spalte: "40px"
-  raster: "48px"
+  rand-handy: "16px"
+  rand-desktop: "clamp(24px, 4vw, 56px)"
+  raster: "22px"
+  block: "20px"
+  teil: "48px"
+  lesemass: "68ch"
+  inhalt-max: "1180px"
 components:
   knopf:
-    backgroundColor: "transparent"
+    backgroundColor: "{colors.papier}"
     textColor: "{colors.tinte}"
-    typography: "{typography.knopf}"
-    rounded: "{rounded.none}"
-    padding: "10px 18px"
-    height: "44px"
-  knopf-hover:
-    backgroundColor: "{colors.papier-tief}"
+    rounded: "{rounded.hand}"
+    padding: "8px 14px"
+    height: "40px"
   knopf-voll:
-    backgroundColor: "{colors.tinte}"
-    textColor: "{colors.papier}"
-    typography: "{typography.knopf}"
-    rounded: "{rounded.none}"
-    padding: "10px 18px"
-    height: "44px"
-  knopf-voll-hover:
-    backgroundColor: "{colors.tinte-2}"
+    backgroundColor: "{colors.papier}"
+    textColor: "{colors.tinte}"
+    rounded: "{rounded.hand}"
+    padding: "8px 14px"
+    height: "40px"
+  navi-aktiv:
+    backgroundColor: "{colors.textmarker}"
+    textColor: "{colors.tinte}"
+  pille:
+    backgroundColor: "{colors.papier-3}"
+    textColor: "{colors.tinte-2}"
+    typography: "{typography.etikett}"
+    rounded: "{rounded.pille}"
+    padding: "1px 8px"
   eingabe:
     backgroundColor: "{colors.papier}"
     textColor: "{colors.tinte}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.hand}"
     padding: "10px 12px"
-    height: "46px"
-  ticker-eintrag:
-    backgroundColor: "{colors.tinte}"
-    textColor: "{colors.papier}"
-    padding: "11px 22px"
-  ticker-eintrag-naechste:
-    backgroundColor: "{colors.bordeaux}"
-    textColor: "{colors.auf-bordeaux}"
-  termin-naechste:
-    backgroundColor: "{colors.bordeaux}"
-    textColor: "{colors.auf-bordeaux}"
-    typography: "{typography.tabelle}"
-    padding: "9px 10px"
-  abschnitt-blick:
-    backgroundColor: "{colors.papier-tief}"
-    textColor: "{colors.tinte}"
-    padding: "14px 18px 18px"
-  karteikarte:
-    backgroundColor: "{colors.papier}"
-    textColor: "{colors.tinte}"
-    rounded: "{rounded.none}"
-    padding: "24px 28px"
+    height: "44px"
 ---
 
 # Design System: Lernhelfer
 
+Quelle der Wahrheit ist `skizze.css` (liegt als Ebene über den Grundregeln im `<style>` von `index.html`). Diese Datei beschreibt den Stand vom 27.11.2026. Die frühere „lachsrosa Wirtschaftszeitung“ und die „ruhige App“ sind abgelöst.
+
 ## Overview
 
-**Creative North Star: "Der Wirtschaftsteil"**
+**Creative North Star: „Skizze auf Punktraster“**
 
-Lernhelfer ist eine lachsrosa Finanzzeitung, die pro Fach jede Woche eine eigene Ausgabe druckt. Die App ist der Kiosk: oben ein Zeitungskopf über die volle Satzbreite, darunter die Datumszeile zwischen zwei Druckerlinien, ein laufender Fristen-Ticker wie ein Börsenband, dann das Titelblatt mit Ressort-Spalten links und dem Terminkalender als Kurstabelle rechts. Alles ist Papier, Druckfarbe und Linie. Es gibt keine Karten-Dashboards, keine Icons als Bedeutungsträger und keine Rundungen.
+Der Lernhelfer sieht aus wie ein gutes Lernheft: helles Papier mit feinem Punktraster, Kästen mit Fineliner gezogen, deren Striche an den Ecken leicht überstehen, und ein gelber Textmarker für das, was gerade dran ist. Alles wirkt von Hand gemacht, aber nie verspielt. Die Ecken sind ungleich gerundet wie bei einem echten Strich, ohne Comic-Wackeln. Die App soll sich anfühlen wie die eigenen Notizen, nur aufgeräumter.
 
-Die Dichte ist die einer Zeitungsseite: schwere, schmal laufende Archivo für alles, was ruft (Kopf, Ressortnamen, Tabellen, Knöpfe), Source Serif 4 für alles, was gelesen wird (Schlagzeilen, Anriss, Zusammenfassung). Hierarchie entsteht über Breite und Gewicht der Grotesk und über die Stärke der Linien, nicht über Farbe. Farbe ist knapp: Papier, Tinte, eine zweite Tinte für Nebeninformation und genau ein Signal, Bordeaux, für die nächste offene Frist.
+Dichte: kompakt und lesbar. Am Handy normale Schriftgrößen und dichte Abstände, nur die Tippflächen sind groß. Gelesen wird in einer Spalte mit höchstens 68 Zeichen pro Zeile. Ein einziger Handlungs-Akzent (Königsblau), Gelb nur als Textmarker, Fachfarben nur zum Wiedererkennen.
 
-Dunkel ist dieselbe Zeitung im Negativ: tiefes Druckerschwarz-Braun als Papier, lachsfarbene Schrift als Tinte. Die Signalfarbe bleibt Bordeaux.
+Dunkel ist kein umgefärbtes Hell, sondern ein eigenes Heft: Graphit, Elfenbein und Champagner. Ruhig, nichts leuchtet. Blau und Gelb gibt es dort nicht.
 
 **Key Characteristics:**
-- Lachsrosa Zeitungspapier als Grund, fast schwarze Druckfarbe, ein einziges Signal-Bordeaux.
-- Archivo mit Breiten-Achse (wdth 62 bis 100) für Kopf, Ressorts, Tabellen; Source Serif 4 für Lesetext.
-- Druckerlinien statt Haarlinien: 3px über jedem Abschnitt, 1.5px als Trenner.
-- Rechte Winkel überall; Tiefe nur über den getönten Papierton.
-- Tabellenziffern in allen Datums-, Zeit- und Zählangaben.
+- Punktraster (22 px) als Grund auf jeder Seite.
+- Gezeichnete Rahmen (SVG, 9-teilig gedehnt) statt CSS-Linien bei Knöpfen und antippbaren Karten.
+- Gelber Textmarker für „hier bist du“ (aktive Seite, aktiver Tab, Auswahl).
+- Königsblauer Unterstrich unter jedem Seitentitel.
+- Archivo für alles, mit der Breiten-Achse für Titel; CMU Serif nur für Formeln.
 
 ## Colors
 
-Zwei Papiertöne, zwei Tinten, ein Signal; im Dunkelmodus tauschen Papier und Tinte die Rollen, Bordeaux bleibt.
+Weißes Papier, schwarze Tinte, ein Blau, ein Gelb. Alles andere ist Grau oder Fachfarbe.
 
 ### Primary
-- **Druckerschwärze** (tinte): Text, alle Linien, gefüllte Knöpfe, das Ticker-Band, Fokusring, Textauswahl. Die eigentliche Markenfarbe ist die Druckfarbe.
+- **Königsblau** (koenigsblau): Handlung und Zustand. Rahmen des Hauptknopfs („Neu erstellen“, „Erklär's mir“), Unterstrich unter Seitentiteln, Links, gesetzte Häkchen, Fokusring, Eingabe-Cursor. Hover: Königsblau tief.
 
 ### Secondary
-- **Signal-Bordeaux** (bordeaux) mit **Bordeaux-Papier** (auf-bordeaux) als Schrift darauf: ausschließlich die nächste offene Frist, im Ticker-Eintrag, in der Terminzeile und in deren Meldung. Kontrast 8.1:1.
+- **Textmarker-Gelb** (textmarker): Nur als gezeichneter Markerstrich, nie als Fläche oder Schriftfarbe. Aktiver Eintrag in Seitenleiste und Tab-Leiste, gewählte Option, Textauswahl, „Das Wichtigste“-Kasten (als Zettel-Gelb).
+
+### Tertiary
+- **Fachfarben** (fach-mathe, fach-vwl, fach-bwl, fach-englisch): Nur zum Wiedererkennen: Punkt in der Seitenleiste, Fach-Symbol, kleine Marken. Nie für Knöpfe, Flächen oder Text.
 
 ### Neutral
-- **Lachspapier** (papier): Seitengrund, Eingabefelder, Vorderseite der Karteikarte, Schrift auf Druckerschwärze.
-- **Tiefes Lachspapier** (papier-tief): getönte Kästen („Auf einen Blick“), Rückseite der Karteikarte, Hover-Fläche des Rahmenknopfs.
-- **Sepia-Tinte** (tinte-2): Nebeninformation (Anriss, Meta-Zeilen, Orte, Statuszeile, Listenmarker, abgehakte Fristen). 7.4:1 auf Lachspapier, 5.5:1 auf tiefem Lachspapier.
-- **Dunkelmodus**: papier-dunkel, papier-tief-dunkel, tinte-dunkel, tinte-2-dunkel ersetzen die vier Neutralen eins zu eins über `prefers-color-scheme: dark` (Sepia-Tinte dunkel 8.1:1 auf dem Grund).
+- **Papier** (papier, papier-2, papier-3): Seitengrund, ruhige Flächen (Heute-Woche, Hinweise), Pillen.
+- **Tinte** (tinte, tinte-2, tinte-3): Text in drei Stufen: Inhalt, Nebentext, Meta.
+- **Linie** (linie, linie-2): Ruhige 1-px-Linien (linie) und kräftigere Ränder von Feldern und Häkchen (linie-2).
+- **Status** (ok, warn, fehler): Nur für Meldungen und Fristen, jeweils mit eigener heller Fläche.
 
-### Named Rules
-**The Eine-Frist Rule.** Bordeaux markiert nur die eine nächste offene Frist (Abgabe oder Test), gleichzeitig im Ticker und in der Terminzeile. Keine Hervorhebung, kein Link, kein Knopf, kein Fehler wird bordeaux. Ist die Frist abgehakt, wandert das Signal zur nächsten.
+### Dunkel
+- **Graphit** (graphit, graphit-2, graphit-3) als Grund und Flächen, **Elfenbein** (elfenbein, elfenbein-2) als Schrift, **Champagner** (champagner) ersetzt Blau und Gelb: Rahmen des Hauptknopfs, Unterstrich, Marker (bei 20 % Deckkraft). Punktraster und Striche nur angedeutet (5–22 % Deckkraft).
 
-**The Druckfarbe Rule.** Fehler werden nicht rot, sondern mit dem fetten Präfix „Fehler:“ in voller Tinte gesetzt. Zustand spricht über Wort und Gewicht, nicht über weitere Farben.
+**The One Blue Rule.** Königsblau heißt „hier passiert etwas“. Pro Bildschirm gibt es genau einen blau gerahmten Hauptknopf. Ist alles blau, ist nichts wichtig.
+
+**The Marker Rule.** Gelb ist immer ein gezeichneter Markerstrich und immer „das hier“: aktiv, gewählt, wichtig. Keine gelben Flächen, Knöpfe oder Pillen.
 
 ## Typography
 
-**Display Font:** Archivo (variabel, wdth 62–125, wght 100–900), Fallback Arial Narrow, sans-serif
-**Body Font:** Source Serif 4 (variabel, wght 200–900), Fallback Georgia, serif
+**Schrift:** Archivo (variabel, Gewicht 100–900, Breite 62–125 %), selbst gehostet in `fonts/`. Fallback: system-ui.
+**Formeln:** CMU Serif (Regular, Italic, Bold), nur in MathML.
 
-Beide Schriften liegen selbst gehostet in `fonts/` (OFL 1.1, siehe `fonts/LIZENZ.txt`).
-
-**Character:** Eine schwere Grotesk, die je nach Rolle enger oder weiter läuft, gegen eine ruhige Buchserif. Die Grotesk ist die Setzerei der Zeitung, die Serif die Redaktion.
+**Character:** Eine einzige Grotesk für alles. Hierarchie entsteht über Gewicht und Breite: Titel laufen schmal und schwer wie mit dickem Stift geschrieben, Lesetext breit und ruhig.
 
 ### Hierarchy
-- **Nameplate** (900, `calc(100cqw / 7.26)`, wdth 100, Versalien): „LERNHELFER“ füllt per Container-Query genau die Satzbreite. In der Ausgabe-Ansicht schrumpft er auf eine kleine Kopfzeile (clamp 2.25–3.25rem, am Handy 1.75rem).
-- **Display** (900, clamp 3–6rem, wdth 62, Versalien): Fachname als Titel der Ausgabe.
-- **Headline** (900, clamp 2.25–3.25rem, wdth 65, Versalien): Ressortname auf dem Titelblatt. Der Aufmacher steigt auf clamp 2.75–4.25rem, die drei Spalten darunter fallen auf clamp 1.75–2.25rem.
-- **Title** (Source Serif 4, 750, 1.375rem, `text-wrap: balance`): Schlagzeilen. Aufmacher und Ausgabe-Kopf skalieren hoch (bis 2.75rem, 800, max 24–26ch).
-- **Body** (Source Serif 4, 400, 1.0625rem/1.6): Zusammenfassung in einer Spalte von max 68ch; Kästen rechts 1rem; Anriss 1rem/1.5 in Sepia-Tinte, auf 3 Zeilen (Aufmacher 4) gekürzt.
-- **Label** (850, 1.125rem, wdth 75, Versalien, 0.04em): Abschnittsköpfe wie „Termine der nächsten zwei Wochen“, „Auf einen Blick“, „Lexikon“.
-- **Datumszeile** (650, 0.8125rem, wdth 90, Versalien, 0.06em, Tabellenziffern): Datum, Kalenderwoche, Universität; in der Ausgabe Datum und Modell.
-- **Tabelle / Meta / Knopf** (Archivo 450–700, 0.8125–0.9375rem, wdth 85–92): Terminzeilen, Ausgabe-Nummer, Bedienelemente. Ressort-Codes in Terminzeilen und Ticker (z. B. „BWL VO 04“) in 800–850, wdth 75–78, Versalien.
+- **Seitentitel** (800, 2.25rem am Desktop, 1.5rem am Handy, Breite 86 %): Ein Titel pro Seite, immer mit blauem Unterstrich.
+- **Schlagzeile** (600, 1.5rem, ab 900 px 1.75rem, Breite 94 %): Die Schlagzeile einer Wochenausgabe und der Fach-Karte.
+- **Überschrift** (750, 1.125rem, Breite 92 %): Blöcke auf Heute, Teile einer Ausgabe, Dialoge.
+- **Lesetext** (400, 1.0625rem, Zeilenhöhe 1.65, höchstens 68ch): Zusammenfassungen, Antworten, Anleitungen.
+- **Bedienung** (450, 0.9375rem): Grundgröße der App: Navigation, Knöpfe, Listen.
+- **Meta** (400, 0.8125rem, Tabellenziffern): Datum, Zähler, Hinweise unter Feldern, „Nicht in dieser Ausgabe“.
+- **Etikett** (600, 0.75rem, Tabellenziffern): Pillen und Zähler. Tab-Beschriftung am Handy 0.6875rem.
 
-### Named Rules
-**The Breitenachse Rule.** Hierarchie in der Grotesk läuft über die Breite: je größer, desto schmaler (Nameplate 100, Display 62, Headline 65, Label 75, Knopf 85, Fließtabelle 92). Keine zweite Display-Schrift, keine Kursiv-Display-Serif, keine Mono-Etiketten.
-
-**The Tabellenziffern Rule.** Jede Zahl in Zeit, Datum, Zählung und Frist steht in `font-variant-numeric: tabular-nums`.
-
-**The Initiale Rule.** Der erste Absatz der Zusammenfassung beginnt mit einer dreizeiligen Initiale in Archivo 900, wdth 62 (3.6em), und einer halbfetten ersten Zeile. Nur dort, nur einmal pro Ausgabe.
+**The Width Axis Rule.** Hierarchie über Breite und Gewicht, nicht über neue Schriften. Kein Kursiv-Display, keine Monospace-Etiketten, keine Großbuchstaben-Zeilen außer bei Legenden in Auswahl-Dialogen.
 
 ## Layout
 
-Eine Satzspalte mit max 1320px, seitlicher Rand `max(16px, min(4vw, 48px))`. Der Ticker läuft randabfallend über die volle Fensterbreite (negativer Rand).
-
-- **Titelblatt:** Raster 1.7fr zu min 300px / 1fr mit 40px Spaltenabstand; links die Ressorts, rechts die Termine. Ressorts in einem 6er-Raster: ohne Aufmacher 2 × 2, mit Aufmacher (das Fach mit der nächsten offenen Frist) eine Geschichte über die volle Breite und drei Spalten darunter. Spalten werden durch eine 1.5px-Senkrechte getrennt, nie durch Abstand allein.
-- **Ausgabe:** Kopf, dann Raster aus Artikel (fluid) und Randspalte (280–360px) mit 48px Abstand; zwischen beiden eine 1.5px-Spaltenlinie. Die Randspalte stapelt „Auf einen Blick“, „Nächstes Proseminar“, „Nächste Vorlesung“. Darunter Lexikon (gleiches Zweispaltenmaß) und Archiv.
-- **Rhythmus:** 8px zwischen Bedienelementen, 14px von einer Druckerlinie zum Inhalt, 18px zwischen Blöcken, 40px vor großen Abschnitten (Lexikon, Archiv).
-- **Unter 1080px:** alles einspaltig; „Auf einen Blick“ rückt vor den Artikel, Termine unter die Ressorts.
-- **Unter 640px:** Ressorts untereinander ohne Senkrechte; Terminzeile zweispaltig, Frist unter den Text; in der Ausgabe fällt die Datumszeile des Zeitungskopfs weg und der Kopf schrumpft auf 1.75rem, damit „Auf einen Blick“ im ersten Bildschirm steht.
-
-### Named Rules
-**The Linie-über-Abschnitt Rule.** Jeder Abschnitt beginnt mit einer 3px-Druckerlinie und 14px Luft darunter. Trenner innerhalb (Tagesköpfe, Spaltensenkrechte, Rahmen) sind 1.5px. Terminzeilen trennt eine 1px-Linie in 25 % Tinte.
+- **Gerüst:** Ab 900 px Seitenleiste links (Rand als gezeichneter senkrechter Strich), darunter eine Tab-Leiste unten mit vier Einträgen plus „Mehr“ (Rand als gezeichneter waagrechter Strich). „Mehr“ öffnet die ganze Seitenleiste als Blatt.
+- **Inhalt:** höchstens 1180 px breit. Seitenrand am Handy 16 px (plus Safe-Area), am Desktop clamp(24px, 4vw, 56px).
+- **Heute:** eine Spalte; ab 1100 px zwei Spalten (Inhalt + 320–380 px Nebenspalte). Am Handy stehen die Fächer direkt unter dem Seitenkopf.
+- **Fach-Ausgabe:** Kopf mit Titel links, drei Bedienelementen rechts (Mehr, Fassung, Neu erstellen). Darunter eine klebende Sprungleiste zu den Teilen. Ab 1360 px steht neben der Zusammenfassung eine 320-px-Spalte mit „Auf einen Blick“, nächstem PS und nächster VO.
+- **Rhythmus:** 20 px zwischen Blöcken, 48 px vor jedem neuen Teil einer Ausgabe, 12 px unter Überschriften.
+- **Breakpoints:** 640 px (Handy-Feinschliff), 900 px (Seitenleiste), 1100 px (Heute zweispaltig), 1360 px (Ausgabe mit Nebenspalte).
 
 ## Elevation & Depth
 
-Flach wie Papier. Tiefe entsteht nur über den zweiten Papierton (tiefes Lachspapier) und über Linienstärke; „Auf einen Blick“ trägt dafür eine 6px-Kopflinie auf getöntem Grund. Einzige Ausnahme ist die Karteikarte im Lexikon: ein physisches Objekt, das sich in 3D umdreht und deshalb einen weichen Schatten trägt.
+Flach. Tiefe entsteht durch gezeichnete Rahmen und ein zweites Blatt, nicht durch Schatten. `--schatten` ist im Skizzen-Stil leer.
 
 ### Shadow Vocabulary
-- **Karteikarte** (`box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--tinte) 55%, transparent)`): nur auf Vorder- und Rückseite der Karteikarte.
+- **Zweites Blatt** (`box-shadow: 6px -6px 0 -1.5px var(--bg), 6px -6px 0 0 var(--linie-2)`): Nur auf antippbaren Karten (Fach-Karten, „Weiterlernen“). Hinter dem Kasten liegt ein versetztes zweites Blatt; beim Hover rutscht es auf 9 px.
+- **Schwebend** (`box-shadow: 0 2px 4px rgb(18 18 18 / 0.08), 0 30px 60px -28px rgb(18 18 18 / 0.45)`): Nur für Dinge über der Seite: Dialoge, Popover (Fassung, Mehr-Menü).
 
-### Named Rules
-**The Papier-ist-flach Rule.** Ressorts, Kästen, Knöpfe und Felder haben keinen Schatten. Ein Schatten bedeutet „Gegenstand, den man in die Hand nimmt“, und das ist nur die Karteikarte.
+**The Second Sheet Rule.** Das versetzte zweite Blatt heißt „antippen öffnet etwas“. Nichts anderes bekommt es.
 
 ## Shapes
 
-Rechte Winkel ohne Ausnahme (`border-radius: 0` auch auf Select, Eingabe, Checkbox). Formen entstehen aus Linien: 3px Tinte für Abschnitte und Kartenrahmen, 1.5px für Knöpfe, Felder, Kästchen und Senkrechte. Einzige Glyphen sind ein Zurück-Winkel im Titelblatt-Link, ein Pfeil im Select und ein gedrehter Winkel als Aufklapp-Zeichen, alle als Linienzeichnung in currentColor.
+- **Handecken:** Ecken sind absichtlich ungleich gerundet (`4px 7px 5px 8px / 7px 4px 8px 5px`), wie ein gezogener Strich. Klein für Häkchen und Pillen-artige Felder, groß für Dialoge.
+- **Gezeichnete Rahmen:** Knöpfe und antippbare Karten tragen statt einer CSS-Linie einen SVG-Rahmen mit überstehenden Strichen (`border-image`, 9-teilig gedehnt, Breite 1.5 px). Es gibt zwei Varianten, die sich bei geraden und ungeraden Geschwistern abwechseln, damit Reihen nicht kopiert aussehen, plus eine blaue (bzw. champagnerfarbene) für den Hauptknopf.
+- **Ruhige Linie:** Reine Inhalts-Kästen ohne Aktion (Lerneinheiten, „Nächstes Proseminar“, Nebenspalte der Ausgabe) haben eine dünne 1-px-Linie in `linie`.
+- **Gezeichnete Zeichen:** Häkchen, Kreis um das heutige Datum, Unterstrich, Textmarker und Trennstriche sind SVG-Striche, keine Unicode-Zeichen.
+- **Symbole:** eigene Linien-Icons, 20 px (18 px in der Seitenleiste, 24 px in der Tab-Leiste), Strich 1.75, runde Enden.
+
+**The Frame Rule.** Gezeichneter Rahmen = man kann es antippen. Ruhige Linie = nur zum Lesen. Ein Kasten, der nichts tut, bekommt keinen gezeichneten Rahmen.
 
 ## Components
 
 ### Buttons
-Gesetzt wie ein Druckvermerk: Rahmen aus Tinte, kein Radius.
-- **Shape:** rechtwinklig (0px), 1.5px Rahmen in Tinte, min 44px hoch.
-- **Voll (Primär):** Druckerschwärze mit Papier-Schrift; eine pro Ansicht („Alle Ressorts neu drucken“, „Erste Ausgabe drucken“, „Gewusst“, „Speichern“).
-- **Rahmen (Sekundär):** transparent; Hover füllt mit tiefem Lachspapier.
-- **Hover voll:** Fläche und Rahmen wechseln auf Sepia-Tinte. **Disabled:** 45 % Deckkraft, kein Hover.
-- **Fokus:** global 3px Tinte, 3px Abstand.
+- **Knopf:** Papier-Grund, Tinte, gezeichneter schwarzer Rahmen, 40 px hoch (44 px bei Touch), Innenabstand 8 × 14 px, Gewicht 600.
+- **Hauptknopf (`knopf voll`):** derselbe Knopf mit blauem gezeichnetem Rahmen und Gewicht 650. Höchstens einer pro Bildschirm.
+- **Leise (`knopf leise`):** ohne Rahmen, für Nebenaktionen in Listen.
+- **Fokus:** 2 px Königsblau mit 2 px Abstand. **Hover:** Hauch von Gelb (`gelb-hauch`); der Hauptknopf bekommt beim Hover den vollen Textmarker.
+- **Gruppen am Handy:** Reihen mit unterschiedlich langen Beschriftungen werden zum Raster: Hauptaktion über die volle Breite, Nebenaktionen gleich breit darunter.
+
+### Menüs und Popover
+- **Popover** (Fassung wählen, „Mehr“ im Fach-Kopf): gezeichneter Rahmen, schwebender Schatten, wächst in 180 ms aus dem Knopf (`cubic-bezier(0.23, 1, 0.32, 1)`), schließt schneller (120 ms). Öffnet unter dem Knopf, nie über den Bildschirmrand.
+- **Menüpunkte:** 44 px hoch, ohne Rahmen, Hover in `papier-2`. Gewählte Optionen bekommen den Textmarker auf dem Namen.
+
+### Cards / Containers
+- **Fach-Karte:** gezeichneter Rahmen und zweites Blatt, Fach-Symbol in Fachfarbe, Schlagzeile, Meta-Zeile mit Datum und Lernstand.
+- **Inhalts-Kasten:** ruhige Linie, Innenabstand 16 × 18 px. Fehlt der Inhalt, gibt es keinen leeren Kasten, sondern eine Meta-Zeile („Nicht in dieser Ausgabe: …“).
+- **Zettel:** „Das Wichtigste“ steht auf gelbem Zettel (`zettel`), ohne Rahmen.
 
 ### Inputs / Fields
-- **Style:** Lachspapier-Grund, 1.5px Tinte, 0px Radius, min 46px; Archivo 450, 1rem. Labels darüber in Archivo 700, wdth 88.
-- **Select:** gleicher Rahmen, eigener Linienpfeil in Sepia-Tinte, min 44px.
-- **Fokus:** 3px Tinte, im Feld ohne Abstand.
-
-### Stimmzettel-Kästchen (Fristen abhaken)
-22px Quadrat, 1.5px Rahmen, kein Radius. Abgehakt = ausgefüllt mit Tinte und 4px Papierrand innen, wie ein angekreuztes Wahlfeld. In der Bordeaux-Zeile invertiert (Rahmen und Füllung in Bordeaux-Papier). Erledigte Fristen werden in Sepia-Tinte durchgestrichen.
-
-### Fristen-Ticker (Signatur)
-Ein randabfallendes Band in Druckerschwärze mit Papier-Schrift, nur mit offenen Fristen: Code in Versalien 850/wdth 75, Titel, Datum, „Frist in n Tagen“. Einträge durch 1.5px-Senkrechte in 30 % Papier getrennt; die nächste Frist trägt Bordeaux. Das Band ist für eine nahtlose Schleife mindestens auf acht Einträge pro Hälfte aufgefüllt und läuft linear (8.5s pro Eintrag). Jeder Eintrag ist ein Knopf und öffnet die Meldung zum Termin. Hover (nur bei echten Zeigegeräten) oder Tastaturfokus hält das Band an; auf dem Touchscreen läuft es immer weiter. Bei reduzierter Bewegung steht es und lässt sich seitlich scrollen. Nur auf dem Titelblatt.
-
-### Meldung (Termin-Details)
-Modaler `<dialog>` auf Papier mit 3px-Rahmen rundum. Dachzeile „FACH · CODE · FRIST“ in Archivo-Versalien (Bordeaux, wenn es die nächste Frist ist), Titel in Source Serif 800, darunter eine Faktentabelle zwischen 1.5px-Linien (Wann mit Countdown, Wo, Art), dann der Info-Text aus der Ausgabe und eine Knopfreihe: Erledigt-Kästchen (nur Fristen), „Zur Fach-Ausgabe“, „Schließen“. Öffnet aus dem Ticker und aus jeder Terminzeile; Klick auf den Hintergrund oder Esc schließt.
-
-### Rubriken: Diese Woche und Stammdaten
-Die Ausgabe trennt sichtbar, was sich wöchentlich ändert und was das Semester über gilt. Eine Rubrik-Leiste (3px-Linie oben, 1.5px unten, Archivo 900 wdth 62 in Versalien, rechts die Herkunft als Meta-Zeile) steht vor jedem Teil: „Diese Woche · Aus den Unterlagen: …“ über Zusammenfassung, Auf einen Blick, PS, VO und Lexikon; „Stammdaten · Aus dem Syllabus · gilt das ganze Semester“ unten vor dem Archiv. Wochenstoff ist Zeitungstext in Source Serif; Stammdaten sind Nachschlagedaten in Archivo 450 mit Tabellenziffern, in vier Spalten mit 1.5px-Senkrechten (Termine und Orte, Leistungsbeurteilung, Regeln, Material und Kontakt), am Tablet zwei, am Handy eine.
-
-### Formeln
-LaTeX aus den Ausgaben wird mit KaTeX als MathML gesetzt; der Browser nimmt seine eigene Mathe-Schrift. Abgesetzte Formeln 1.15em mit eigenem waagrechten Scrollbereich, damit lange Gleichungen am Handy nicht die Spalte sprengen.
-
-### Druckkosten
-Wie der Preis im Zeitungskopf: die Datumszeile endet mit „Druckkosten Monat x $ · Guthaben y $“ (OpenRouter `/key` und `/credits`), der Kopf jeder Ausgabe mit „Preis x $“.
-
-### Ressort-Spalte und Aufmacher
-Keine Karte: eine Spalte unter einer 3px-Linie mit Ressortname (Headline), Schlagzeile (Serif), Anriss, Meta-Zeile („Nr. n · Datum · n Begriffe“) und einem Rahmenknopf am Spaltenfuß. Die ganze Spalte ist klickbar; Hover unterstreicht den Ressortnamen 3px. Während des Drucks ersetzt „Geht in Druck …“ den Knopf, darunter eine 4px-Walze, die sich von links füllt und ausblendet (1.6s, `cubic-bezier(0.16, 1, 0.3, 1)`; bei reduzierter Bewegung statisch).
-
-### Terminkalender (Kurstabelle)
-Tagesköpfe in Archivo 750 mit 1.5px-Unterlinie und Countdown („· heute“, „· in 3 Tagen“). Zeilen dreispaltig: Zeit (3.4rem), Code plus Termin plus Ort, rechts das Frist-Kästchen. Die nächste offene Frist ist eine randabfallende Bordeaux-Zeile.
-
-### Karteikarte (Lexikon)
-3px-Rahmen, min 15rem hoch, Begriff zentriert in Archivo 850/wdth 72, Rückseite in tiefem Lachspapier mit Definition in Serif. Dreht sich in 0.55s um die Y-Achse (bei reduzierter Bewegung sofort). Darunter zwei gleich breite Knöpfe „Nochmal“ (Rahmen) und „Gewusst“ (voll); die Liste aller Begriffe als Aufklapper mit gedrehtem Linienwinkel.
+- **Felder:** 44 px Mindesthöhe, Rand 1.5 px in `linie-2`, Handecken. Das Hauptfeld einer Seite („Was willst du verstehen?“) trägt den blauen gezeichneten Rahmen.
+- **Häkchen:** 20 px (22 px bei Touch) Kästchen mit Tinte-Rand und Handecken; gesetzt mit gezeichnetem blauem Haken. Steht ein Häkchen allein (Frist erledigt), bekommt es bei Touch eine unsichtbare Tippfläche von 44 px.
 
 ### Navigation
-Eine schlichte Werkzeugleiste über dem Zeitungskopf (Titelblatt, Kalender, Onlinetests, Word Power nur wenn im Speicher eingerichtet, Anleitung, Einrichten; vor dem Einrichten nur Anleitung und Einrichten): Archivo 500, 0.9375rem, ohne Unterstreichung, Hover unterstreicht, bricht zwischen den Links um, nie in einem Link. Archiv-Ausgaben als Datumsreihe; die aktuelle mit 3px-Unterstreichung und 850.
+- **Seitenleiste:** gezeichnete Wortmarke, Gruppen (Fächer, Lernen, Austausch, Planen, Englisch) mit kleinen Überschriften; aktiver Eintrag mit Textmarker. Hover: Gelb-Hauch.
+- **Tab-Leiste (Handy):** fünf gleich breite Felder (vier Ziele + Mehr), Symbol über Beschriftung; aktiver Tab mit Markerstrich unter der Beschriftung. Beschriftungen kurz und eindeutig: Heute, Thema, Kalender, Arena, Mehr.
 
-### Übungsaufgaben (erst rechnen, dann aufdecken)
-Eigene Rubrik nach dem Wochenraster: zwei Spalten (eine auf dem Handy), jede Aufgabe mit Dachzeile „Aufgabe N · Quelle“ in Archivo 850 Versal, Titel in Source Serif 800, Aufgabentext, dann ein `<details>` mit Knopf „Lösung aufdecken / verdecken“. Die Lösung steht in einem Kasten mit 1.5px-Tintenrand auf `--papier-tief`, nie mit farbigem Seitenstreifen. Quelle im Markdown: `### Quelle · Titel`, Aufgabe, `#### Lösung`, Lösungsweg.
-
-### Fragen zur Ausgabe
-Leserbrief-Form unter dem Lexikon, max 760px: Etikett „Frage“ / „Antwort“ in Archivo Versal, die Frage kursiv in Source Serif 600 (Lesegröße, keine Display-Kursive), die Antwort als normaler Text mit Formeln, getrennt durch 1.5px-Linien. Während die Antwort entsteht, steht die Druckwalze („Die Redaktion schreibt …“) an Stelle des Knopfs; danach der Preis der Antwort als Meta-Zeile.
-
-### Kalender (Wochenansicht)
-Kopf wie eine Rubrik (Archivo 900 bei 65% Breite) mit KW und Zeitraum als Meta-Zeile, rechts drei Knöpfe. Darunter sieben Spalten mit 1.5px-Senkrechten; der heutige Tag liegt auf `--papier-tief`, nicht in Bordeaux. Einträge: Zeit fett mit Tabellenziffern, Titel, Quelle (Fach oder Kalendername) als kleines Versal-Etikett, Ort. Fristen sind nur über „· Frist“ und Gewicht markiert. Unter 1080px stapeln sich die Tage; leere Tage außer heute fallen weg. Zwei Felder darunter: Export ins iPad und eigene .ics-Dateien.
-
-### Word Power (Werkstatt hinter Passwort)
-Englisch-Hausaufgabe im Zeitungslayout: Ausgabe-Kopf (Name, Schlagzeile, Meta-Zeile darunter), dann nummerierte Schritte mit 3px-Linie und großer Archivo-Überschrift. Felder mit 1.5px-Tintenrand ohne Radius. Laufende Schritte zeigen die Druckwalze als Status. Der fertige Entwurf steht als Blatt auf `--papier-tief` mit 1.5px-Rand. Vor dem Entsperren ist nur das Passwortfeld sichtbar.
-
-### Einrichten (Assistent)
-Gleicher Aufbau wie Word Power: Ausgabe-Kopf, dann nummerierte Schritte (1 KI-Guthaben, 2 Privater Speicher, 3 OLAT-Abgleich am PC, 4 iPad und Handy), vor dem Einrichten davor „Schon eingerichtet?“ mit Kamera-Scan und Linkfeld. Unter jeder Schritt-Überschrift eine Stand-Zeile als Stimmzettel-Kästchen (Archivo 850 Versal): leer = offen, gefüllt = erledigt, durchgestrichen = Problem. Kein Bordeaux, keine Häkchen-Icons. Der QR-Code steht schwarz auf Weiß in einem Rahmen, auch im Dunkelmodus, damit Kameras ihn lesen.
-
-### Onlinetests
-Überblick wie die Kurstabelle: Gruppen „Jetzt offen“, „Demnächst“, „Zum Üben“, „Erledigt und vorbei“ als Rubriken, Zeilen mit Fach-Etikett, Titel, Meta-Zeile und Frist rechts in Tabellenziffern. Nur der offene Test mit der nächsten Frist liegt auf Bordeaux. Die Einzelansicht zeigt die Aufgabenstellung als Blatt auf `--papier-tief` (Source Serif, Zeilenumbrüche wie in OLAT) und darunter den Löser: Passwortfeld, danach Fragen einspaltig im Stil der Übungsaufgaben mit „Rechenweg zeigen“.
-
-### Anleitung
-Lesemodus: Ausgabe-Kopf, Inhaltsverzeichnis in zwei Spalten, Kapitel mit 3px-Linie und Archivo-900-Überschrift, Fließtext in Source Serif bei max 68ch, Hinweis-Kasten auf `--papier-tief` zwischen 3px-Linie oben und 1.5px-Linie unten (kein Seitenbalken), Hilfe als Frage-Antwort-Liste.
+### Sprungleiste der Ausgabe
+- Klebt oben, Rand unten als gezeichneter Strich; der Teil, in dem man gerade liest, trägt den Textmarker.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** jeden Abschnitt mit einer 3px-Tintenlinie öffnen und 14px darunter beginnen.
-- **Do** Bordeaux nur für die eine nächste offene Frist verwenden (Eine-Frist Rule).
-- **Do** Hierarchie in Archivo über Breite und Gewicht bauen und Lesetext in Source Serif 4 bei max 68ch setzen.
-- **Do** alle Zahlen in Tabellenziffern setzen.
-- **Do** jede neue Farbe als Paar für Hell und Dunkel auf `:root` anlegen; Kontrast mindestens 4.5:1 (WCAG AA).
-- **Do** Bewegung bei `prefers-reduced-motion: reduce` abschalten (Ticker, Walze, Kartenwende).
+- **Do** neue Bereiche aus den vorhandenen Bausteinen bauen (Knopf, Fach-Karte, Inhalts-Kasten, Popover, Meldung) und in hell, dunkel und am Handy ansehen.
+- **Do** einen Begriff in der ganzen App gleich verwenden: was in der Tab-Leiste „Thema“ heißt, heißt überall so.
+- **Do** am Handy nur die Tippfläche vergrößern (Padding, unsichtbare Fläche), nicht die Optik.
+- **Do** leere Bereiche als eine Meta-Zeile zeigen oder mit dem einen passenden Knopf.
 
 ### Don't:
-- **Don't** Ressorts als gleich große Karten mit Icons anlegen; sie sind Zeitungsspalten mit Senkrechten (die Karteikarte im Lexikon ist das einzige Kartenobjekt).
-- **Don't** Radien, Verläufe oder Schatten auf Papierflächen setzen.
-- **Don't** Haarlinien unter 1px oder graue Trennlinien statt Tinte verwenden.
-- **Don't** Fehler, Erfolg oder Links farbig markieren; Zustand über Wort und Gewicht.
-- **Don't** eine zweite Display-Schrift, Kursiv-Display-Serifen oder Mono-Etiketten einführen.
-- **Don't** über Ressortnamen oder Schlagzeilen Dachzeilen setzen.
+- **Don't** dunkle Verlaufs-Köpfe, Pillen-Streifen, Akkordeons mit Icon-Kreisen oder Ablaufgrafiken einbauen. So sah ein abgelehnter Entwurf aus, der wie eine fremde App wirkte.
+- **Don't** einen zweiten Akzent neben Königsblau einführen oder Fachfarben für Flächen und Knöpfe benutzen.
+- **Don't** Gelb als Fläche, Schrift- oder Knopffarbe verwenden.
+- **Don't** gezeichnete Rahmen um Kästen legen, die nichts tun, oder Kästen zeigen, in denen nur „nicht vorhanden“ steht.
+- **Don't** mehr als einen Hauptknopf und mehr als drei Knöpfe nebeneinander vor den eigentlichen Inhalt stellen; Seltenes kommt unter „Mehr“.
