@@ -11579,9 +11579,11 @@ const CHANGELOG = [
     ['15:10', 'Abgleich abbrechen', 'Im Fenster des PC-Programms bricht Esc den Abgleich ab (am Mac ctrl-C). Wartet das Fenster gerade auf einen Abgleich im Hintergrund, stoppt Esc diesen, und der eigene beginnt sofort. Kaputt geht dabei nichts: Was schon geladen ist, bleibt am PC und kommt beim nächsten Abgleich in die App.', 0, 2, [
       'Zustand, OLAT-Anmeldung und Downloads schreibt das Programm immer erst in eine Nebendatei und benennt sie dann um. Ein Abbruch mitten im Schreiben lässt die alte Fassung ganz, als ginge der PC aus.',
       'Den Abgleich im Hintergrund beendet es samt seinem unsichtbaren Browser, und nur, wenn die gemerkte Prozessnummer wirklich zu einem Lernhelfer-Programm gehört.',
-      'Esc statt Strg+C: Bei Strg+C fragt Windows hinterher noch „Batchvorgang abbrechen (J/N)?“, und Playwright hinterließ Fehlermeldungen im Fenster.']]], t: [
+      'Esc statt Strg+C: Bei Strg+C fragt Windows hinterher noch „Batchvorgang abbrechen (J/N)?“, und Playwright hinterließ Fehlermeldungen im Fenster.']],
+    ['15:15', 'Login einrichten ohne Blindflug', 'Passwort und 2FA-Schlüssel blieben beim Eintippen komplett unsichtbar, und Strg+V fügte den langen Schlüssel im alten Windows-Fenster gar nicht ein. Jetzt erscheint jedes Zeichen als Stern, Tab zeigt den Text zum Nachprüfen, und Strg+V klappt überall. Der Text davor ist in Sicherheit und drei Schritte gegliedert statt ein Block.', 0, 1]], t: [
     ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link'],
-    ['15:10', 'PC-Programm: Esc bricht den Abgleich ab, im Wartebildschirm den im Hintergrund; Tastenhinweis rechts im Fortschrittsbereich']] },
+    ['15:10', 'PC-Programm: Esc bricht den Abgleich ab, im Wartebildschirm den im Hintergrund; Tastenhinweis rechts im Fortschrittsbereich'],
+    ['15:15', 'PC-Programm: Passwort und 2FA-Schlüssel als Sterne, Tab zeigt sie, Strg+V fügt auch in der alten Konsole ein; Einrichte-Text gegliedert']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };

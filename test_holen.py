@@ -501,11 +501,31 @@ def test_schatten():
     print("ok schatten")
 
 
+def test_verdeckt():
+    """Passwort/2FA-Eingabe: * statt Text, Tab zeigt ihn, Strg+V fügt die erste Zeile der Zwischenablage ein."""
+    import io
+    import msvcrt
+    import sys
+    tasten = iter("ab\x08c\t\x00Hx\x16\r")  # \x00H = Pfeil hoch
+    alt = sys.stdin, sys.stdout, msvcrt.getwch, holen.zwischenablage, holen.sys.platform
+    sys.stdin, sys.stdout = type("Tty", (), {"isatty": lambda s: True})(), io.StringIO()
+    msvcrt.getwch, holen.zwischenablage, holen.sys.platform = tasten.__next__, lambda: " JBSW Y3DP\r\nzweite\r\n", "win32"
+    try:
+        assert holen.verdeckt("P: ") == "acxJBSW Y3DP"
+        bild = sys.stdout.getvalue()
+        assert "\rP: ac\x1b[K" in bild and "\rP: **\x1b[K" in bild and bild.endswith("\rP: ************\x1b[K\n"), repr(bild)
+    finally:
+        sys.stdin, sys.stdout, msvcrt.getwch, holen.zwischenablage, holen.sys.platform = alt
+    print("ok verdeckt")
+
+
 if __name__ == "__main__":
     test()
     test_anzeige()
     test_zugang()
     test_schatten()
+    if holen.sys.platform == "win32":
+        test_verdeckt()
 
 
 ECHT_API = holen.api  # test_zugang ersetzt holen.api durch eine Attrappe

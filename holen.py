@@ -923,48 +923,125 @@ def schalter():
         return None
 
 
+def zwischenablage():
+    """Text aus der Windows-Zwischenablage, leer wenn keiner drin ist."""
+    import ctypes
+    u, k = ctypes.WinDLL("user32"), ctypes.WinDLL("kernel32")
+    u.GetClipboardData.restype = k.GlobalLock.restype = ctypes.c_void_p
+    k.GlobalLock.argtypes = k.GlobalUnlock.argtypes = [ctypes.c_void_p]
+    if not u.OpenClipboard(None):
+        return ""
+    try:
+        h = u.GetClipboardData(13)  # CF_UNICODETEXT
+        z = k.GlobalLock(h) if h else None
+        if not z:
+            return ""
+        try:
+            return ctypes.wstring_at(z)
+        finally:
+            k.GlobalUnlock(h)
+    finally:
+        u.CloseClipboard()
+
+
+def verdeckt(frage):
+    """Wie getpass, aber jedes Zeichen als * (man sieht, dass das Einfügen geklappt hat), Tab zeigt/versteckt den Text,
+    und Strg+V fügt auch in der alten Windows-Konsole ein (die gibt es dort nur als Steuerzeichen ^V weiter)."""
+    if not (sys.stdin and sys.stdin.isatty()):
+        return getpass.getpass(frage)
+    win = sys.platform == "win32"
+    if win:
+        import msvcrt
+        taste, zurueck = msvcrt.getwch, lambda: None
+    else:
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        vorher = termios.tcgetattr(fd)
+        tty.setcbreak(fd)  # Taste für Taste, ohne Echo; Strg+C geht weiter
+        taste, zurueck = lambda: sys.stdin.read(1), lambda: termios.tcsetattr(fd, termios.TCSADRAIN, vorher)
+    text, zeigen = "", False
+    try:
+        while True:
+            # ponytail: \r malt nur die letzte Zeile neu; ist Frage + Text breiter als das Fenster, bleibt oben ein Rest stehen
+            sys.stdout.write(f"\r{frage}{text if zeigen else '*' * len(text)}\x1b[K")
+            sys.stdout.flush()
+            c = taste()
+            if c in ("", "\r", "\n"):
+                break
+            if c == "\x03":
+                raise KeyboardInterrupt
+            if win and c in "\x00\xe0":  # Pfeil- und F-Tasten kommen als zwei Zeichen
+                taste()
+            elif c == "\t":
+                zeigen = not zeigen
+            elif c in "\b\x7f":
+                text = text[:-1]
+            elif c == "\x16" and win:
+                text += "".join(z for z in zwischenablage().strip().split("\n")[0] if z.isprintable())
+            elif c.isprintable():
+                text += c
+    finally:
+        zurueck()
+        sys.stdout.write(f"\r{frage}{'*' * len(text)}\x1b[K\n")  # nichts Lesbares bleibt im Fenster stehen
+        sys.stdout.flush()
+    return text
+
+
 def autologin_einrichten(p, stand):
     """Einmal von Hand: Zugangsdaten abfragen, mit einem echten Login prüfen und erst dann verschlüsselt ablegen."""
     if sys.platform not in ("win32", "darwin"):
         print("Den automatischen Login gibt es nur unter Windows und macOS.")
         return None
+    a = ANZEIGE
+    f, b, gr, r, g, x = (a.FETT, a.BLAU, a.GRUEN, a.ROT, a.GRAU, a.AUS) if a.an else ("",) * 6
     print(f"""
-=== Automatischer OLAT-Login ===
-Der Lernhelfer loggt sich dann selbst bei OLAT ein, auch mit dem 2FA-Code. Kennung, Passwort und 2FA-Schlüssel bleiben
-verschlüsselt auf diesem {GERAET} ({'mit deinem Windows-Konto' if sys.platform == 'win32' else 'im Schlüsselbund'}) und gehen nirgendwohin.
-Wer an deinen entsperrten {GERAET} kommt, kommt damit auch in deinen Uni-Account: {GERAET} immer mit Passwort sperren.
-Notbremse (z. B. {GERAET} gestohlen): im Account Portal den Token löschen, den du gleich anlegst, oder das Uni-Passwort
-ändern. Dann sind die gespeicherten Daten wertlos, egal wo sie gerade sind.
+  {f}Automatischer OLAT-Login{x}
+  {g}Der Lernhelfer loggt sich dann selbst bei OLAT ein, auch mit dem 2FA-Code.{x}
 
-Den 2FA-Schlüssel bekommst du so:
-  1. https://accounts.uibk.ac.at öffnen, einloggen und oben rechts auf Deutsch stellen (auf Englisch fehlt der Link aus 2.).
-     Dann bei der Zwei-Faktor-Authentifizierung auf „Verwalten“, dann „Neuer Token“.
-  2. Unter dem QR-Code auf „hier“ klicken. Das kopiert den geheimen Schlüssel.
-  3. Hier einfügen. Danach zeigt der Lernhelfer einen 6-stelligen Code: den im Account Portal eingeben (nicht den aus der
-     Handy-App) und „Verifizieren“.
-Deine Authenticator-App am Handy funktioniert weiter wie bisher.
-Nichts eingeben und Enter = überspringen, dann loggst du dich wie bisher selbst ein.
+  {b}Sicherheit{x}
+    {gr}✓{x} Kennung, Passwort und 2FA-Schlüssel bleiben verschlüsselt auf diesem {GERAET}
+      {g}({'mit deinem Windows-Konto' if sys.platform == 'win32' else 'im Schlüsselbund'}) und gehen nirgendwohin.{x}
+    {r}!{x} Wer an deinen entsperrten {GERAET} kommt, kommt auch in deinen Uni-Account.
+      {g}Darum den {GERAET} immer mit Passwort sperren.{x}
+    {r}!{x} Notbremse, z. B. {GERAET} gestohlen: im Account Portal den Token löschen,
+      {g}den du gleich anlegst, oder das Uni-Passwort ändern.
+      Dann sind die gespeicherten Daten wertlos.{x}
+
+  {b}So bekommst du den 2FA-Schlüssel{x}
+    {f}1{x}  https://accounts.uibk.ac.at öffnen und einloggen
+       Oben rechts auf Deutsch stellen {g}(auf Englisch fehlt der Link aus Schritt 2){x}
+       Bei Zwei-Faktor-Authentifizierung auf „Verwalten“, dann „Neuer Token“
+    {f}2{x}  Unter dem QR-Code auf „hier“ klicken: kopiert den geheimen Schlüssel
+    {f}3{x}  Unten einfügen. Dann zeigt der Lernhelfer einen 6-stelligen Code.
+       Den im Account Portal eingeben und „Verifizieren“ klicken
+       {g}(nicht den Code aus der Handy-App){x}
+
+  {g}Deine Authenticator-App am Handy funktioniert weiter wie bisher.
+  Überspringen: einfach Enter drücken, dann loggst du dich wie bisher selbst ein.{x}
 """)
-    benutzer = input("Benutzerkennung (z. B. csab1234): ").strip()
+    benutzer = input("  Benutzerkennung (z. B. csab1234): ").strip()
     if not benutzer:
         return None
-    passwort = getpass.getpass("Passwort (bleibt beim Tippen unsichtbar): ")
-    geheim = getpass.getpass("2FA-Schlüssel (einfügen, bleibt unsichtbar): ").strip()
+    print(f"  {g}Passwort und Schlüssel erscheinen als *. Mit Tab siehst du sie, "
+          f"{'Strg+V' if sys.platform == 'win32' else '⌘V'} fügt ein.{x}")
+    passwort = verdeckt("  Passwort: ")
+    geheim = verdeckt("  2FA-Schlüssel: ").strip()
     if geheim.startswith("otpauth://"):
         geheim = parse_qs(urlparse(geheim).query).get("secret", [""])[0]
     try:
         totp(geheim)
         assert len(re.sub(r"[\s=-]", "", geheim)) >= 16
     except (ValueError, AssertionError):
-        print("Das sieht nicht nach einem 2FA-Schlüssel aus (Buchstaben A–Z und Ziffern 2–7). Nichts gespeichert.")
+        print(f"  {r}!{x} Das sieht nicht nach einem 2FA-Schlüssel aus (Buchstaben A–Z und Ziffern 2–7). Nichts gespeichert.")
         return None
     while True:
-        print(f"\nCode fürs Account Portal: {totp(geheim)}  (gilt noch {30 - int(time.time() % 30)} Sekunden)")
-        antwort = input("Hat das Portal ihn angenommen (oder war der Schlüssel schon eingerichtet)? Dann „ok“, sonst Enter für den aktuellen Code: ")
+        print(f"\n  Code fürs Account Portal:  {f}{totp(geheim)}{x}  {g}gilt noch {30 - int(time.time() % 30)} Sekunden{x}")
+        antwort = input("  Angenommen (oder war er schon eingerichtet)? Dann ok tippen, sonst Enter für einen frischen Code: ")
         if antwort.strip().lower() in ("ok", "j", "ja"):
             break
     login = {"benutzer": benutzer, "passwort": passwort, "geheim": geheim}
-    print("Teste den Login bei OLAT …", flush=True)
+    print(f"\n  {g}Teste den Login bei OLAT …{x}", flush=True)
     fenster = profil(p, unsichtbar=True)
     try:
         fenster.clear_cookies(domain=IDP)  # sonst kennt der IdP die Anmeldung noch und prüft gar nichts
@@ -976,11 +1053,11 @@ Nichts eingeben und Enter = überspringen, dann loggst du dich wie bisher selbst
     finally:
         fenster.close()
     if grund:
-        print(f"Das hat nicht geklappt: {grund}. Nichts gespeichert, du loggst dich wie bisher selbst ein.")
+        print(f"  {r}!{x} Das hat nicht geklappt: {grund}. Nichts gespeichert, du loggst dich wie bisher selbst ein.")
         return None
     login_speichern(login)
     stand.pop("autologin_fehler", None)
-    print("Gespeichert. Ab jetzt loggt sich der Lernhelfer selbst bei OLAT ein.\n")
+    print(f"  {gr}✓{x} Gespeichert. Ab jetzt loggt sich der Lernhelfer selbst bei OLAT ein.\n")
     return login
 
 
