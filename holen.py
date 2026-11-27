@@ -28,6 +28,7 @@ import os
 import random
 import re
 import shutil
+import signal
 import struct
 import subprocess
 import sys
@@ -156,9 +157,11 @@ class Anzeige:
     RAD, RAD_ALT = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏", "░▒▓█▓▒"
     BLAU, GRUEN, ROT, GRAU, DUNKEL = "\x1b[38;5;69m", "\x1b[38;5;78m", "\x1b[38;5;203m", "\x1b[38;5;244m", "\x1b[38;5;240m"
     FETT, AUS, CHIP = "\x1b[1m", "\x1b[0m", "\x1b[48;5;{}m\x1b[1;38;5;16m"
+    KAPPE, TASTE = "\x1b[48;5;238m\x1b[38;5;252m", "Esc" if sys.platform == "win32" else "ctrl C"  # Abbrechen: esc_abbruch() bzw. Strg+C
 
     def __init__(self):
         self.an, self.raus, self.alt, self.echt, self.mac, self.leiste = False, None, False, False, False, False
+        self.abbruch, self.von_hand = "abbrechen", False  # Tastenkappe rechts im Bereich; von_hand: Esc/Strg+C statt Absturz
         self.lock = threading.RLock()
         self.start = time.monotonic()
         self.offen = False  # angefangene Zeile ohne Zeilenende (Eingabe-Frage): dann nicht dazwischenzeichnen
@@ -343,6 +346,10 @@ class Anzeige:
                   ("·" * (5 - voll), self.DUNKEL), (f" {rest:.1f} s".replace(".", ",") + " · wie beim Klicken von Hand", self.GRAU)]
         else:
             z2 = [("   ", ""), (rad, self.BLAU), (" ", ""), (self.ort, self.FETT), (("  " if self.ort else "") + self.tun, self.GRAU)]
+        kappe = f" {self.TASTE} "  # rechts an der Kante, wenn Platz ist: welche Taste abbricht
+        frei = self._kante() - sum(len(_sauber(x)) for x, _ in z2) - len(kappe) - 1 - len(self.abbruch)
+        if self.abbruch and frei >= 3:
+            z2 += [(" " * frei, ""), (kappe, self.KAPPE), (" " + self.abbruch, self.GRAU)]
         zeilen = [self._kuerzen(z1, sp - 1), self._kuerzen(z2, sp - 1)]
         # Z3: Neues je Fach und ein Hinweis zur Phase
         if sp >= 72 and (self.faecher or self.hinweis):
@@ -594,9 +601,11 @@ class Anzeige:
             titel, ort = self.titel, self.ort
             self.titel = None
             self._weg()
-            if titel:
-                self._raus(f"  {self.ROT}✗{self.AUS} Abgebrochen bei {titel}" + (f" · {_sauber(ort)}" if ort else "")
+            if titel or self.von_hand:
+                self._raus(f"  {self.ROT}✗{self.AUS} Abgebrochen" + (f" bei {titel}" if titel else "") + (f" · {_sauber(ort)}" if ort and titel else "")
                            + f" · {uhr(time.monotonic() - self.start)}\n\x1b]0;Lernhelfer · abgebrochen\x07")
+            if self.von_hand:
+                self._raus(f"    {self.GRAU}Nichts kaputt: Schon Geladenes bleibt am {GERAET} und kommt beim nächsten Abgleich in die App.{self.AUS}\n")
             self._raus("\x1b[?25h" + ("\x1b]9;4;0;0\x07" if self.leiste else ""))
             self.raus.flush()
 
@@ -833,8 +842,10 @@ def sitzung_lesen():
 def sitzung_speichern(ctx):
     """Nie im Klartext: Klappt das Verschlüsseln nicht (z. B. Schlüsselbund gesperrt), bleibt die Sitzung ungespeichert."""
     roh = json.dumps(ctx.storage_state()).encode()
+    neu = SITZUNG.with_name(SITZUNG.name + ".neu")  # abgebrochen mitten im Schreiben: die alte Anmeldung bleibt ganz
     try:
-        SITZUNG.write_bytes(_dpapi(roh, True) if sys.platform == "win32" else versiegeln(_sitzungsschluessel(), roh))
+        neu.write_bytes(_dpapi(roh, True) if sys.platform == "win32" else versiegeln(_sitzungsschluessel(), roh))
+        os.replace(neu, SITZUNG)
     except (OSError, subprocess.CalledProcessError) as e:
         logging.info("Sitzung nicht gespeichert: %s", e)
     SITZUNG_ALT.unlink(missing_ok=True)
@@ -893,7 +904,7 @@ def auto_einloggen(seite, login):
 
 def profil(p, unsichtbar):
     """Das eigene Lernhelfer-Profil (Cookies der Uni-Anmeldung bleiben darin), sichtbar zum Einloggen von Hand."""
-    return p.chromium.launch_persistent_context(PROFIL, channel=KANAL, headless=unsichtbar,
+    return p.chromium.launch_persistent_context(PROFIL, channel=KANAL, headless=unsichtbar, handle_sigint=False,  # Strg+C: Python räumt auf
                                                 ignore_default_args=["--enable-automation", "--disable-extensions"])
 
 
@@ -1001,7 +1012,7 @@ def olat_login(p, sichtbar=True, fenster_auf=lambda: None, login=None, login_feh
     dort gespeicherte Passwörter füllt Chrome beim nächsten Mal selbst aus. Wartet höchstens 10 Minuten (Playwright-TimeoutError)."""
     ANZEIGE.schritt("Verbinde mit OLAT")
     ANZEIGE.jetzt(f"startet {BROWSER} unsichtbar", "OLAT")
-    browser = p.chromium.launch(channel=KANAL, headless=True)
+    browser = p.chromium.launch(channel=KANAL, headless=True, handle_sigint=False)  # bei Strg+C schließt Python den Browser, nicht der Treiber mittendrin
     for versuch in (1, 2):
         if versuch == 2:
             ANZEIGE.schritt("Verbinde mit OLAT")
@@ -1750,10 +1761,66 @@ def sperre():
         else:
             import fcntl
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return f
     except OSError:
         f.close()
         return None
+    try:
+        (BASIS / ".laeuft.pid").write_text(str(os.getpid()))  # wer die Sperre hält: für hintergrund_stoppen()
+    except OSError:
+        pass
+    return f
+
+
+def hintergrund_stoppen():
+    """Taste im Wartebildschirm: beendet den Abgleich, der gerade die Sperre hält, samt Browser. Dabei geht nichts kaputt:
+    Stand, Sitzung, Downloads und holen.py werden nur über Nebendatei und Umbenennen geschrieben, als ginge der PC aus.
+    False, wenn er sich nicht finden lässt (ältere Fassung ohne .laeuft.pid) oder die Nummer kein Lernhelfer-Python ist."""
+    try:
+        pid = int((BASIS / ".laeuft.pid").read_text())
+    except (OSError, ValueError):
+        return False
+    if pid == os.getpid():
+        return False
+    if sys.platform == "win32":  # /T: auch Playwright-Treiber und Chrome darunter
+        name = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True).stdout  # Bytes: Meldungen in OEM-Codepage
+        return name.strip().lower().startswith(b'"python') and \
+            subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True).returncode == 0
+    if b"holen.py" not in subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True).stdout:
+        return False
+    os.kill(pid, signal.SIGTERM)  # der Playwright-Treiber schließt seinen Browser selbst, sobald Python weg ist
+    return True
+
+
+class Abbruch(BaseException):
+    """Esc oder Strg+C im Fenster, kein Absturz. Kein KeyboardInterrupt: damit endete Python mit dem Strg+C-Code und cmd fragte
+    hinterher „Batchvorgang abbrechen (J/N)?“. BaseException, damit ihn kein „except Exception“ schluckt."""
+
+
+def abbrechen(*_):
+    raise Abbruch
+
+
+def still(typ, e, tb):
+    """Abbruch von Hand: kein Traceback und kein Fehlerbericht, ANZEIGE.schluss() sagt, dass nichts kaputt ist."""
+    if not issubclass(typ, (Abbruch, KeyboardInterrupt)):
+        return sys.__excepthook__(typ, e, tb)
+    ANZEIGE.von_hand = True
+    logging.getLogger("asyncio").disabled = True  # Playwright-Reste beim Aufräumen: „Future exception was never retrieved“
+
+
+def esc_abbruch():
+    """Windows: Esc im Konsolenfenster wirkt wie Strg+C (über abbrechen()), nur ohne die Rückfrage von cmd.
+    Wartet auf einen Druck und nur, solange der Live-Bereich steht: input() und getpass (Login einrichten) bekommen jede Taste."""
+    if sys.platform != "win32" or not ANZEIGE.an:
+        return
+    import _thread
+    import msvcrt
+
+    def warten():
+        while not (ANZEIGE.titel and not ANZEIGE.offen and msvcrt.kbhit() and msvcrt.getwch() == "\x1b"):
+            time.sleep(0.1)
+        _thread.interrupt_main()
+    threading.Thread(target=warten, daemon=True).start()
 
 
 if __name__ == "__main__":
@@ -1769,24 +1836,37 @@ if __name__ == "__main__":
         print(f"--- {datetime.now():%d.%m.%Y %H:%M}")
     else:
         ANZEIGE.einschalten()
+        signal.signal(signal.SIGINT, abbrechen)
+        sys.excepthook = still
+    esc_abbruch()
     SPERRE = sperre()
-    gewartet = False
-    for i in range(0 if auto else 240):  # von Hand: bis zu 20 Minuten warten, bis der Lauf im Hintergrund fertig ist
-        if SPERRE:
-            break
-        if not i:
-            print("Gerade gleicht der Lernhelfer im Hintergrund ab. Warte, bis er fertig ist …", flush=True)
+    gewartet = gestoppt = False
+    bis = time.monotonic() + (0 if auto else 1200)  # von Hand: bis zu 20 Minuten warten, bis der Lauf im Hintergrund fertig ist
+    while not SPERRE and time.monotonic() < bis:
+        if not gewartet:
+            print(f"Gerade gleicht der Lernhelfer im Hintergrund ab. Warte, bis er fertig ist, oder brich ihn mit {ANZEIGE.TASTE.replace(' ', '+')} ab.", flush=True)
             ANZEIGE.schritt("Warte auf den Abgleich im Hintergrund", frist=1200)
             ANZEIGE.jetzt("wartet, bis er fertig ist", "Hintergrund")
+            ANZEIGE.abbruch = "abbrechen und selbst abgleichen"
             gewartet = True
-        time.sleep(5)
+        try:
+            time.sleep(0.5)
+        except Abbruch:  # Esc bzw. Strg+C: hier den Lauf im Hintergrund, danach gleicht dieser ab
+            ANZEIGE.jetzt("bricht ihn ab", "Hintergrund")
+            gestoppt = hintergrund_stoppen()
+            if not gestoppt:
+                ANZEIGE.warnung("Der Abgleich im Hintergrund lässt sich nicht abbrechen (ältere Fassung). Warte, bis er fertig ist.")
+                ANZEIGE.abbruch = "abbrechen"
+                ANZEIGE.jetzt("wartet, bis er fertig ist", "Hintergrund")
+            esc_abbruch()
         SPERRE = sperre()
+    ANZEIGE.abbruch = "abbrechen"
     if not SPERRE:
         ANZEIGE.schritt(None)
         print("Es läuft schon ein Abgleich.")
         sys.exit(0 if auto else 1)
     if gewartet:
-        ANZEIGE.ok("Hintergrund-Abgleich fertig, jetzt du")
+        ANZEIGE.ok("Hintergrund-Abgleich abgebrochen, jetzt du" if gestoppt else "Hintergrund-Abgleich fertig, jetzt du")
     ANZEIGE.schritt("Prüfe deine App")
     ANZEIGE.jetzt("fragt deinen Speicher, ob der Schlüssel noch gilt", "App")
     if not olat_erlaubt():
@@ -1817,8 +1897,8 @@ if __name__ == "__main__":
     def absturz(typ, e, tb):
         """Unerwarteter Abbruch: Traceback wie bisher, dann Fehlerbericht an den Server und ein Hinweis in der App,
         sonst stünde dort weiter der letzte gute Abgleich und niemand merkte etwas."""
-        sys.__excepthook__(typ, e, tb)
-        if issubclass(typ, KeyboardInterrupt):
+        still(typ, e, tb)  # Traceback wie bisher; von Hand abgebrochen (Esc, Strg+C): nichts melden
+        if issubclass(typ, (Abbruch, KeyboardInterrupt)):
             return
         schritt = " · ".join(x for x in (ANZEIGE.titel, ANZEIGE.ort) if x)
         for tun in (lambda: absturz_bericht(stand, e, schritt),

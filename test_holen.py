@@ -224,6 +224,25 @@ def test():
         zweit = holen.sperre()
         assert zweit, "nach dem Ende wieder frei"
         zweit.close()
+        # Esc im Wartebildschirm: der Lauf im Hintergrund endet samt Kindern (Treiber, Chrome), die Sperre ist frei
+        import subprocess, sys, time
+        kind = "import holen, pathlib, subprocess, sys, time; holen.BASIS = pathlib.Path(sys.argv[1]); s = holen.sperre(); " \
+               "e = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)']); print(e.pid, flush=True); time.sleep(60)"
+        hinten = subprocess.Popen([sys.executable, "-c", kind, t], cwd=Path(holen.__file__).parent, stdout=subprocess.PIPE, text=True)
+        enkel = int(hinten.stdout.readline())
+        assert holen.sperre() is None and holen.hintergrund_stoppen(), "Hintergrund-Lauf gefunden und gestoppt"
+        hinten.wait(10)
+        time.sleep(0.5)
+        assert not holen.hintergrund_stoppen(), "Nummer gehört keinem laufenden Prozess mehr"
+        frei = holen.sperre()
+        assert frei and not holen.hintergrund_stoppen(), "nach dem Abbrechen wieder frei; nie sich selbst beenden"
+        frei.close()
+        if holen.sys.platform == "win32":
+            assert b"%d" % enkel not in subprocess.run(["tasklist", "/FI", f"PID eq {enkel}", "/NH"], capture_output=True).stdout, "Kinder mit weg"
+            fremd = subprocess.Popen(["ping", "-n", "30", "127.0.0.1"], stdout=subprocess.DEVNULL)  # die Nummer gehört keinem Lernhelfer-Python
+            (Path(t) / ".laeuft.pid").write_text(str(fremd.pid))
+            assert not holen.hintergrund_stoppen() and fremd.poll() is None, "nie ein fremdes Programm beenden"
+            fremd.kill()
     # 2FA-Code nach RFC 6238 (Testwerte aus dem Anhang B, die letzten 6 Ziffern), Leerzeichen und Kleinschreibung egal
     geheim = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
     assert holen.totp(geheim, 59) == "287082" and holen.totp(geheim, 1111111109) == "081804"

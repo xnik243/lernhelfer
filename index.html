@@ -11575,8 +11575,13 @@ const CHANGELOG = [
     ['09:40', 'Forum: anonymer Bereich „Gesundheit und Leistung“ vorerst ausgeblendet'],
     ['18:30', 'Noten: „Alle Einträge“ ist zugeklappt und öffnet sich mit dem Pfeil neben der Überschrift']] },
   { d: '2026-11-27', k: [
-    ['14:50', 'Den 2FA-Schlüssel finden', 'Im Account Portal fehlt auf Englisch der Link, der den Schlüssel unter dem QR-Code kopiert. Die Anleitung sagt jetzt, dass man die Seite zuerst auf Deutsch stellt und im Portal den Code aus dem Fenster eingibt, nicht den aus der Handy-App.', 0, 1]], t: [
-    ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link']] },
+    ['14:50', 'Den 2FA-Schlüssel finden', 'Im Account Portal fehlt auf Englisch der Link, der den Schlüssel unter dem QR-Code kopiert. Die Anleitung sagt jetzt, dass man die Seite zuerst auf Deutsch stellt und im Portal den Code aus dem Fenster eingibt, nicht den aus der Handy-App.', 0, 1],
+    ['15:10', 'Abgleich abbrechen', 'Im Fenster des PC-Programms bricht Esc den Abgleich ab (am Mac ctrl-C). Wartet das Fenster gerade auf einen Abgleich im Hintergrund, stoppt Esc diesen, und der eigene beginnt sofort. Kaputt geht dabei nichts: Was schon geladen ist, bleibt am PC und kommt beim nächsten Abgleich in die App.', 0, 2, [
+      'Zustand, OLAT-Anmeldung und Downloads schreibt das Programm immer erst in eine Nebendatei und benennt sie dann um. Ein Abbruch mitten im Schreiben lässt die alte Fassung ganz, als ginge der PC aus.',
+      'Den Abgleich im Hintergrund beendet es samt seinem unsichtbaren Browser, und nur, wenn die gemerkte Prozessnummer wirklich zu einem Lernhelfer-Programm gehört.',
+      'Esc statt Strg+C: Bei Strg+C fragt Windows hinterher noch „Batchvorgang abbrechen (J/N)?“, und Playwright hinterließ Fehlermeldungen im Fenster.']]], t: [
+    ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link'],
+    ['15:10', 'PC-Programm: Esc bricht den Abgleich ab, im Wartebildschirm den im Hintergrund; Tastenhinweis rechts im Fortschrittsbereich']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
