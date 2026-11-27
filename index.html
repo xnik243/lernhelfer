@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com https://i.ytimg.com; img-src 'self' data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://openrouter.ai https://api.github.com https://www.youtube.com https://i.ytimg.com; img-src 'self' data: https://i.ytimg.com; frame-src https://www.youtube-nocookie.com; media-src blob:; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Lernhelfer">
@@ -11,6 +11,7 @@
 <title>Lernhelfer</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cpath d=%22M7 6.5C22 4.6 42 5.4 57.8 6.2 59.4 22 59 42 58.2 57.6 42 59.2 22 58.8 6.4 58 5 42 5.2 22 7 6.5Z%22 fill=%22%23ffe93a%22/%3E%3Cpath d=%22M18 10.5Q16 31 17.6 50Q33 48.6 50 50.5%22 fill=%22none%22 stroke=%22%23121212%22 stroke-width=%227%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M28.5 28.5Q32 31 34.6 36.5Q39.5 24 50 13%22 fill=%22none%22 stroke=%22%232446c8%22 stroke-width=%226.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preload" href="fonts/Archivo.woff2" as="font" type="font/woff2" crossorigin>
 <script src="lib/marked-12.0.2.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
 <script src="lib/purify-3.1.6.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
@@ -174,6 +175,14 @@
   .presse::before { right: 0; background: var(--bg-3); }
   .presse .uhr { font-variant-numeric: tabular-nums; }
   .presse .klein { font-weight: 400; }
+  .navi .taste { margin-left: auto; padding: 0 5px; color: var(--text-3); font-size: 0.6875rem; font-weight: 550; }
+  @media (hover: none), (max-width: 899px) { .navi .taste { display: none; } }
+  .such-feld { max-width: 560px; margin: 4px 0 8px; }
+  .such-feld input { font-size: 1.0625rem; }
+  .such-liste > li > a:first-child { overflow-wrap: anywhere; }
+  .such-tasten { margin-top: 32px; }
+  .presse-halt { margin: -10px 0 -10px 8px; padding: 10px 2px; border: 0; background: none; color: var(--akzent-text); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .presse-halt:hover { color: var(--fehler); }
   .presse::after { width: 40%; background: var(--akzent); animation: laden 1.3s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
   @keyframes laden { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
   @media (prefers-reduced-motion: reduce) { .presse::after { width: 100%; opacity: 0.35; animation: none; } .navi .laeuft { animation: none; } }
@@ -2058,6 +2067,7 @@ aussehen();
     <nav class="navi" aria-label="Hauptnavigation">
       <a href="#/start" data-ansicht="start" class="nur-server nav-start" id="nav-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20.5V4M6 4.5h11l-2.5 4 2.5 4H6"/></svg>Start</a>
       <a href="#/" data-ansicht="titelblatt" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg>Heute</a>
+      <a href="#/suche" data-ansicht="suche" class="mit-daten"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20.5 20.5"/></svg>Suchen<kbd class="taste" id="such-taste" aria-hidden="true">Strg K</kbd></a>
       <p class="gruppe mit-daten" id="nav-faecher-kopf">Fächer</p>
       <div class="navi mit-daten" id="nav-faecher"></div>
       <p class="gruppe mit-daten" id="nav-werkzeuge-kopf">Werkzeuge</p>
@@ -2257,6 +2267,7 @@ aussehen();
 
     <section id="recht" hidden class="werkstatt anleitung"></section>
     <section id="changelog" hidden class="werkstatt changelog"></section>
+    <section id="suche" hidden class="werkstatt suche"></section>
 
     <section id="einstellungen" hidden class="werkstatt einrichten">
       <header class="ausgabe-kopf">
@@ -3078,6 +3089,12 @@ function ausgabeDrucken(f, a) {
 }
 const tabelle = (kopf, zeilen) => el('div', { class: 'tabelle-rahmen' }, el('table', { class: 'tabelle' },
   el('thead', {}, el('tr', {}, kopf.map(k => el('th', {}, k)))), el('tbody', {}, zeilen.map(z => el('tr', {}, z.map(x => el('td', {}, x)))))));
+// Leere Seiten führen zum nächsten Schritt: zur ersten fehlenden Wochenausgabe, ohne Fächer zum Hochladen (erstellt wird erst dort, nichts kostet unbemerkt)
+function ersteAusgabeKnopf() {
+  const f = Object.keys(R).find(x => !R[x].ausgaben.length) || Object.keys(R)[0];
+  return el('div', { class: 'knopfreihe' }, f ? el('a', { class: 'knopf voll', href: `#/${encodeURIComponent(f)}` }, `Erste Ausgabe für ${f} erstellen`)
+    : el('a', { class: 'knopf voll', href: '#/unterlagen' }, 'Unterlagen hochladen'));
+}
 const kachel = (titel, wert, zusatz) => el('div', { class: 'kachel' }, el('p', { class: 'meta' }, titel), el('p', { class: 'zahl' }, String(wert)), zusatz && el('p', { class: 'meta' }, zusatz));
 const liesJson = k => { try { return JSON.parse(merk(k) || 'null'); } catch { return null; } };
 const GLYPHEN = {  // eigene Zeichen je Fach, 24er-Raster wie die Symbole der Leiste
@@ -3326,9 +3343,12 @@ async function bilderSpaeter(f, tag) {
 async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausgaben früherer Einheiten
   const r = R[f];
   if (r.druckt) return;
-  Object.assign(r, { druckt: true, fehler: '', hinweis: 'Liest die Unterlagen …', start: Date.now() }); zeichne();
-  const uhr = setInterval(() => presseZeigen(f), 1000);
+  const halt = new AbortController();
+  Object.assign(r, { druckt: true, fehler: '', hinweis: 'Liest die Unterlagen …', start: Date.now(), halt }); zeichne();
+  try { if (Notification.permission === 'default') Notification.requestPermission(); } catch {}  // fertig melden, wenn die App im Hintergrund ist
+  const uhr = setInterval(() => { presseZeigen(f); druckTitel(); }, 1000);
   await wach(true);
+  let ok = false;
   try {
     const q = await quelle(f), wahl = fassung(f), tief = wahl.niveau === 'ultra';
     const fotos = (await EIGENE_D.laden().catch(() => ({ tests: [] }))).tests.filter(t => t.fach === f);
@@ -3337,8 +3357,9 @@ async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausga
     const antwortKI = await strom({ ...MODELLE[modell], feature: tief ? 'ausgabe-ultra' : 'ausgabe', messages: [{ role: 'user', content: prompt }] }, x => {
       const teile = x.match(/^## .+/gm) || [];
       r.hinweis = /```json/.test(x) ? 'Schreibt Termine und Begriffe …' : teile.length ? `Schreibt „${teile.at(-1).slice(3).trim()}“ (${teile.length} von ${tief && wahl.form !== 'formeln' ? 7 : 6}) …` : 'Schreibt …';
-    }, () => { r.hinweis = 'Denkt nach …'; });
-    r.hinweis = 'Zeichnet Schaubilder …';
+    }, () => { r.hinweis = 'Denkt nach …'; }, halt.signal);
+    r.halt = null;  // ab hier ist der Text bezahlt: nicht mehr abbrechen, sonst wäre er weg
+    r.hinweis = 'Zeichnet Schaubilder …'; presseZeigen(f);
     const nach = await bilderNach(antwortKI.text, modell).catch(() => null);
     merk(`bilder-nach:${f}:${d}`, '1');
     r.hinweis = 'Speichert …';
@@ -3347,12 +3368,21 @@ async function drucke(f, d = HEUTE) {  // d: Stichtag, für nachträgliche Ausga
     r.ausgaben = [{ datum: d, sha: antwort.content.sha }, ...r.ausgaben.filter(a => a.datum !== d)].sort((a, b) => b.datum.localeCompare(a.datum));
     r.cache[d] = zerlege(text, d);
     if (d !== HEUTE) location.hash = `#/${encodeURIComponent(f)}/${d}`;
+    ok = true;
   } catch (e) {
-    r.fehler = wpWarum(e);
+    r.fehler = e.abgebrochen ? '' : wpWarum(e);
+    if (e.abgebrochen) status(`${f}: abgebrochen.${r.ausgaben.length ? ' Die bisherige Ausgabe bleibt.' : ''}`);
   } finally {
     clearInterval(uhr); wach(false);
-    r.druckt = false; zeichne(); kosten();
+    r.druckt = false; r.halt = null; zeichne(); kosten(); druckTitel();
+    if (ok && document.hidden) melden(`${f} ist fertig`, 'Die neue Wochenausgabe wartet auf dich.', 'ausgabe');
   }
+}
+// Im Browser-Tab mitlesen, solange etwas entsteht: „Mathematik entsteht (2:31) · …“, bei mehreren die Zahl der Fächer
+function druckTitel() {
+  const laeuft = Object.keys(R).filter(f => R[f].druckt), basis = document.title.replace(/[^·\s][^·]* entsteht \(\d+:\d\d\) · /, '');
+  const zeit = laeuft.length && minuten(Date.now() - Math.min(...laeuft.map(f => R[f].start)));
+  document.title = laeuft.length ? `${laeuft.length > 1 ? `${laeuft.length} Fächer` : laeuft[0]} entsteht (${zeit}) · ${basis}` : basis;
 }
 
 /* ---------- Heute ---------- */
@@ -3366,12 +3396,14 @@ function kommende() {
 const minuten = ms => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 function presse(f, r = R[f]) {  // f: Fach oder 'vortrag', r: was läuft ({ hinweis, start })
   return el('p', { class: 'presse', 'data-presse': f }, el('span', { role: 'status' }, r.hinweis), ' ',
-    el('span', { class: 'uhr', 'aria-hidden': 'true' }, minuten(Date.now() - r.start)), el('span', { class: 'klein' }, f === 'vortrag' ? ue(' · App offen lassen, der Bildschirm bleibt an.', ' · Keep the app open, the screen stays on.') : ' · App offen lassen, der Bildschirm bleibt an.'));
+    el('span', { class: 'uhr', 'aria-hidden': 'true' }, minuten(Date.now() - r.start)), el('span', { class: 'klein' }, f === 'vortrag' ? ue(' · App offen lassen, der Bildschirm bleibt an.', ' · Keep the app open, the screen stays on.') : ' · App offen lassen, der Bildschirm bleibt an.'),
+    r.halt && el('button', { class: 'presse-halt', type: 'button', onclick: () => r.halt?.abort() }, 'Abbrechen'));
 }
 function presseZeigen(f, r = R[f]) {
   for (const p of document.querySelectorAll(`[data-presse="${CSS.escape(f)}"]`)) {
     if (p.firstChild.textContent !== r.hinweis) p.firstChild.textContent = r.hinweis;
     p.querySelector('.uhr').textContent = minuten(Date.now() - r.start);
+    if (!r.halt) p.querySelector('.presse-halt')?.remove();  // Text ist da und bezahlt: ab jetzt nur noch speichern
   }
 }
 let ALLE_FRISTEN = false;
@@ -4335,7 +4367,7 @@ async function lernenKurz() {  // Heute (ab Pro): Karteikarten, nächste Prüfun
 /* ---------- Karteikarten: alle Begriffe aller Ausgaben mit Wiederholplan (Pro) ---------- */
 // karten.json: { karten: { "Fach|begriff": { f, b, d, datum, box, faellig } }, gelesen: { "Fach/Datum": sha }, neu: { datum, n } }
 // Box 0 heißt neu; gewusst rückt eine Box weiter (1, 3, 7, 14, 30 Tage), „Nochmal“ schickt die Karte in Box 1 und heute noch einmal.
-const ABSTAND = [0, 1, 3, 7, 14, 30], NEU_PRO_TAG = 20;
+const ABSTAND = [0, 1, 3, 7, 14, 30], NEU_PRO_TAG = 20, WDH_PRO_TAG = 80;  // WDH: nach ein paar Tagen Pause kein Berg von 200 Karten auf einmal
 const KARTEN_D = datei('karten.json', () => ({ karten: {}, gelesen: {} }), (lokal, fern) => {  // zwei Geräte: je Karte gilt die zuletzt beantwortete (t)
   for (const [id, k] of Object.entries(fern.karten || {})) if (!lokal.karten[id] || (k.t || 0) > (lokal.karten[id].t || 0)) lokal.karten[id] = k;
   lokal.gelesen = { ...fern.gelesen, ...lokal.gelesen };
@@ -4362,8 +4394,9 @@ const kartenLaden = alle => KARTEN_P = KARTEN_P.then(async () => {
 }).catch(e => { KARTEN = null; KARTEN_P = Promise.resolve(); KARTEN_D.vergessen(); throw e; });
 function kartenStapel(fach = KARTEN_FACH, woche = KARTEN_WOCHE) {  // heute dran: fällige Wiederholungen, dazu neue bis zum Tageslimit
   const alle = Object.entries(KARTEN?.karten || {}).filter(([, k]) => kartenPasst(k, fach, woche));
-  const schon = KARTEN?.neu?.datum === HEUTE ? KARTEN.neu.n : 0;
-  return [...alle.filter(([, k]) => k.box > 0 && k.faellig <= HEUTE),
+  const schon = KARTEN?.neu?.datum === HEUTE ? KARTEN.neu.n : 0, wdh = KARTEN?.wdh?.datum === HEUTE ? KARTEN.wdh.n : 0;
+  const dran = alle.filter(([, k]) => k.box > 0 && k.faellig <= HEUTE), nochmal = ([, k]) => k.t && iso(new Date(k.t)) === HEUTE;  // heute falsch: kommt immer, zählt nicht
+  return [...dran.filter(nochmal), ...dran.filter(x => !nochmal(x)).sort(([, a], [, b]) => a.faellig.localeCompare(b.faellig)).slice(0, Math.max(0, WDH_PRO_TAG - wdh)),
     ...alle.filter(([, k]) => !k.box).sort(([, a], [, b]) => a.datum.localeCompare(b.datum)).slice(0, Math.max(0, NEU_PRO_TAG - schon))].map(([id]) => id);
 }
 const kartenSichern = () => { clearTimeout(KARTEN_UHR); KARTEN_UHR = null; return KARTEN_D.speichern().catch(e => status(e.message, true)); };
@@ -4420,6 +4453,7 @@ function kartenAntwort(gewusst) {
   const id = STAPEL.shift(), k = KARTEN.karten[id];
   if (gewusst && SERVER) api('campus/karte', { id }).then(r => { if (r.gezaehlt) zahltag(); }, () => {});  // Campus: der Server prüft selbst, ob die Karte fällig war
   if (!k.box) KARTEN.neu = { datum: HEUTE, n: (KARTEN.neu?.datum === HEUTE ? KARTEN.neu.n : 0) + 1 };
+  else if (!(k.t && iso(new Date(k.t)) === HEUTE)) KARTEN.wdh = { datum: HEUTE, n: (KARTEN.wdh?.datum === HEUTE ? KARTEN.wdh.n : 0) + 1 };
   k.box = gewusst ? Math.min(5, k.box + 1) : 1;
   k.faellig = plusTage(gewusst ? ABSTAND[k.box] : 0);
   k.t = Date.now();
@@ -4465,7 +4499,7 @@ async function kartenZeigen() {
   const imFach = Object.values(KARTEN.karten).filter(x => kartenPasst(x, KARTEN_FACH, '')), diese = wocheVon(HEUTE), letzte = wocheVon(plusTage(-7));
   const wochen = [...new Set(imFach.map(x => wocheVon(x.datum)))].sort().reverse();
   const wocheName = w => w === diese ? 'Diese Woche' : w === letzte ? 'Letzte Woche' : `Woche vom ${datum(w, { day: 'numeric', month: 'long' })}`;
-  const anzahl = f => alle.filter(x => f(x.box)).length, morgen = alle.filter(x => x.box > 0 && x.faellig === plusTage(1)).length;
+  const anzahl = f => alle.filter(x => f(x.box)).length, morgen = alle.filter(x => x.box > 0 && x.faellig <= plusTage(1)).length;  // mit dem, was der Tagesdeckel heute übrig ließ
   const karte = k && el('button', { class: 'karte', type: 'button', 'aria-label': `Karteikarte ${k.b.slice(0, 160)}. Tippen zum Umdrehen.`,
     onclick: e => { const um = e.currentTarget.classList.toggle('um'); e.currentTarget.querySelector('.seite-h').setAttribute('aria-hidden', String(!um)); } },
     el('span', { class: 'innen' },
@@ -4473,7 +4507,7 @@ async function kartenZeigen() {
       el('span', { class: 'seite-h', 'aria-hidden': 'true' }, k.art === 'frage' ? markdown(el('span', { class: 'definition lang' }), k.d) : bruechen(el('span', { class: 'definition' }, k.d)))));
   s.replaceChildren(...[
     kopf(el('p', { class: 'schlagzeile' }, STAPEL.length ? `Heute ${STAPEL.length === 1 ? 'ist eine Karte' : `sind ${STAPEL.length} Karten`} dran` : 'Für heute alles gelernt'),
-      el('p', { class: 'meta' }, 'Die Begriffe aus deinen Wochenausgaben, dazu Check-Fragen und Klausuraufgaben, die du beantwortet hast. Was du weißt, kommt nach 1, 3, 7, 14 und 30 Tagen wieder, was nicht, gleich nochmal. Neu kommen höchstens 20 am Tag.')),
+      el('p', { class: 'meta' }, 'Die Begriffe aus deinen Wochenausgaben, dazu Check-Fragen und Klausuraufgaben, die du beantwortet hast. Was du weißt, kommt nach 1, 3, 7, 14 und 30 Tagen wieder, was nicht, gleich nochmal. Am Tag höchstens 20 neue und 80 Wiederholungen, der Rest wartet bis morgen.')),
     el('div', { class: 'karten-seite' },
       el('div', { class: 'karten-filter' },
         el('label', { class: 'feld' }, 'Fach', el('select', { onchange: e => {
@@ -4491,7 +4525,8 @@ async function kartenZeigen() {
           foEntwurf('stoff', 'frage', k.f, `Frage zu „${foKlartext(k.b).slice(0, 70)}“`, `Bei dieser Karte hänge ich:\n\n${[k.b, '', k.d].join('\n').split('\n').map(z => ('> ' + z).trimEnd()).join('\n')}\n\nWas ich nicht verstehe: `);
         } }, 'Im Forum fragen')))
         : el('div', { class: 'fertig-karte' }, el('div', {}, el('p', { class: 'schlagzeile' }, alle.length ? 'Geschafft.' : 'Noch keine Begriffe.'),
-          el('p', { class: 'meta' }, alle.length ? `Morgen ${morgen === 1 ? 'kommt eine Wiederholung' : `kommen ${morgen} Wiederholungen`}${anzahl(b => !b) ? ', dazu neue Karten' : ''}.` : 'Sie kommen mit der ersten Wochenausgabe.'))),
+          el('p', { class: 'meta' }, alle.length ? `Morgen ${morgen === 1 ? 'kommt eine Wiederholung' : `kommen ${morgen} Wiederholungen`}${anzahl(b => !b) ? ', dazu neue Karten' : ''}.` : 'Sie kommen mit der ersten Wochenausgabe.'),
+          !alle.length && !KARTEN_FACH && !KARTEN_WOCHE && ersteAusgabeKnopf())),
       el('div', { class: 'kacheln' }, kachel('Neu', anzahl(b => !b), 'noch nie gesehen'), kachel('Am Lernen', anzahl(b => b === 1 || b === 2), 'kommen bald wieder'),
         kachel('Sitzt', anzahl(b => b >= 3), 'auch nach einer Woche noch gewusst')),
       foDa() && alle.some(x => !x.art) && el('div', { class: 'knopfreihe' }, el('button', { class: 'knopf', type: 'button', onclick: kartenTeilen }, 'Im Forum teilen')),
@@ -4709,7 +4744,7 @@ async function pruefungZeigen(fach) {
   const kopf = el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Prüfungstraining'),
     el('p', { class: 'schlagzeile' }, f ? `${f}: Probeklausur, Schwächen-Training und Lernskript` : 'Sobald es Ausgaben gibt, geht es hier los'),
     el('p', { class: 'meta' }, 'Aus allen deinen Wochenausgaben, mit dem Modell aus den Einstellungen.'));
-  if (!f) return s.replaceChildren(kopf);
+  if (!f) return s.replaceChildren(kopf, ersteAusgabeKnopf());
   const st = PT[f] ??= {};
   if (!st.geladen) {
     st.geladen = true;
@@ -5158,8 +5193,10 @@ async function wpNachschlagen() {  // Titel und Vorschaubild über YouTube oEmbe
 // OpenRouter gestreamt: zeigt Fortschritt und hält die Verbindung offen. OpenRouter schickt auch beim Nachdenken
 // alle paar Sekunden ein Lebenszeichen; bleibt das lange aus, ist die Verbindung tot (iPad gesperrt, Funkloch) und wir brechen ab.
 const STILLE = 90e3;  // gemessen: höchstens 4 s ohne Lebenszeichen
-async function strom(body, beiText, beimDenken) {
+async function strom(body, beiText, beimDenken, abbruch) {  // abbruch: AbortSignal, wenn man selbst abbrechen darf
   const halt = new AbortController();
+  abbruch?.addEventListener('abort', () => halt.abort(), { once: true });
+  if (abbruch?.aborted) halt.abort();
   let wache = setTimeout(() => halt.abort(), STILLE), puffer = '', text = '', preis = 0, ende = null;
   try {
     const r = await fetch(KI, { method: 'POST', body: JSON.stringify({ ...kiBody(body), stream: true, usage: { include: true } }), signal: halt.signal, headers: kiKopf() });
@@ -5182,6 +5219,7 @@ async function strom(body, beiText, beimDenken) {
       }
     }
   } catch (e) {
+    if (abbruch?.aborted) throw Object.assign(new Error('Abgebrochen.'), { abgebrochen: true });
     if (halt.signal.aborted) throw new Error('Die Verbindung ist abgerissen: 90 Sekunden kam von OpenRouter nichts mehr. Bitte noch einmal starten, Bildschirm dabei anlassen.');
     throw e;
   } finally { clearTimeout(wache); }
@@ -6932,7 +6970,8 @@ function testUebersicht() {
   $('onlinetests').replaceChildren(...[
     el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Onlinetests'),
       el('p', { class: 'schlagzeile' }, n ? `${n} ${n === 1 ? 'Test ist' : 'Tests sind'} gerade offen` : 'Gerade ist kein Test offen'),
-      el('p', { class: 'meta' }, `Aus OLAT, Stand des letzten Abgleichs${darf('test-foto') ? ', dazu deine Tests per Foto' : ''}. Ein Test zeigt angetippt seine Aufgabenstellung.`)),
+      el('p', { class: 'meta' }, `Aus OLAT, Stand des letzten Abgleichs${darf('test-foto') ? ', dazu deine Tests per Foto' : ''}. Ein Test zeigt angetippt seine Aufgabenstellung.`),
+      abgleichAlt() > 0 && el('p', { class: 'abgleich warnung' }, `${abgleichSeit()} kein OLAT-Abgleich: Neue Tests fehlen hier vielleicht. Läuft der Computer mit dem Lernhelfer-Programm?`)),
     darf('test-foto') && testFotoForm(),
     gruppe('Jetzt offen', 'Frist zuerst', gruppen.offen, true),
     gruppe('Als Nächstes', 'Je Fach der nächste Test', naechste, false,
@@ -6940,6 +6979,7 @@ function testUebersicht() {
     zu('Zum Üben', 'Selbsttests und Tests ohne Punkte', gruppen.uebung),
     zu('Erledigt und vorbei', 'mit deinen Antworten und der Lösung, soweit OLAT sie zeigt', gruppen.fertig),
     !TESTS.length && el('p', { class: 'leer' }, 'Noch keine Tests. Der PC oder Mac liest sie beim nächsten Abgleich aus OLAT.' + (darf('test-foto') ? ' Ohne Computer fügst du sie per Foto hinzu.' : '')),
+    !TESTS.length && !ABGLEICH && el('div', { class: 'knopfreihe' }, el('a', { class: 'knopf voll', href: '#/einstellungen' }, 'Programm für PC oder Mac einrichten')),
   ].filter(Boolean));
 }
 // OLAT-Text: Formeln stehen ohne Begrenzer darin (f(x)= 6x^{3} \cdot e^{5x}). Wörter mit LaTeX-Zeichen werden mit ihren
@@ -7654,6 +7694,9 @@ function pcDatei(z) {  // Startdatei mit Zugang; das eigentliche Einrichten läd
     'echo.', 'echo Diese Datei loescht sich jetzt selbst, weil dein Speicher-Schluessel darin steht.', 'pause', '(goto) 2>nul & del "%~f0"', ''].join('\r\n'),
     'Lernhelfer-PC-einrichten.cmd', 'application/octet-stream');
 }
+// Der PC gleicht etwa alle 12 Stunden ab (7–23 Uhr); nach anderthalb Tagen ohne ist er wohl aus oder das Programm hängt → Tage, sonst 0
+const abgleichAlt = () => { const t = ABGLEICH?.ok ? (Date.now() - new Date(ABGLEICH.zeit)) / 864e5 : 0; return t >= 1.5 ? Math.floor(t) : 0; };
+const abgleichSeit = () => abgleichAlt() === 1 ? 'Seit über einem Tag' : `Seit ${abgleichAlt()} Tagen`;
 async function abgleichHolen() {  // abgleich.json schreibt der PC: wann zuletzt abgeglichen, oder dass er neu bei OLAT einloggen muss
   const neu = await gh('abgleich.json').then(t => t && JSON.parse(t)).catch(() => null);
   const anders = JSON.stringify(neu) !== JSON.stringify(ABGLEICH);
@@ -7661,9 +7704,10 @@ async function abgleichHolen() {  // abgleich.json schreibt der PC: wann zuletzt
   const wann = ABGLEICH && new Date(ABGLEICH.zeit).toLocaleString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   $('stand').textContent = !ABGLEICH ? (Object.keys(R).length ? 'Deine Unterlagen lädst du selbst hoch (Unterlagen). Mit dem Programm für PC oder Mac kommen sie von selbst.'
       : `Noch kein OLAT-Abgleich. Das Programm für PC und Mac gibt es unter ${SERVER ? 'Konto' : 'Einrichten bei Schritt 3'}; ohne Computer lädst du die Unterlagen selbst hoch.`)
+    : abgleichAlt() ? `${abgleichSeit()} kein OLAT-Abgleich (zuletzt ${wann}). Läuft der Computer mit dem Lernhelfer-Programm? Sobald er an ist, holt er alles nach.`
     : ABGLEICH.ok ? `OLAT-Abgleich ${wann}: ${ABGLEICH.text}. Der Computer gleicht von selbst ab, solange er läuft.`
     : `${ABGLEICH.text} (seit ${wann})`;
-  $('stand').classList.toggle('warnung', ABGLEICH?.ok === false);
+  $('stand').classList.toggle('warnung', ABGLEICH?.ok === false || !!abgleichAlt());
   if (!anders) return;
   if (ABGLEICH?.ok && !Object.keys(R).length) { TESTS = null; await laden().catch(() => {}); return zeichne(); }  // erster Abgleich fertig
   if (document.body.dataset.ansicht === 'einstellungen') einrichtenZeigen();
@@ -7899,10 +7943,13 @@ function kontoZeile() {  // statt Guthaben: Tarif und wie viel vom KI-Kontingent
       el('span', {}, `KI-Kontingent ${ICH.genutzt} % genutzt`),
       (gratis() || ICH.test) && el('a', { href: '#/upgrade' }, 'Mehr freischalten')].filter(Boolean));
 }
+// Offline lesen (sw.js): App und zuletzt gelesene Daten bleiben im Gerät, das Netz geht immer vor. Beim Ab- und Anmelden geleert.
+if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('sw.js').catch(() => {});
+const offlineLeeren = () => Promise.resolve(self.caches?.delete('lernhelfer')).catch(() => {});
 function neuLaden(hinweis) {  // nach An- und Abmelden: alles frisch, damit nichts vom vorigen Konto stehen bleibt
   try { if (hinweis) sessionStorage.setItem('hinweis', hinweis); } catch {}
   history.replaceState(null, '', location.pathname + '#/');
-  location.reload();
+  offlineLeeren().finally(() => location.reload());
 }
 let PW_TOKEN = null, HINWEIS = '';  // aus dem Mail-Link #passwort=…; Hinweis bleibt nach dem Laden stehen
 async function kontoStart() {
@@ -8115,7 +8162,7 @@ function kontoZeigen() {
       el('div', { class: 'einladen' }, el('input', { readonly: true, type: 'password', value: ICH.api, 'aria-label': 'API-Schlüssel', onfocus: e => { e.target.type = 'text'; e.target.select(); }, onblur: e => { e.target.type = 'password'; } }),
         el('button', { class: 'knopf', type: 'button', onclick: e => kopieren(e, ICH.api) }, 'Kopieren'))),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-pc' }, el('h2', { id: 'k-pc' }, 'Unterlagen aus OLAT'),
-      el('p', { class: `stand${ABGLEICH?.ok ? ' ok' : ''}${ABGLEICH?.ok === false ? ' warnung' : ''}` }, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text),
+      el('p', { class: `stand${ABGLEICH?.ok && !abgleichAlt() ? ' ok' : ''}${ABGLEICH?.ok === false || abgleichAlt() ? ' warnung' : ''}` }, !ABGLEICH ? (Object.keys(R).length ? 'Selbst hochgeladen, kein Abgleich' : 'Noch kein Abgleich') : abgleichAlt() ? `${abgleichSeit()} kein Abgleich (zuletzt ${wann}). Ist der Computer an?` : ABGLEICH.ok ? `Letzter Abgleich ${wann}: ${ABGLEICH.text}` : ABGLEICH.text),
       el('p', { class: 'klein' }, 'Am bequemsten holt ein kleines Programm auf deinem Windows-PC oder Mac neue Folien und Tests aus OLAT, solange der Computer an ist. Bei OLAT loggst du dich ab und zu im Chrome-Fenster selbst ein. Den automatischen Login kannst du unter „Konto“ einschalten, sobald der erste Abgleich gelaufen ist. Er ist anfangs aus.'),
       pcEinrichten(), (ICH.pc || ABGLEICH) && autoLoginTeil(), ohneComputer()),
     el('section', { class: 'schritt', 'aria-labelledby': 'k-weg' }, el('h2', { id: 'k-weg' }, 'Abmelden'),
@@ -9834,7 +9881,7 @@ function piep() {  // drei kurze Töne, ohne Tondatei
   } catch {}
   navigator.vibrate?.([200, 100, 200]);
 }
-const melden = (titel, text) => { status(`${titel} ${text}`); try { if (Notification.permission === 'granted' && document.hidden) new Notification(titel, { body: text, tag: 'arena' }); } catch {} };
+const melden = (titel, text, tag = 'arena') => { status(`${titel} ${text}`); try { if (Notification.permission === 'granted' && document.hidden) new Notification(titel, { body: text, tag }); } catch {} };
 const rundeRest = () => RUNDE.server ? Math.max(0, RUNDE.min * 60e3 - RUNDE.aktiv) : Math.max(0, RUNDE.halt ?? RUNDE.ende - Date.now());
 // Server: Die Runde zählt nur, solange die App offen ist; kurz weg (andere App, Bildschirm aus) zählt höchstens 5 Minuten am Stück, wie auf dem Server.
 const rundePuls = (extra = {}) => api('arena/runde', { puls: true, ...extra }).catch(e => { if (e.status === 410 && RUNDE?.server) { RUNDE = null; merk('arena-runde', null); status(e.message, true); arenaNeu(); } });
@@ -9931,7 +9978,7 @@ function zahltag() {
   }, 2000);
 }
 function rundeTicken() {
-  const titel = document.title.replace(/^(\d+:\d\d|Pause \d+:\d\d) · /, '');
+  const titel = document.title.replace(/(\d+:\d\d|Pause \d+:\d\d) · /, '');  // nicht nur am Anfang: davor kann „… entsteht (2:31) · “ stehen
   if (!RUNDE) { document.querySelectorAll('[data-runde-uhr]').forEach(e => { e.textContent = ''; }); document.title = titel; return; }
   if (RUNDE.server) {  // nur sichtbare Zeit zählt hier mit; Lebenszeichen alle 30 Sekunden
     const t = Date.now(), dt = t - RUNDE.tick;
@@ -11214,7 +11261,76 @@ function foMelden(p, anon) {
   d.showModal();
 }
 
-const ANSICHTEN = { start: 'Start', thema: 'Thema lernen', arena: 'Arena', forum: 'Forum', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', changelog: 'Changelog', einstellungen: SERVER ? 'Konto' : 'Einrichten',
+/* ---------- Suchen: Seiten, Teile der Zusammenfassungen, Begriffe, Check-Fragen und Themen an einem Ort ---------- */
+// Sucht nur im Gerät. Beim ersten Öffnen lädt sie einmal alle Wochenausgaben (sonst kennt die App nur die neueste je Fach).
+let SUCHE_LADEN = null;
+const suchKlar = s => String(s || '').replace(/```[\s\S]*?```/g, ' ').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\\[()[\]]|\$\$?|[#*_`>|]/g, '').replace(/\s+/g, ' ').trim();
+function suchAuszug(text, woerter, laenge = 170) {  // Stelle um den ersten Treffer, Fundstellen markiert wie im Forum
+  const klein = text.toLocaleLowerCase('de'), i = Math.max(0, klein.indexOf(woerter[0])), von = i > 60 ? i - 50 : 0;
+  const stueck = (von ? '…' : '') + text.slice(von, von + laenge) + (text.length > von + laenge ? '…' : '');
+  const re = new RegExp(`(${woerter.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return stueck.split(re).map((t, j) => j % 2 ? el('mark', {}, t) : t);
+}
+function suchTreffer(roh) {
+  const woerter = roh.toLocaleLowerCase('de').split(/\s+/).filter(Boolean);
+  if (!woerter.length) return [el('p', { class: 'leer' }, 'Durchsucht alle deine Wochenausgaben, Karteikarten und Themen. Auch Seiten wie „Noten“ oder „Kalender“ findest du hier.')];
+  const passt = (...t) => { const s = t.join(' ').toLocaleLowerCase('de'); return woerter.every(w => s.includes(w)); };
+  const woche = (f, d) => `${f} · ${d === R[f].ausgaben[0]?.datum ? 'neueste Ausgabe' : `Ausgabe vom ${datum(d, { day: 'numeric', month: 'long' })}`}`;
+  const zuAusgabe = (f, d) => `#/${encodeURIComponent(f)}${d === R[f].ausgaben[0]?.datum ? '' : '/' + d}`;
+  const ausgaben = Object.keys(R).flatMap(f => R[f].ausgaben.map(a => R[f].cache[a.datum] && [f, R[f].cache[a.datum]]).filter(Boolean));
+  const seiten = [...document.querySelectorAll('#seitenleiste a[href^="#/"]')].filter(a => !a.closest('[hidden]') && a.dataset.ansicht !== 'suche')
+    .map(a => ({ href: a.getAttribute('href'), titel: ANSICHTEN[a.dataset.ansicht] || a.textContent.trim() })).filter(x => passt(x.titel)).map(x => ({ ...x, meta: 'Seite' }));
+  const teile = ausgaben.flatMap(([f, a]) => abschnitt(a, 'zusammenfassung').split(/^(?=### )/m).filter(t => t.startsWith('### ')).map((t, i) => {
+    const titel = suchKlar(t.split('\n')[0].slice(4)), text = suchKlar(t.split(/^#### Check:/m)[0].split('\n').slice(1).join(' '));  // die Check-Frage verrät der Auszug nicht
+    return passt(titel, text) && { href: zuAusgabe(f, a.datum), titel, meta: woche(f, a.datum), auszug: suchAuszug(text, woerter), fach: f, ziel: { key: `${f}/${a.datum}`, i } };
+  })).filter(Boolean);
+  const gesehen = new Set();  // derselbe Begriff in mehreren Wochen: nur der neueste
+  const begriffe = ausgaben.flatMap(([f, a]) => a.begriffe.filter(b => passt(b.begriff, b.definition) && !gesehen.has(f + '|' + b.begriff.toLowerCase()) && gesehen.add(f + '|' + b.begriff.toLowerCase()))
+    .map(b => ({ href: zuAusgabe(f, a.datum), titel: b.begriff, meta: woche(f, a.datum), auszug: suchAuszug(suchKlar(b.definition), woerter), fach: f })));
+  const fragen = Object.values(KARTEN?.karten || {}).filter(k => k.art === 'frage' && passt(k.b, k.d))
+    .map(k => ({ href: '#/karten', titel: suchKlar(k.b).slice(0, 160), meta: `${k.f} · Karteikarte`, auszug: suchAuszug(suchKlar(k.d), woerter), fach: k.f }));
+  const themen = (THEMEN_D.daten?.themen || []).filter(t => passt(t.titel, t.kern))
+    .map(t => ({ href: `#/thema/${t.id}`, titel: t.titel, meta: ['Thema lernen', t.fach].filter(Boolean).join(' · '), auszug: t.kern && suchAuszug(suchKlar(t.kern), woerter) }));
+  const gruppen = [['Seiten', seiten], ['In den Zusammenfassungen', teile], ['Begriffe', begriffe], ['Check-Fragen', fragen], ['Themen', themen]].filter(([, l]) => l.length);
+  if (!gruppen.length) return [el('p', { class: 'leer' }, `Nichts zu „${roh.trim()}“ gefunden.${SUCHE_LADEN ? '' : ' Ältere Ausgaben laden noch …'}`)];
+  return gruppen.map(([name, l]) => el('section', { class: 'teil' }, el('div', { class: 'rubrik' }, el('h2', {}, name), l.length > 8 && el('p', { class: 'meta' }, `8 von ${l.length}, genauer suchen für den Rest`)),
+    el('ol', { class: 'fo-liste such-liste' }, l.slice(0, 8).map(x => el('li', { 'data-fach': x.fach || null },
+      el('a', { href: x.href, onclick: () => { if (x.ziel) LERN_ZIEL = x.ziel; } }, x.titel),
+      x.auszug && el('p', { class: 'fo-auszug' }, x.auszug), el('span', { class: 'meta' }, x.meta))))));
+}
+function sucheZeigen(q = '') {
+  const liste = el('div', { 'aria-live': 'polite' }), neu = () => liste.replaceChildren(...suchTreffer(feld.value));
+  const feld = el('input', { type: 'search', value: q, placeholder: 'Begriff, Thema oder Seite', 'aria-label': 'Suchen', autocomplete: 'off', enterkeyhint: 'search', spellcheck: false,
+    oninput: () => { history.replaceState(null, '', '#/suche' + (feld.value.trim() ? '/' + encodeURIComponent(feld.value.trim()) : '')); ort = location.hash; neu(); },
+    onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); liste.querySelector('a')?.click(); } } });  // Enter öffnet den ersten Treffer
+  $('suche').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, 'Suchen')), el('div', { class: 'such-feld' }, feld), liste,
+    matchMedia('(hover: hover)').matches && el('p', { class: 'meta such-tasten' }, 'Von überall: ', el('kbd', {}, BEFEHL + ' K'), ' oder ', el('kbd', {}, '/'),
+      '. In einer Wochenausgabe springst du mit ', el('kbd', {}, '←'), ' und ', el('kbd', {}, '→'), ' von Teil zu Teil.'));
+  neu(); setTimeout(() => feld.focus());  // nach zeichne(), das sonst den Fokus auf den Inhalt legt
+  SUCHE_LADEN ??= Promise.all([...Object.keys(R).flatMap(f => R[f].ausgaben.map(a => ausgabe(f, a.datum).catch(() => null))),
+    THEMEN_D.laden().catch(() => null), darf('karten') && kartenLaden(false).catch(() => null)]).then(() => { SUCHE_LADEN = true; });
+  if (SUCHE_LADEN !== true) SUCHE_LADEN.then(() => document.body.dataset.ansicht === 'suche' && neu());
+}
+const BEFEHL = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Strg';  // Taste für Kürzel: Apple-Geräte ⌘, sonst Strg
+// Tastenkürzel am Computer: Strg/⌘+K oder / öffnet die Suche; in einer Wochenausgabe springen ← und → zwischen den Lernteilen
+document.addEventListener('keydown', e => {
+  const tippt = !!e.target.closest?.('input, select, textarea, [contenteditable], [tabindex]:not([tabindex^="-"]), video, audio');
+  if (fertig() && (e.key.toLowerCase() === 'k' && (BEFEHL === '⌘' ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey || e.key === '/' && !tippt && !e.metaKey && !e.ctrlKey && !e.altKey)) {
+    e.preventDefault();
+    if (document.body.dataset.ansicht === 'suche') $('suche').querySelector('input')?.select(); else location.hash = '#/suche';
+    return;
+  }
+  if (tippt || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || document.body.dataset.ansicht !== 'ausgabe' || !['ArrowLeft', 'ArrowRight'].includes(e.key) || $('meldung').open) return;
+  const teile = [...$('ausgabe').querySelectorAll('.lernteil')], jetzt = teile.findIndex(d => d.open);
+  const ziel = teile[Math.max(0, Math.min(teile.length - 1, jetzt + (e.key === 'ArrowRight' ? 1 : -1)))];
+  if (!ziel || jetzt >= 0 && ziel === teile[jetzt]) return;
+  e.preventDefault();
+  for (const d of teile) d.open = d === ziel;
+  ziel.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  ziel.querySelector('summary').focus({ preventScroll: true });
+});
+
+const ANSICHTEN = { start: 'Start', suche: 'Suchen', thema: 'Thema lernen', arena: 'Arena', forum: 'Forum', video: 'Videos', kalender: 'Kalender', wordpower: 'Word Power', onlinetests: 'Onlinetests', noten: 'Noten', karten: 'Karteikarten', pruefung: 'Prüfungstraining', vortrag: 'Vortrag', unterlagen: 'Unterlagen', anleitung: 'Anleitung', changelog: 'Changelog', einstellungen: SERVER ? 'Konto' : 'Einrichten',
   upgrade: 'Tarife', admin: 'Admin-Ecke', recht: 'Impressum, Datenschutz und AGB' };
 // Word Power sehen nur Konten mit der Englisch-Rolle (Admin-Ecke: Haken je Konto oder Aktion für neue Konten), der Admin und die eigene Version
 const wpSichtbar = () => !SERVER || !!ICH?.admin || !!ICH?.englisch || ICH?.tarif === 'englisch';
@@ -11583,14 +11699,26 @@ const CHANGELOG = [
     ['15:15', 'Login einrichten ohne Blindflug', 'Passwort und 2FA-Schlüssel blieben beim Eintippen komplett unsichtbar, und Strg+V fügte den langen Schlüssel im alten Windows-Fenster gar nicht ein. Jetzt erscheint jedes Zeichen als Stern, Tab zeigt den Text zum Nachprüfen, und Strg+V klappt überall. Der Text davor ist in Sicherheit und drei Schritte gegliedert statt ein Block.', 0, 1],
     ['18:25', 'Automatischer Login findet die Uni-Seite wieder', 'Beim ersten Test brach der automatische Login mit „Login-Seite sah anders aus als erwartet“ ab. Die Uni schaltet vor das Anmeldeformular eine leere Zwischenseite, die sich nach einem Augenblick selbst weiterschickt. Das Programm schaute zu früh nach dem Passwortfeld. Jetzt wartet es bis zu 15 Sekunden auf das Formular.', 0, 1],
     ['19:00', 'Jeder 2FA-Code nur einmal', 'Die Uni nimmt jeden 6-stelligen Code nur einmal an. Hatte man den Code gerade im Account Portal eingegeben, schickte der Test-Login direkt danach denselben Code nochmal und wurde abgelehnt. Jetzt wartet das Programm bis zum nächsten Code. Klappt der Test nicht, kann man ihn mit denselben Daten wiederholen, statt alles neu einzutippen, und die Meldung sagt, ob die Uni den Code abgelehnt hat.', 0, 1],
-    ['19:30', 'Abgleich in den Infobereich', 'Das Fenster des PC-Programms stand während des ganzen Abgleichs in der Taskleiste. Jetzt verschwindet es mit der Taste M als kleines Lernhelfer-Symbol in den Infobereich unten rechts (eventuell hinter dem „^“). Fährt man mit der Maus darüber, sieht man den Fortschritt, ein Klick holt das Fenster zurück, und am Ende kommt es von selbst wieder. Der Bereich unten im Fenster hat außerdem mehr Luft: ein Abstand zum Logbuch und die Tasten in einer eigenen Zeile.', 0, 2]], t: [
+    ['19:30', 'Abgleich in den Infobereich', 'Das Fenster des PC-Programms stand während des ganzen Abgleichs in der Taskleiste. Jetzt verschwindet es mit der Taste M als kleines Lernhelfer-Symbol in den Infobereich unten rechts (eventuell hinter dem „^“). Fährt man mit der Maus darüber, sieht man den Fortschritt, ein Klick holt das Fenster zurück, und am Ende kommt es von selbst wieder. Der Bereich unten im Fenster hat außerdem mehr Luft: ein Abstand zum Logbuch und die Tasten in einer eigenen Zeile.', 0, 2],
+    ['19:45', 'Abbrechen, suchen, offline lesen', 'Eine Wochenausgabe lässt sich jetzt abbrechen, solange die KI schreibt. Der Browser-Tab zeigt, wie lange sie schon läuft, und ist sie fertig, während man in einer anderen App ist, kommt eine Mitteilung. Dazu gibt es eine Suche über alles, Tastenkürzel, einen Hinweis, wenn der PC seit Tagen nicht abgeglichen hat, und eine Obergrenze für Wiederholungen im Karteikasten.', 0, 2, [
+      'Abbrechen geht nur, solange die KI noch schreibt. Ist der Text da, ist er bezahlt, und die App speichert ihn lieber, als ihn wegzuwerfen.',
+      'Die Suche lädt beim ersten Öffnen einmal alle älteren Ausgaben und findet Teile der Zusammenfassungen, Begriffe, Check-Fragen, Themen und Seiten. Ein Treffer in einer Zusammenfassung öffnet genau diesen Teil.',
+      'Am Computer öffnen Strg+K (am Mac ⌘K) und / die Suche, in einer Ausgabe springen ← und → von Teil zu Teil.',
+      'Nach ein paar Tagen Pause kamen bisher alle fälligen Karten auf einmal. Jetzt sind es höchstens 80 Wiederholungen am Tag, die ältesten zuerst. Was heute falsch war, kommt trotzdem noch einmal.',
+      'Was man zuletzt gelesen hat, zeigt die App auch ohne Netz, etwa im Hörsaal. Außerdem lässt sie sich als App auf den Home-Bildschirm legen.',
+      'Leere Seiten (Karteikarten, Prüfungstraining, Onlinetests) haben jetzt einen Knopf zum nächsten Schritt.']]], t: [
     ['14:50', 'Automatischer Login: Anleitung in App und PC-Programm sagt, das Account Portal auf Deutsch zu stellen, sonst fehlt der „hier“-Link'],
     ['15:10', 'PC-Programm: Esc bricht den Abgleich ab, im Wartebildschirm den im Hintergrund; Tastenhinweis rechts im Fortschrittsbereich'],
     ['15:15', 'PC-Programm: Passwort und 2FA-Schlüssel als Sterne, Tab zeigt sie, Strg+V fügt auch in der alten Konsole ein; Einrichte-Text gegliedert'],
     ['18:25', 'PC-Programm: automatischer Login wartet auf die Zwischenseite der Uni, bevor er Kennung und Passwort einträgt'],
     ['19:00', 'PC-Programm: Test-Login wartet auf einen frischen 2FA-Code, lässt sich mit denselben Daten wiederholen und meldet einen abgelehnten Code klar'],
     ['19:05', 'PC-Programm: Login-Fenster zumachen bricht den Abgleich sauber ab, statt eine Fehlermeldung samt Absturzbericht zu erzeugen'],
-    ['19:30', 'PC-Programm: Taste M versteckt das Fenster als Symbol im Infobereich, Klick holt es zurück; Fortschrittsbereich luftiger, Tasten in eigener Zeile']] },
+    ['19:30', 'PC-Programm: Taste M versteckt das Fenster als Symbol im Infobereich, Klick holt es zurück; Fortschrittsbereich luftiger, Tasten in eigener Zeile'],
+    ['19:45', 'Wochenausgabe abbrechen, solange die KI schreibt; Laufzeit im Browser-Tab, Mitteilung wenn sie fertig ist'],
+    ['19:45', 'Suche über Zusammenfassungen, Begriffe, Check-Fragen, Themen und Seiten; Strg/⌘+K und /, ← und → zwischen den Lernteilen'],
+    ['19:45', 'Hinweis, wenn der OLAT-Abgleich älter als anderthalb Tage ist (Heute, Onlinetests, Konto)'],
+    ['19:45', 'Karteikasten: höchstens 80 Wiederholungen am Tag, die ältesten zuerst'],
+    ['19:45', 'Zuletzt Gelesenes auch ohne Netz, als App auf den Home-Bildschirm; leere Seiten mit Knopf zum nächsten Schritt']] },
 ];
 // Umfang heute: Codezeilen je Teil ohne Bibliotheken, Schriften und Bilder (von Hand gezählt, mit Stand)
 const CL_UMFANG = { stand: '2026-11-24', teile: [['Campus', 31046], ['App', 12438], ['Server', 3143], ['PC-Programm', 2903], ['Lernhof', 2315]] };
@@ -11636,12 +11764,12 @@ async function zeichne() {
   const [teil, tag] = anker ? ['anleitung'] : location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const offen = SERVER && (teil === 'recht' || teil === 'upgrade' && !!TARIFE?.verkauf);  // Preise und Impressum auch ohne Konto; ohne Verkauf keine Tarifseite
   let neu = teil === 'anleitung' || teil === 'changelog' || teil === 'start' && SERVER ? teil : offen ? teil : !fertig() || teil === 'einstellungen' ? (SERVER && !teil ? 'start' : 'einstellungen')
-    : ['thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin', 'forum'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
+    : ['suche', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'video', ...SERVER ? ['admin', 'forum'] : []].includes(teil) ? teil : R[teil] ? 'ausgabe'
     : !teil && !eingerichtet() ? 'start' : 'titelblatt';  // wer noch nichts eingerichtet hat, landet auf Start
   if (betaWeg(neu)) neu = 'titelblatt';
   if (SPERREN[neu] && !darf(SPERREN[neu])) neu = 'gesperrt';  // Server: Funktion ohne passenden Tarif
   if ($('meldung').open) $('meldung').close();
-  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'forum', 'video', 'anleitung', 'changelog', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
+  for (const id of ['start', 'titelblatt', 'ausgabe', 'einstellungen', 'suche', 'thema', 'kalender', 'wordpower', 'onlinetests', 'noten', 'karten', 'pruefung', 'vortrag', 'unterlagen', 'arena', 'forum', 'video', 'anleitung', 'changelog', 'gesperrt', 'upgrade', 'admin', 'recht']) $(id).hidden = id !== neu;
   document.body.dataset.ansicht = neu;
   ankuendigungZeigen();
   $('h-mail').replaceChildren(...SERVER && ICH && !ICH.bestaetigt && !['einstellungen', 'recht', 'anleitung', 'changelog'].includes(neu) ? [el('div', { class: 'willkommen h-mail' },  // unter Konto steht es schon
@@ -11686,6 +11814,7 @@ async function zeichne() {
   else if (neu === 'forum') await forumZeigen();
   else if (neu === 'video') await videoZeigen(tag);
   else if (neu === 'thema') await themaZeigen(tag);
+  else if (neu === 'suche') sucheZeigen(tag);
   else if (neu === 'gesperrt') $('gesperrt').replaceChildren(el('header', { class: 'ausgabe-kopf' }, el('h1', {}, ANSICHTEN[teil])), sperrBuehne(SPERREN[teil]));
   else if (neu === 'upgrade') upgradeZeigen();
   else if (neu === 'admin') await adminZeigen();
@@ -11733,11 +11862,12 @@ $('seitenleiste').addEventListener('click', e => { if (e.target.closest('a')) me
 addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('leiste-offen')) mehrZu(); });
 for (const s of document.querySelectorAll('.thema-schalter')) s.onclick = () => { merk('thema', s.getAttribute('aria-checked') === 'true' ? null : 'dunkel'); aussehen(); };
 aussehen();
+$('such-taste').textContent = BEFEHL + ' K';
 $('modell').onchange = () => { merk('modell', $('modell').value); $('modell-name').textContent = $('modell').value; };
 $('alle').onclick = () => Promise.all(Object.keys(R).map(f => drucke(f)));
 $('abmelden').onclick = () => {
   if (!confirm('Schlüssel und Zugang von diesem Gerät löschen? Deine Unterlagen und Ausgaben bleiben im Speicher.')) return;
-  merk('cfg', null); cfg = null; GUTHABEN = null; ABGLEICH = null;
+  merk('cfg', null); cfg = null; GUTHABEN = null; ABGLEICH = null; offlineLeeren();
   for (const k of Object.keys(R)) delete R[k];
   zeichne();
 };

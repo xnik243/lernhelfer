@@ -1,0 +1,10 @@
+{
+  "name": "Lernhelfer",
+  "short_name": "Lernhelfer",
+  "lang": "de",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#fbfbf9",
+  "theme_color": "#fbfbf9",
+  "icons": [{ "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }]
+}

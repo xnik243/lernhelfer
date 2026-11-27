@@ -2094,6 +2094,8 @@ const DATEIEN = {
   '/presentation/': ['presentation/index.html', 'text/html; charset=utf-8'],  // Folien stehen verschlüsselt darin (presentation/bauen.mjs)
   '/holen.py': ['holen.py', 'text/plain; charset=utf-8'], '/holen.py.sig': ['holen.py.sig', 'text/plain; charset=utf-8'], '/einrichten.ps1': ['einrichten.ps1', 'text/plain; charset=utf-8'],
   '/einrichten-mac.sh': ['einrichten-mac.sh', 'text/plain; charset=utf-8'],
+  '/sw.js': ['sw.js', 'text/javascript; charset=utf-8'], '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'],  // offline lesen, zum Home-Bildschirm
+  '/icon-180.png': ['icon-180.png', 'image/png'],
   '/ich.jpg': ['ich.jpg', 'image/jpeg'],  // Foto für „Wer dahintersteckt“; fehlt es, blendet die Startseite den Rahmen aus
   '/fonts/Archivo.woff2': ['fonts/Archivo.woff2', 'font/woff2'], '/fonts/SourceSerif4.woff2': ['fonts/SourceSerif4.woff2', 'font/woff2'],
   // Programmbibliotheken der App, selbst ausgeliefert statt von jsDelivr; die Version steht im Namen, darum darf der Browser sie lange behalten
