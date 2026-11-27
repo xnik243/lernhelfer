@@ -442,7 +442,8 @@ def test_anzeige():
     a.write("ja\n")
     a.warnung("BWL: X nicht geladen")
     bild = [z for z in vt(a.raus.getvalue(), 100)[0] if z.strip()]
-    assert "Frage: ja" in bild and "! BWL: X nicht geladen" in bild[-3] and "Verbinde mit OLAT" in bild[-2], bild
+    assert "Frage: ja" in bild and "! BWL: X nicht geladen" in bild[-4] and "Verbinde mit OLAT" in bild[-3], bild
+    assert "Esc" in bild[-1] and "abbrechen" in bild[-1], "Tasten in eigener Zeile unten"
 
     a = neu(100)  # höchstens 3 Fundzeilen je Ordner, dann eine Sammelzeile
     a.schritt("Unterlagen", 2, faecher=["BWL"])

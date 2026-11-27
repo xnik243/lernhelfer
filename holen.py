@@ -148,6 +148,149 @@ def _sauber(s):
                    if unicodedata.category(c) not in ("Cc", "Cf", "Mn", "Me"))
 
 
+def _logo_ico():
+    """32×32-Symbol für den Infobereich wie das Logo im Fenster: gelbes Feld, schwarzes L, blauer Haken. Icon-Ressource (DIB, BGRA)."""
+    gelb, schwarz, blau = (95, 255, 255, 255), (0, 0, 0, 255), (215, 95, 0, 255)
+    px = [[gelb] * 32 for _ in range(32)]
+    for y, x in [(y, x) for y in range(7, 25) for x in range(7, 11)] + [(y, x) for y in range(21, 25) for x in range(7, 17)]:
+        px[y][x] = schwarz
+
+    def strich(x0, y0, x1, y1):
+        for i in range(41):
+            x, y = round(x0 + (x1 - x0) * i / 40), round(y0 + (y1 - y0) * i / 40)
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    px[y + dy][x + dx] = blau
+    strich(18, 17, 21, 21)
+    strich(21, 21, 27, 10)
+    for y, x in ((0, 0), (0, 1), (1, 0), (0, 31), (0, 30), (1, 31), (31, 0), (31, 1), (30, 0), (31, 31), (31, 30), (30, 31)):
+        px[y][x] = (0, 0, 0, 0)  # runde Ecken
+    return struct.pack("<IiiHHIIiiII", 40, 32, 64, 1, 32, 0, 0, 0, 0, 0, 0) + b"".join(bytes(p) for z in reversed(px) for p in z) + bytes(128)
+
+
+class Infobereich:
+    """Windows: Taste M versteckt das Fenster (Konsole bzw. Windows Terminal) als Lernhelfer-Symbol im Infobereich der Taskleiste
+    (unten rechts, ggf. hinter „^“). Ein Klick aufs Symbol holt es zurück, am Programmende kommt es von selbst wieder.
+    Klappt beim Einrichten etwas nicht, gibt es die Taste einfach nicht."""
+    ZETTEL = BASIS / ".versteckt"  # Fensternummer, solange versteckt: hintergrund_stoppen() zeigt es nach dem Beenden wieder
+
+    def __init__(self):
+        self.fenster, self.weg, self.tipp, self.empfang = None, False, "Lernhelfer", None
+        self.lock = threading.Lock()
+
+    def starten(self):
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes as w
+            u, s, k = ctypes.WinDLL("user32"), ctypes.WinDLL("shell32"), ctypes.WinDLL("kernel32")
+            k.GetConsoleWindow.restype = u.GetWindow.restype = u.CreateWindowExW.restype = w.HWND
+            k.GetModuleHandleW.restype = w.HMODULE
+            u.GetWindow.argtypes, u.GetClassNameW.argtypes = [w.HWND, w.UINT], [w.HWND, w.LPWSTR, ctypes.c_int]
+            u.ShowWindow.argtypes, u.SetForegroundWindow.argtypes = [w.HWND, ctypes.c_int], [w.HWND]
+            u.DefWindowProcW.argtypes, u.DefWindowProcW.restype = [w.HWND, w.UINT, w.WPARAM, w.LPARAM], ctypes.c_ssize_t
+            u.CreateWindowExW.argtypes = [w.DWORD, w.LPCWSTR, w.LPCWSTR, w.DWORD, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                          ctypes.c_int, w.HWND, w.HMENU, w.HINSTANCE, w.LPVOID]
+            u.CreateIconFromResourceEx.restype = w.HICON
+            u.CreateIconFromResourceEx.argtypes = [ctypes.c_char_p, w.DWORD, w.BOOL, w.DWORD, ctypes.c_int, ctypes.c_int, w.UINT]
+            konsole = k.GetConsoleWindow()
+            fenster = (konsole and u.GetWindow(konsole, 4)) or konsole  # GW_OWNER: Windows Terminal besitzt die Pseudo-Konsole
+            name = ctypes.create_unicode_buffer(64)
+            u.GetClassNameW(fenster, name, 64)
+            if name.value not in ("ConsoleWindowClass", "CASCADIA_HOSTING_WINDOW_CLASS"):  # nie z. B. VS Code samt Editor verstecken
+                return
+
+            class Daten(ctypes.Structure):  # NOTIFYICONDATAW
+                _fields_ = [("cbSize", w.DWORD), ("hWnd", w.HWND), ("uID", w.UINT), ("uFlags", w.UINT), ("uCallbackMessage", w.UINT),
+                            ("hIcon", w.HICON), ("szTip", w.WCHAR * 128), ("dwState", w.DWORD), ("dwStateMask", w.DWORD),
+                            ("szInfo", w.WCHAR * 256), ("uVersion", w.UINT), ("szInfoTitle", w.WCHAR * 64), ("dwInfoFlags", w.DWORD),
+                            ("guidItem", ctypes.c_byte * 16), ("hBalloonIcon", w.HICON)]
+            ico = _logo_ico()
+            self.ctypes, self.w, self.u, self.s, self.k, self.Daten = ctypes, w, u, s, k, Daten
+            self.icon = u.CreateIconFromResourceEx(ico, len(ico), True, 0x30000, 32, 32, 0)
+            bereit = threading.Event()
+            threading.Thread(target=self._empfangen, args=(bereit,), daemon=True).start()
+            if bereit.wait(3) and self.empfang and self.icon:
+                self.fenster = fenster
+        except Exception:
+            self.fenster = None
+
+    def _empfangen(self, bereit):
+        """Unsichtbares Fenster, das die Klicks aufs Symbol bekommt, samt Nachrichtenschleife (eigener Thread)."""
+        ctypes, w, u = self.ctypes, self.w, self.u
+        proc = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, w.HWND, w.UINT, w.WPARAM, w.LPARAM)
+
+        class Klasse(ctypes.Structure):  # WNDCLASSW
+            _fields_ = [("style", w.UINT), ("proc", proc), ("extra", ctypes.c_int), ("extra2", ctypes.c_int), ("inst", w.HINSTANCE),
+                        ("icon", w.HICON), ("cursor", w.HANDLE), ("pinsel", w.HBRUSH), ("menue", w.LPCWSTR), ("name", w.LPCWSTR)]
+
+        def nachricht(h, m, wp, lp):
+            if m == 0x8001 and (lp & 0xFFFF) in (0x202, 0x205):  # WM_APP+1, linke oder rechte Maustaste losgelassen
+                self.zeigen()
+                return 0
+            return u.DefWindowProcW(h, m, wp, lp)
+        self._proc = proc(nachricht)  # Verweis halten, sonst räumt Python den Rückruf weg
+        try:
+            inst = self.k.GetModuleHandleW(None)
+            u.RegisterClassW(ctypes.byref(Klasse(proc=self._proc, inst=inst, name="LernhelferSymbol")))
+            self.empfang = u.CreateWindowExW(0, "LernhelferSymbol", "Lernhelfer", 0, 0, 0, 0, 0, None, None, inst, None)
+        finally:
+            bereit.set()
+        msg = w.MSG()
+        while u.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            u.TranslateMessage(ctypes.byref(msg))
+            u.DispatchMessageW(ctypes.byref(msg))
+
+    def _symbol(self, was):
+        """Shell_NotifyIcon: 0 hinzufügen, 1 Tooltip ändern, 2 entfernen."""
+        d = self.Daten(hWnd=self.empfang, uID=1, uFlags=7, uCallbackMessage=0x8001, hIcon=self.icon, szTip=self.tipp[:127])
+        d.cbSize = self.ctypes.sizeof(d)
+        self.s.Shell_NotifyIconW(was, self.ctypes.byref(d))
+
+    def verstecken(self):
+        with self.lock:
+            if self.fenster and not self.weg:
+                self._symbol(0)
+                self.u.ShowWindow(self.fenster, 0)  # SW_HIDE
+                self.weg = True
+                try:
+                    self.ZETTEL.write_text(str(self.fenster))
+                except OSError:
+                    pass
+
+    def zeigen(self):
+        with self.lock:
+            if self.weg:
+                self.weg = False
+                self.u.ShowWindow(self.fenster, 5)  # SW_SHOW
+                self.u.SetForegroundWindow(self.fenster)
+                self._symbol(2)
+                self.ZETTEL.unlink(missing_ok=True)
+
+    def titel(self, text):
+        with self.lock:
+            self.tipp = text
+            if self.weg:
+                self._symbol(1)
+
+
+def fenster_zurueck():
+    """Nach hintergrund_stoppen(): hatte der beendete Abgleich sein Fenster versteckt, es wieder zeigen
+    (sonst wartet es unsichtbar auf einen Tastendruck)."""
+    try:
+        import ctypes
+        u = ctypes.WinDLL("user32")
+        u.ShowWindow.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        u.ShowWindow(int(Infobereich.ZETTEL.read_text()), 5)
+        Infobereich.ZETTEL.unlink()
+    except (OSError, ValueError):
+        pass
+
+
+INFOBEREICH = Infobereich()
+
+
 class Anzeige:
     """Konsolenfenster beim Abgleich von Hand („Lernhelfer OLAT“, Einrichten): Kopf mit Logo und letztem Lauf, darunter ein
     Logbuch (✓-Zeilen, Kurse, Funde) und ganz unten ein Live-Bereich: auf der Spur fährt das Logo als Chip mit, Funde bleiben
@@ -195,6 +338,7 @@ class Anzeige:
         self.mac = sys.platform == "darwin"
         sys.stdout = sys.stderr = self
         atexit.register(self.schluss)
+        INFOBEREICH.starten()
         threading.Thread(target=self._drehen, daemon=True).start()
         self._kopf()
 
@@ -287,6 +431,7 @@ class Anzeige:
         titel = (f"Lernhelfer · {self.titel}" + (f" {self.wert}/{self.gesamt}" if self.gesamt else "")) if self.titel else "Lernhelfer"
         if titel != self.osc:
             s, self.osc = f"\x1b]0;{titel}\x07", titel
+            INFOBEREICH.titel(titel)  # Tooltip am Symbol, solange das Fenster versteckt ist
         stufe = (f"1;{100 * min(self.wert, self.gesamt) // self.gesamt}" if self.gesamt else "3;0") if self.titel else "0;0"
         if self.leiste and stufe != self.stufe:
             s, self.stufe = s + f"\x1b]9;4;{stufe}\x07", stufe
@@ -346,15 +491,15 @@ class Anzeige:
                   ("·" * (5 - voll), self.DUNKEL), (f" {rest:.1f} s".replace(".", ",") + " · wie beim Klicken von Hand", self.GRAU)]
         else:
             z2 = [("   ", ""), (rad, self.BLAU), (" ", ""), (self.ort, self.FETT), (("  " if self.ort else "") + self.tun, self.GRAU)]
-        kappe = f" {self.TASTE} "  # rechts an der Kante, wenn Platz ist: welche Taste abbricht
-        frei = self._kante() - sum(len(_sauber(x)) for x, _ in z2) - len(kappe) - 1 - len(self.abbruch)
-        if self.abbruch and frei >= 3:
-            z2 += [(" " * frei, ""), (kappe, self.KAPPE), (" " + self.abbruch, self.GRAU)]
-        zeilen = [self._kuerzen(z1, sp - 1), self._kuerzen(z2, sp - 1)]
+        zeilen = [("", 0), self._kuerzen(z1, sp - 1), self._kuerzen(z2, sp - 1)]  # Leerzeile: Abstand zum Logbuch
         # Z3: Neues je Fach und ein Hinweis zur Phase
         if sp >= 72 and (self.faecher or self.hinweis):
             zeilen.append(self._z3(sp))
-        return zeilen
+        # Tasten mit etwas Abstand darunter
+        tasten = [("   ", ""), (f" {self.TASTE} ", self.KAPPE), (" " + self.abbruch, self.GRAU)]
+        if INFOBEREICH.fenster:
+            tasten += [("     ", ""), (" M ", self.KAPPE), (" minimieren", self.GRAU)]
+        return zeilen + [("", 0), self._kuerzen(tasten, sp - 1)]
 
     def _spur(self, w, n, t, pause):
         chip = self.CHIP.format(229 if pause and (n // 5) % 2 else 227)
@@ -384,6 +529,8 @@ class Anzeige:
                 k = self.funde.get(f, 0) + self.tests_neu.get(f, 0)
                 if k or not ohne_null:
                     teile += [("  ■", self._farbe(f)), (f" {f} ", ""), (str(k), self.FETT if k else self.GRAU)]
+            if len(teile) == 1:  # noch nichts Neues: kein einsames „Neu“, nur der Hinweis
+                return self._kuerzen([("   ", ""), hinweis], sp - 1)
             breite = sum(len(_sauber(x)) for x, _ in teile)
             h = len(self.hinweis) if mit_hinweis and self.hinweis else 0
             if breite + (h + 2 if h else 0) <= kante:
@@ -608,6 +755,7 @@ class Anzeige:
                 self._raus(f"    {self.GRAU}Nichts kaputt: Schon Geladenes bleibt am {GERAET} und kommt beim nächsten Abgleich in die App.{self.AUS}\n")
             self._raus("\x1b[?25h" + ("\x1b]9;4;0;0\x07" if self.leiste else ""))
             self.raus.flush()
+        INFOBEREICH.zeigen()  # versteckt? Am Ende wieder da: Ergebnis sehen, Taste drücken
 
 
 ANZEIGE = Anzeige()
@@ -1885,8 +2033,11 @@ def hintergrund_stoppen():
         return False
     if sys.platform == "win32":  # /T: auch Playwright-Treiber und Chrome darunter
         name = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], capture_output=True).stdout  # Bytes: Meldungen in OEM-Codepage
-        return name.strip().lower().startswith(b'"python') and \
+        ok = name.strip().lower().startswith(b'"python') and \
             subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True).returncode == 0
+        if ok:
+            fenster_zurueck()
+        return ok
     if b"holen.py" not in subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True).stdout:
         return False
     os.kill(pid, signal.SIGTERM)  # der Playwright-Treiber schließt seinen Browser selbst, sobald Python weg ist
@@ -1919,7 +2070,13 @@ def esc_abbruch():
     import msvcrt
 
     def warten():
-        while not (ANZEIGE.titel and not ANZEIGE.offen and msvcrt.kbhit() and msvcrt.getwch() == "\x1b"):
+        while True:
+            if ANZEIGE.titel and not ANZEIGE.offen and msvcrt.kbhit():
+                taste = msvcrt.getwch()
+                if taste == "\x1b":
+                    break
+                if taste in "mM":
+                    INFOBEREICH.verstecken()
             time.sleep(0.1)
         _thread.interrupt_main()
     threading.Thread(target=warten, daemon=True).start()
