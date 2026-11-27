@@ -1,3 +1,4 @@
+import contextlib
 import inspect
 import tempfile
 import zipfile
@@ -303,6 +304,20 @@ def test():
         def count(self): return 0  # auch kein „Eingeloggt als“
         def fill(self, *a): getippt.append(a)
     assert holen.auto_einloggen(Falsch(), {"benutzer": "csab1234", "passwort": "geheim", "geheim": geheim}) and not getippt
+
+    class Zwischenseite:  # echter IdP (27.11.): erst eine leere Seite e1s1, die sich per Skript zur Login-Seite e1s2 weiterschickt
+        url, gewartet, getippt = "https://idp.uibk.ac.at/idp/profile/SAML2/Redirect/SSO?execution=e1s1", 0, {}
+        def goto(self, url): pass
+        def wait_for_timeout(self, _): self.gewartet += 1
+        def locator(self, sel): self.sel = sel; return self
+        def get_by_text(self, _): self.sel = "text"; return self
+        def count(self): return self.sel == "text" or self.sel == "#password" and self.gewartet >= 2
+        def fill(self, sel, wert): self.getippt[sel] = wert
+        def expect_navigation(self): return contextlib.nullcontext()
+        def click(self, _): self.url = holen.OLAT + "/auth/MyCoursesSite/0"  # IdP verlangt diesmal keinen 2FA-Code
+    z = Zwischenseite()
+    assert holen.auto_einloggen(z, {"benutzer": "csab1234", "passwort": "pw", "geheim": geheim}) is None, "wartet auf die Login-Seite"
+    assert z.getippt == {"#username": "csab1234", "#password": "pw"}, z.getippt
 
     # Selbst-Update nur mit gültiger Signatur (Testvektor 1 aus RFC 8032: leere Nachricht)
     rfc = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"

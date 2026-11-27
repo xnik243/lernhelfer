@@ -868,6 +868,13 @@ def auto_einloggen(seite, login):
     Ausnahmen (Netz, Zeitüberschreitung) gehen an den Aufrufer: Dabei wurde nichts Falsches abgeschickt."""
     ANZEIGE.jetzt("Sitzung abgelaufen, ich logge dich selbst ein", "Uni-Login")
     seite.goto(SSO)
+    for _ in range(30):  # der IdP zeigt zuerst eine leere Seite (execution=e1s1), die sich per Skript weiterschickt
+        try:
+            if not auf_idp(seite.url) or seite.locator("#password").count():
+                break
+        except Exception:
+            pass  # Seite wechselt gerade
+        seite.wait_for_timeout(500)
     if auf_idp(seite.url):  # sonst kennt der IdP die Anmeldung noch und schickt gleich zurück zu OLAT
         if not seite.locator("#password").count():
             return "die Login-Seite der Uni sah anders aus als erwartet"
