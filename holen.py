@@ -1306,7 +1306,10 @@ RUECKGABE = "#o_step_review_content li.o_assessment_document"
 
 def ereignis(a):
     """(Adresse, cid) eines OLAT-Links, der statt einer Adresse o_XHREvent(...) aufruft: damit gibt der Testschutz genau ihn frei."""
-    return re.search(r"o_XHREvent\('([^']+)'.*?'cid','([^']+)'", a.get_attribute("onclick")).groups()
+    m = re.search(r"o_XHREvent\('([^']+)'.*?'cid','([^']+)'", a.get_attribute("onclick") or "")
+    if not m:  # OLAT hat seinen Klick-Aufruf geändert: verständlich melden statt „'NoneType' object has no attribute 'groups'“
+        raise ValueError(f"OLAT hat den Knopf „{a.inner_text().strip()[:40]}“ umgebaut, das PC-Programm muss angepasst werden")
+    return m.groups()
 # Eingaben als [Wert] bzw. [x] in den Text, zugeklappte Lösungen aufklappen (nur in der eigenen Seitenkopie)
 LESEN_JS = r"""m => {
   m.querySelectorAll('input[type=text], textarea').forEach(i => i.replaceWith(` [${i.value}] `));

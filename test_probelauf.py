@@ -122,6 +122,7 @@ def test_probelauf():
     assert abgleich["ok"] is True, abgleich
     tests = {t["titel"]: t for t in json.loads(g_speicher["onlinetests.json"])}
     assert set(tests) == {"Testergebnisse", "PS2"}, f"{tests.keys()}\n{g_aus[-3000:]}"
+    assert "Knopf „Herunterladen“ umgebaut" in g_aus and "NoneType" not in g_aus, f"Warnung zu „Kaputt“ unverständlich:\n{g_aus[-3000:]}"
     assert "Punkte: 7 von 10" in tests["Testergebnisse"]["startseite"] and "Punkte: 8" in tests["PS2"]["startseite"]
     hoch = g_speicher["onlinetests.json"].decode()
     assert not any(x in hoch for x in ("Muster Max", "00000000", "26111600000", "iVBOR")), "Name, Matrikelnummer, Klausur-ID oder Scan in der App"
